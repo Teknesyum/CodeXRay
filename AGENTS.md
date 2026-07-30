@@ -30,6 +30,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - `src/services/simulators.ts`: the 13 offline algorithm implementations.
 - `TimelineContext.tsx`: playback, selected algorithm/input, analysis, and local
   AI state. It autosaves only the input workspace in browser storage.
+- `App.tsx`: persistent split sizes and collapse state for the five workspace
+  panels; desktop splitters must remain pointer-accessible and mobile-safe.
 - `GraphInputEditor.tsx`: manual editing plus GraphDocumentV1 and level-order
   tree import/export.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
@@ -50,6 +52,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   registry entry to `isSupported: true`.
 - Every new user-facing string needs English and Turkish output. Language
   switching must update existing simulation steps without rerunning them.
+- Every workspace panel must remain collapsible. Desktop boundaries are
+  resizable, while the mobile layout disables splitters and stacks safely.
 - Keep code and repository documentation in English. Never add secrets, API
   keys, or remote AI calls. Local AI must stay optional and worker-based.
 

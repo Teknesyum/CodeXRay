@@ -24,7 +24,7 @@ describe('VariablesPanel', () => {
     render(
       <TimelineProvider>
         <PopulateTrace />
-        <VariablesPanel />
+        <VariablesPanel collapsed={false} onToggleCollapse={() => undefined} />
       </TimelineProvider>,
     );
     expect(await screen.findByText('Array(15)')).toBeInTheDocument();

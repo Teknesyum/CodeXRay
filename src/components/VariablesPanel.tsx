@@ -49,17 +49,49 @@ const TraceValueView = ({
   return <span className="trace-primitive">{value === null ? 'null' : String(value)}</span>;
 };
 
-export const VariablesPanel = () => {
+interface VariablesPanelProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export const VariablesPanel = ({ collapsed, onToggleCollapse }: VariablesPanelProps) => {
   const { steps, currentIndex, locale } = useTimeline();
   const variables = steps[currentIndex]?.visualData.vars ?? {};
   const previousVariables = currentIndex > 0 ? steps[currentIndex - 1]?.visualData.vars ?? {} : {};
   const keys = Object.keys(variables);
+  const panelTitle = t('variablesTrace', locale);
+
+  if (collapsed) {
+    return (
+      <div className="variables-panel">
+        <div className="collapsed-panel-header">
+          <span>{panelTitle}</span>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('expandPanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="variables-panel glass-panel">
       <div className="variables-header">
-        <h2>{t('variablesTrace', locale)}</h2>
+        <h2>{panelTitle}</h2>
         {keys.length > 0 && <span>{keys.length} {t('tracked', locale)}</span>}
+        <button
+          type="button"
+          className="panel-toggle"
+          aria-label={t('collapsePanel', locale, { panel: panelTitle })}
+          onClick={onToggleCollapse}
+        >
+          −
+        </button>
       </div>
       <div className="variables-content">
         {keys.length === 0 ? (

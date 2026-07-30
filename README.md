@@ -24,6 +24,8 @@ and input are never sent to an API.
 - Instant English/Turkish switching, including existing simulation explanations.
 - The graph/tree builder uses the large visualization panel and can switch back
   to the running simulation without losing input.
+- Resizable desktop boundaries and collapsible code, trace, visualization,
+  assistant, and control panels; preferences persist locally.
 
 ## Development
 

@@ -14,9 +14,16 @@ import './ControlBar.css';
 interface ControlBarProps {
   onSimulate: () => void;
   onAnalyze: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
+export const ControlBar = ({
+  onSimulate,
+  onAnalyze,
+  collapsed,
+  onToggleCollapse,
+}: ControlBarProps) => {
   const {
     algorithmName,
     code,
@@ -40,6 +47,25 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
+  const panelTitle = t('controls', locale);
+
+  if (collapsed) {
+    return (
+      <div className="control-bar">
+        <div className="collapsed-panel-header">
+          <span>{panelTitle}</span>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('expandPanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const loadModel = async () => {
     if (!await supportsLocalAi()) {
@@ -182,6 +208,14 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
             </div>
           )}
         </div>
+        <button
+          type="button"
+          className="panel-toggle"
+          aria-label={t('collapsePanel', locale, { panel: panelTitle })}
+          onClick={onToggleCollapse}
+        >
+          −
+        </button>
       </div>
     </div>
   );

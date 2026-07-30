@@ -10,7 +10,12 @@ interface ChatMessage {
   content: string;
 }
 
-export const AiAssistant = () => {
+interface AiAssistantProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) => {
   const {
     algorithmName,
     code,
@@ -27,6 +32,7 @@ export const AiAssistant = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const panelTitle = t('masterCoder', locale);
 
   useEffect(() => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
@@ -71,12 +77,38 @@ export const AiAssistant = () => {
       ? t('aiReadyPrompt', locale)
       : t('deterministicReady', locale)), locale);
 
+  if (collapsed) {
+    return (
+      <div className="ai-assistant">
+        <div className="collapsed-panel-header">
+          <span>{panelTitle}</span>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('expandPanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ai-assistant">
       <div className="ai-header">
         <Bot size={16} className="ai-icon" />
-        <span>{t('masterCoder', locale)}</span>
+        <span>{panelTitle}</span>
         <span className={`local-status-dot ${aiStatus}`} title={`${t('localAi', locale)}: ${t(`status_${aiStatus}`, locale)}`} />
+        <button
+          type="button"
+          className="panel-toggle"
+          aria-label={t('collapsePanel', locale, { panel: panelTitle })}
+          onClick={onToggleCollapse}
+        >
+          −
+        </button>
       </div>
       <div className="ai-body" ref={chatBodyRef}>
         <div className="chat-message system-msg"><p>{systemMessage}</p></div>

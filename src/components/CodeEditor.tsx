@@ -12,7 +12,12 @@ const inputHelpKeys: Record<InputKind, string> = {
   graph: 'graphHelp',
 };
 
-export const CodeEditor = () => {
+interface CodeEditorProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => {
   const {
     code,
     setCode,
@@ -32,6 +37,25 @@ export const CodeEditor = () => {
     setIsEditingInput,
   } = useTimeline();
   const currentStep = steps[currentIndex];
+  const panelTitle = t('sourceCode', locale);
+
+  if (collapsed) {
+    return (
+      <div className="code-editor">
+        <div className="collapsed-panel-header">
+          <span>{panelTitle}</span>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('expandPanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const resetTimeline = () => {
     setSteps([]);
@@ -63,7 +87,7 @@ export const CodeEditor = () => {
   return (
     <div className="code-editor">
       <div className="editor-header">
-        <h2>{t('sourceCode', locale)}</h2>
+        <h2>{panelTitle}</h2>
         <select
           aria-label={t('algorithmPreset', locale)}
           className="registry-select"
@@ -77,6 +101,14 @@ export const CodeEditor = () => {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="panel-toggle"
+          aria-label={t('collapsePanel', locale, { panel: panelTitle })}
+          onClick={onToggleCollapse}
+        >
+          −
+        </button>
       </div>
 
       <div className="input-config">

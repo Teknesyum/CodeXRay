@@ -38,3 +38,22 @@ test('accepts custom array input for a sorting algorithm', async ({ page }) => {
   await expect(page.getByLabel('Selection Sort execution')).toBeVisible();
   await expect(page.getByText('1 /')).toBeVisible();
 });
+
+test('resizes and collapses workspace panels', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('separator')).toHaveCount(4);
+  const leftPanel = page.locator('.panel-left');
+  const initialWidth = (await leftPanel.boundingBox())?.width ?? 0;
+  const splitter = page.getByRole('separator', { name: 'Resize left and right panels' });
+  const box = await splitter.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move((box?.x ?? 0) + 2, (box?.y ?? 0) + 100);
+  await page.mouse.down();
+  await page.mouse.move((box?.x ?? 0) + 82, (box?.y ?? 0) + 100);
+  await page.mouse.up();
+  await expect.poll(async () => (await leftPanel.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(initialWidth + 50);
+
+  await page.getByRole('button', { name: 'Collapse Controls' }).click();
+  await expect(page.getByRole('button', { name: 'Expand Controls' })).toBeVisible();
+});

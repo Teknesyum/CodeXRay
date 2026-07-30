@@ -114,7 +114,15 @@ const VisualDataView = ({ visualData }: { visualData: VisualData }) => {
   );
 };
 
-export const DynamicVisualizer = () => {
+interface DynamicVisualizerProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export const DynamicVisualizer = ({
+  collapsed,
+  onToggleCollapse,
+}: DynamicVisualizerProps) => {
   const {
     algorithmName,
     steps,
@@ -130,11 +138,30 @@ export const DynamicVisualizer = () => {
   const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
     && Boolean(simulationInput.graph);
   const showBuilder = supportsBuilder && (isEditingInput || !currentStep);
+  const panelTitle = showBuilder ? t('inputBuilder', locale) : t('simulationView', locale);
+
+  if (collapsed) {
+    return (
+      <div className="dynamic-visualizer">
+        <div className="collapsed-panel-header">
+          <span>{panelTitle}</span>
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('expandPanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dynamic-visualizer">
       <div className="visualizer-header">
-        <h2>{showBuilder ? t('inputBuilder', locale) : t('simulationView', locale)}</h2>
+        <h2>{panelTitle}</h2>
         <div className="visualizer-header-actions">
           {supportsBuilder && (
             <div className="visualizer-mode-toggle">
@@ -151,6 +178,14 @@ export const DynamicVisualizer = () => {
             </div>
           )}
           {!showBuilder && currentStep && <span>{currentIndex + 1} / {steps.length}</span>}
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={t('collapsePanel', locale, { panel: panelTitle })}
+            onClick={onToggleCollapse}
+          >
+            −
+          </button>
         </div>
       </div>
       {showBuilder && simulationInput.graph ? (

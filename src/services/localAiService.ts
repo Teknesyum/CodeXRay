@@ -50,17 +50,25 @@ const getWorker = () => {
   return worker;
 };
 
-export const supportsLocalAi = () =>
-  typeof Worker !== 'undefined'
-  && typeof navigator !== 'undefined'
-  && 'gpu' in navigator;
+export const supportsLocalAi = async (): Promise<boolean> => {
+  if (typeof Worker === 'undefined' || typeof navigator === 'undefined') return false;
+  const gpu = (navigator as Navigator & {
+    gpu?: { requestAdapter: () => Promise<unknown> };
+  }).gpu;
+  if (!gpu) return false;
+  try {
+    return Boolean(await gpu.requestAdapter());
+  } catch {
+    return false;
+  }
+};
 
-export const initializeLocalAi = (
+export const initializeLocalAi = async (
   model: string,
   onProgress: (text: string) => void,
 ): Promise<void> => {
-  if (!supportsLocalAi()) {
-    return Promise.reject(new Error('WebGPU is not available in this browser.'));
+  if (!await supportsLocalAi()) {
+    throw new Error('WebGPU is not available in this browser.');
   }
   if (readyModel === model) return Promise.resolve();
   const currentWorker = getWorker();

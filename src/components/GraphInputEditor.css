@@ -1,4 +1,8 @@
 .graph-input-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border-bottom: 1px solid rgba(0, 243, 255, 0.12);
   background: rgba(0, 0, 0, 0.3);
   padding: 10px 14px;
@@ -39,7 +43,8 @@
 }
 
 .graph-builder-canvas {
-  height: 215px;
+  flex: 1;
+  min-height: 280px;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(0, 243, 255, 0.22);
@@ -118,6 +123,10 @@
   margin-top: 8px;
   color: var(--text-muted);
   font-size: 0.75rem;
+}
+
+.dynamic-visualizer > .graph-input-editor {
+  border-bottom: 0;
 }
 
 .graph-import-export p {

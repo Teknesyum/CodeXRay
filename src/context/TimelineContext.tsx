@@ -8,6 +8,7 @@ import {
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { createInputPreset } from '../services/inputPresets';
+import type { Locale } from '../i18n/translations';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 
@@ -42,6 +43,10 @@ interface TimelineContextType {
   setAiStatus: (status: LocalAiStatus) => void;
   aiProgress: string;
   setAiProgress: (progress: string) => void;
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  isEditingInput: boolean;
+  setIsEditingInput: (editing: boolean) => void;
 }
 
 const STORAGE_KEY = 'codexray.workspace.v1';
@@ -74,6 +79,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [aiModel, setAiModel] = useState('Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC');
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
+  const [locale, setLocale] = useState<Locale>(() =>
+    localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
+  );
+  const [isEditingInput, setIsEditingInput] = useState(false);
 
   const stepForward = useCallback(() => {
     setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
@@ -107,6 +116,11 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [simulationInput]);
 
+  useEffect(() => {
+    localStorage.setItem('codexray.locale', locale);
+    document.documentElement.lang = locale;
+  }, [locale]);
+
   return (
     <TimelineContext.Provider value={{
       code,
@@ -139,6 +153,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setAiStatus,
       aiProgress,
       setAiProgress,
+      locale,
+      setLocale,
+      isEditingInput,
+      setIsEditingInput,
     }}>
       {children}
     </TimelineContext.Provider>

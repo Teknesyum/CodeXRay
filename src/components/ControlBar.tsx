@@ -8,7 +8,7 @@ import {
   resetLocalAi,
   supportsLocalAi,
 } from '../services/localAiService';
-import { t } from '../i18n/translations';
+import { t, translateRuntimeText } from '../i18n/translations';
 import './ControlBar.css';
 
 interface ControlBarProps {
@@ -35,31 +35,36 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
     setAiStatus,
     aiProgress,
     setAiProgress,
+    locale,
   } = useTimeline();
   const [showSettings, setShowSettings] = useState(false);
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
 
   const loadModel = async () => {
-    if (!supportsLocalAi()) {
+    if (!await supportsLocalAi()) {
       setAiStatus('unsupported');
-      setAiProgress('WebGPU is unavailable. Simulations still work without AI.');
+      setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
       return;
     }
     setAiStatus('loading');
     try {
-      await initializeLocalAi(aiModel, setAiProgress);
+      await initializeLocalAi(aiModel, (progress) => {
+        setAiProgress(locale === 'tr' ? t('loading', locale) : progress);
+      });
       setAiStatus('ready');
-      setAiProgress('Local model ready. No code or prompts leave this browser.');
+      setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {
       setAiStatus('error');
-      setAiProgress(error instanceof Error ? error.message : 'Local model failed to load.');
+      setAiProgress(translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
     }
   };
 
   const openExamples = () => {
     if (!code) return;
-    setExampleQuestions(generateQuestions(algorithmName, code));
+    setExampleQuestions(generateQuestions(algorithmName, code).map((question) =>
+      translateRuntimeText(question, locale),
+    ));
     setShowQuestionsMenu(true);
   };
 
@@ -67,19 +72,19 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
     <div className="control-bar">
       <div className="control-group">
         <button className="neon-button simulate-btn" onClick={onSimulate}>
-          ⚡ {t('simulate')}
+          ⚡ {t('simulate', locale)}
         </button>
         <button className="neon-button analyze-btn" onClick={onAnalyze}>
-          🔍 {t('analyze')}
+          🔍 {t('analyze', locale)}
         </button>
         <div className="qs-menu-container">
           <button className="neon-button qs-btn" onClick={openExamples} disabled={!code}>
-            💡 {t('examples')}
+            💡 {t('examples', locale)}
           </button>
           {showQuestionsMenu && exampleQuestions.length > 0 && (
             <div className="qs-dropdown">
               <div className="qs-dropdown-header">
-                <span>{t('exampleQuestions')}</span>
+                <span>{t('exampleQuestions', locale)}</span>
                 <button className="close-btn" onClick={() => setShowQuestionsMenu(false)}>×</button>
               </div>
               <div className="qs-list">
@@ -93,7 +98,7 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
                       setShowQuestionsMenu(false);
                     }}
                   >
-                    {t('example')} {index + 1}: {question}
+                    {t('example', locale)} {index + 1}: {question}
                   </button>
                 ))}
               </div>
@@ -103,19 +108,19 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
       </div>
 
       <div className="control-group playback-controls">
-        <button aria-label="Previous step" className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0}>
+        <button aria-label={t('previousStep', locale)} className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0}>
           <StepBack size={28} />
         </button>
         {isPlaying ? (
-          <button aria-label="Pause" className="icon-btn tiny-play" onClick={pause} disabled={steps.length === 0}>
+          <button aria-label={t('pause', locale)} className="icon-btn tiny-play" onClick={pause} disabled={steps.length === 0}>
             <Pause size={16} />
           </button>
         ) : (
-          <button aria-label="Play" className="icon-btn tiny-play" onClick={play} disabled={steps.length === 0}>
+          <button aria-label={t('play', locale)} className="icon-btn tiny-play" onClick={play} disabled={steps.length === 0}>
             <Play size={16} />
           </button>
         )}
-        <button aria-label="Next step" className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0}>
+        <button aria-label={t('nextStep', locale)} className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0}>
           <StepForward size={28} />
         </button>
       </div>
@@ -124,7 +129,7 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
         <div className="speed-control">
           <FastForward size={16} className="speed-icon" />
           <input
-            aria-label="Playback speed"
+            aria-label={t('playbackSpeed', locale)}
             type="range"
             min="1"
             max="10"
@@ -134,18 +139,18 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
           />
         </div>
         <div className="settings-container">
-          <button aria-label="Settings" className="icon-btn settings-btn" onClick={() => setShowSettings(!showSettings)}>
+          <button aria-label={t('settings', locale)} className="icon-btn settings-btn" onClick={() => setShowSettings(!showSettings)}>
             <Settings size={18} />
           </button>
           {showSettings && (
-            <div className="settings-modal glass-panel" role="dialog" aria-label="Settings">
+            <div className="settings-modal glass-panel" role="dialog" aria-label={t('settings', locale)}>
               <div className="settings-modal-header">
-                <h2>Local AI Settings</h2>
+                <h2>{t('localAiSettings', locale)}</h2>
                 <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
               </div>
               <div className="settings-modal-content">
                 <div className="settings-section">
-                  <div className="settings-title">On-device model</div>
+                  <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
                     className="api-provider-select"
                     value={aiModel}
@@ -158,19 +163,19 @@ export const ControlBar = ({ onSimulate, onAnalyze }: ControlBarProps) => {
                     }}
                   >
                     {LOCAL_AI_MODELS.map((model) => (
-                      <option key={model.id} value={model.id}>{model.label}</option>
+                      <option key={model.id} value={model.id}>{translateRuntimeText(model.label, locale)}</option>
                     ))}
                   </select>
                 </div>
                 <p className="local-ai-note">
-                  The model downloads once and runs in your browser with WebGPU. Code and questions are never sent to an API.
+                  {t('localAiPrivacy', locale)}
                 </p>
                 <button
                   className="neon-button"
                   onClick={loadModel}
                   disabled={aiStatus === 'loading' || aiStatus === 'ready'}
                 >
-                  {aiStatus === 'loading' ? 'Loading…' : aiStatus === 'ready' ? 'Model ready' : 'Load local model'}
+                  {aiStatus === 'loading' ? t('loading', locale) : aiStatus === 'ready' ? t('modelReady', locale) : t('loadLocalModel', locale)}
                 </button>
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
               </div>

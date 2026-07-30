@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, Loader, Send } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion } from '../services/aiService';
-import { t } from '../i18n/translations';
+import { t, translateRuntimeText } from '../i18n/translations';
 import './AiAssistant.css';
 
 interface ChatMessage {
@@ -20,6 +20,7 @@ export const AiAssistant = () => {
     selectedExampleQuestion,
     setSelectedExampleQuestion,
     aiStatus,
+    locale,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const [question, setQuestion] = useState('');
@@ -31,7 +32,7 @@ export const AiAssistant = () => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
   }, [chatHistory, analysis, currentStep, isTyping]);
 
-  useEffect(() => setChatHistory([]), [code]);
+  useEffect(() => setChatHistory([]), [code, locale]);
 
   const submitQuestion = useCallback(async (userMessage: string) => {
     const history = [...chatHistory];
@@ -45,17 +46,18 @@ export const AiAssistant = () => {
         code,
         currentStep,
         history,
+        locale,
       );
       setChatHistory((previous) => [...previous, { role: 'ai', content: answer }]);
     } catch (error) {
       setChatHistory((previous) => [...previous, {
         role: 'system',
-        content: error instanceof Error ? error.message : 'The local model could not answer.',
+        content: translateRuntimeText(error instanceof Error ? error.message : 'The local model could not answer.', locale),
       }]);
     } finally {
       setIsTyping(false);
     }
-  }, [algorithmName, chatHistory, code, currentStep]);
+  }, [algorithmName, chatHistory, code, currentStep, locale]);
 
   useEffect(() => {
     if (!selectedExampleQuestion) return;
@@ -63,18 +65,18 @@ export const AiAssistant = () => {
     setSelectedExampleQuestion(null);
   }, [aiStatus, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
 
-  const systemMessage = analysis
+  const systemMessage = translateRuntimeText(analysis
     ?? currentStep?.explanation
     ?? (aiStatus === 'ready'
-      ? 'Local AI is ready. Run a simulation or ask about the selected code.'
-      : 'Deterministic simulation is ready. Load the optional local model in Settings to chat.');
+      ? t('aiReadyPrompt', locale)
+      : t('deterministicReady', locale)), locale);
 
   return (
     <div className="ai-assistant">
       <div className="ai-header">
         <Bot size={16} className="ai-icon" />
-        <span>{t('masterCoder')}</span>
-        <span className={`local-status-dot ${aiStatus}`} title={`Local AI: ${aiStatus}`} />
+        <span>{t('masterCoder', locale)}</span>
+        <span className={`local-status-dot ${aiStatus}`} title={`${t('localAi', locale)}: ${t(`status_${aiStatus}`, locale)}`} />
       </div>
       <div className="ai-body" ref={chatBodyRef}>
         <div className="chat-message system-msg"><p>{systemMessage}</p></div>
@@ -87,7 +89,7 @@ export const AiAssistant = () => {
         {isTyping && (
           <div className="chat-message ai-msg typing">
             <Loader size={14} className="spin-icon" />
-            <p>Thinking locally…</p>
+            <p>{t('thinkingLocally', locale)}</p>
           </div>
         )}
       </div>
@@ -100,12 +102,12 @@ export const AiAssistant = () => {
       >
         <input
           type="text"
-          placeholder={aiStatus === 'ready' ? t('askPlaceholder') : 'Load the local model in Settings to chat'}
+          placeholder={aiStatus === 'ready' ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           disabled={isTyping || aiStatus !== 'ready'}
         />
-        <button aria-label="Send question" type="submit" className="send-btn" disabled={isTyping || aiStatus !== 'ready'}>
+        <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={isTyping || aiStatus !== 'ready'}>
           <Send size={14} />
         </button>
       </form>

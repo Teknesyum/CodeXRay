@@ -1,6 +1,7 @@
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { simulateAlgorithm } from './simulators';
 import { askLocalModel } from './localAiService';
+import type { Locale } from '../i18n/translations';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'ai';
@@ -100,6 +101,7 @@ export const askQuestion = async (
   code: string,
   currentStep: SimulationStep | undefined,
   chatHistory: ChatMessage[] = [],
+  locale: Locale = 'en',
 ): Promise<string> => {
   const context = [
     `Algorithm: ${algorithmName}`,
@@ -107,6 +109,7 @@ export const askQuestion = async (
     `Current line: ${currentStep?.lineNumber ?? 'not running'}`,
     `Current explanation: ${currentStep?.explanation ?? 'none'}`,
     `Variables: ${JSON.stringify(currentStep?.visualData.vars ?? {})}`,
+    `Answer language: ${locale === 'tr' ? 'Turkish' : 'English'}`,
   ].join('\n\n');
   return askLocalModel(question, context, chatHistory);
 };

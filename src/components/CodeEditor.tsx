@@ -2,15 +2,14 @@ import { useTimeline } from '../context/TimelineContext';
 import { algorithmRegistry } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import type { InputKind } from '../types/simulation';
-import { GraphInputEditor } from './GraphInputEditor';
-import { t } from '../i18n/translations';
+import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
 import './CodeEditor.css';
 
-const inputHelp: Record<InputKind, string> = {
-  array: 'JSON or comma-separated numbers, e.g. [8, 3, 5, 1]',
-  string: 'Plain or quoted text, e.g. AABAABAAZ or s = "AABA"',
-  tree: 'Use the builder or import level-order JSON: [1,2,3,null,4]',
-  graph: 'Use the builder or import a GraphDocumentV1 JSON object',
+const inputHelpKeys: Record<InputKind, string> = {
+  array: 'arrayHelp',
+  string: 'stringHelp',
+  tree: 'treeHelp',
+  graph: 'graphHelp',
 };
 
 export const CodeEditor = () => {
@@ -29,6 +28,8 @@ export const CodeEditor = () => {
     inputError,
     setInputError,
     pause,
+    locale,
+    setIsEditingInput,
   } = useTimeline();
   const currentStep = steps[currentIndex];
 
@@ -47,12 +48,14 @@ export const CodeEditor = () => {
     if (algorithm) {
       const kind = getInputKindForAlgorithm(algorithm.name);
       setSimulationInput(createInputPreset(kind, 1));
+      setIsEditingInput(kind === 'graph' || kind === 'tree');
     }
     resetTimeline();
   };
 
   const selectInputKind = (kind: InputKind) => {
     setSimulationInput(createInputPreset(kind, 1));
+    setIsEditingInput(kind === 'graph' || kind === 'tree');
     setInputError(null);
     resetTimeline();
   };
@@ -60,35 +63,35 @@ export const CodeEditor = () => {
   return (
     <div className="code-editor">
       <div className="editor-header">
-        <h2>{t('sourceCode')}</h2>
+        <h2>{t('sourceCode', locale)}</h2>
         <select
-          aria-label="Algorithm preset"
+          aria-label={t('algorithmPreset', locale)}
           className="registry-select"
           onChange={(event) => selectAlgorithm(event.target.value)}
           value={algorithmRegistry.some((algorithm) => algorithm.code === code) ? code : ''}
         >
-          <option value="">{t('presets')}</option>
+          <option value="">{t('presets', locale)}</option>
           {algorithmRegistry.map((algorithm, index) => (
             <option key={algorithm.name} value={algorithm.code}>
-              {index + 1} – {algorithm.isSupported ? '✓' : '◇'} {algorithm.name}
+              {index + 1} – {algorithm.isSupported ? '✓' : '◇'} {localizeAlgorithmName(algorithm.name, locale)}
             </option>
           ))}
         </select>
       </div>
 
       <div className="input-config">
-        <label htmlFor="input-kind">{t('simulationInput')}</label>
+        <label htmlFor="input-kind">{t('simulationInput', locale)}</label>
         <select
           id="input-kind"
           value={simulationInput.kind}
           onChange={(event) => selectInputKind(event.target.value as InputKind)}
         >
-          <option value="array">Array</option>
-          <option value="string">String</option>
-          <option value="tree">Tree</option>
-          <option value="graph">Graph</option>
+          <option value="array">{t('array', locale)}</option>
+          <option value="string">{t('string', locale)}</option>
+          <option value="tree">{t('tree', locale)}</option>
+          <option value="graph">{t('graph', locale)}</option>
         </select>
-        <div className="preset-buttons" aria-label="Input presets">
+        <div className="preset-buttons" aria-label={t('inputPresets', locale)}>
           {[0, 1, 2].map((presetIndex) => (
             <button
               type="button"
@@ -96,6 +99,7 @@ export const CodeEditor = () => {
               key={presetIndex}
               onClick={() => {
                 setSimulationInput(createInputPreset(simulationInput.kind, presetIndex));
+                setIsEditingInput(simulationInput.kind === 'graph' || simulationInput.kind === 'tree');
                 setInputError(null);
                 resetTimeline();
               }}
@@ -106,9 +110,9 @@ export const CodeEditor = () => {
         </div>
         {(simulationInput.kind === 'array' || simulationInput.kind === 'string') && (
           <input
-            aria-label={`${simulationInput.kind} input`}
+            aria-label={`${t(simulationInput.kind, locale)} ${t('simulationInput', locale)}`}
             type="text"
-            placeholder={inputHelp[simulationInput.kind]}
+            placeholder={t(inputHelpKeys[simulationInput.kind], locale)}
             value={simulationInput.text}
             onChange={(event) => {
               setSimulationInput({ ...simulationInput, text: event.target.value });
@@ -116,26 +120,14 @@ export const CodeEditor = () => {
             }}
           />
         )}
-        <span className="input-format-help">{inputHelp[simulationInput.kind]}</span>
+        <span className="input-format-help">{t(inputHelpKeys[simulationInput.kind], locale)}</span>
       </div>
-      {inputError && <div className="input-error" role="alert">{inputError}</div>}
-
-      {(simulationInput.kind === 'graph' || simulationInput.kind === 'tree') && simulationInput.graph && (
-        <GraphInputEditor
-          document={simulationInput.graph}
-          onChange={(graph) => setSimulationInput({
-            kind: graph.mode,
-            text: JSON.stringify(graph),
-            graph,
-          })}
-          onError={setInputError}
-        />
-      )}
+      {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}
 
       <div className="editor-content">
         {steps.length === 0 ? (
           <textarea
-            aria-label="Source code"
+            aria-label={t('sourceCodeLabel', locale)}
             className="code-textarea"
             value={code}
             onChange={(event) => {
@@ -143,11 +135,11 @@ export const CodeEditor = () => {
               setAlgorithmName('Custom Code');
               resetTimeline();
             }}
-            placeholder={t('placeholderCode')}
+            placeholder={t('placeholderCode', locale)}
             spellCheck="false"
           />
         ) : (
-          <div className="code-display" aria-label={`${algorithmName} execution`}>
+          <div className="code-display" aria-label={`${localizeAlgorithmName(algorithmName, locale)} ${t('execution', locale)}`}>
             {code.split('\n').map((line, index) => (
               <div
                 key={`${index}-${line}`}

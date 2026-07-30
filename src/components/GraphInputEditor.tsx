@@ -2,12 +2,15 @@ import { useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { GraphDocumentV1, GraphNode } from '../types/simulation';
 import { parseBinaryTree, validateGraphDocument } from '../services/inputParsers';
+import { t, translateRuntimeText } from '../i18n/translations';
+import type { Locale } from '../i18n/translations';
 import './GraphInputEditor.css';
 
 interface GraphInputEditorProps {
   document: GraphDocumentV1;
   onChange: (document: GraphDocumentV1) => void;
   onError: (message: string | null) => void;
+  locale: Locale;
 }
 
 const nextNodeId = (nodes: GraphNode[]): string => {
@@ -21,6 +24,7 @@ export const GraphInputEditor = ({
   document,
   onChange,
   onError,
+  locale,
 }: GraphInputEditorProps) => {
   const [serialized, setSerialized] = useState('');
   const [from, setFrom] = useState(document.startId);
@@ -56,16 +60,16 @@ export const GraphInputEditor = ({
 
   const addEdge = () => {
     if (from === to) {
-      onError('Choose two different nodes.');
+      onError(translateRuntimeText('Choose two different nodes.', locale));
       return;
     }
     if (document.edges.some((edge) => edge.from === from && edge.to === to)) {
-      onError('That edge already exists.');
+      onError(translateRuntimeText('That edge already exists.', locale));
       return;
     }
     const parsedWeight = Number(weight);
     if (document.weighted && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      onError('Weight must be a non-negative number.');
+      onError(translateRuntimeText('Weight must be a non-negative number.', locale));
       return;
     }
     onChange({
@@ -82,7 +86,7 @@ export const GraphInputEditor = ({
 
   const removeNode = (id: string) => {
     if (document.nodes.length === 1) {
-      onError('A graph must keep at least one node.');
+      onError(translateRuntimeText('A graph must keep at least one node.', locale));
       return;
     }
     const nodes = document.nodes.filter((node) => node.id !== id);
@@ -107,7 +111,7 @@ export const GraphInputEditor = ({
       onChange(imported);
       onError(null);
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Import failed.');
+      onError(translateRuntimeText(error instanceof Error ? error.message : 'Import failed.', locale));
     }
   };
 
@@ -115,7 +119,7 @@ export const GraphInputEditor = ({
     <div className="graph-input-editor">
       <div className="graph-toolbar">
         <label>
-          Mode
+          {t('mode', locale)}
           <select
             value={document.mode}
             onChange={(event) => onChange({
@@ -125,8 +129,8 @@ export const GraphInputEditor = ({
               rootId: event.target.value === 'tree' ? document.rootId ?? document.startId : document.rootId,
             })}
           >
-            <option value="graph">Graph</option>
-            <option value="tree">Tree</option>
+            <option value="graph">{t('graph', locale)}</option>
+            <option value="tree">{t('tree', locale)}</option>
           </select>
         </label>
         <label className="check-label">
@@ -136,7 +140,7 @@ export const GraphInputEditor = ({
             disabled={document.mode === 'tree'}
             onChange={(event) => onChange({ ...document, directed: event.target.checked })}
           />
-          Directed
+          {t('directed', locale)}
         </label>
         <label className="check-label">
           <input
@@ -151,26 +155,26 @@ export const GraphInputEditor = ({
               })),
             })}
           />
-          Weighted
+          {t('weighted', locale)}
         </label>
         <label>
-          Start
+          {t('start', locale)}
           <select value={document.startId} onChange={(event) => onChange({ ...document, startId: event.target.value })}>
             {document.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
           </select>
         </label>
         {document.mode === 'tree' && (
           <label>
-            Root
+            {t('root', locale)}
             <select value={document.rootId} onChange={(event) => onChange({ ...document, rootId: event.target.value, startId: event.target.value })}>
               {document.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
             </select>
           </label>
         )}
         <label>
-          Target
+          {t('target', locale)}
           <select value={document.targetId ?? ''} onChange={(event) => onChange({ ...document, targetId: event.target.value || undefined })}>
-            <option value="">None</option>
+            <option value="">{t('none', locale)}</option>
             {document.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
           </select>
         </label>
@@ -193,7 +197,7 @@ export const GraphInputEditor = ({
         }}
         onMouseUp={() => setDragging(null)}
         onMouseLeave={() => setDragging(null)}
-        aria-label="Graph builder canvas. Double-click to add a node."
+        aria-label={t('graphCanvas', locale)}
       >
         <svg className="builder-edges" aria-hidden="true">
           {document.edges.map((edge) => {
@@ -224,12 +228,12 @@ export const GraphInputEditor = ({
               event.stopPropagation();
               removeNode(node.id);
             }}
-            title="Drag to move; double-click to remove"
+            title={t('nodeMoveTitle', locale)}
           >
             {node.label}
           </button>
         ))}
-        <span className="canvas-hint">Double-click empty space to add · drag to move · double-click a node to remove</span>
+        <span className="canvas-hint">{t('canvasHint', locale)}</span>
       </div>
 
       <div className="edge-controls">
@@ -241,30 +245,30 @@ export const GraphInputEditor = ({
           {document.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
         </select>
         {document.weighted && (
-          <input aria-label="Edge weight" type="number" min="0" value={weight} onChange={(event) => setWeight(event.target.value)} />
+          <input aria-label={t('edgeWeight', locale)} type="number" min="0" value={weight} onChange={(event) => setWeight(event.target.value)} />
         )}
-        <button type="button" onClick={addEdge}>Add edge</button>
+        <button type="button" onClick={addEdge}>{t('addEdge', locale)}</button>
         <button
           type="button"
           onClick={() => onChange({ ...document, edges: document.edges.slice(0, -1) })}
           disabled={document.edges.length === 0}
         >
-          Undo edge
+          {t('undoEdge', locale)}
         </button>
       </div>
 
       <details className="graph-import-export">
-        <summary>Import / export</summary>
-        <p>Tree: level-order JSON such as <code>[1,2,3,null,4]</code>. Graph: GraphDocumentV1 JSON.</p>
+        <summary>{t('importExport', locale)}</summary>
+        <p>{t('importHelp', locale)}</p>
         <textarea
           value={serialized}
           onChange={(event) => setSerialized(event.target.value)}
           placeholder={exportJson}
         />
         <div>
-          <button type="button" onClick={() => handleImport(false)}>Import JSON</button>
-          <button type="button" onClick={() => handleImport(true)}>Import level-order tree</button>
-          <button type="button" onClick={() => setSerialized(exportJson)}>Export to editor</button>
+          <button type="button" onClick={() => handleImport(false)}>{t('importJson', locale)}</button>
+          <button type="button" onClick={() => handleImport(true)}>{t('importTree', locale)}</button>
+          <button type="button" onClick={() => setSerialized(exportJson)}>{t('exportEditor', locale)}</button>
         </div>
       </details>
     </div>

@@ -2,7 +2,7 @@
 
 ## Project
 
-CodeXRay is an English-only React 19, TypeScript 6, and Vite 8 SPA for
+CodeXRay is a bilingual English/Turkish React 19, TypeScript 6, and Vite 8 SPA for
 deterministic, step-by-step algorithm visualization. It supports 13 algorithms,
 typed array/string/tree/graph input, a manual graph builder, and an optional
 on-device WebLLM assistant. No API key or remote AI provider is used.
@@ -33,6 +33,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - `GraphInputEditor.tsx`: manual editing plus GraphDocumentV1 and level-order
   tree import/export.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
+- `src/i18n/translations.ts`: complete EN/TR UI, algorithm, validation, and
+  runtime explanation localization.
 - `scripts/publish-to-site.mjs`: guarded static publication to the portfolio.
 
 ## Contracts
@@ -46,8 +48,10 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   weights; A* heuristics must remain admissible.
 - Add a distinct deterministic simulator and tests before setting another
   registry entry to `isSupported: true`.
-- Keep all UI and documentation in English. Never add secrets, API keys, or
-  background network calls. Local AI must stay optional and worker-based.
+- Every new user-facing string needs English and Turkish output. Language
+  switching must update existing simulation steps without rerunning them.
+- Keep code and repository documentation in English. Never add secrets, API
+  keys, or remote AI calls. Local AI must stay optional and worker-based.
 
 ## Deployment
 

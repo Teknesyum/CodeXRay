@@ -1,6 +1,7 @@
 import { useTimeline } from '../context/TimelineContext';
 import type { ArrayVisualData, GraphVisualData, VisualData } from '../types/simulation';
-import { t } from '../i18n/translations';
+import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
+import { GraphInputEditor } from './GraphInputEditor';
 import './DynamicVisualizer.css';
 
 const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
@@ -39,63 +40,66 @@ const ArrayView = ({ data }: { data: ArrayVisualData }) => (
   </div>
 );
 
-const GraphView = ({ data }: { data: GraphVisualData }) => (
-  <div className="visual-graph">
-    <svg className="graph-edges" aria-label="Graph edges">
-      <defs>
-        <marker id="arrow-idle" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 Z" fill="rgba(0, 243, 255, 0.45)" />
-        </marker>
-        <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 Z" fill="#ff00ff" />
-        </marker>
-      </defs>
-      {data.edges.map((edge) => {
-        const start = data.nodes.find((node) => node.id === edge.from);
-        const end = data.nodes.find((node) => node.id === edge.to);
-        if (!start || !end) return null;
-        const state = edge.state ?? 'idle';
-        const marker = data.directed
-          ? `url(#arrow-${state === 'idle' ? 'idle' : 'active'})`
-          : undefined;
-        return (
-          <g key={edge.id} className={`graph-edge ${state}`}>
-            <line
-              x1={`${start.x}%`}
-              y1={`${start.y}%`}
-              x2={`${end.x}%`}
-              y2={`${end.y}%`}
-              markerEnd={marker}
-            />
-            {edge.weight !== undefined && (
-              <text x={`${(start.x + end.x) / 2}%`} y={`${(start.y + end.y) / 2}%`}>
-                {edge.weight}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-    {data.nodes.map((node) => (
-      <div
-        key={node.id}
-        className={`graph-node node-${node.state ?? 'idle'}`}
-        style={{ left: `${node.x}%`, top: `${node.y}%` }}
-        title={`Node ${node.label}: ${node.state ?? 'idle'}`}
-      >
-        {node.label}
+const GraphView = ({ data }: { data: GraphVisualData }) => {
+  const { locale } = useTimeline();
+  return (
+    <div className="visual-graph">
+      <svg className="graph-edges" aria-label={t('graphEdges', locale)}>
+        <defs>
+          <marker id="arrow-idle" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="rgba(0, 243, 255, 0.45)" />
+          </marker>
+          <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#ff00ff" />
+          </marker>
+        </defs>
+        {data.edges.map((edge) => {
+          const start = data.nodes.find((node) => node.id === edge.from);
+          const end = data.nodes.find((node) => node.id === edge.to);
+          if (!start || !end) return null;
+          const state = edge.state ?? 'idle';
+          const marker = data.directed
+            ? `url(#arrow-${state === 'idle' ? 'idle' : 'active'})`
+            : undefined;
+          return (
+            <g key={edge.id} className={`graph-edge ${state}`}>
+              <line
+                x1={`${start.x}%`}
+                y1={`${start.y}%`}
+                x2={`${end.x}%`}
+                y2={`${end.y}%`}
+                markerEnd={marker}
+              />
+              {edge.weight !== undefined && (
+                <text x={`${(start.x + end.x) / 2}%`} y={`${(start.y + end.y) / 2}%`}>
+                  {edge.weight}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      {data.nodes.map((node) => (
+        <div
+          key={node.id}
+          className={`graph-node node-${node.state ?? 'idle'}`}
+          style={{ left: `${node.x}%`, top: `${node.y}%` }}
+          title={`${t('node', locale)} ${node.label}: ${t(node.state ?? 'idle', locale)}`}
+        >
+          {node.label}
+        </div>
+      ))}
+      <div className="graph-legend" aria-label={t('graphLegend', locale)}>
+        <span className="legend-queued">{t('queued', locale)}</span>
+        <span className="legend-active">{t('active', locale)}</span>
+        <span className="legend-visited">{t('visited', locale)}</span>
+        <span className="legend-path">{t('path', locale)}</span>
       </div>
-    ))}
-    <div className="graph-legend" aria-label="Graph state legend">
-      <span className="legend-queued">Queued</span>
-      <span className="legend-active">Active</span>
-      <span className="legend-visited">Visited</span>
-      <span className="legend-path">Path</span>
     </div>
-  </div>
-);
+  );
+};
 
-const renderVisualData = (visualData: VisualData) => {
+const VisualDataView = ({ visualData }: { visualData: VisualData }) => {
   if (visualData.type === 'array') return <ArrayView data={visualData} />;
   if (visualData.type === 'graph') return <GraphView data={visualData} />;
   return (
@@ -111,23 +115,69 @@ const renderVisualData = (visualData: VisualData) => {
 };
 
 export const DynamicVisualizer = () => {
-  const { steps, currentIndex } = useTimeline();
+  const {
+    algorithmName,
+    steps,
+    currentIndex,
+    simulationInput,
+    setSimulationInput,
+    setInputError,
+    locale,
+    isEditingInput,
+    setIsEditingInput,
+  } = useTimeline();
   const currentStep = steps[currentIndex];
-  if (!currentStep) {
-    return (
-      <div className="visualizer-empty">
-        <div className="scanning-line" />
-        <p>{t('awaitingData')}</p>
-      </div>
-    );
-  }
+  const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
+    && Boolean(simulationInput.graph);
+  const showBuilder = supportsBuilder && (isEditingInput || !currentStep);
+
   return (
     <div className="dynamic-visualizer">
       <div className="visualizer-header">
-        <h2>{t('simulationView')}</h2>
-        <span>{currentIndex + 1} / {steps.length}</span>
+        <h2>{showBuilder ? t('inputBuilder', locale) : t('simulationView', locale)}</h2>
+        <div className="visualizer-header-actions">
+          {supportsBuilder && (
+            <div className="visualizer-mode-toggle">
+              {!showBuilder && (
+                <button type="button" onClick={() => setIsEditingInput(true)}>
+                  {t('editInput', locale)}
+                </button>
+              )}
+              {showBuilder && currentStep && (
+                <button type="button" onClick={() => setIsEditingInput(false)}>
+                  {t('showSimulation', locale)}
+                </button>
+              )}
+            </div>
+          )}
+          {!showBuilder && currentStep && <span>{currentIndex + 1} / {steps.length}</span>}
+        </div>
       </div>
-      <div className="visualizer-content">{renderVisualData(currentStep.visualData)}</div>
+      {showBuilder && simulationInput.graph ? (
+        <GraphInputEditor
+          document={simulationInput.graph}
+          locale={locale}
+          onChange={(graph) => setSimulationInput({
+            kind: graph.mode,
+            text: JSON.stringify(graph),
+            graph,
+          })}
+          onError={setInputError}
+        />
+      ) : currentStep ? (
+        <>
+          <div className="visualizer-content"><VisualDataView visualData={currentStep.visualData} /></div>
+          <div className="step-explanation">
+            <strong>{localizeAlgorithmName(algorithmName, locale)}</strong>
+            <span>{translateRuntimeText(currentStep.explanation, locale)}</span>
+          </div>
+        </>
+      ) : (
+        <div className="visualizer-empty">
+          <div className="scanning-line" />
+          <p>{t('awaitingData', locale)}</p>
+        </div>
+      )}
     </div>
   );
 };

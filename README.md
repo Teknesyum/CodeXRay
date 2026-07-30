@@ -21,6 +21,9 @@ and input are never sent to an API.
 - Timeline playback, line highlighting, graph states, paths, arrows, and weights.
 - Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU.
 - Browser autosave for the current input workspace.
+- Instant English/Turkish switching, including existing simulation explanations.
+- The graph/tree builder uses the large visualization panel and can switch back
+  to the running simulation without losing input.
 
 ## Development
 

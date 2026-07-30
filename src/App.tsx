@@ -18,6 +18,9 @@ const CodeRayApp = () => {
     setAnalysis,
     simulationInput,
     setInputError,
+    locale,
+    setLocale,
+    setIsEditingInput,
   } = useTimeline();
 
   const handleSimulate = () => {
@@ -41,6 +44,7 @@ const CodeRayApp = () => {
       pause();
       setAnalysis(null);
       setInputError(null);
+      setIsEditingInput(false);
     } catch (error) {
       setInputError(error instanceof Error ? error.message : 'Simulation failed.');
     }
@@ -53,6 +57,14 @@ const CodeRayApp = () => {
 
   return (
     <div className="app-container">
+      <button
+        className="language-toggle"
+        type="button"
+        onClick={() => setLocale(locale === 'en' ? 'tr' : 'en')}
+        aria-label={locale === 'en' ? 'Türkçeye geç' : 'Switch to English'}
+      >
+        {locale === 'en' ? 'TR' : 'EN'}
+      </button>
       <div className="split-layout">
         <div className="panel-left">
           <div className="left-top"><CodeEditor /></div>

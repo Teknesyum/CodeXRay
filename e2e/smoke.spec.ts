@@ -213,6 +213,59 @@ test('resizes only adjacent right panels and starts with compact controls', asyn
     .toBeCloseTo(beforeUpper.controls, 0);
 });
 
+test('stops the lower splitter at its boundary without growing another panel', async ({ page }) => {
+  await page.goto('/');
+  const visualizer = page.locator('.visualizer-container');
+  const assistant = page.locator('.assistant-container');
+  const controls = page.locator('.control-container');
+  const splitter = page.getByRole('separator', {
+    name: 'Resize assistant and controls panels',
+  });
+  const initial = {
+    visualizer: (await visualizer.boundingBox())?.height ?? 0,
+    assistant: (await assistant.boundingBox())?.height ?? 0,
+    controls: (await controls.boundingBox())?.height ?? 0,
+  };
+  const splitterBox = await splitter.boundingBox();
+  expect(splitterBox).not.toBeNull();
+  const x = (splitterBox?.x ?? 0) + 40;
+  await page.mouse.move(x, (splitterBox?.y ?? 0) + 2);
+  await page.mouse.down();
+  await page.mouse.move(x, 718);
+
+  const atBoundary = {
+    visualizer: (await visualizer.boundingBox())?.height ?? 0,
+    assistant: (await assistant.boundingBox())?.height ?? 0,
+    controls: (await controls.boundingBox())?.height ?? 0,
+  };
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles: true,
+      clientX: 1000,
+      clientY: window.innerHeight + 800,
+      pointerId: 1,
+    }));
+  });
+  const beyondBoundary = {
+    visualizer: (await visualizer.boundingBox())?.height ?? 0,
+    assistant: (await assistant.boundingBox())?.height ?? 0,
+    controls: (await controls.boundingBox())?.height ?? 0,
+  };
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      pointerId: 1,
+    }));
+  });
+
+  expect(atBoundary.controls).toBeGreaterThanOrEqual(82);
+  expect(atBoundary.assistant).toBeGreaterThan(initial.assistant);
+  expect(atBoundary.visualizer).toBeCloseTo(initial.visualizer, 0);
+  expect(beyondBoundary.visualizer).toBeCloseTo(atBoundary.visualizer, 0);
+  expect(beyondBoundary.assistant).toBeCloseTo(atBoundary.assistant, 0);
+  expect(beyondBoundary.controls).toBeCloseTo(atBoundary.controls, 0);
+});
+
 test('shows the questions menu above the assistant instead of behind it', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');
@@ -311,4 +364,16 @@ test('resets only interface layout while preserving user workspace state', async
   }));
   expect(storage.pins).toBe('["visited"]');
   expect(storage.layout).not.toContain('700');
+
+  const defaults = {
+    visualizer: (await page.locator('.visualizer-container').boundingBox())?.height ?? 0,
+    assistant: (await page.locator('.assistant-container').boundingBox())?.height ?? 0,
+    controls: (await page.locator('.control-container').boundingBox())?.height ?? 0,
+  };
+  expect(defaults.visualizer).toBeGreaterThanOrEqual(350);
+  expect(defaults.visualizer).toBeLessThanOrEqual(380);
+  expect(defaults.assistant).toBeGreaterThanOrEqual(235);
+  expect(defaults.assistant).toBeLessThanOrEqual(255);
+  expect(defaults.controls).toBeGreaterThanOrEqual(90);
+  expect(defaults.controls).toBeLessThanOrEqual(105);
 });

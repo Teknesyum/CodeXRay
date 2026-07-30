@@ -26,6 +26,7 @@ interface LayoutState {
   leftTopHeight: number;
   visualizerHeight: number;
   assistantHeight: number;
+  controlHeight: number;
   collapsed: Record<PanelName, boolean>;
 }
 
@@ -37,6 +38,7 @@ const createDefaultLayout = (): LayoutState => {
     leftTopHeight: Math.max(320, Math.round(window.innerHeight * 0.56)),
     visualizerHeight: right.visualizerHeight,
     assistantHeight: right.assistantHeight,
+    controlHeight: right.controlHeight,
     collapsed: {
       code: false,
       variables: false,
@@ -51,11 +53,18 @@ const loadLayout = (): LayoutState => {
   const defaults = createDefaultLayout();
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? '{}') as Partial<LayoutState>;
-    return {
+    const loaded = {
       ...defaults,
       ...saved,
       collapsed: { ...defaults.collapsed, ...saved.collapsed },
     };
+    const normalizedRight = constrainRightPanelSizes(
+      window.innerHeight,
+      loaded.visualizerHeight,
+      loaded.assistantHeight,
+      loaded.controlHeight,
+    );
+    return { ...loaded, ...normalizedRight };
   } catch {
     return defaults;
   }
@@ -91,6 +100,18 @@ const CodeRayApp = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    setLayout((current) => ({
+      ...current,
+      ...constrainRightPanelSizes(
+        viewportHeight,
+        current.visualizerHeight,
+        current.assistantHeight,
+        current.controlHeight,
+      ),
+    }));
+  }, [viewportHeight]);
 
   const handleSimulate = () => {
     if (!code.trim()) {
@@ -161,7 +182,7 @@ const CodeRayApp = () => {
     window.addEventListener('pointercancel', handleEnd, { once: true });
   };
 
-  const setSize = (key: keyof Pick<LayoutState, 'leftWidth' | 'leftTopHeight' | 'visualizerHeight' | 'assistantHeight'>) =>
+  const setSize = (key: keyof Pick<LayoutState, 'leftWidth' | 'leftTopHeight'>) =>
     (value: number) => setLayout((current) => ({ ...current, [key]: value }));
 
   const resizeWithKeyboard = (
@@ -237,9 +258,12 @@ const CodeRayApp = () => {
     viewportHeight,
     layout.visualizerHeight,
     layout.assistantHeight,
+    layout.controlHeight,
   );
   const updateVisualizerAssistant = (visualizerHeight: number, assistantHeight: number) =>
     setLayout((current) => ({ ...current, visualizerHeight, assistantHeight }));
+  const updateAssistantControls = (assistantHeight: number, controlHeight: number) =>
+    setLayout((current) => ({ ...current, assistantHeight, controlHeight }));
 
   return (
     <div className="app-container">
@@ -385,29 +409,30 @@ const CodeRayApp = () => {
               )}
               aria-valuenow={Math.round(rightSizes.assistantHeight)}
               aria-label={locale === 'tr' ? 'Asistan ve kontrol panellerini yeniden boyutlandır' : 'Resize assistant and controls panels'}
-              onKeyDown={(event) => resizeWithKeyboard(
+              onKeyDown={(event) => resizePairWithKeyboard(
                 event,
-                'y',
                 rightSizes.assistantHeight,
-                setSize('assistantHeight'),
+                rightSizes.controlHeight,
                 RIGHT_PANEL_LIMITS.assistant,
-                rightSizes.assistantHeight
-                  + rightSizes.controlHeight
-                  - RIGHT_PANEL_LIMITS.controls,
+                RIGHT_PANEL_LIMITS.controls,
+                updateAssistantControls,
               )}
-              onPointerDown={(event) => beginResize(
+              onPointerDown={(event) => beginPairedResize(
                 event,
-                'y',
                 rightSizes.assistantHeight,
-                setSize('assistantHeight'),
+                rightSizes.controlHeight,
                 RIGHT_PANEL_LIMITS.assistant,
-                rightSizes.assistantHeight
-                  + rightSizes.controlHeight
-                  - RIGHT_PANEL_LIMITS.controls,
+                RIGHT_PANEL_LIMITS.controls,
+                updateAssistantControls,
               )}
             />
           )}
-          <section className={`control-container panel-region ${controlsCollapsed ? 'collapsed' : ''}`}>
+          <section
+            className={`control-container panel-region ${controlsCollapsed ? 'collapsed' : ''}`}
+            style={!visualizerCollapsed && !assistantCollapsed && !controlsCollapsed
+              ? { height: rightSizes.controlHeight, flex: '0 0 auto' }
+              : undefined}
+          >
             <ControlBar
               collapsed={controlsCollapsed}
               onToggleCollapse={() => togglePanel('controls')}

@@ -79,6 +79,9 @@ export const askQuestion = async (
        if (q.includes("ispat et") || q.includes("kanıtla") || q.includes("proof")) {
           return "Elbette. Dijkstra algoritmasının doğruluğu tümevarım (induction) ile ispatlanır:\n\n1. S kümesi, en kısa yolu kesin olarak bilinen düğümleri temsil etsin. Başlangıçta sadece kaynak düğüm S'dedir.\n2. Her adımda, S'ye eklenmeyen düğümler arasından en küçük mesafeli u düğümünü seçeriz.\n3. Eğer u'ya giden daha kısa bir yol olsaydı, bu yol mutlaka S'nin dışındaki başka bir y düğümünden geçmek zorunda kalırdı.\n4. Ancak y'nin mesafesi zaten u'dan büyük veya ona eşit olduğu için (negatif kenar ağırlığı yoksa), y üzerinden geçen herhangi bir yol u'nun mevcut mesafesinden daha kısa olamaz.\n\nBu çelişki, u'ya atanan mesafenin kesinlikle o anki en kısa yol olduğunu matematiksel olarak ispatlar.";
        }
+       if (q.includes("e ne") || q.includes("v ne") || q.match(/\be\b/) || q.match(/\bv\b/)) {
+          return "Karmaşıklık (Complexity) analizinde kullanılan harflerden:\n- **V (Vertices):** Graf üzerindeki noktaları (düğümleri) temsil eder.\n- **E (Edges):** Bu noktaları birbirine bağlayan yolları (ayrıtları) temsil eder.\n\nÖrneğin Zaman Karmaşıklığı O(E) demek, algoritmanın hızının haritadaki toplam yol sayısına bağlı olarak değişeceği anlamına gelir.";
+       }
        if (q.includes("neden en kısa yol") || q.includes("garanti")) {
           return "Dijkstra ve BFS gibi algoritmalar grafı katman katman (greedy yaklaşımıyla) genişleterek gezer. İlk hedefe ulaşıldığında, henüz taranmayan yolların daha uzun veya daha maliyetli olduğu garanti edilir. Bu yüzden buldukları ilk yol kesinlikle en kısa/en ucuz yoldur!";
        }

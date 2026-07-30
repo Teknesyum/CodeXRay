@@ -1,0 +1,59 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.split-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.panel-left {
+  width: 40%;
+  min-width: 300px;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(0, 243, 255, 0.1);
+}
+
+.left-top {
+  flex: 6; /* 60% height */
+  overflow: hidden;
+}
+
+.left-bottom {
+  flex: 4; /* 40% height */
+  overflow: hidden;
+  border-top: 1px solid rgba(0, 243, 255, 0.1);
+}
+
+.panel-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.visualizer-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.assistant-container {
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(57, 255, 20, 0.2);
+}
+
+.control-container {
+  padding: 15px 30px;
+  background: rgba(10, 10, 15, 0.9);
+  border-top: 1px solid rgba(0, 243, 255, 0.1);
+}

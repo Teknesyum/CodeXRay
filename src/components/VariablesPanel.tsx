@@ -4,7 +4,7 @@ import { t } from '../i18n/translations';
 import './VariablesPanel.css';
 
 export const VariablesPanel: React.FC = () => {
-  const { steps, currentIndex, language } = useTimeline();
+  const { steps, currentIndex } = useTimeline();
   const currentStep = steps[currentIndex];
 
   const vars = currentStep?.visualData?.vars || {};
@@ -14,7 +14,7 @@ export const VariablesPanel: React.FC = () => {
   return (
     <div className="variables-panel glass-panel">
       <div className="variables-header">
-        <h2>{t('variablesTrace', language)}</h2>
+        <h2>{t('variablesTrace')}</h2>
       </div>
       <div className="variables-content">
         {varKeys.length === 0 ? (

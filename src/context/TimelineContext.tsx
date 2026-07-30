@@ -22,8 +22,6 @@ interface TimelineContextType {
   stepBackward: () => void;
   setSpeed: (speed: number) => void;
   jumpTo: (index: number) => void;
-  language: string;
-  setLanguage: (lang: string) => void;
   analysis: string | null;
   setAnalysis: (analysis: string | null) => void;
   apiKey: string;
@@ -42,7 +40,6 @@ export const TimelineProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // ms per step
-  const [language, setLanguage] = useState<string>('tr');
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [inputVars, setInputVars] = useState<string>('');
@@ -86,7 +83,6 @@ export const TimelineProvider: React.FC<{ children: ReactNode }> = ({ children }
         isPlaying, play, pause,
         stepForward, stepBackward, jumpTo,
         speed, setSpeed,
-        language, setLanguage,
         analysis, setAnalysis,
         apiKey, setApiKey,
         inputVars, setInputVars,

@@ -4,14 +4,14 @@ import { t } from '../i18n/translations';
 import './DynamicVisualizer.css';
 
 export const DynamicVisualizer: React.FC = () => {
-  const { steps, currentIndex, language } = useTimeline();
+  const { steps, currentIndex } = useTimeline();
   const currentStep = steps[currentIndex];
   
   if (!currentStep || !currentStep.visualData) {
     return (
       <div className="visualizer-empty">
         <div className="scanning-line"></div>
-        <p>{t('awaitingData', language)}</p>
+        <p>{t('awaitingData')}</p>
       </div>
     );
   }
@@ -116,7 +116,7 @@ export const DynamicVisualizer: React.FC = () => {
   return (
     <div className="dynamic-visualizer">
       <div className="visualizer-header">
-        <h2>{t('simulationView', language)}</h2>
+        <h2>{t('simulationView')}</h2>
       </div>
       <div className="visualizer-content">
         {renderVisualData()}

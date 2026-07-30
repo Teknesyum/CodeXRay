@@ -6,7 +6,7 @@ import { t } from '../i18n/translations';
 import './CodeEditor.css';
 
 export const CodeEditor: React.FC = () => {
-  const { code, setCode, steps, setSteps, currentIndex, setCurrentIndex, setAnalysis, inputVars, setInputVars, language, apiKey, pause } = useTimeline();
+  const { code, setCode, steps, setSteps, currentIndex, setCurrentIndex, setAnalysis, inputVars, setInputVars, apiKey, pause } = useTimeline();
   const currentStep = steps[currentIndex];
 
   const handleCodeChange = (newCode: string) => {
@@ -20,7 +20,7 @@ export const CodeEditor: React.FC = () => {
     setInputVars(preset);
     if (!code.trim()) return;
     try {
-      const newSteps = await generateSimulationSteps(code, language, apiKey, preset);
+      const newSteps = await generateSimulationSteps(code, apiKey, preset);
       setSteps(newSteps);
       setCurrentIndex(0);
       pause();
@@ -33,18 +33,18 @@ export const CodeEditor: React.FC = () => {
   return (
     <div className="code-editor">
       <div className="editor-header">
-        <h2>{t('sourceCode', language)}</h2>
+        <h2>{t('sourceCode')}</h2>
         <select 
           className="registry-select"
           onChange={(e) => handleCodeChange(e.target.value)}
           defaultValue=""
         >
-          <option value="" disabled>{t('presets', language)}</option>
+          <option value="" disabled>{t('presets')}</option>
           {algorithmRegistry.map((algo, idx) => {
-            const label = language === 'en' ? algo.name_en : algo.name_tr;
+            const label = algo.name;
             const icon = algo.isSupported ? '✅' : '🚧';
             return (
-              <option key={algo.name_en} value={algo.code}>
+              <option key={algo.name} value={algo.code}>
                 {idx + 1}- {icon} {label}
               </option>
             );
@@ -53,7 +53,7 @@ export const CodeEditor: React.FC = () => {
       </div>
       
       <div className="input-config">
-        <label>{t('simulationInput', language)}</label>
+        <label>{t('simulationInput')}</label>
         {algorithmRegistry.find(a => a.code === code)?.isSupported && (
           <div className="preset-buttons">
             <button 
@@ -72,7 +72,7 @@ export const CodeEditor: React.FC = () => {
         )}
         <input 
           type="text" 
-          placeholder='Özel input: s = "AABA"' 
+          placeholder='Custom input: s = "AABA"'
           value={inputVars.startsWith('preset:') ? '' : inputVars}
           onChange={(e) => setInputVars(e.target.value)}
         />
@@ -84,7 +84,7 @@ export const CodeEditor: React.FC = () => {
             className="code-textarea"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder={t('placeholderCode', language)}
+            placeholder={t('placeholderCode')}
             spellCheck="false"
           />
         ) : (

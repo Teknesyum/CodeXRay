@@ -17,7 +17,6 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
     stepForward, stepBackward, 
     speed, setSpeed,
     steps,
-    language, setLanguage,
     apiKey, setApiKey,
     setSelectedExampleQuestion
   } = useTimeline();
@@ -41,7 +40,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
     if (!code) return;
     setIsGeneratingQs(true);
     setShowQuestionsMenu(true);
-    const qs = await generateQuestions(code, language, apiKey);
+    const qs = await generateQuestions(code, apiKey);
     setExampleQuestions(qs);
     setIsGeneratingQs(false);
   };
@@ -51,10 +50,10 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
       
       <div className="control-group">
         <button className="neon-button simulate-btn" onClick={onSimulate}>
-          ⚡ {t('simulate', language)}
+          ⚡ {t('simulate')}
         </button>
         <button className="neon-button analyze-btn" onClick={onAnalyze}>
-          🔍 {t('analyze', language)}
+          🔍 {t('analyze')}
         </button>
         
         <div className="qs-menu-container">
@@ -63,13 +62,13 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
             onClick={handleGenerateExamples}
             disabled={isGeneratingQs || !code}
           >
-            {isGeneratingQs ? `⏳ ${t('generating', language)}` : `💡 ${t('examples', language)}`}
+            {isGeneratingQs ? `⏳ ${t('generating')}` : `💡 ${t('examples')}`}
           </button>
           
           {showQuestionsMenu && exampleQuestions.length > 0 && (
             <div className="qs-dropdown">
               <div className="qs-dropdown-header">
-                <span>{t('exampleQuestions', language)}</span>
+                <span>{t('exampleQuestions')}</span>
                 <button className="close-btn" onClick={() => setShowQuestionsMenu(false)}>✕</button>
               </div>
               <div className="qs-list">
@@ -82,7 +81,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
                       setShowQuestionsMenu(false);
                     }}
                   >
-                    {t('example', language)} {idx + 1}
+                    {t('example')} {idx + 1}
                   </button>
                 ))}
               </div>
@@ -132,26 +131,12 @@ export const ControlBar: React.FC<ControlBarProps> = ({ onSimulate, onAnalyze })
           {showSettings && (
             <div className="settings-modal glass-panel">
               <div className="settings-modal-header">
-                <h2>Ayarlar / Settings</h2>
+                <h2>Settings</h2>
                 <button className="close-btn" onClick={() => setShowSettings(false)}>✕</button>
               </div>
               <div className="settings-modal-content">
                 <div className="settings-section">
-                  <div className="settings-title">Language / Dil</div>
-                  <div className="lang-toggles">
-                    <button 
-                      className={`lang-btn ${language === 'tr' ? 'active' : ''}`}
-                      onClick={() => { setLanguage('tr'); }}
-                    >TR</button>
-                    <button 
-                      className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-                      onClick={() => { setLanguage('en'); }}
-                    >EN</button>
-                  </div>
-                </div>
-
-                <div className="settings-section">
-                  <div className="settings-title">AI Provider (Yapay Zeka)</div>
+                  <div className="settings-title">AI Provider</div>
                   <select className="api-provider-select">
                     <option value="gemini">Google Gemini (Recommended/Free Tier)</option>
                     <option value="openai">OpenAI (ChatGPT)</option>

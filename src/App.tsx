@@ -9,13 +9,13 @@ import { generateSimulationSteps, generateAnalysis } from './services/aiService'
 import './App.css';
 
 const CodeRayApp: React.FC = () => {
-  const { code, setSteps, language, jumpTo, pause, setAnalysis, apiKey, inputVars } = useTimeline();
+  const { code, setSteps, jumpTo, pause, setAnalysis, apiKey, inputVars } = useTimeline();
 
   const handleSimulate = async () => {
     if (!code.trim()) return;
     
     try {
-      const steps = await generateSimulationSteps(code, language, apiKey, inputVars);
+      const steps = await generateSimulationSteps(code, apiKey, inputVars);
       setSteps(steps);
       jumpTo(0);
       pause();
@@ -28,7 +28,7 @@ const CodeRayApp: React.FC = () => {
   const handleAnalyze = async () => {
     if (!code.trim()) return;
     try {
-      const analysisData = await generateAnalysis(code, language, apiKey);
+      const analysisData = await generateAnalysis(code, apiKey);
       setAnalysis(analysisData);
     } catch (error) {
       console.error("Analysis generation failed", error);

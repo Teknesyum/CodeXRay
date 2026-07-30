@@ -1,96 +1,55 @@
 <div align="center">
   <img src="public/favicon.svg" alt="CodeXRay Logo" width="120" />
   <h1>CodeXRay ⚡</h1>
-  <p><strong>Algoritmaların kalbine inin! Yapay Zeka destekli, gerçek zamanlı kod görselleştirme ve analiz aracı.</strong></p>
+  <p><strong>Look inside the heart of algorithms with AI-assisted, real-time code visualization and analysis.</strong></p>
 </div>
 
 ---
 
-## 📖 Proje Hakkında
+## About
 
-**CodeXRay**, karmaşık algoritmaları ve veri yapılarını adım adım, interaktif ve dinamik bir şekilde görselleştiren, React ve TypeScript tabanlı modern bir web uygulamasıdır. İçerisinde entegre olarak bulunan "Bilgiç Dede" yapay zeka asistanı sayesinde, sadece kodun nasıl çalıştığını izlemekle kalmaz, aynı zamanda her bir adımın zaman/alan karmaşıklığını ve arkasındaki matematiği de öğrenebilirsiniz.
+**CodeXRay** is a modern React and TypeScript web application that visualizes
+complex algorithms and data structures step by step. Its built-in “Master
+Coder” assistant explains how each step works, including time and space
+complexity and the underlying reasoning.
 
-### ✨ Temel Özellikler
-- **Dinamik Görselleştirme:** Graf algoritmaları (DFS, BFS, Dijkstra, A*), Sıralama algoritmaları ve String algoritmaları için senaryolar.
-- **Yapay Zeka Asistanı:** YZ modunda veya simüle modda, kodun optimizasyon potansiyelini analiz eder, sorularınızı yanıtlar.
-- **Zaman Çizelgesi (Timeline):** Animasyonları durdurun, geri sarın veya ileri sarın.
-- **Hazır Senaryolar (Presets):** Her algoritma için özel tasarlanmış i1 (Düzenli), i2 (Küme) ve i3 (Kaos) zorluk modları.
-- **Çoklu Dil Desteği:** Türkçe ve İngilizce (TR/EN) dil desteği.
-- **Modern Arayüz:** Siberpunk / Neon esintili, karanlık mod odaklı tasarım.
+### Features
 
----
+- **Dynamic visualization:** Scenarios for graph algorithms such as DFS, BFS,
+  Dijkstra, and A*, as well as sorting and string algorithms.
+- **AI assistant:** Analyzes optimization opportunities and answers questions
+  in either AI-backed or offline simulation mode.
+- **Timeline controls:** Pause, rewind, advance, and change playback speed.
+- **Input presets:** Run supported algorithms with ordered, clustered, or
+  chaotic input scenarios (`i1`, `i2`, and `i3`).
+- **Modern interface:** A dark, cyberpunk-inspired neon design.
 
-## 🚀 Kurulum Talimatları
+## Getting started
 
-Proje **Vite** ve **React** altyapısıyla oluşturulduğu için sisteminizde **Node.js** (Sürüm 16+) yüklü olması yeterlidir.
+CodeXRay uses Vite and React. Use a current Node.js LTS release.
 
-### 🪟 Windows İçin Kurulum
+```bash
+git clone https://github.com/srknzl/CodeXRay.git
+cd CodeXRay
+npm ci
+npm run dev
+```
 
-1. **Terminali (PowerShell veya CMD) açın**.
-2. Projeyi bilgisayarınıza indirin:
-   ```cmd
-   git clone https://github.com/Teknesyum/CodeXRay.git
-   ```
-3. İndirdiğiniz klasörün içine girin:
-   ```cmd
-   cd CodeXRay
-   ```
-4. Gerekli kütüphaneleri kurun:
-   ```cmd
-   npm install
-   ```
-5. Projeyi başlatın:
-   ```cmd
-   npm run dev
-   ```
-6. Tarayıcınızda `http://localhost:5173` adresine giderek kullanmaya başlayabilirsiniz!
+Open `http://localhost:5173` in your browser.
 
----
+### Available commands
 
-### 🐧 Linux (Ubuntu/Debian) İçin Kurulum
+```bash
+npm run dev      # Start the development server
+npm run lint     # Run Oxlint
+npm run build    # Type-check and create a production build
+npm run preview  # Preview the production build
+```
 
-1. Eğer yüklü değilse bağımlılıkları kurun:
-   ```bash
-   sudo apt update
-   sudo apt install nodejs npm git
-   ```
-2. Projeyi klonlayın ve klasöre girin:
-   ```bash
-   git clone https://github.com/Teknesyum/CodeXRay.git
-   cd CodeXRay
-   ```
-3. Bağımlılıkları indirip projeyi çalıştırın:
-   ```bash
-   npm install
-   npm run dev
-   ```
+## Contributing
 
----
-
-### 🍎 macOS İçin Kurulum
-
-1. Eğer yüklü değilse Node.js'i Homebrew ile kurun:
-   ```bash
-   brew install node
-   ```
-2. Terminalinizi açın ve projeyi klonlayın:
-   ```bash
-   git clone https://github.com/Teknesyum/CodeXRay.git
-   cd CodeXRay
-   ```
-3. Kurulumu tamamlayıp uygulamayı başlatın:
-   ```bash
-   npm install
-   npm run dev
-   ```
-
----
-
-## 🤝 Katkıda Bulunma (Contributing)
-
-Bu proje **açık kaynaklıdır**! Katkıda bulunmak için:
-1. Projeyi Fork'layın.
-2. Yeni dal oluşturun (`git checkout -b feature/YeniÖzellik`).
-3. Commit atın (`git commit -m 'Yeni özellik'`).
-4. Dalınızı pushlayın (`git push origin feature/YeniÖzellik`).
-5. Pull Request açın.
+1. Fork the repository.
+2. Create a branch (`git checkout -b feature/my-feature`).
+3. Commit your changes (`git commit -m "Add my feature"`).
+4. Push the branch (`git push origin feature/my-feature`).
+5. Open a pull request.

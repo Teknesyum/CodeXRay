@@ -33,7 +33,7 @@ const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
 };
 
 export const AiAssistant: React.FC = () => {
-  const { code, steps, currentIndex, analysis, language, apiKey, selectedExampleQuestion, setSelectedExampleQuestion } = useTimeline();
+  const { code, steps, currentIndex, analysis, apiKey, selectedExampleQuestion, setSelectedExampleQuestion } = useTimeline();
   const currentStep = steps[currentIndex];
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -54,7 +54,7 @@ export const AiAssistant: React.FC = () => {
 
   useEffect(() => {
     if (selectedExampleQuestion) {
-      submitQuestion(`${selectedExampleQuestion}\n\nBu soruyu mevcut algoritma ile nasıl çözebiliriz?`);
+      submitQuestion(`${selectedExampleQuestion}\n\nHow can we solve this with the current algorithm?`);
       setSelectedExampleQuestion(null);
     }
   }, [selectedExampleQuestion]);
@@ -71,7 +71,7 @@ export const AiAssistant: React.FC = () => {
     setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
 
-    const answer = await askQuestion(userMessage, code, currentStep, language, apiKey, currentHistory);
+    const answer = await askQuestion(userMessage, code, currentStep, apiKey, currentHistory);
     
     setChatHistory(prev => [...prev, { role: 'ai', content: answer }]);
     setIsTyping(false);
@@ -80,14 +80,14 @@ export const AiAssistant: React.FC = () => {
   const getSystemMessage = () => {
     if (analysis) return analysis;
     if (currentStep?.explanation) return currentStep.explanation;
-    return t('awaitingData', language);
+    return t('awaitingData');
   };
 
   return (
     <div className="ai-assistant">
       <div className="ai-header">
         <Bot size={16} className="ai-icon" />
-        <span>{t('bilgicDede', language)}</span>
+        <span>{t('masterCoder')}</span>
       </div>
       <div className="ai-body" ref={chatBodyRef}>
         <div className="chat-message system-msg">
@@ -104,7 +104,7 @@ export const AiAssistant: React.FC = () => {
         {isTyping && (
           <div className="chat-message ai-msg typing">
             <Loader size={14} className="spin-icon" />
-            <p>{language === 'en' ? "Thinking..." : "Düşünüyor..."}</p>
+            <p>Thinking...</p>
           </div>
         )}
       </div>
@@ -112,7 +112,7 @@ export const AiAssistant: React.FC = () => {
       <form className="ai-chat" onSubmit={handleAsk}>
         <input 
           type="text" 
-          placeholder={t('askPlaceholder', language)} 
+          placeholder={t('askPlaceholder')}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={isTyping}

@@ -10,14 +10,13 @@ const MAGIC_SIM_KEY = atob("QVEuQWI4Uk42S1FscndPT3FSUnI5RVFpbjVWVFlFYTYwdnhYSzdO
 
 export const generateSimulationSteps = async (
   code: string, 
-  language: string = 'tr',
   apiKey: string = '',
   inputVars: string = ''
 ): Promise<SimulationStep[]> => {
   if (!apiKey || apiKey === MAGIC_SIM_KEY) {
     if (!apiKey) console.warn("No API Key provided. Falling back to mock simulation.");
     else console.warn("Magic Simulation Key detected! Using mock simulation.");
-    return getMockStepsFallback(code, language, inputVars);
+    return getMockStepsFallback(code, inputVars);
   }
 
   try {
@@ -30,7 +29,7 @@ export const generateSimulationSteps = async (
       
       Input Variables given by user: ${inputVars || 'None provided'}
       
-      Language for explanation: ${language === 'tr' ? 'Turkish' : 'English'}
+      Language for explanation: English
       
       Code to simulate:
       ${code}
@@ -61,8 +60,8 @@ export const generateSimulationSteps = async (
     return steps;
   } catch (error: any) {
     console.error("Gemini API error:", error);
-    alert("Gemini API Hatası: " + (error.message || "Bilinmeyen Hata"));
-    return getMockStepsFallback(code, language, inputVars);
+    alert("Gemini API error: " + (error.message || "Unknown error"));
+    return getMockStepsFallback(code, inputVars);
   }
 };
 
@@ -70,44 +69,39 @@ export const askQuestion = async (
   question: string,
   code: string,
   currentStep: SimulationStep | undefined,
-  language: string = 'tr',
   apiKey: string = '',
   chatHistory: {role: string, content: string}[] = []
 ): Promise<string> => {
   if (!apiKey || apiKey === MAGIC_SIM_KEY) {
     if (apiKey === MAGIC_SIM_KEY) {
        const q = question.toLowerCase();
-       if (q.includes("ispat et") || q.includes("kanıtla") || q.includes("proof")) {
-          return "Elbette. Dijkstra algoritmasının doğruluğu tümevarım (induction) ile ispatlanır:\n\n1. S kümesi, en kısa yolu kesin olarak bilinen düğümleri temsil etsin. Başlangıçta sadece kaynak düğüm S'dedir.\n2. Her adımda, S'ye eklenmeyen düğümler arasından en küçük mesafeli u düğümünü seçeriz.\n3. Eğer u'ya giden daha kısa bir yol olsaydı, bu yol mutlaka S'nin dışındaki başka bir y düğümünden geçmek zorunda kalırdı.\n4. Ancak y'nin mesafesi zaten u'dan büyük veya ona eşit olduğu için (negatif kenar ağırlığı yoksa), y üzerinden geçen herhangi bir yol u'nun mevcut mesafesinden daha kısa olamaz.\n\nBu çelişki, u'ya atanan mesafenin kesinlikle o anki en kısa yol olduğunu matematiksel olarak ispatlar.";
+       if (q.includes("prove") || q.includes("proof")) {
+          return "Dijkstra's correctness follows by induction. Let S contain the nodes whose shortest distances are final. At each step, choose the node u outside S with the smallest tentative distance. If a shorter path to u existed, it would have to pass through another node outside S. With no negative edge weights, that node cannot lead to a path shorter than u's current distance. Therefore, u's distance is final when it is selected.";
        }
-       if (q.includes("e ne") || q.includes("v ne") || q.match(/\be\b/) || q.match(/\bv\b/)) {
-          return "Karmaşıklık (Complexity) analizinde kullanılan harflerden:\n- **V (Vertices):** Graf üzerindeki noktaları (düğümleri) temsil eder.\n- **E (Edges):** Bu noktaları birbirine bağlayan yolları (ayrıtları) temsil eder.\n\nÖrneğin Zaman Karmaşıklığı O(E) demek, algoritmanın hızının haritadaki toplam yol sayısına bağlı olarak değişeceği anlamına gelir.";
+       if (q.includes("vertices") || q.includes("edges") || q.match(/\be\b/) || q.match(/\bv\b/)) {
+          return "In complexity analysis, V is the number of vertices (graph nodes) and E is the number of edges connecting them. For example, O(E) means the running time grows with the total number of edges.";
        }
-       if (q.includes("neden en kısa yol") || q.includes("garanti")) {
-          return "Dijkstra ve BFS gibi algoritmalar grafı katman katman (greedy yaklaşımıyla) genişleterek gezer. İlk hedefe ulaşıldığında, henüz taranmayan yolların daha uzun veya daha maliyetli olduğu garanti edilir. Bu yüzden buldukları ilk yol kesinlikle en kısa/en ucuz yoldur!";
+       if (q.includes("shortest path") || q.includes("guarantee")) {
+          return "Algorithms such as BFS and Dijkstra expand the graph in increasing distance or cost order. When the target is finalized, every unexplored route is guaranteed to be at least as long or expensive, so the result is optimal under the algorithm's assumptions.";
        }
-       if (q.includes("a*") || q.includes("sezgisel") || q.includes("heuristic")) {
-          return "A* algoritması sadece başlangıçtan o anki düğüme olan uzaklığı (g(n)) değil, o düğümden hedefe olan tahmini uzaklığı (h(n)) da hesaba katar. f(n) = g(n) + h(n) fonksiyonunu minimize ederek, körlemesine taramak yerine hedef yönüne odaklanır. Heuristic fonksiyon admissible (asla gerçek maliyeti aşmayan) olduğu sürece A* en kısa yolu garanti eder.";
+       if (q.includes("a*") || q.includes("heuristic")) {
+          return "A* combines the known cost from the start, g(n), with an estimated remaining cost, h(n), and minimizes f(n) = g(n) + h(n). It focuses the search toward the target and guarantees a shortest path when the heuristic is admissible.";
        }
-       if (q.includes("dfs") || q.includes("derin")) {
-          return "DFS, bir yol bulana kadar gidebildiği kadar derine iner. Bu yüzden bulduğu yolun en kısa yol olma garantisi yoktur, ancak hafıza (memory) açısından O(V) seviyesinde olduğu için BFS'den çok daha avantajlıdır.";
+       if (q.includes("dfs") || q.includes("depth")) {
+          return "DFS follows one branch as deeply as possible before backtracking. It does not guarantee a shortest path, but its memory usage can be lower than BFS on wide graphs.";
        }
-       if (q.includes("z algorithm") || q.includes("z algoritması") || q.includes("string")) {
-          return "Z algoritması, geçmişte bulduğu eşleşmeleri Z-box (pencere) içinde tutarak aynı harfleri tekrar tekrar kontrol etmeyi engeller. Bu sayede iç içe döngüler kullanmasına rağmen zaman karmaşıklığını O(N) seviyesine düşürür.";
+       if (q.includes("z algorithm") || q.includes("string")) {
+          return "The Z algorithm stores previous matches inside a Z-box, avoiding repeated character comparisons and achieving O(N) time.";
        }
-       if (q.includes("sıralama") || q.includes("sort") || q.includes("seçmeli")) {
-          return "Sıralama algoritmalarında bellek içi yer değiştirme (swap) maliyetleri kritik olabilir. Seçmeli sıralamada (Selection Sort) her adımda kalan kısmın en küçüğü bulunup sadece 1 kez swap yapılır. O(N^2) karşılaştırma yapsa da maksimum O(N) swap yaptığı için bazı özel durumlarda tercih edilebilir.";
+       if (q.includes("sort") || q.includes("selection")) {
+          return "Selection Sort finds the smallest remaining value and performs at most one swap per pass. It uses O(N²) comparisons but only O(N) swaps, which can matter when writes are expensive.";
        }
-       if (q.includes("merhaba") || q.includes("selam")) {
-           return "Merhaba! Sana kodunda yardımcı olmak için buradayım. (Simüle Edilmiş YZ)";
+       if (q.includes("hello") || q.includes("hi")) {
+           return "Hello! I am here to help with your code. (Simulated AI)";
        }
-       return language === 'tr' 
-          ? `Sorduğunuz "${question}" sorusu üzerine düşündüm. Mevcut kod adımında bu oldukça kritik bir nokta. Simülasyon modunda olduğumuz için dinamik analiz yapamıyorum, ancak algoritmanın temel veri yapılarına odaklanmak bu adımda size ipucu verebilir.` 
-          : `I've considered your question "${question}". In this current step, this is a critical observation. Since we are in simulation mode I cannot generate a dynamic analysis, but focusing on the core data structures here might give you a hint.`;
+       return `I've considered your question "${question}". This is an important observation at the current step. Simulation mode cannot generate dynamic analysis, but the algorithm's core data structures may provide a useful clue.`;
     }
-    return language === 'tr' 
-      ? "Ücretsiz demo modundasınız. Kod hakkında YZ'ye soru sormak için lütfen Ayarlar (sağ alt) menüsünden kendi Gemini API anahtarınızı girin."
-      : "You are in free demo mode. To ask questions to the AI, please enter your Gemini API Key in the Settings menu (bottom right).";
+    return "You are in free demo mode. To ask questions about the code, enter your Gemini API key in the Settings menu.";
   }
 
   try {
@@ -115,7 +109,7 @@ export const askQuestion = async (
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-      You are Bilgiç Dede (Wise Grandpa), a highly advanced code execution tracer AI.
+      You are Master Coder, a highly advanced code execution tracer AI.
       The user is asking a question about the algorithm they are currently visualizing.
       
       Context Information:
@@ -128,12 +122,12 @@ export const askQuestion = async (
       Variables State: ${currentStep?.visualData?.vars ? JSON.stringify(currentStep.visualData.vars) : 'No specific variables'}
       
       Previous Chat History:
-      ${chatHistory.map(m => `${m.role === 'ai' ? 'Bilgiç Dede' : 'User'}: ${m.content}`).join('\n')}
+      ${chatHistory.map(m => `${m.role === 'ai' ? 'Master Coder' : 'User'}: ${m.content}`).join('\n')}
       
       User's Question: "${question}"
       
       Analyze the provided Context Information and answer the User's Question accurately. Explain what is happening at this specific step, why it happens, and how the variables are affected. 
-      Output Language: ${language === 'tr' ? 'Turkish' : 'English'}
+      Output Language: English
       Answer directly. Keep it informative, friendly, and concise.
     `;
 
@@ -142,24 +136,21 @@ export const askQuestion = async (
     return response.text().trim();
   } catch (error: any) {
     console.error("Gemini API chat error:", error);
-    return language === 'tr' ? "API hatası. Lütfen anahtarınızı kontrol edin." : "API Error. Please check your key.";
+    return "API error. Please check your key.";
   }
 };
 
-export const generateQuestions = async (code: string, language: string = 'tr', apiKey: string = ''): Promise<string[]> => {
-  const isTr = language === 'tr';
+export const generateQuestions = async (code: string, apiKey: string = ''): Promise<string[]> => {
   const mockFallback = [
-    isTr ? "1. İki stringin birbirinin anagramı olup olmadığını bulunuz." : "1. Find if two strings are anagrams.",
-    isTr ? "2. Verilen dizideki en uzun artan alt diziyi (LIS) hesaplayın." : "2. Calculate Longest Increasing Subsequence (LIS).",
-    isTr ? "3. Bir metin içinde şifreli bir kelimeyi (pattern) O(N) sürede tespit edin." : "3. Detect a ciphered pattern in text in O(N) time.",
-    isTr ? "4. Sosyal ağdaki bir kişinin arkadaş tavsiyesi listesini çıkartın." : "4. Generate a friend recommendation list in a social network.",
-    isTr ? "5. Harita üzerinde iki nokta arasındaki en kısa rotayı (A*) çizin." : "5. Draw the shortest path between two points on a map using A*."
+    "1. Find if two strings are anagrams.",
+    "2. Calculate the Longest Increasing Subsequence (LIS).",
+    "3. Detect a pattern in text in O(N) time.",
+    "4. Generate friend recommendations in a social network.",
+    "5. Find the shortest route between two points with A*."
   ];
 
   if (!apiKey || apiKey === MAGIC_SIM_KEY) {
-    if (apiKey === MAGIC_SIM_KEY && isTr) {
-      return ["1. [SİMÜLASYON] Bu algoritma ile gerçek hayatta hangi problemi çözerdiniz?", "2. [SİMÜLASYON] Zaman karmaşıklığını optimize edebilir misiniz?", "3. [SİMÜLASYON] Algoritma bellek sınırlarını nasıl zorlar?", "4. [SİMÜLASYON] Edge case durumlarda ne olur?", "5. [SİMÜLASYON] Başka hangi veri yapısı kullanılabilirdi?"];
-    } else if (apiKey === MAGIC_SIM_KEY) {
+    if (apiKey === MAGIC_SIM_KEY) {
       return ["1. [SIMULATION] What real-life problem does this solve?", "2. [SIMULATION] Can you optimize the time complexity?", "3. [SIMULATION] How does this scale with memory?", "4. [SIMULATION] What about edge cases?", "5. [SIMULATION] What alternative data structures could be used?"];
     }
     return mockFallback;
@@ -169,9 +160,7 @@ export const generateQuestions = async (code: string, language: string = 'tr', a
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = isTr 
-      ? `Aşağıdaki algoritma kodunu incele ve bu algoritmanın kullanılabileceği 5 farklı mülakat veya gerçek hayat problemini (Örnek soru) üret. Sadece soruları numaralandırarak (1. 2. 3. 4. 5.) ver, başka bir açıklama ekleme.\nKod:\n${code}`
-      : `Analyze the following algorithm and provide 5 different interview or real-world problem scenarios where this would be used. Just list the questions numbered 1. to 5. without any extra text.\nCode:\n${code}`;
+    const prompt = `Analyze the following algorithm and provide 5 different interview or real-world problem scenarios where it could be used. List only the questions, numbered 1 through 5.\nCode:\n${code}`;
       
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -188,58 +177,47 @@ export const generateQuestions = async (code: string, language: string = 'tr', a
 
 export const generateAnalysis = async (
   code: string, 
-  language: string = 'tr',
   apiKey: string = ''
 ): Promise<string> => {
   if (!apiKey || apiKey === MAGIC_SIM_KEY) {
-    let purpose = "Kodun amacı: Algoritma simülasyonu.";
-    let timeComplexity = "Bilinmiyor";
-    let spaceComplexity = "Bilinmiyor";
-    let optimization = "Gemini API Key girerek detaylı analiz alabilirsiniz.";
-    let purposeEn = "Purpose: Algorithm simulation.";
+    let purpose = "Purpose: Algorithm simulation.";
+    let timeComplexity = "Unknown";
+    let spaceComplexity = "Unknown";
+    let optimization = "Enter a Gemini API key for detailed analysis.";
     
     if (code.includes('zFunction') || code.includes('ZAlgorithm')) {
-      purpose = "Kodun amacı: Z Algoritması ile string içinde şifreli kelime/pattern aramak.";
+      purpose = "Purpose: Pattern matching with the Z algorithm.";
       timeComplexity = "O(N + M)";
       spaceComplexity = "O(N)";
-      optimization = "Z dizisi yardımıyla fazladan karakter karşılaştırmalarını önler, optimal bir yöntemdir.";
-      purposeEn = "Purpose: Pattern matching using Z-Algorithm.";
+      optimization = "The Z array avoids repeated character comparisons; this approach is already optimal.";
     } else if (code.includes('DFS')) {
-      purpose = "Kodun amacı: Derinlik Öncelikli Arama (DFS) ile grafı olabildiğince derine inerek gezmek.";
+      purpose = "Purpose: Traverse a graph with Depth First Search.";
       timeComplexity = "O(V + E)";
       spaceComplexity = "O(V)";
-      optimization = "Özyineli (recursive) yapı yerine Stack (yığıt) kullanılarak bellek taşması (Stack Overflow) önlenebilir.";
-      purposeEn = "Purpose: Traverse graph using Depth First Search.";
+      optimization = "An explicit stack can replace recursion to avoid call-stack overflow.";
     } else if (code.includes('BFS')) {
-      purpose = "Kodun amacı: Sığlık Öncelikli Arama (BFS) ile grafı katman katman gezmek ve en kısa yolu bulmak.";
+      purpose = "Purpose: Traverse a graph layer by layer with Breadth First Search.";
       timeComplexity = "O(V + E)";
       spaceComplexity = "O(V)";
-      optimization = "Ağır graflarda, çift yönlü BFS (Bidirectional BFS) kullanılarak arama uzayı daraltılabilir.";
-      purposeEn = "Purpose: Traverse graph layer by layer using Breadth First Search.";
+      optimization = "Bidirectional BFS can reduce the search space for suitable shortest-path queries.";
     } else if (code.includes('dijkstra') || code.includes('Dijkstra')) {
-      purpose = "Kodun amacı: Dijkstra Algoritması ile ağırlıklı graflarda tek kaynaktan tüm düğümlere en kısa yolu bulmak.";
+      purpose = "Purpose: Find single-source shortest paths in a weighted graph with Dijkstra's algorithm.";
       timeComplexity = "O((V + E) log V)";
       spaceComplexity = "O(V)";
-      optimization = "Öncelik Kuyruğu (Priority Queue) için Fibonacci Heap kullanılırsa zaman karmaşıklığı O(E + V log V)'ye düşürülebilir.";
-      purposeEn = "Purpose: Find shortest paths from a source using Dijkstra's Algorithm.";
+      optimization = "A Fibonacci heap can improve the theoretical bound to O(E + V log V).";
     } else if (code.includes('aStar') || code.includes('A*')) {
-      purpose = "Kodun amacı: A* (A-Star) Algoritması ile sezgisel (heuristic) bir fonksiyon kullanarak hedefe en kısa yolu bulmak.";
+      purpose = "Purpose: Find a shortest path to a target with the A* heuristic search.";
       timeComplexity = "O(E)";
       spaceComplexity = "O(V)";
-      optimization = "Kullanılan Heuristic fonksiyonun (Örn: Manhattan/Euclidean) tutarlılığı (consistency) iyileştirilerek hız artırılabilir.";
-      purposeEn = "Purpose: Find shortest path to target using A* heuristic algorithm.";
+      optimization = "A more informative consistent heuristic, such as Manhattan or Euclidean distance, can improve performance.";
     }
 
     if (apiKey === MAGIC_SIM_KEY) {
-        purpose = "(SİMÜLE APİ YANITI) " + purpose;
-        purposeEn = "(SIMULATED API RESPONSE) " + purposeEn;
-        optimization = language === 'tr' ? "API anahtarınız başarıyla simüle ediliyor! " + optimization : "Your API key is being successfully simulated! " + optimization;
+        purpose = "(SIMULATED API RESPONSE) " + purpose;
+        optimization = "Your API key is being simulated successfully. " + optimization;
     }
 
-    if (language === 'tr') {
-      return `${purpose}\nTime Complexity: ${timeComplexity}\nSpace Complexity: ${spaceComplexity}\nOptimizasyon Potansiyeli: ${optimization}`;
-    }
-    return `${purposeEn}\nTime Complexity: ${timeComplexity}\nSpace Complexity: ${spaceComplexity}\nOptimization Potential: ${optimization}`;
+    return `${purpose}\nTime Complexity: ${timeComplexity}\nSpace Complexity: ${spaceComplexity}\nOptimization Potential: ${optimization}`;
   }
 
   try {
@@ -247,12 +225,12 @@ export const generateAnalysis = async (
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-      Analyze the following code. Language for output: ${language === 'tr' ? 'Turkish' : 'English'}.
+      Analyze the following code. Output language: English.
       Please provide a highly structured, 4-line response in exactly this format without markdown bolding:
-      Kodun amacı: [Brief explanation]
+      Purpose: [Brief explanation]
       Time Complexity: [Big O]
       Space Complexity: [Big O]
-      Optimizasyon Potansiyeli: [Brief sentence on if it can be optimized]
+      Optimization Potential: [Brief sentence on whether it can be optimized]
       
       Code:
       ${code}
@@ -268,13 +246,13 @@ export const generateAnalysis = async (
 };
 
 
-export const getMockStepsFallback = (code: string, language: string = 'tr', inputVars: string = ''): SimulationStep[] => {
-  if (code.includes('DFS') || code.includes('Depth First')) return getMockDfsSteps(language, inputVars);
-  if (code.includes('BFS') || code.includes('Breadth First')) return getMockBfsSteps(language, inputVars);
-  if (code.includes('dijkstra') || code.includes('Dijkstra')) return getMockDijkstraSteps(language, inputVars);
-  if (code.includes('aStar') || code.includes('A*')) return getMockAStarSteps(language, inputVars);
-  if (code.includes('ZAlgorithm') || code.includes('zFunction') || code.includes('z = new int')) return getMockArraySteps(language, inputVars);
-  if (code.includes('Sort') || code.includes('Sıralama') || code.includes('swap') || code.includes('partition')) return getMockSortingSteps(language, inputVars);
+export const getMockStepsFallback = (code: string, inputVars: string = ''): SimulationStep[] => {
+  if (code.includes('DFS') || code.includes('Depth First')) return getMockDfsSteps(inputVars);
+  if (code.includes('BFS') || code.includes('Breadth First')) return getMockBfsSteps(inputVars);
+  if (code.includes('dijkstra') || code.includes('Dijkstra')) return getMockDijkstraSteps(inputVars);
+  if (code.includes('aStar') || code.includes('A*')) return getMockAStarSteps(inputVars);
+  if (code.includes('ZAlgorithm') || code.includes('zFunction') || code.includes('z = new int')) return getMockArraySteps(inputVars);
+  if (code.includes('Sort') || code.includes('swap') || code.includes('partition')) return getMockSortingSteps(inputVars);
   
   // Generic Fallback for stubs
   return [{
@@ -283,11 +261,11 @@ export const getMockStepsFallback = (code: string, language: string = 'tr', inpu
       type: 'variables', 
       vars: { info: "Visual simulation not implemented for this stub." } 
     },
-    explanation: language === 'tr' ? "Bu algoritma için çevrimdışı görsel simülasyon henüz tanımlanmamış. Lütfen API Key girerek AI tabanlı analizi kullanın veya DFS / Z-Algorithm gibi tam destekli algoritmaları seçin." : "Offline visual simulation not implemented for this algorithm. Please use AI-based analysis or select fully supported ones like DFS or Z-Algorithm."
+    explanation: "Offline visual simulation is not implemented for this algorithm. Use AI-based analysis or select a fully supported algorithm such as DFS or Z-Algorithm."
   }];
 };
 
-const getMockArraySteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockArraySteps = (inputVars: string): SimulationStep[] => {
   let s = "AABAABAAZ";
   
   if (inputVars === 'preset:i1') {
@@ -314,57 +292,57 @@ const getMockArraySteps = (lang: string, inputVars: string): SimulationStep[] =>
   const n = s.length;
   const steps: SimulationStep[] = [];
   
-  const pushStep = (line: number, pointersObj: Record<string, number>, varsObj: any, expTr: string, expEn: string) => {
+  const pushStep = (line: number, pointersObj: Record<string, number>, varsObj: any, explanation: string) => {
     steps.push({
       lineNumber: line,
       visualData: { type: 'array', values, pointers: pointersObj, vars: { ...varsObj } },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
   let z = new Array(n).fill(0);
   let l = 0, r = 0;
   
-  pushStep(3, {}, { n }, "n değişkenine string'in uzunluğu atanıyor, böylece döngü limitimizi belirliyoruz.", "String length assigned to n.");
-  pushStep(4, {}, { n, z: JSON.stringify(z) }, "Bulduğumuz eşleşme uzunluklarını hafızada tutmak için Z dizisini 0'larla dolduruyoruz.", "Z array is initialized.");
-  pushStep(5, { L: 0, R: 0 }, { n, z: JSON.stringify(z), l, r }, "L ve R işaretçilerini 0 olarak başlatıyoruz. Bu işaretçiler bize daha önce bulduğumuz en sağdaki eşleşme penceresini (Z-box) gösterecek.", "Pointers l and r initialized to 0.");
+  pushStep(3, {}, { n }, "String length assigned to n.");
+  pushStep(4, {}, { n, z: JSON.stringify(z) }, "Z array is initialized.");
+  pushStep(5, { L: 0, R: 0 }, { n, z: JSON.stringify(z), l, r }, "Pointers l and r initialized to 0.");
   
   for (let i = 1; i < n; i++) {
-    pushStep(6, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Döngü i=${i} ('${s[i]}') için başlıyor.`, `Loop starts for i=${i} ('${s[i]}').`);
+    pushStep(6, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Loop starts for i=${i} ('${s[i]}').`);
     
     if (i <= r) {
-      pushStep(7, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `i (${i}) <= R (${r}) olduğu için şu anki harfimiz daha önceden hesapladığımız Z-box penceresinin içinde kalıyor. Geçmişteki bilgiyi kullanabiliriz.`, `i (${i}) <= r (${r}), we are inside the Z-box.`);
+      pushStep(7, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `i (${i}) <= r (${r}), we are inside the Z-box.`);
       z[i] = Math.min(r - i + 1, z[i - l]);
-      pushStep(8, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Z[${i}] değeri optimize ediliyor. Yeniden karakter karakter saymak yerine geçmişteki eşleşme miktarını (Z[i-l]) kopyalıyoruz: ${z[i]}`, `Z[${i}] is optimized: ${z[i]}`);
+      pushStep(8, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Z[${i}] is optimized: ${z[i]}`);
     }
     
-    pushStep(10, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Kalan harfler için tek tek eşleşme kontrolüne başlıyoruz (while döngüsü).`, `Matching check starts (while loop).`);
+    pushStep(10, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Matching check starts (while loop).`);
     
     while (i + z[i] < n && s.charAt(z[i]) === s.charAt(i + z[i])) {
-      pushStep(10, { "z[i]": z[i], "i+z[i]": i + z[i], L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Baştaki '${s.charAt(z[i])}' harfi ile i. indeksten sonraki '${s.charAt(i + z[i])}' harfi birbiriyle eşleştiği için Z değerimizi büyütebiliriz!`, `'${s.charAt(z[i])}' matches '${s.charAt(i + z[i])}'!`);
+      pushStep(10, { "z[i]": z[i], "i+z[i]": i + z[i], L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `'${s.charAt(z[i])}' matches '${s.charAt(i + z[i])}'!`);
       z[i]++;
-      pushStep(11, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Eşleşme başarılı olduğu için Z[${i}] değerimizi 1 artırdık: ${z[i]}`, `Z[${i}] value incremented: ${z[i]}`);
+      pushStep(11, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Z[${i}] value incremented: ${z[i]}`);
     }
     
     if (i + z[i] < n) {
-      pushStep(10, { "z[i]": z[i], "i+z[i]": i + z[i], L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Baştaki '${s.charAt(z[i])}' harfi ile '${s.charAt(i + z[i])}' eşleşmediğinden daha fazla ileri gidemiyoruz. While döngüsünü sonlandırıyoruz.`, `'${s.charAt(z[i])}' does not match '${s.charAt(i + z[i])}'.`);
+      pushStep(10, { "z[i]": z[i], "i+z[i]": i + z[i], L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `'${s.charAt(z[i])}' does not match '${s.charAt(i + z[i])}'.`);
     }
     
-    pushStep(13, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Bulduğumuz yeni eşleşmenin sağ sınırı (i + Z[i] - 1), eski R sınırımızı (R=${r}) aşıyor mu diye kontrol ediyoruz.`, `Checking Z-box boundary.`);
+    pushStep(13, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Checking Z-box boundary.`);
     if (i + z[i] - 1 > r) {
       l = i;
       r = i + z[i] - 1;
-      pushStep(14, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `Evet aşıyor! Bu yüzden Z-box penceremizi yeni eşleşme aralığına kaydırıyoruz.`, `New Z-box found! Updating pointers.`);
-      pushStep(15, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `L ve R işaretçileri bulunduğumuz eşleşme sınırlarına çekildi (L=${l}, R=${r}).`, `l and r updated to ${l} and ${r}.`);
+      pushStep(14, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `New Z-box found! Updating pointers.`);
+      pushStep(15, { i, L: l, R: r }, { n, z: JSON.stringify(z), l, r, i }, `l and r updated to ${l} and ${r}.`);
     }
   }
   
-  pushStep(18, { L: l, R: r }, { n, z: JSON.stringify(z), l, r }, "Döngü bitti. Z-Algoritması tüm harfler için ön ek eşleşme uzunluklarını buldu. Z dizisini döndürüyoruz!", "Loop ended. Simulation completed!");
+  pushStep(18, { L: l, R: r }, { n, z: JSON.stringify(z), l, r }, "Loop ended. Simulation completed!");
   
   return steps;
 }
 
-const getMockDfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockDfsSteps = (inputVars: string): SimulationStep[] => {
   let xOffsets: number[] = []; let yOffsets: number[] = []; let edges: any[] = [];
   if (inputVars === 'preset:i1') {
     xOffsets = [50, 25, 75, 15, 35, 65, 85, 10, 20, 30, 40, 60, 70, 80, 90];
@@ -394,7 +372,7 @@ const getMockDfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
   const visited = new Array(16).fill(false);
   const activeNodes = new Set<number>();
   
-  const pushStep = (line: number, v: number, expTr: string, expEn: string) => {
+  const pushStep = (line: number, v: number, explanation: string) => {
     // Determine active edges based on activeNodes
     const activeEdges = edges.map(e => ({
       ...e,
@@ -407,41 +385,41 @@ const getMockDfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
         type: 'graph', 
         nodes: baseNodes.map(n => ({ ...n, active: activeNodes.has(n.id) || n.id === v })), 
         edges: activeEdges,
-        vars: { [lang === 'tr' ? 'mevcut_dugum' : 'current_node']: v, [lang === 'tr' ? 'ziyaret_edilen' : 'visited']: JSON.stringify(visited.slice(1, 8)) + '...' } // truncate for UI
+        vars: { current_node: v, visited: JSON.stringify(visited.slice(1, 8)) + '...' } // truncate for UI
       },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
   const dfs = (v: number) => {
     activeNodes.add(v);
     visited[v] = true;
-    pushStep(2, v, `DFS(${v}) çağrıldı. Düğüm ${v} ziyaret edildi (visited=true).`, `DFS(${v}) called. Node ${v} marked as visited.`);
+    pushStep(2, v, `DFS(${v}) called. Node ${v} marked as visited.`);
     
-    pushStep(4, v, `Düğüm ${v}'nin komşuları kontrol ediliyor (while).`, `Checking neighbors of Node ${v} (while loop).`);
+    pushStep(4, v, `Checking neighbors of Node ${v} (while loop).`);
     
     const neighbors = edges.filter(e => e.from === v).map(e => e.to);
     for (const n of neighbors) {
-      pushStep(6, v, `Komşu ${n} kontrol ediliyor.`, `Checking neighbor ${n}.`);
+      pushStep(6, v, `Checking neighbor ${n}.`);
       if (!visited[n]) {
-        pushStep(7, v, `Komşu ${n} henüz ziyaret edilmemiş, DFS(${n}) için daha derine iniliyor...`, `Neighbor ${n} not visited, descending to DFS(${n})...`);
+        pushStep(7, v, `Neighbor ${n} not visited, descending to DFS(${n})...`);
         dfs(n);
         activeNodes.add(v); // Re-highlight current after returning from child
-        pushStep(4, v, `DFS(${n}) bitti. Düğüm ${v}'ye geri (backtrack) döndük. Başka komşusu var mı?`, `DFS(${n}) finished. Backtracked to Node ${v}. Any other neighbors?`);
+        pushStep(4, v, `DFS(${n}) finished. Backtracked to Node ${v}. Any other neighbors?`);
       }
     }
-    pushStep(9, v, `Düğüm ${v}'nin tüm komşuları bitti. Geldiği yola geri dönüyor (Backtrack).`, `All neighbors of Node ${v} visited. Backtracking up.`);
+    pushStep(9, v, `All neighbors of Node ${v} visited. Backtracking up.`);
     activeNodes.delete(v);
   };
 
-  pushStep(1, 1, "DFS 1. düğümden başlatılıyor...", "Starting DFS from node 1...");
+  pushStep(1, 1, "Starting DFS from node 1...");
   dfs(1);
-  pushStep(10, 1, "Tüm 15 düğümlük ağaç (graph) yapısı başarıyla DFS ile gezildi!", "Entire 15-node tree traversed successfully using DFS!");
+  pushStep(10, 1, "Entire 15-node tree traversed successfully using DFS!");
   
   return steps;
 };
 
-const getMockBfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockBfsSteps = (inputVars: string): SimulationStep[] => {
   let xOffsets: number[] = []; let yOffsets: number[] = []; let edges: any[] = [];
   if (inputVars === 'preset:i1') {
     xOffsets = [50, 25, 75, 15, 35, 65, 85, 10, 20, 30, 40, 60, 70, 80, 90];
@@ -475,7 +453,7 @@ const getMockBfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
   const activeNodes = new Set<number>();
   const fullyVisited = new Set<number>();
   
-  const pushStep = (line: number, v: number | null, expTr: string, expEn: string) => {
+  const pushStep = (line: number, v: number | null, explanation: string) => {
     steps.push({
       lineNumber: line,
       visualData: { 
@@ -487,25 +465,25 @@ const getMockBfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
         })), 
         edges: edges.map(e => ({ ...e, active: fullyVisited.has(e.from) && fullyVisited.has(e.to) })),
         vars: { 
-          [lang === 'tr' ? 'mevcut_dugum' : 'current']: v, 
-          [lang === 'tr' ? 'kuyruk' : 'queue']: JSON.stringify(queue.slice(0, 5)) + (queue.length > 5 ? '...' : '')
+          current: v,
+          queue: JSON.stringify(queue.slice(0, 5)) + (queue.length > 5 ? '...' : '')
         }
       },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
-  pushStep(1, null, "BFS kuyruğu başlatılıyor (15 Düğümlü Graf)...", "Initializing BFS queue (15-node graph)...");
+  pushStep(1, null, "Initializing BFS queue (15-node graph)...");
   visited[1] = true;
   dist[1] = 0;
   queue.push(1);
-  pushStep(4, 1, "Kök düğüm (1) kuyruğa eklendi ve uzaklığı 0 olarak ayarlandı.", "Root node (1) pushed to queue with dist 0.");
+  pushStep(4, 1, "Root node (1) pushed to queue with dist 0.");
   
   while (queue.length > 0) {
     const curr = queue.shift()!;
     activeNodes.add(curr);
     fullyVisited.add(curr);
-    pushStep(7, curr, `Düğüm kuyruktan çıkarıldı.`, `Node popped from queue.`);
+    pushStep(7, curr, `Node popped from queue.`);
     
     const neighbors = new Set([
        ...edges.filter(e => e.from === curr).map(e => e.to),
@@ -518,17 +496,17 @@ const getMockBfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
         dist[n] = dist[curr]! + 1;
         queue.push(n);
         activeNodes.add(n);
-        pushStep(13, curr, `Komşu düğüm uzaklığı ${dist[n]} hesaplandı ve kuyruğa eklendi.`, `Neighbor dist calculated as ${dist[n]} and added to queue.`);
+        pushStep(13, curr, `Neighbor dist calculated as ${dist[n]} and added to queue.`);
       }
     }
     activeNodes.delete(curr);
   }
   
-  pushStep(17, null, "Tüm düğümler gezildi. BFS başarıyla tamamlandı!", "All nodes visited. BFS completed successfully!");
+  pushStep(17, null, "All nodes visited. BFS completed successfully!");
   return steps;
 };
 
-const getMockAStarSteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockAStarSteps = (inputVars: string): SimulationStep[] => {
   let xOffsets: number[] = []; let yOffsets: number[] = []; let edges: any[] = [];
   if (inputVars === 'preset:i1') {
     xOffsets = [10, 30, 50, 70, 90, 10, 90, 10, 90, 10, 30, 50, 70, 90, 50];
@@ -564,7 +542,7 @@ const getMockAStarSteps = (lang: string, inputVars: string): SimulationStep[] =>
   const fScore = new Array(16).fill(Infinity);
   fScore[1] = 0; 
 
-  const pushStep = (line: number, v: number, expTr: string, expEn: string) => {
+  const pushStep = (line: number, v: number, explanation: string) => {
     steps.push({
       lineNumber: line,
       visualData: { 
@@ -576,28 +554,28 @@ const getMockAStarSteps = (lang: string, inputVars: string): SimulationStep[] =>
         })), 
         edges: edges.map(e => ({ ...e, active: closedSet.has(e.from) && closedSet.has(e.to), label: e.weight.toString() })),
         vars: { 
-          [lang === 'tr' ? 'acik_liste' : 'openSet']: JSON.stringify(Array.from(openSet).slice(0, 5)) + (openSet.size>5?'...':''),
-          [lang === 'tr' ? 'kapali_liste' : 'closedSet']: JSON.stringify(Array.from(closedSet).slice(0, 5)) + (closedSet.size>5?'...':'')
+          openSet: JSON.stringify(Array.from(openSet).slice(0, 5)) + (openSet.size>5?'...':''),
+          closedSet: JSON.stringify(Array.from(closedSet).slice(0, 5)) + (closedSet.size>5?'...':'')
         }
       },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
-  pushStep(2, 1, "Başlangıç noktası (Start) açık listeye eklendi. Uzaklık 0.", "Start node added to openSet. Distance is 0.");
+  pushStep(2, 1, "Start node added to openSet. Distance is 0.");
   
   while(openSet.size > 0) {
     let curr = Array.from(openSet).reduce((minNode, node) => fScore[node] < fScore[minNode] ? node : minNode, Array.from(openSet)[0]);
     
     if (curr === 15) {
        closedSet.add(curr);
-       pushStep(6, 15, "A* algoritması Hedefe giden en kısa yolu başarıyla buldu!", "A* found the shortest path to Target!");
+       pushStep(6, 15, "A* found the shortest path to Target!");
        break;
     }
     
     openSet.delete(curr);
     closedSet.add(curr);
-    pushStep(4, curr, `Açık listedeki en düşük f-değerine sahip düğüm seçildi.`, `Node with lowest f-value selected.`);
+    pushStep(4, curr, `Node with lowest f-value selected.`);
     
     const neighbors = [
        ...edges.filter(e => e.from === curr).map(e => ({ to: e.to, w: e.weight })),
@@ -615,7 +593,7 @@ const getMockAStarSteps = (lang: string, inputVars: string): SimulationStep[] =>
          if (!openSet.has(n.to)) {
            openSet.add(n.to);
            if (!stepped) {
-             pushStep(10, curr, `Komşu incelendi. Yeni uzaklık: ${tentative_gScore} bulundu ve açık listeye eklendi.`, `Neighbor evaluated. New distance: ${tentative_gScore} added.`);
+             pushStep(10, curr, `Neighbor evaluated. New distance: ${tentative_gScore} added.`);
              stepped = true;
            }
          }
@@ -626,7 +604,7 @@ const getMockAStarSteps = (lang: string, inputVars: string): SimulationStep[] =>
   return steps;
 };
 
-const getMockDijkstraSteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockDijkstraSteps = (inputVars: string): SimulationStep[] => {
   let xOffsets: number[] = []; let yOffsets: number[] = []; let edges: any[] = [];
   if (inputVars === 'preset:i1') {
     xOffsets = [10, 30, 50, 70, 90, 30, 50, 70, 10, 30, 50, 70, 90, 50, 50];
@@ -660,7 +638,7 @@ const getMockDijkstraSteps = (lang: string, inputVars: string): SimulationStep[]
   let pq = [{id: 1, dist: 0}];
   const visitedPath = new Set<number>();
   
-  const pushStep = (line: number, v: number, expTr: string, expEn: string) => {
+  const pushStep = (line: number, v: number, explanation: string) => {
     steps.push({
       lineNumber: line,
       visualData: { 
@@ -672,15 +650,15 @@ const getMockDijkstraSteps = (lang: string, inputVars: string): SimulationStep[]
         })), 
         edges: edges.map(e => ({ ...e, active: visitedPath.has(e.from) && visitedPath.has(e.to), label: e.weight.toString() })),
         vars: { 
-          [lang === 'tr' ? 'mesafeler' : 'dist']: JSON.stringify(dist.slice(1, 6).map(d => d===Infinity ? '∞' : d)) + '...', 
-          [lang === 'tr' ? 'kuyruk' : 'pq']: JSON.stringify(pq.slice(0, 3).map(p => `(${p.dist})`)) + '...'
+          dist: JSON.stringify(dist.slice(1, 6).map(d => d===Infinity ? '∞' : d)) + '...',
+          pq: JSON.stringify(pq.slice(0, 3).map(p => `(${p.dist})`)) + '...'
         }
       },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
-  pushStep(2, 1, "Mesafe dizisi sonsuz olarak başlatıldı. Başlangıç noktası uzaklığı 0 yapıldı.", "Distances initialized to infinity. Start node dist is 0.");
+  pushStep(2, 1, "Distances initialized to infinity. Start node dist is 0.");
   
   while(pq.length > 0) {
      pq.sort((a,b) => a.dist - b.dist);
@@ -688,7 +666,7 @@ const getMockDijkstraSteps = (lang: string, inputVars: string): SimulationStep[]
      if (visitedPath.has(curr.id)) continue;
      visitedPath.add(curr.id);
      
-     pushStep(6, curr.id, `En düşük mesafeli düğüm kuyruktan çıkarıldı.`, `Node with minimum distance popped.`);
+     pushStep(6, curr.id, `Node with minimum distance popped.`);
      
      const neighbors = [
        ...edges.filter(e => e.from === curr.id).map(e => ({ to: e.to, w: e.weight })),
@@ -699,58 +677,58 @@ const getMockDijkstraSteps = (lang: string, inputVars: string): SimulationStep[]
        if (dist[curr.id] + n.w < dist[n.to]) {
          dist[n.to] = dist[curr.id] + n.w;
          pq.push({ id: n.to, dist: dist[n.to] });
-         pushStep(9, curr.id, `Daha kısa bir yol bulundu! Yeni uzaklık: ${dist[n.to]}.`, `Shorter path found! New dist: ${dist[n.to]}.`);
+         pushStep(9, curr.id, `Shorter path found! New dist: ${dist[n.to]}.`);
        }
      }
   }
   
-  pushStep(15, 15, "Tüm en kısa yollar başarıyla hesaplandı.", "All shortest paths successfully calculated.");
+  pushStep(15, 15, "All shortest paths successfully calculated.");
   return steps;
 };
 
-const getMockSortingSteps = (lang: string, inputVars: string): SimulationStep[] => {
+const getMockSortingSteps = (inputVars: string): SimulationStep[] => {
   const steps: SimulationStep[] = [];
   let arr = [38, 27, 43, 3, 9, 82, 10, 5, 20, 15, 31, 1, 6];
   if (inputVars === 'preset:i1') arr = [3, 9, 10, 15, 20, 38, 27, 5, 43, 82]; // mostly sorted
   if (inputVars === 'preset:i3') arr = [99, 82, 75, 66, 52, 45, 33, 21, 15, 8, 4, 1, 95, 71, 62, 58, 44, 38, 27, 19, 14, 5]; // large chaos
   
-  const pushStep = (line: number, pointersObj: Record<string, number>, expTr: string, expEn: string) => {
+  const pushStep = (line: number, pointersObj: Record<string, number>, explanation: string) => {
     steps.push({
       lineNumber: line,
       visualData: { type: 'array', values: [...arr], pointers: pointersObj, vars: {} },
-      explanation: lang === 'tr' ? expTr : expEn
+      explanation
     });
   };
 
   const n = arr.length;
-  pushStep(1, {}, `${n} elemanlı dizi üzerinde Seçmeli Sıralama (Selection Sort) algoritması başlatılıyor.`, `Selection Sort algorithm started on a ${n}-element array.`);
+  pushStep(1, {}, `Selection Sort algorithm started on a ${n}-element array.`);
   
   for(let i = 0; i < n - 1; i++) {
      let minIdx = i;
-     pushStep(2, { i, minIdx }, `Döngü i=${i} için başlıyor. Başlangıçtaki en küçük eleman varsayımı: ${arr[minIdx]} (indeks: ${minIdx})`, `Loop starts for i=${i}. Initial minimum assumed: ${arr[minIdx]} (index: ${minIdx})`);
+     pushStep(2, { i, minIdx }, `Loop starts for i=${i}. Initial minimum assumed: ${arr[minIdx]} (index: ${minIdx})`);
      
      for(let j = i + 1; j < n; j++) {
-       pushStep(4, { i, minIdx, j }, `${arr[j]} ile mevcut minimum olan ${arr[minIdx]} karşılaştırılıyor.`, `Comparing ${arr[j]} with current min ${arr[minIdx]}.`);
+       pushStep(4, { i, minIdx, j }, `Comparing ${arr[j]} with current min ${arr[minIdx]}.`);
        if(arr[j] < arr[minIdx]) {
          minIdx = j;
-         pushStep(5, { i, minIdx, j }, `Yeni minimum bulundu! Yeni en küçük değer: ${arr[minIdx]} (indeks: ${minIdx})`, `New minimum found! New min value: ${arr[minIdx]} (index: ${minIdx})`);
+         pushStep(5, { i, minIdx, j }, `New minimum found! New min value: ${arr[minIdx]} (index: ${minIdx})`);
        }
      }
      
      if (minIdx !== i) {
-       pushStep(7, { i, minIdx }, `Arama bitti. Gerçek minimum değer olan ${arr[minIdx]} ile i. sıradaki ${arr[i]} yer değiştiriyor (swap).`, `Search complete. Swapping the real min value ${arr[minIdx]} with ${arr[i]}.`);
+       pushStep(7, { i, minIdx }, `Search complete. Swapping the real min value ${arr[minIdx]} with ${arr[i]}.`);
        let temp = arr[i];
        arr[i] = arr[minIdx];
        arr[minIdx] = temp;
-       pushStep(8, { i, minIdx }, `Yer değiştirme tamamlandı. ${arr[i]} doğru konuma yerleşti.`, `Swap completed. ${arr[i]} is now in correct position.`);
+       pushStep(8, { i, minIdx }, `Swap completed. ${arr[i]} is now in correct position.`);
      } else {
-       pushStep(7, { i, minIdx }, `Arama bitti. En küçük değer zaten doğru yerde (${arr[i]}), yer değiştirmeye gerek yok.`, `Search complete. Minimum is already in correct place (${arr[i]}), no swap needed.`);
+       pushStep(7, { i, minIdx }, `Search complete. Minimum is already in correct place (${arr[i]}), no swap needed.`);
      }
   }
 
-  pushStep(10, {}, `Sıralama tamamlandı! Dizi tamamen sıralı duruma getirildi.`, `Sorting completed! The array is fully sorted.`);
+  pushStep(10, {}, `Sorting completed! The array is fully sorted.`);
   arr.sort((a,b) => a-b);
-  pushStep(10, {}, "Dizi tamamen başarıyla sıralandı!", "Array fully sorted successfully!");
+  pushStep(10, {}, "Array fully sorted successfully!");
   
   return steps;
 };

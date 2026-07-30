@@ -1,0 +1,111 @@
+.radio-launcher,
+.playlist-radio {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 900;
+}
+
+.radio-launcher {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid var(--neon-magenta);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(10, 5, 15, 0.94);
+  box-shadow: 0 0 14px rgba(255, 0, 255, 0.24);
+  cursor: pointer;
+  font: 700 0.72rem var(--font-mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.radio-launcher:hover {
+  color: var(--bg-dark);
+  background: var(--neon-magenta);
+}
+
+.playlist-radio {
+  width: 380px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 0, 255, 0.5);
+  border-radius: 10px;
+  background: rgba(5, 5, 8, 0.98);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 0, 255, 0.18);
+}
+
+.playlist-radio-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 9px;
+  color: var(--neon-magenta);
+  font: 700 0.75rem var(--font-mono);
+  letter-spacing: 0.6px;
+}
+
+.playlist-radio-header > span {
+  flex: 1;
+  color: #fff;
+}
+
+.playlist-radio-header a,
+.playlist-radio-header button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.playlist-radio-header a:hover,
+.playlist-radio-header button:hover {
+  border-color: rgba(0, 243, 255, 0.35);
+  color: var(--neon-cyan);
+}
+
+.playlist-radio iframe {
+  display: block;
+  width: 360px;
+  height: 203px;
+  margin: 0 auto;
+  border: 0;
+  background: #000;
+}
+
+.playlist-radio > p {
+  margin: 0;
+  padding: 7px 10px;
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .radio-launcher {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  .playlist-radio {
+    left: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+  }
+
+  .playlist-radio iframe {
+    width: min(360px, calc(100vw - 24px));
+    height: max(200px, calc((100vw - 24px) * 0.5625));
+  }
+}
+

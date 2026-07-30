@@ -8,6 +8,7 @@ import {
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { createInputPreset } from '../services/inputPresets';
+import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
@@ -53,6 +54,7 @@ interface TimelineContextType {
 
 const STORAGE_KEY = 'codexray.workspace.v1';
 const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
+const AI_MODEL_KEY = 'codexray.ai-model.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
 const loadInput = (): SimulationInput => {
@@ -80,6 +82,16 @@ const loadPinnedVariables = (): string[] => {
   }
 };
 
+const loadAiModel = (): string => {
+  try {
+    const saved = localStorage.getItem(AI_MODEL_KEY);
+    if (saved && LOCAL_AI_MODELS.some((model) => model.id === saved)) return saved;
+  } catch {
+    // Fall back to the fast model when storage is unavailable.
+  }
+  return LOCAL_AI_MODELS[0].id;
+};
+
 export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [code, setCode] = useState('');
   const [algorithmName, setAlgorithmName] = useState('Custom Code');
@@ -91,7 +103,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [simulationInput, setSimulationInput] = useState<SimulationInput>(loadInput);
   const [inputError, setInputError] = useState<string | null>(null);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState('Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC');
+  const [aiModel, setAiModel] = useState(loadAiModel);
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
   const [locale, setLocale] = useState<Locale>(() =>
@@ -151,6 +163,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       // Pinning still works for this session when storage is unavailable.
     }
   }, [pinnedVariables]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AI_MODEL_KEY, aiModel);
+    } catch {
+      // Model selection still works for this session when storage is unavailable.
+    }
+  }, [aiModel]);
 
   return (
     <TimelineContext.Provider value={{

@@ -103,7 +103,7 @@ export const askQuestion = async (
   const boundedQuestion = question.length > 1_000
     ? `${question.slice(0, 960)}\n[Question shortened for the local model context window.]`
     : question;
-  const context = buildAssistantContext(workspace);
+  const context = buildAssistantContext(workspace, boundedQuestion);
   const historyBudget = Math.max(
     0,
     Math.min(1_600, 8_500 - 1_700 - context.length - boundedQuestion.length),

@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FastForward, Pause, Play, Settings, StepBack, StepForward } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { generateQuestions } from '../services/aiService';
 import {
+  getPersistentStorageStatus,
   initializeLocalAi,
+  isLocalModelCached,
   LOCAL_AI_MODELS,
+  requestPersistentLocalAiStorage,
   resetLocalAi,
   supportsLocalAi,
 } from '../services/localAiService';
@@ -47,7 +50,30 @@ export const ControlBar = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
+  const [modelCached, setModelCached] = useState<boolean | null>(null);
+  const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const panelTitle = t('controls', locale);
+  const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
+    ?? LOCAL_AI_MODELS[0];
+
+  useEffect(() => {
+    if (!showSettings) return;
+    let active = true;
+    setModelCached(null);
+    void Promise.all([
+      isLocalModelCached(aiModel),
+      getPersistentStorageStatus(),
+    ]).then(([cached, persistent]) => {
+      if (!active) return;
+      setModelCached(cached);
+      setStoragePersistent(persistent);
+    }).catch(() => {
+      if (active) setModelCached(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [aiModel, showSettings]);
 
   if (collapsed) {
     return (
@@ -75,9 +101,11 @@ export const ControlBar = ({
     }
     setAiStatus('loading');
     try {
+      setStoragePersistent(await requestPersistentLocalAiStorage());
       await initializeLocalAi(aiModel, (progress) => {
         setAiProgress(locale === 'tr' ? t('loading', locale) : progress);
       });
+      setModelCached(true);
       setAiStatus('ready');
       setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {
@@ -178,12 +206,14 @@ export const ControlBar = ({
                 <div className="settings-section">
                   <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
+                    aria-label={t('onDeviceModel', locale)}
                     className="api-provider-select"
                     value={aiModel}
                     disabled={aiStatus === 'loading'}
                     onChange={(event) => {
                       resetLocalAi();
                       setAiModel(event.target.value);
+                      setModelCached(null);
                       setAiStatus('idle');
                       setAiProgress('');
                     }}
@@ -192,16 +222,44 @@ export const ControlBar = ({
                       <option key={model.id} value={model.id}>{translateRuntimeText(model.label, locale)}</option>
                     ))}
                   </select>
+                  <p className="model-requirement">
+                    {t('modelRequirement', locale, {
+                      memory: (selectedModel.vramMb / 1000).toFixed(1),
+                    })}
+                  </p>
                 </div>
                 <p className="local-ai-note">
                   {t('localAiPrivacy', locale)}
                 </p>
+                <div className="local-storage-status">
+                  <span className={modelCached ? 'ready' : ''}>
+                    {modelCached === null
+                      ? t('checkingLocalModel', locale)
+                      : modelCached
+                        ? t('modelStoredLocally', locale)
+                        : t('modelDownloadRequired', locale)}
+                  </span>
+                  <span className={storagePersistent ? 'ready' : ''}>
+                    {storagePersistent === null
+                      ? t('browserManagedStorage', locale)
+                      : storagePersistent
+                        ? t('persistentStorageGranted', locale)
+                        : t('persistentStorageBestEffort', locale)}
+                  </span>
+                </div>
+                <p className="local-ai-note">{t('localAiStorageNote', locale)}</p>
                 <button
                   className="neon-button"
                   onClick={loadModel}
                   disabled={aiStatus === 'loading' || aiStatus === 'ready'}
                 >
-                  {aiStatus === 'loading' ? t('loading', locale) : aiStatus === 'ready' ? t('modelReady', locale) : t('loadLocalModel', locale)}
+                  {aiStatus === 'loading'
+                    ? t('loading', locale)
+                    : aiStatus === 'ready'
+                      ? t('modelReady', locale)
+                      : modelCached
+                        ? t('initializeStoredModel', locale)
+                        : t('loadLocalModel', locale)}
                 </button>
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
               </div>

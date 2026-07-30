@@ -63,3 +63,13 @@ test('resizes and collapses workspace panels', async ({ page }) => {
   await page.getByRole('button', { name: 'Collapse Controls' }).click();
   await expect(page.getByRole('button', { name: 'Expand Controls' })).toBeVisible();
 });
+
+test('opens the playlist radio without loading it before user interaction', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTitle('CodeXRay YouTube playlist player')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open CodeXRay Radio' }).click();
+  await expect(page.getByTitle('CodeXRay YouTube playlist player')).toHaveAttribute(
+    'src',
+    /OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0/,
+  );
+});

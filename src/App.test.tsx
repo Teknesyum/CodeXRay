@@ -73,4 +73,33 @@ describe('application workspace', () => {
     expect(screen.queryByText('Where are we in the trace?')).not.toBeInTheDocument();
     expect(localStorage.getItem('codexray.ai-chat.v1')).toBe('[]');
   });
+
+  it('offers the persisted ultra local model and explains browser-managed storage', async () => {
+    localStorage.setItem(
+      'codexray.ai-model.v1',
+      'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
+    );
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    const modelSelect = screen.getByRole('combobox', { name: 'On-device model' });
+    expect(modelSelect).toHaveValue('Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC');
+    expect(screen.getByRole('option', { name: /Qwen2.5 Coder 7B/ })).toBeInTheDocument();
+    expect(screen.getByText(/browser-managed OPFS\/cache/)).toBeInTheDocument();
+  });
+
+  it('opens the requested YouTube Music playlist in a compact radio player', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Open CodeXRay Radio' }));
+    const player = screen.getByTitle('CodeXRay YouTube playlist player');
+    expect(player.getAttribute('src'))
+      .toContain('list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0');
+    expect(screen.getByRole('link', { name: 'Open playlist in YouTube Music' }).getAttribute('href'))
+      .toContain('music.youtube.com/playlist');
+    await user.click(screen.getByRole('button', { name: 'Close CodeXRay Radio' }));
+    expect(screen.queryByTitle('CodeXRay YouTube playlist player')).not.toBeInTheDocument();
+  });
 });

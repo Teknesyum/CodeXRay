@@ -39,6 +39,10 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   the assistant. Current code and trace state always override older chat.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
   Assistant conversation memory stays local and can be cleared from the UI.
+  Model weights prefer OPFS with Cache API fallback and persistent-origin storage.
+- `aiResponse.ts`: deterministic cleanup for small-model repetition loops.
+- `PlaylistRadio.tsx`: click-to-load YouTube playlist iframe; keep the external
+  player unmounted until user interaction and preserve its fallback link.
 - `src/i18n/translations.ts`: complete EN/TR UI, algorithm, validation, and
   runtime explanation localization.
 - `scripts/publish-to-site.mjs`: guarded static publication to the portfolio.
@@ -67,6 +71,10 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   conversation override the latest workspace snapshot.
 - Keep code and repository documentation in English. Never add secrets, API
   keys, or remote AI calls. Local AI must stay optional and worker-based.
+- Keep AI prompts within the 4096-token model window. Complexity questions omit
+  unrelated trace payloads, and generated prose passes repetition cleanup.
+- Never imply that a browser can reuse an arbitrary local filesystem path for
+  WebLLM. Explain OPFS/cache persistence and unavoidable per-visit GPU setup.
 
 ## Deployment
 

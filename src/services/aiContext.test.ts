@@ -73,6 +73,27 @@ describe('local assistant context', () => {
     expect(context).toContain('"startId":"A"');
   });
 
+  it('omits live trace payloads for a focused complexity question', () => {
+    const context = buildAssistantContext({
+      algorithmName: 'Depth First Search (DFS)',
+      code: 'void dfs(int node) { visit(node); }',
+      simulationInput: { kind: 'array', text: '[1,2,3]' },
+      steps,
+      currentIndex: 1,
+      analysis: 'Time Complexity: O(V + E)',
+      inputError: null,
+      isPlaying: false,
+      pinnedVariables: ['visited'],
+      locale: 'tr',
+    }, 'kompleks kaç?');
+
+    expect(context).toContain('Context focus: complexity and source code');
+    expect(context).toContain('Time Complexity: O(V + E)');
+    expect(context).toContain('void dfs');
+    expect(context).not.toContain('Simulation input:');
+    expect(context).not.toContain('Recent executed trace');
+  });
+
   it('keeps recent conversational turns and excludes UI system errors', () => {
     const messages: AssistantMessage[] = [
       { role: 'system', content: 'Model error' },

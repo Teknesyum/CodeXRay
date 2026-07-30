@@ -136,7 +136,14 @@ const formatTraceStep = (step: SimulationStep, index: number): string => [
   `Variables: ${serialize(step.visualData.vars)}`,
 ].map((part) => shorten(part, MAX_TRACE_STEP_CHARACTERS, 'Trace detail shortened')).join('\n');
 
-export const buildAssistantContext = (workspace: AssistantWorkspace): string => {
+const isComplexityQuestion = (question: string): boolean =>
+  /(complexity|big\s*o|time\s+complex|space\s+complex|karmaşıkl|kompleks|o\([^)]+\))/i
+    .test(question);
+
+export const buildAssistantContext = (
+  workspace: AssistantWorkspace,
+  question = '',
+): string => {
   const {
     algorithmName,
     code,
@@ -172,11 +179,13 @@ export const buildAssistantContext = (workspace: AssistantWorkspace): string => 
       .join('\n\n')
     : '(no trace yet)';
   const nextStep = steps[safeIndex + 1];
+  const complexityFocus = isComplexityQuestion(question);
 
-  const context = [
+  const commonContext = [
     'LIVE WORKSPACE SNAPSHOT — this block is newer and more authoritative than conversation history.',
     `Answer language: ${locale === 'tr' ? 'Turkish' : 'English'}`,
     `Algorithm: ${algorithmName}`,
+    `Context focus: ${complexityFocus ? 'complexity and source code' : 'live execution and source code'}`,
     `Execution progress: ${progress}`,
     `Execution state: ${phase}`,
     `User-pinned watch variables: ${pinnedVariables.length ? pinnedVariables.join(', ') : 'none'}`,
@@ -185,13 +194,19 @@ export const buildAssistantContext = (workspace: AssistantWorkspace): string => 
     `Current explanation: ${currentStep?.explanation ?? 'none'}`,
     `Input validation state: ${inputError ?? 'valid or not yet validated'}`,
     `Analysis: ${analysis ?? 'not generated'}`,
+  ];
+  const executionContext = complexityFocus ? [] : [
     `Simulation input:\n${formatInput(simulationInput)}`,
     `Current visual and variable state:\n${currentStep ? formatVisualState(currentStep) : '(none)'}`,
-    `Current source code:\n${formatSourceCode(code, currentLine)}`,
     `Recent executed trace, oldest to newest:\n${recentTrace}`,
     `Next deterministic step preview:\n${nextStep
       ? `Source line: ${nextStep.lineNumber ?? 'none'}\nExplanation: ${nextStep.explanation}`
       : '(none)'}`,
+  ];
+  const context = [
+    ...commonContext,
+    `Current source code:\n${formatSourceCode(code, currentLine)}`,
+    ...executionContext,
   ].join('\n\n');
   return shorten(
     context,

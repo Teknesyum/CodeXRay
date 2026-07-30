@@ -1,21 +1,29 @@
 import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
+import { sanitizeLocalModelAnswer } from './aiResponse';
 
 export const LOCAL_AI_MODELS = [
   {
     id: 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
     label: 'Qwen2.5 Coder 0.5B (default, faster)',
+    vramMb: 1061,
   },
   {
     id: 'Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC',
     label: 'Qwen2.5 Coder 1.5B (enhanced)',
+    vramMb: 1889,
+  },
+  {
+    id: 'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
+    label: 'Qwen2.5 Coder 7B (ultra, highest quality)',
+    vramMb: 5107,
   },
 ] as const;
 
 interface WorkerResponse {
   id: number;
-  type: 'ready' | 'progress' | 'answer' | 'error';
+  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status';
   text?: string;
   progress?: InitProgressReport;
 }
@@ -65,6 +73,34 @@ export const supportsLocalAi = async (): Promise<boolean> => {
   }
 };
 
+export const isLocalModelCached = (model: string): Promise<boolean> => {
+  if (typeof Worker === 'undefined') return Promise.resolve(false);
+  const currentWorker = getWorker();
+  const id = ++requestId;
+  return new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    currentWorker.postMessage({ id, type: 'cache-status', model });
+  }).then((status) => status === 'cached');
+};
+
+export const getPersistentStorageStatus = async (): Promise<boolean | null> => {
+  if (typeof navigator === 'undefined' || !navigator.storage?.persisted) return null;
+  try {
+    return await navigator.storage.persisted();
+  } catch {
+    return null;
+  }
+};
+
+export const requestPersistentLocalAiStorage = async (): Promise<boolean | null> => {
+  if (typeof navigator === 'undefined' || !navigator.storage?.persist) return null;
+  try {
+    return await navigator.storage.persist();
+  } catch {
+    return null;
+  }
+};
+
 export const initializeLocalAi = async (
   model: string,
   onProgress: (text: string) => void,
@@ -72,6 +108,7 @@ export const initializeLocalAi = async (
   if (!await supportsLocalAi()) {
     throw new Error('WebGPU is not available in this browser.');
   }
+  await requestPersistentLocalAiStorage();
   if (readyModel === model) return Promise.resolve();
   const currentWorker = getWorker();
   const id = ++requestId;
@@ -104,7 +141,7 @@ export const askLocalModel = (
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
-  });
+  }).then(sanitizeLocalModelAnswer);
 };
 
 export const resetLocalAi = () => {

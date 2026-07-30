@@ -9,6 +9,7 @@ import { DynamicVisualizer } from './components/DynamicVisualizer';
 import { ControlBar } from './components/ControlBar';
 import { AiAssistant } from './components/AiAssistant';
 import { VariablesPanel } from './components/VariablesPanel';
+import { PlaylistRadio } from './components/PlaylistRadio';
 import { generateAnalysis, generateSimulationSteps } from './services/aiService';
 import { parseSimulationInput } from './services/inputParsers';
 import './App.css';
@@ -325,6 +326,7 @@ const CodeRayApp = () => {
           </section>
         </div>
       </div>
+      <PlaylistRadio />
     </div>
   );
 };

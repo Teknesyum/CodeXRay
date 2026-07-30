@@ -21,6 +21,8 @@ source code and input are never sent to an API.
 - Timeline playback, line highlighting, graph states, paths, arrows, and weights.
 - Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU,
   with bounded local conversation memory and live code/input/trace context.
+- A click-to-load CodeXRay Radio using the requested YouTube Music playlist,
+  with a direct playlist fallback when a track disallows embedding.
 - Browser autosave for the current input workspace.
 - Instant English/Turkish switching, including existing simulation explanations.
 - The graph/tree builder uses the large visualization panel and can switch back
@@ -93,9 +95,20 @@ Open Settings and load one of:
 
 - `Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC` — default and faster.
 - `Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC` — larger enhanced option.
+- `Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC` — ultra option, approximately 5.1 GB
+  of GPU memory and significantly heavier initialization.
 
-The model download can be large and requires a WebGPU-capable browser. The
-visualizer remains fully functional when WebGPU is unavailable.
+Model weights prefer the browser’s private OPFS storage with Cache API fallback,
+and CodeXRay requests persistent origin storage. A cached model does not need to
+be downloaded again, although every page visit must still initialize it into GPU
+memory. Browser security intentionally prevents the site from retaining an
+arbitrary Windows folder path. The visualizer remains fully functional when
+WebGPU is unavailable.
+
+Short questions such as complexity queries receive focused source-code context
+instead of the complete execution trace. Decoding penalties and deterministic
+response cleanup prevent small models from repeating the same paragraph until
+the output limit.
 
 ## Publish to serkanozel.me
 

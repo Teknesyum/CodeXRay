@@ -37,6 +37,10 @@ source code and input are never sent to an API.
   to the running simulation without losing input.
 - Resizable desktop boundaries and collapsible code, trace, visualization,
   assistant, and control panels; preferences persist locally.
+- Right-column splitters resize only their adjacent panel pair. The compact
+  Controls panel starts at roughly 104 px, panel minimums are enforced without
+  flex-shrinking unrelated regions, and saved sizes are clamped after a viewport
+  change.
 - Persistent variable pins that stay at the top of Variables & Trace and mirror
   live values in a horizontally scrollable visualization watch strip.
 
@@ -145,6 +149,11 @@ Settings also provides a scoped site reset. It removes only `codexray.*`
 local/session storage state—workspace input, chat, pins, locale, layout, and AI
 preferences—then reloads the app. It deliberately leaves OPFS/Cache API model
 files and unrelated storage belonging to the parent portfolio origin untouched.
+
+Workspace layout preferences use `codexray.layout.v2`; the version change
+intentionally discards the older unbalanced right-column defaults. The Examples
+menu renders above the assistant stacking layer and remains scrollable rather
+than being clipped by the Controls panel.
 
 ## Publish to serkanozel.me
 

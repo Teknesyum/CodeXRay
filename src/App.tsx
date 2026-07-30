@@ -12,6 +12,11 @@ import { VariablesPanel } from './components/VariablesPanel';
 import { PlaylistRadio } from './components/PlaylistRadio';
 import { generateAnalysis, generateSimulationSteps } from './services/aiService';
 import { parseSimulationInput } from './services/inputParsers';
+import {
+  constrainRightPanelSizes,
+  createDefaultRightPanelSizes,
+  RIGHT_PANEL_LIMITS,
+} from './services/workspaceLayout';
 import './App.css';
 
 type PanelName = 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls';
@@ -24,31 +29,35 @@ interface LayoutState {
   collapsed: Record<PanelName, boolean>;
 }
 
-const LAYOUT_STORAGE_KEY = 'codexray.layout.v1';
-const defaultLayout: LayoutState = {
-  leftWidth: 440,
-  leftTopHeight: 500,
-  visualizerHeight: 420,
-  assistantHeight: 250,
-  collapsed: {
-    code: false,
-    variables: false,
-    visualizer: false,
-    assistant: false,
-    controls: false,
-  },
+const LAYOUT_STORAGE_KEY = 'codexray.layout.v2';
+const createDefaultLayout = (): LayoutState => {
+  const right = createDefaultRightPanelSizes(window.innerHeight);
+  return {
+    leftWidth: 440,
+    leftTopHeight: Math.max(320, Math.round(window.innerHeight * 0.56)),
+    visualizerHeight: right.visualizerHeight,
+    assistantHeight: right.assistantHeight,
+    collapsed: {
+      code: false,
+      variables: false,
+      visualizer: false,
+      assistant: false,
+      controls: false,
+    },
+  };
 };
 
 const loadLayout = (): LayoutState => {
+  const defaults = createDefaultLayout();
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? '{}') as Partial<LayoutState>;
     return {
-      ...defaultLayout,
+      ...defaults,
       ...saved,
-      collapsed: { ...defaultLayout.collapsed, ...saved.collapsed },
+      collapsed: { ...defaults.collapsed, ...saved.collapsed },
     };
   } catch {
-    return defaultLayout;
+    return defaults;
   }
 };
 
@@ -67,6 +76,7 @@ const CodeRayApp = () => {
     setIsEditingInput,
   } = useTimeline();
   const [layout, setLayout] = useState<LayoutState>(loadLayout);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
 
   useEffect(() => {
     try {
@@ -75,6 +85,12 @@ const CodeRayApp = () => {
       // The workspace still works when storage is unavailable or full.
     }
   }, [layout]);
+
+  useEffect(() => {
+    const handleResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSimulate = () => {
     if (!code.trim()) {
@@ -164,11 +180,66 @@ const CodeRayApp = () => {
     update(Math.min(maximum, Math.max(minimum, currentValue + delta)));
   };
 
+  const beginPairedResize = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    initialUpper: number,
+    initialLower: number,
+    minimumUpper: number,
+    minimumLower: number,
+    update: (upper: number, lower: number) => void,
+  ) => {
+    event.preventDefault();
+    const startPosition = event.clientY;
+    const pairHeight = initialUpper + initialLower;
+    document.body.classList.add('panel-resizing');
+    const handleMove = (moveEvent: PointerEvent) => {
+      const upper = Math.min(
+        pairHeight - minimumLower,
+        Math.max(minimumUpper, initialUpper + moveEvent.clientY - startPosition),
+      );
+      update(upper, pairHeight - upper);
+    };
+    const handleEnd = () => {
+      document.body.classList.remove('panel-resizing');
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+    };
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleEnd, { once: true });
+    window.addEventListener('pointercancel', handleEnd, { once: true });
+  };
+
+  const resizePairWithKeyboard = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+    upper: number,
+    lower: number,
+    minimumUpper: number,
+    minimumLower: number,
+    update: (nextUpper: number, nextLower: number) => void,
+  ) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    const pairHeight = upper + lower;
+    const nextUpper = Math.min(
+      pairHeight - minimumLower,
+      Math.max(minimumUpper, upper + (event.key === 'ArrowUp' ? -20 : 20)),
+    );
+    update(nextUpper, pairHeight - nextUpper);
+  };
+
   const codeCollapsed = layout.collapsed.code;
   const variablesCollapsed = layout.collapsed.variables;
   const visualizerCollapsed = layout.collapsed.visualizer;
   const assistantCollapsed = layout.collapsed.assistant;
   const controlsCollapsed = layout.collapsed.controls;
+  const rightSizes = constrainRightPanelSizes(
+    viewportHeight,
+    layout.visualizerHeight,
+    layout.assistantHeight,
+  );
+  const updateVisualizerAssistant = (visualizerHeight: number, assistantHeight: number) =>
+    setLayout((current) => ({ ...current, visualizerHeight, assistantHeight }));
 
   return (
     <div className="app-container">
@@ -252,7 +323,11 @@ const CodeRayApp = () => {
         <div className="panel-right">
           <section
             className={`visualizer-container panel-region ${visualizerCollapsed ? 'collapsed' : ''}`}
-            style={visualizerCollapsed ? { height: 44 } : assistantCollapsed && controlsCollapsed ? { flex: 1 } : { height: layout.visualizerHeight }}
+            style={visualizerCollapsed
+              ? { height: 44 }
+              : assistantCollapsed && controlsCollapsed
+                ? { flex: 1 }
+                : { height: rightSizes.visualizerHeight }}
           >
             <DynamicVisualizer collapsed={visualizerCollapsed} onToggleCollapse={() => togglePanel('visualizer')} />
           </section>
@@ -262,30 +337,38 @@ const CodeRayApp = () => {
               role="separator"
               tabIndex={0}
               aria-valuemin={200}
-              aria-valuemax={Math.max(200, window.innerHeight - 220)}
-              aria-valuenow={Math.round(layout.visualizerHeight)}
-              aria-label={locale === 'tr' ? 'Görselleştirici ve asistan panellerini yeniden boyutlandır' : 'Resize visualizer and assistant panels'}
-              onKeyDown={(event) => resizeWithKeyboard(
-                event,
-                'y',
-                layout.visualizerHeight,
-                setSize('visualizerHeight'),
-                200,
-                window.innerHeight - 220,
+              aria-valuemax={Math.round(
+                rightSizes.visualizerHeight
+                + rightSizes.assistantHeight
+                - RIGHT_PANEL_LIMITS.assistant,
               )}
-              onPointerDown={(event) => beginResize(
+              aria-valuenow={Math.round(rightSizes.visualizerHeight)}
+              aria-label={locale === 'tr' ? 'Görselleştirici ve asistan panellerini yeniden boyutlandır' : 'Resize visualizer and assistant panels'}
+              onKeyDown={(event) => resizePairWithKeyboard(
                 event,
-                'y',
-                layout.visualizerHeight,
-                setSize('visualizerHeight'),
-                200,
-                window.innerHeight - 220,
+                rightSizes.visualizerHeight,
+                rightSizes.assistantHeight,
+                RIGHT_PANEL_LIMITS.visualizer,
+                RIGHT_PANEL_LIMITS.assistant,
+                updateVisualizerAssistant,
+              )}
+              onPointerDown={(event) => beginPairedResize(
+                event,
+                rightSizes.visualizerHeight,
+                rightSizes.assistantHeight,
+                RIGHT_PANEL_LIMITS.visualizer,
+                RIGHT_PANEL_LIMITS.assistant,
+                updateVisualizerAssistant,
               )}
             />
           )}
           <section
             className={`assistant-container panel-region ${assistantCollapsed ? 'collapsed' : ''}`}
-            style={assistantCollapsed ? { height: 44 } : controlsCollapsed ? { flex: 1 } : { height: layout.assistantHeight }}
+            style={assistantCollapsed
+              ? { height: 44 }
+              : controlsCollapsed
+                ? { flex: 1 }
+                : { height: rightSizes.assistantHeight }}
           >
             <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
           </section>
@@ -294,25 +377,33 @@ const CodeRayApp = () => {
               className="panel-splitter horizontal"
               role="separator"
               tabIndex={0}
-              aria-valuemin={140}
-              aria-valuemax={Math.max(140, window.innerHeight - 180)}
-              aria-valuenow={Math.round(layout.assistantHeight)}
+              aria-valuemin={RIGHT_PANEL_LIMITS.assistant}
+              aria-valuemax={Math.round(
+                rightSizes.assistantHeight
+                + rightSizes.controlHeight
+                - RIGHT_PANEL_LIMITS.controls,
+              )}
+              aria-valuenow={Math.round(rightSizes.assistantHeight)}
               aria-label={locale === 'tr' ? 'Asistan ve kontrol panellerini yeniden boyutlandır' : 'Resize assistant and controls panels'}
               onKeyDown={(event) => resizeWithKeyboard(
                 event,
                 'y',
-                layout.assistantHeight,
+                rightSizes.assistantHeight,
                 setSize('assistantHeight'),
-                140,
-                window.innerHeight - 180,
+                RIGHT_PANEL_LIMITS.assistant,
+                rightSizes.assistantHeight
+                  + rightSizes.controlHeight
+                  - RIGHT_PANEL_LIMITS.controls,
               )}
               onPointerDown={(event) => beginResize(
                 event,
                 'y',
-                layout.assistantHeight,
+                rightSizes.assistantHeight,
                 setSize('assistantHeight'),
-                140,
-                window.innerHeight - 180,
+                RIGHT_PANEL_LIMITS.assistant,
+                rightSizes.assistantHeight
+                  + rightSizes.controlHeight
+                  - RIGHT_PANEL_LIMITS.controls,
               )}
             />
           )}

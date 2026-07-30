@@ -33,6 +33,9 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   browser storage.
 - `App.tsx`: persistent split sizes and collapse state for the five workspace
   panels; desktop splitters must remain pointer-accessible and mobile-safe.
+- `workspaceLayout.ts`: right-column defaults, minimums, and viewport clamping.
+  The upper splitter changes Visualizer/Assistant as a fixed pair; the lower
+  splitter changes Assistant/Controls while keeping Visualizer fixed.
 - `GraphInputEditor.tsx`: manual editing, safe node renaming, drag-to-connect,
   plus GraphDocumentV1 and level-order tree import/export.
 - `aiContext.ts`: bounded, testable live-workspace and conversation context for
@@ -72,6 +75,9 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   switching must update existing simulation steps without rerunning them.
 - Every workspace panel must remain collapsible. Desktop boundaries are
   resizable, while the mobile layout disables splitters and stacks safely.
+- Never allow fixed-height right panels to flex-shrink. Keep Controls compact by
+  default, preserve the third panel when resizing an adjacent pair, and keep
+  upward-opening Controls menus above (not clipped by) the Assistant panel.
 - Top-level variable pins sort first in Variables & Trace and mirror their live
   current-step values in the visualization watch strip. Never show stale values
   when a pinned key is absent from the selected step.

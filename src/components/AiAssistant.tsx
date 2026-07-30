@@ -47,6 +47,11 @@ export const AiAssistant: React.FC = () => {
     }
   }, [chatHistory, analysis, currentStep, isTyping]);
 
+  // Clear history on new algorithm/code
+  useEffect(() => {
+    setChatHistory([]);
+  }, [code]);
+
   useEffect(() => {
     if (selectedExampleQuestion) {
       submitQuestion(`${selectedExampleQuestion}\n\nBu soruyu mevcut algoritma ile nasıl çözebiliriz?`);
@@ -62,10 +67,11 @@ export const AiAssistant: React.FC = () => {
 
   const submitQuestion = async (userMessage: string) => {
     setQuestion('');
+    const currentHistory = [...chatHistory];
     setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
 
-    const answer = await askQuestion(userMessage, code, currentStep, language, apiKey);
+    const answer = await askQuestion(userMessage, code, currentStep, language, apiKey, currentHistory);
     
     setChatHistory(prev => [...prev, { role: 'ai', content: answer }]);
     setIsTyping(false);

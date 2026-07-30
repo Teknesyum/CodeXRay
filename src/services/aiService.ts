@@ -71,7 +71,8 @@ export const askQuestion = async (
   code: string,
   currentStep: SimulationStep | undefined,
   language: string = 'tr',
-  apiKey: string = ''
+  apiKey: string = '',
+  chatHistory: {role: string, content: string}[] = []
 ): Promise<string> => {
   if (!apiKey || apiKey === MAGIC_SIM_KEY) {
     if (apiKey === MAGIC_SIM_KEY) {
@@ -125,6 +126,9 @@ export const askQuestion = async (
       Line Number: ${currentStep?.lineNumber || 'N/A'}
       Step Explanation: ${currentStep?.explanation || 'General overview'}
       Variables State: ${currentStep?.visualData?.vars ? JSON.stringify(currentStep.visualData.vars) : 'No specific variables'}
+      
+      Previous Chat History:
+      ${chatHistory.map(m => `${m.role === 'ai' ? 'Bilgiç Dede' : 'User'}: ${m.content}`).join('\n')}
       
       User's Question: "${question}"
       

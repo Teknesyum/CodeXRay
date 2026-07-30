@@ -1,6 +1,7 @@
 import { useTimeline } from '../context/TimelineContext';
 import { algorithmRegistry } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
+import { getAlgorithmParameterDefinitions } from '../services/algorithmInputs';
 import type { InputKind } from '../types/simulation';
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
 import './CodeEditor.css';
@@ -20,6 +21,10 @@ const inputHelpKeyForAlgorithm = (name: string, kind: InputKind): string => {
   if (/Fast Exponentiation/i.test(name)) return 'modularPowerInputHelp';
   if (/Max Flow/i.test(name)) return 'maxFlowInputHelp';
   if (/Lowest Common Ancestor/i.test(name)) return 'lcaInputHelp';
+  if (/Trie Insert/i.test(name)) return 'wordCollectionHelp';
+  if (/Merge Intervals/i.test(name)) return 'intervalPairsHelp';
+  if (/0\/1 Knapsack/i.test(name)) return 'weightsHelp';
+  if (/Detect Cycle/i.test(name)) return 'linkedListValuesHelp';
   return inputHelpKeys[kind];
 };
 
@@ -50,6 +55,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
   const currentStep = steps[currentIndex];
   const panelTitle = t('sourceCode', locale);
   const inputHelpKey = inputHelpKeyForAlgorithm(algorithmName, simulationInput.kind);
+  const parameterDefinitions = getAlgorithmParameterDefinitions(algorithmName);
 
   if (collapsed) {
     return (
@@ -173,6 +179,27 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
             }}
           />
         )}
+        {parameterDefinitions.map((definition) => (
+          <label className="parameter-field" key={definition.key}>
+            <span>{t(definition.labelKey, locale)}</span>
+            <input
+              aria-label={t(definition.labelKey, locale)}
+              type={definition.type ?? 'text'}
+              placeholder={t(definition.placeholderKey, locale)}
+              value={simulationInput.parameters?.[definition.key] ?? ''}
+              onChange={(event) => {
+                setSimulationInput({
+                  ...simulationInput,
+                  parameters: {
+                    ...simulationInput.parameters,
+                    [definition.key]: event.target.value,
+                  },
+                });
+                setInputError(null);
+              }}
+            />
+          </label>
+        ))}
         <span className="input-format-help">{t(inputHelpKey, locale)}</span>
       </div>
       {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}

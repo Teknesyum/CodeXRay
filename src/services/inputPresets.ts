@@ -72,7 +72,7 @@ export const getInputKindForAlgorithm = (name: string): InputKind => {
       .test(name)
   ) return 'graph';
   if (/Tree|Lowest Common Ancestor/i.test(name)) return 'tree';
-  if (/Z-Algorithm|Manacher/i.test(name)) return 'string';
+  if (/Z-Algorithm|Manacher|KMP|Rabin-Karp|Boyer-Moore|Trie|Minimum Window|Longest Common Subsequence|Edit Distance/i.test(name)) return 'string';
   return 'array';
 };
 
@@ -83,10 +83,38 @@ export const createInputPreset = (
 ): SimulationInput => {
   const normalized = Math.max(0, Math.min(2, presetIndex));
   if (kind === 'string') {
+    const compoundStringPresets: Array<Record<string, string>> = [
+      { text: 'ABABDABACDABABCABAB', pattern: 'ABABCABAB', query: 'algorithm', target: 'ABC', other: 'BDCABA', modulus: '101' },
+      { text: 'algorithm,data,structure,trie,trace', pattern: 'data', query: 'trie', target: 'tist', other: 'sitting', modulus: '1009' },
+      { text: 'ADOBECODEBANC', pattern: 'BANC', query: 'trace', target: 'ABC', other: 'BAC', modulus: '10007' },
+    ];
+    if (/KMP|Rabin-Karp|Boyer-Moore|Trie|Minimum Window|Longest Common Subsequence|Edit Distance/i.test(algorithmName)) {
+      const preset = compoundStringPresets[normalized];
+      const parameters: Record<string, string> = {};
+      if (/KMP|Rabin-Karp|Boyer-Moore/i.test(algorithmName)) parameters.pattern = preset.pattern;
+      if (/Rabin-Karp/i.test(algorithmName)) parameters.modulus = preset.modulus;
+      if (/Trie/i.test(algorithmName)) parameters.query = preset.query;
+      if (/Minimum Window/i.test(algorithmName)) parameters.target = preset.target;
+      if (/Longest Common Subsequence|Edit Distance/i.test(algorithmName)) parameters.other = preset.other;
+      return { kind, text: preset.text, parameters };
+    }
     const values = ['AABAABAAZ', 'abacabadabacaba', 'AABAACAADAABAACAABAA'];
     return { kind, text: values[normalized] };
   }
   if (kind === 'array') {
+    const compoundArrayPresets: Array<Record<string, string>> = [
+      { array: '[1,3,-1,-3,5,3,6,7]', sorted: '[1,3,5,7,9,11,13,15]', intervals: '[1,3,2,6,8,10,15,18]', weights: '[1,3,4,5]', coins: '[1,2,5]', target: '9', windowSize: '3', values: '[1,4,5,7]', capacity: '7', amount: '11', cycleEntry: '1' },
+      { array: '[9,2,7,11,4,6,3]', sorted: '[2,4,6,8,10,12,14,16,18]', intervals: '[1,4,4,5,7,9,8,12]', weights: '[2,3,4,6]', coins: '[2,3,7]', target: '13', windowSize: '4', values: '[4,5,7,10]', capacity: '9', amount: '17', cycleEntry: '-1' },
+      { array: '[4,1,7,3,8,5,9,2,6]', sorted: '[3,6,9,12,15,18,21,24,27]', intervals: '[5,7,1,2,2,4,10,13,12,15]', weights: '[2,5,7,3,1]', coins: '[1,3,4]', target: '18', windowSize: '2', values: '[6,12,14,7,3]', capacity: '10', amount: '23', cycleEntry: '3' },
+    ];
+    const compound = compoundArrayPresets[normalized];
+    if (/Sliding Window Maximum/i.test(algorithmName)) return { kind, text: compound.array, parameters: { windowSize: compound.windowSize } };
+    if (/Two Pointers/i.test(algorithmName)) return { kind, text: compound.array, parameters: { target: compound.target } };
+    if (/Merge Intervals/i.test(algorithmName)) return { kind, text: compound.intervals };
+    if (/Binary Search|Ternary Search/i.test(algorithmName)) return { kind, text: compound.sorted, parameters: { target: compound.target } };
+    if (/0\/1 Knapsack/i.test(algorithmName)) return { kind, text: compound.weights, parameters: { values: compound.values, capacity: compound.capacity } };
+    if (/Coin Change/i.test(algorithmName)) return { kind, text: compound.coins, parameters: { amount: compound.amount } };
+    if (/Detect Cycle/i.test(algorithmName)) return { kind, text: compound.array, parameters: { cycleEntry: compound.cycleEntry } };
     if (/Dutch National Flag/i.test(algorithmName)) {
       const values = ['[2,0,2,1,1,0]', '[2,1,0,2,1,0,1,2]', '[0,2,1,2,0,1,0,2,1]'];
       return { kind, text: values[normalized] };

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseArrayInput,
   parseBinaryTree,
+  parseSimulationInput,
   parseStringInput,
   validateGraphDocument,
 } from './inputParsers';
@@ -20,6 +21,16 @@ describe('input parsers', () => {
     expect(parseStringInput('AABA')).toBe('AABA');
     expect(parseStringInput('"AABA"')).toBe('AABA');
     expect(parseStringInput('s = "AABA"')).toBe('AABA');
+  });
+
+  it('preserves validated algorithm-specific parameters', () => {
+    expect(parseSimulationInput('string', 'ABABA', undefined, {
+      pattern: 'ABA',
+    }).input).toEqual({
+      kind: 'string',
+      text: 'ABABA',
+      parameters: { pattern: 'ABA' },
+    });
   });
 
   it('imports and positions a sparse level-order tree', () => {

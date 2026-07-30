@@ -10,6 +10,7 @@ import { parseArrayInput, parseStringInput, validateGraphDocument } from './inpu
 import { extendedArraySimulators } from './extendedArraySimulators';
 import { extendedGraphSimulators } from './extendedGraphSimulators';
 import { manacher } from './extendedStringSimulators';
+import { compoundSimulators } from './compoundSimulators';
 
 type StepEmitter = (
   lineNumber: number | null,
@@ -599,6 +600,21 @@ const identifyAlgorithm = (name: string, code: string): string => {
     'Sieve of Eratosthenes': 'sieve',
     'Fast Exponentiation (Modular)': 'modularPower',
     'Reverse Linked List': 'reverseList',
+    'Knuth-Morris-Pratt (KMP)': 'kmp',
+    'Rabin-Karp Algorithm': 'rabinKarp',
+    'Boyer-Moore Algorithm': 'boyerMoore',
+    'Sliding Window Maximum': 'slidingWindowMaximum',
+    'Trie Insert & Search': 'trieInsertSearch',
+    'Two Pointers Technique': 'twoPointers',
+    'Minimum Window Substring': 'minimumWindow',
+    'Merge Intervals': 'mergeIntervals',
+    'Binary Search': 'binarySearch',
+    'Ternary Search': 'ternarySearch',
+    '0/1 Knapsack': 'knapsack',
+    'Longest Common Subsequence': 'lcs',
+    'Edit Distance': 'editDistance',
+    'Coin Change': 'coinChange',
+    'Detect Cycle in Linked List': 'detectCycle',
   };
   if (exact[name]) return exact[name];
   const value = `${name} ${code}`.toLowerCase();
@@ -626,6 +642,7 @@ export const simulateAlgorithm = (
   const algorithm = identifyAlgorithm(algorithmName, code);
   if (algorithm === 'z') return zAlgorithm(parseStringInput(input.text));
   if (algorithm === 'manacher') return manacher(parseStringInput(input.text));
+  if (compoundSimulators[algorithm]) return compoundSimulators[algorithm](input);
   if (
     ['dfs', 'bfs', 'dijkstra', 'astar'].includes(algorithm)
     || extendedGraphSimulators[algorithm]

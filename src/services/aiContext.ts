@@ -88,11 +88,13 @@ const formatInput = (input: SimulationInput): string => {
     const document = input.graph;
     const complete = serialize({
       kind: input.kind,
+      parameters: input.parameters ?? {},
       document: document ?? null,
     });
     if (complete.length <= MAX_INPUT_CHARACTERS) return complete;
     return shorten(serialize({
       kind: input.kind,
+      parameters: input.parameters ?? {},
       documentSummary: document ? {
         version: document.version,
         directed: document.directed,
@@ -109,6 +111,7 @@ const formatInput = (input: SimulationInput): string => {
   return serialize({
     kind: input.kind,
     value: input.text,
+    parameters: input.parameters ?? {},
   });
 };
 

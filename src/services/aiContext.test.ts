@@ -42,6 +42,7 @@ describe('local assistant context', () => {
       simulationInput: {
         kind: 'graph',
         text: '',
+        parameters: { target: 'A' },
         graph: {
           version: 1,
           mode: 'graph',
@@ -63,6 +64,7 @@ describe('local assistant context', () => {
 
     expect(context).toContain('Answer language: Turkish');
     expect(context).toContain('Execution progress: 2 of 3 (67%)');
+    expect(context).toContain('"parameters":{"target":"A"}');
     expect(context).toContain('Current source statement: visitNext();');
     expect(context).toContain('User-pinned watch variables: visited');
     expect(context).toContain('"H"');

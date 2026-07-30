@@ -9,7 +9,7 @@ const supported = algorithmRegistry.filter((algorithm) => algorithm.isSupported)
 
 describe('deterministic simulators', () => {
   it('has a non-empty simulator for every supported algorithm', () => {
-    expect(supported).toHaveLength(45);
+    expect(supported).toHaveLength(60);
     const untranslated = new Set<string>();
     for (const algorithm of supported) {
       const kind = getInputKindForAlgorithm(algorithm.name);
@@ -81,11 +81,9 @@ describe('deterministic simulators', () => {
     }
   });
 
-  it('flags every unsupported preset with an actionable blocked reason', () => {
+  it('has no unsupported preset after compound inputs were added', () => {
     const blocked = algorithmRegistry.filter((algorithm) => !algorithm.isSupported);
-    expect(blocked).toHaveLength(15);
-    expect(blocked.every((algorithm) =>
-      (algorithm.blockedReason?.length ?? 0) > 10)).toBe(true);
+    expect(blocked).toEqual([]);
   });
 
   it('rejects unsupported numeric domains with actionable errors', () => {
@@ -202,5 +200,93 @@ describe('deterministic simulators', () => {
       lcaInput,
     );
     expect(lcaSteps.at(-1)?.visualData.vars.lca).toBe('n1');
+  });
+
+  it('computes correct results for every compound-input algorithm', () => {
+    const run = (
+      name: string,
+      kind: 'array' | 'string',
+      text: string,
+      parameters: Record<string, string>,
+    ) => {
+      const algorithm = algorithmRegistry.find((candidate) => candidate.name === name);
+      return simulateAlgorithm(
+        algorithm?.name ?? '',
+        algorithm?.code ?? '',
+        { kind, text, parameters },
+      ).at(-1)?.visualData.vars;
+    };
+
+    for (const name of [
+      'Knuth-Morris-Pratt (KMP)',
+      'Rabin-Karp Algorithm',
+      'Boyer-Moore Algorithm',
+    ]) {
+      expect(run(name, 'string', 'ABABA', {
+        pattern: 'ABA',
+        modulus: '101',
+      })?.matches, name).toEqual([0, 2]);
+    }
+    expect(run('Sliding Window Maximum', 'array', '[1,3,-1,-3,5,3,6,7]', {
+      windowSize: '3',
+    })?.maxima).toEqual([3, 3, 5, 5, 6, 7]);
+    expect(run('Trie Insert & Search', 'string', 'code,coder,trace', {
+      query: 'coder',
+    })?.found).toBe(true);
+    expect(run('Two Pointers Technique', 'array', '[2,7,11,15]', {
+      target: '9',
+    })?.found).toBe(true);
+    expect(run('Minimum Window Substring', 'string', 'ADOBECODEBANC', {
+      target: 'ABC',
+    })?.window).toBe('BANC');
+    expect(run('Merge Intervals', 'array', '[1,3,2,6,8,10,15,18]', {})
+      ?.merged).toEqual([[1, 6], [8, 10], [15, 18]]);
+    expect(run('Binary Search', 'array', '[1,3,5,7,9]', {
+      target: '7',
+    })?.foundIndex).toBe(3);
+    expect(run('Ternary Search', 'array', '[1,3,5,7,9]', {
+      target: '7',
+    })?.foundIndex).toBe(3);
+    expect(run('0/1 Knapsack', 'array', '[1,3,4,5]', {
+      values: '[1,4,5,7]',
+      capacity: '7',
+    })?.maxValue).toBe(9);
+    expect(run('Longest Common Subsequence', 'string', 'ABCBDAB', {
+      other: 'BDCABA',
+    })?.length).toBe(4);
+    expect(run('Edit Distance', 'string', 'kitten', {
+      other: 'sitting',
+    })?.distance).toBe(3);
+    expect(run('Coin Change', 'array', '[1,2,5]', {
+      amount: '11',
+    })?.minCoins).toBe(3);
+    expect(run('Detect Cycle in Linked List', 'array', '[3,2,0,-4]', {
+      cycleEntry: '1',
+    })).toMatchObject({ hasCycle: true, cycleEntry: 1 });
+  });
+
+  it('rejects invalid compound inputs with actionable errors', () => {
+    const simulate = (
+      name: string,
+      text: string,
+      parameters: Record<string, string>,
+    ) => simulateAlgorithm(name, name, { kind: 'array', text, parameters });
+
+    expect(() => simulate('Sliding Window Maximum', '[1,2]', {
+      windowSize: '3',
+    })).toThrow('cannot exceed');
+    expect(() => simulate('Merge Intervals', '[1,2,3]', {}))
+      .toThrow('even number');
+    expect(() => simulate('Binary Search', '[2,1]', { target: '1' }))
+      .toThrow('sorted');
+    expect(() => simulate('0/1 Knapsack', '[1,2]', {
+      values: '[4]',
+      capacity: '3',
+    })).toThrow('same length');
+    expect(() => simulate('Coin Change', '[1,0]', { amount: '3' }))
+      .toThrow('positive integers');
+    expect(() => simulate('Detect Cycle in Linked List', '[1,2]', {
+      cycleEntry: '2',
+    })).toThrow('valid node index');
   });
 });

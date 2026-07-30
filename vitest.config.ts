@@ -13,6 +13,7 @@ export default defineConfig({
         'src/services/inputParsers.ts',
         'src/services/simulators.ts',
         'src/services/extended*Simulators.ts',
+        'src/services/compoundSimulators.ts',
       ],
       thresholds: {
         lines: 60,

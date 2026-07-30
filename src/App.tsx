@@ -122,6 +122,7 @@ const CodeRayApp = () => {
       simulationInput.kind,
       simulationInput.text,
       simulationInput.graph,
+      simulationInput.parameters,
     );
     if (!validation.input) {
       setInputError(validation.error ?? 'Invalid simulation input.');

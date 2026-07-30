@@ -10,12 +10,11 @@ source code and input are never sent to an API.
 
 ## Features
 
-- 45 deterministic simulators covering traversal, shortest paths, MST, SCC,
+- 60 deterministic simulators covering traversal, shortest paths, MST, SCC,
   max flow, matching, graph structure, sorting, array/DP techniques, Manacher,
-  tree traversal/LCA, number theory, and linked-list reversal.
-- The remaining 15 presets are explicitly marked **Blocked** with their missing
-  compound-input requirement instead of pretending that a guessed parameter is
-  correct.
+  string searching, tree traversal/LCA, number theory, and linked lists.
+- Algorithm-specific compound inputs for patterns, targets, window sizes,
+  interval pairs, knapsack values/capacity, coin amounts, and cycle entries.
 - Complete structured Variables & Trace data without hidden or truncated items.
 - Array, string, tree, and graph inputs with validation and examples.
 - A visual tree/graph builder with draggable nodes, editable node IDs and labels,

@@ -38,6 +38,7 @@ export interface SimulationInput {
   kind: InputKind;
   text: string;
   graph?: GraphDocumentV1;
+  parameters?: Record<string, string>;
 }
 
 export interface ArrayVisualData {

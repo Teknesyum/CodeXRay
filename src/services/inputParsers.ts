@@ -205,19 +205,20 @@ export const parseSimulationInput = (
   kind: InputKind,
   text: string,
   graph?: GraphDocumentV1,
+  parameters?: Record<string, string>,
 ): InputValidationResult => {
   try {
     if (kind === 'array') {
       parseArrayInput(text);
-      return { input: { kind, text } };
+      return { input: { kind, text, parameters } };
     }
     if (kind === 'string') {
       parseStringInput(text);
-      return { input: { kind, text } };
+      return { input: { kind, text, parameters } };
     }
     if (!graph) throw new Error(`Create or import a ${kind} before simulating.`);
     const validated = validateGraphDocument({ ...graph, mode: kind });
-    return { input: { kind, text, graph: validated } };
+    return { input: { kind, text, graph: validated, parameters } };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Invalid simulation input.' };
   }

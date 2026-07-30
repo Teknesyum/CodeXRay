@@ -101,7 +101,7 @@ export const requestPersistentLocalAiStorage = async (): Promise<boolean | null>
 export const initializeLocalAi = async (
   model: string,
   contextWindow: number,
-  onProgress: (text: string) => void,
+  onProgress: (progress: InitProgressReport) => void,
 ): Promise<void> => {
   if (!await supportsLocalAi()) {
     throw new Error('WebGPU is not available in this browser.');
@@ -112,7 +112,11 @@ export const initializeLocalAi = async (
   const id = ++requestId;
   const progressHandler = (event: MessageEvent<WorkerResponse>) => {
     if (event.data.id === id && event.data.type === 'progress') {
-      onProgress(event.data.progress?.text ?? 'Loading local model…');
+      onProgress(event.data.progress ?? {
+        progress: 0,
+        timeElapsed: 0,
+        text: 'Loading local model…',
+      });
     }
   };
   currentWorker.addEventListener('message', progressHandler);

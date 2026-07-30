@@ -53,6 +53,40 @@ test('renames graph nodes and creates edges by dragging node handles', async ({ 
     edge.from === '1' || edge.to === '1')).toBe(false);
 });
 
+test('graph edit popovers do not move the canvas and edges can be edited in place', async ({ page }) => {
+  await page.goto('/');
+  const select = page.getByLabel('Algorithm preset');
+  const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
+  await select.selectOption(dfsValue ?? '');
+
+  const canvas = page.getByLabel(/Graph builder canvas/);
+  const before = await canvas.boundingBox();
+  await page.getByRole('button', { name: 'Node 1', exact: true }).click();
+  await expect(page.getByLabel('Selected node')).toBeVisible();
+  const afterNode = await canvas.boundingBox();
+  expect(afterNode).toEqual(before);
+
+  await page.getByRole('button', { name: 'Edit edge 1 to 2' }).click();
+  await expect(page.getByLabel('Selected edge 1 to 2')).toBeVisible();
+  expect(await canvas.boundingBox()).toEqual(before);
+
+  const edgeWeight = page.getByLabel('Edge 1 to 2 weight');
+  await edgeWeight.fill('9');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByText('Import / export').click();
+  await page.getByRole('button', { name: 'Export to editor' }).click();
+  let exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
+  expect(exported.edges.find((edge: { id: string }) => edge.id === 'e1').weight).toBe(9);
+
+  await page.getByRole('button', { name: 'Delete edge 1 to 2' }).click();
+  await page.getByRole('button', { name: 'Export to editor' }).click();
+  exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
+  expect(exported.edges.some((edge: { id: string }) => edge.id === 'e1')).toBe(false);
+  const afterEditing = await canvas.boundingBox();
+  expect(afterEditing?.width).toBe(before?.width);
+  expect(afterEditing?.height).toBe(before?.height);
+});
+
 test('switches the visible interface to Turkish instantly', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');
@@ -101,6 +135,30 @@ test('resizes and collapses workspace panels', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Collapse Controls' }).click();
   await expect(page.getByRole('button', { name: 'Expand Controls' })).toBeVisible();
+});
+
+test('keeps collapsed panel controls clickable and clear of the language switch', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Collapse Simulation View' }).click();
+  const expand = page.getByRole('button', { name: 'Expand Simulation View' });
+  const language = page.getByRole('button', { name: 'Türkçeye geç' });
+  await expect(expand).toBeVisible();
+
+  const expandBox = await expand.boundingBox();
+  const languageBox = await language.boundingBox();
+  expect(expandBox).not.toBeNull();
+  expect(languageBox).not.toBeNull();
+  const overlaps = Boolean(
+    expandBox
+    && languageBox
+    && expandBox.x < languageBox.x + languageBox.width
+    && expandBox.x + expandBox.width > languageBox.x
+    && expandBox.y < languageBox.y + languageBox.height
+    && expandBox.y + expandBox.height > languageBox.y,
+  );
+  expect(overlaps).toBe(false);
+  await expand.click();
+  await expect(page.getByRole('button', { name: 'Collapse Simulation View' })).toBeVisible();
 });
 
 test('resizes only adjacent right panels and starts with compact controls', async ({ page }) => {
@@ -186,6 +244,13 @@ test('opens the playlist radio without loading it before user interaction', asyn
     'src',
     /OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0/,
   );
+  const playerBox = await page.getByTitle('CodeXRay YouTube playlist player').boundingBox();
+  expect(playerBox?.width).toBeLessThanOrEqual(360);
+  expect(playerBox?.height).toBeGreaterThanOrEqual(200);
+  const volume = page.getByLabel('Radio volume');
+  await expect(volume).toHaveValue('55');
+  await volume.fill('30');
+  await expect(volume).toHaveValue('30');
 });
 
 test('offers the 9B model and its experimental 8K context profile', async ({ page }) => {
@@ -225,4 +290,25 @@ test('resets CodeXRay state without clearing unrelated origin storage', async ({
   expect(storage.pins).toBe('[]');
   expect(storage.layout).not.toContain('700');
   expect(storage.unrelated).toBe('dark');
+});
+
+test('resets only interface layout while preserving user workspace state', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('e2e-interface-reset-seeded')) return;
+    sessionStorage.setItem('e2e-interface-reset-seeded', 'true');
+    localStorage.setItem('codexray.pinned-variables.v1', '["visited"]');
+    localStorage.setItem('codexray.layout.v2', '{"leftWidth":700}');
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await Promise.all([
+    page.waitForEvent('load'),
+    page.getByRole('button', { name: 'Reset interface' }).click(),
+  ]);
+  const storage = await page.evaluate(() => ({
+    pins: localStorage.getItem('codexray.pinned-variables.v1'),
+    layout: localStorage.getItem('codexray.layout.v2'),
+  }));
+  expect(storage.pins).toBe('["visited"]');
+  expect(storage.layout).not.toContain('700');
 });

@@ -46,6 +46,8 @@ interface TimelineContextType {
   setAiStatus: (status: LocalAiStatus) => void;
   aiProgress: string;
   setAiProgress: (progress: string) => void;
+  aiProgressPercent: number | null;
+  setAiProgressPercent: (progress: number | null) => void;
   locale: Locale;
   setLocale: (locale: Locale) => void;
   isEditingInput: boolean;
@@ -112,6 +114,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   );
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
+  const [aiProgressPercent, setAiProgressPercent] = useState<number | null>(null);
   const [locale, setLocale] = useState<Locale>(() =>
     localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
   );
@@ -220,6 +223,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setAiStatus,
       aiProgress,
       setAiProgress,
+      aiProgressPercent,
+      setAiProgressPercent,
       locale,
       setLocale,
       isEditingInput,

@@ -22,7 +22,10 @@ import {
 } from '../services/localAiService';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { selectCachedModelForAutoLoad } from '../services/localAiModels';
-import { resetCodeXRaySiteState } from '../services/siteReset';
+import {
+  resetCodeXRayInterfaceState,
+  resetCodeXRaySiteState,
+} from '../services/siteReset';
 import './ControlBar.css';
 
 interface ControlBarProps {
@@ -58,6 +61,8 @@ export const ControlBar = ({
     setAiStatus,
     aiProgress,
     setAiProgress,
+    aiProgressPercent,
+    setAiProgressPercent,
     locale,
   } = useTimeline();
   const [showSettings, setShowSettings] = useState(false);
@@ -77,24 +82,30 @@ export const ControlBar = ({
   const activateModel = useCallback(async (model: string, contextWindow: number) => {
     if (!await supportsLocalAi()) {
       setAiStatus('unsupported');
+      setAiProgressPercent(null);
       setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
       return;
     }
     setAiStatus('loading');
+    setAiProgressPercent(0);
     try {
       setStoragePersistent(await requestPersistentLocalAiStorage());
       await initializeLocalAi(model, contextWindow, (progress) => {
-        setAiProgress(locale === 'tr' ? t('loading', locale) : progress);
+        const percentage = Math.round(Math.max(0, Math.min(1, progress.progress)) * 100);
+        setAiProgressPercent(percentage);
+        setAiProgress(locale === 'tr' ? t('downloadingModel', locale) : progress.text);
       });
       setCachedModels((current) => [...new Set([...current, model])]);
       setCacheChecked(true);
       setAiStatus('ready');
+      setAiProgressPercent(100);
       setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {
       setAiStatus('error');
+      setAiProgressPercent(null);
       setAiProgress(translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
     }
-  }, [locale, setAiProgress, setAiStatus]);
+  }, [locale, setAiProgress, setAiProgressPercent, setAiStatus]);
 
   useEffect(() => {
     if (aiContextWindow <= selectedModel.maxContextWindow) return;
@@ -102,12 +113,14 @@ export const ControlBar = ({
     setAiContextWindow(selectedModel.contextWindow);
     setAiStatus('idle');
     setAiProgress('');
+    setAiProgressPercent(null);
   }, [
     aiContextWindow,
     selectedModel.contextWindow,
     selectedModel.maxContextWindow,
     setAiContextWindow,
     setAiProgress,
+    setAiProgressPercent,
     setAiStatus,
   ]);
 
@@ -190,11 +203,13 @@ export const ControlBar = ({
       setCachedModels((current) => current.filter((id) => id !== model));
       if (model === aiModel) {
         setAiStatus('idle');
+        setAiProgressPercent(null);
         setAiProgress(t('modelDeleted', locale));
         autoLoadAttempts.current.delete(model);
       }
     } catch (error) {
       setAiStatus('error');
+      setAiProgressPercent(null);
       setAiProgress(error instanceof Error ? error.message : t('modelDeleteFailed', locale));
     } finally {
       setDeletingModel(null);
@@ -206,6 +221,11 @@ export const ControlBar = ({
     resetLocalAi();
     resetCodeXRaySiteState();
     resetCodeXRaySiteState(sessionStorage);
+    window.location.reload();
+  };
+
+  const resetInterface = () => {
+    resetCodeXRayInterfaceState();
     window.location.reload();
   };
 
@@ -318,6 +338,7 @@ export const ControlBar = ({
                       setAiContextWindow(nextModel.contextWindow);
                       setCacheChecked(false);
                       setAiStatus('idle');
+                      setAiProgressPercent(null);
                       setAiProgress('');
                     }}
                   >
@@ -337,6 +358,7 @@ export const ControlBar = ({
                       resetLocalAi();
                       setAiContextWindow(contextWindow);
                       setAiStatus('idle');
+                      setAiProgressPercent(null);
                       setAiProgress('');
                     }}
                   >
@@ -419,15 +441,38 @@ export const ControlBar = ({
                     <div className="settings-title">{t('resetSiteTitle', locale)}</div>
                     <p className="local-ai-note">{t('resetSiteHelp', locale)}</p>
                   </div>
-                  <button
-                    type="button"
-                    className="reset-site-button"
-                    onClick={resetSite}
-                    disabled={aiStatus === 'loading' || deletingModel !== null}
-                  >
-                    {t('resetSite', locale)}
-                  </button>
+                  <div className="reset-actions">
+                    <button
+                      type="button"
+                      className="reset-interface-button"
+                      onClick={resetInterface}
+                      disabled={aiStatus === 'loading' || deletingModel !== null}
+                    >
+                      {t('resetInterface', locale)}
+                    </button>
+                    <button
+                      type="button"
+                      className="reset-site-button"
+                      onClick={resetSite}
+                      disabled={aiStatus === 'loading' || deletingModel !== null}
+                    >
+                      {t('resetSite', locale)}
+                    </button>
+                  </div>
                 </div>
+                {aiStatus === 'loading' && (
+                  <div className="model-download-progress">
+                    <div>
+                      <span>{t('modelDownloadProgress', locale)}</span>
+                      <output>{aiProgressPercent ?? 0}%</output>
+                    </div>
+                    <progress
+                      aria-label={t('modelDownloadProgress', locale)}
+                      max="100"
+                      value={aiProgressPercent ?? 0}
+                    />
+                  </div>
+                )}
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
               </div>
             </div>

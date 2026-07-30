@@ -149,6 +149,9 @@ Settings also provides a scoped site reset. It removes only `codexray.*`
 local/session storage state—workspace input, chat, pins, locale, layout, and AI
 preferences—then reloads the app. It deliberately leaves OPFS/Cache API model
 files and unrelated storage belonging to the parent portfolio origin untouched.
+The neighboring **Reset interface** action is narrower: it removes only layout
+v1/v2, restoring panel sizes and collapse state while preserving workspace
+input, pins, chat, locale, AI preferences, and downloaded models.
 
 Workspace layout preferences use `codexray.layout.v2`; the version change
 intentionally discards the older unbalanced right-column defaults. The Examples

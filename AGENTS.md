@@ -50,6 +50,7 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   Keep service, worker, UI labels, and tests driven by this single registry.
 - `siteReset.ts`: removes only `codexray.*` local/session storage state. Never
   clear the whole origin or delete WebLLM OPFS/Cache data from the general reset.
+  Its interface-only reset may remove layout v1/v2 and nothing else.
 - `aiResponse.ts`: deterministic cleanup for small-model repetition loops.
 - `PlaylistRadio.tsx`: click-to-load YouTube playlist iframe; keep the external
   player unmounted until user interaction and preserve its fallback link.

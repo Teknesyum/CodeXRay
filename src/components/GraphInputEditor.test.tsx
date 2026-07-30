@@ -105,4 +105,30 @@ describe('GraphInputEditor', () => {
     expect(currentDocument.edges).toHaveLength(1);
     expect(currentDocument.edges[0]).toMatchObject({ from: '1', to: '2' });
   });
+
+  it('edits and quickly deletes a selected weighted edge', async () => {
+    const user = userEvent.setup();
+    render(<Harness value={{
+      ...initialDocument,
+      weighted: true,
+      edges: [{ ...initialDocument.edges[0], weight: 3 }],
+    }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Edit edge Eleven to Two' }));
+    const weightInput = screen.getByLabelText('Edge Eleven to Two weight');
+    await user.clear(weightInput);
+    await user.type(weightInput, '9');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    let currentDocument = JSON.parse(
+      screen.getByTestId('graph-document').textContent ?? '{}',
+    ) as GraphDocumentV1;
+    expect(currentDocument.edges[0].weight).toBe(9);
+
+    await user.click(screen.getByRole('button', { name: 'Delete edge Eleven to Two' }));
+    currentDocument = JSON.parse(
+      screen.getByTestId('graph-document').textContent ?? '{}',
+    ) as GraphDocumentV1;
+    expect(currentDocument.edges).toHaveLength(0);
+  });
 });

@@ -36,9 +36,14 @@ export const GraphInputEditor = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [draftNodeId, setDraftNodeId] = useState('');
   const [draftNodeLabel, setDraftNodeLabel] = useState('');
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [draftEdgeWeight, setDraftEdgeWeight] = useState('1');
   const canvasRef = useRef<HTMLDivElement>(null);
   const exportJson = useMemo(() => JSON.stringify(document, null, 2), [document]);
   const selectedNode = document.nodes.find((node) => node.id === selectedNodeId);
+  const selectedEdge = document.edges.find((edge) => edge.id === selectedEdgeId);
+  const selectedEdgeStart = document.nodes.find((node) => node.id === selectedEdge?.from);
+  const selectedEdgeEnd = document.nodes.find((node) => node.id === selectedEdge?.to);
 
   useEffect(() => {
     if (!document.nodes.some((node) => node.id === from)) {
@@ -50,7 +55,10 @@ export const GraphInputEditor = ({
     if (selectedNodeId && !document.nodes.some((node) => node.id === selectedNodeId)) {
       setSelectedNodeId(null);
     }
-  }, [document.nodes, document.startId, from, selectedNodeId, to]);
+    if (selectedEdgeId && !document.edges.some((edge) => edge.id === selectedEdgeId)) {
+      setSelectedEdgeId(null);
+    }
+  }, [document.edges, document.nodes, document.startId, from, selectedEdgeId, selectedNodeId, to]);
 
   const addNodeAt = (x: number, y: number) => {
     const id = nextNodeId(document.nodes);
@@ -112,9 +120,44 @@ export const GraphInputEditor = ({
   const addEdge = () => addEdgeBetween(from, to);
 
   const selectNode = (node: GraphNode) => {
+    setSelectedEdgeId(null);
     setSelectedNodeId(node.id);
     setDraftNodeId(node.id);
     setDraftNodeLabel(node.label);
+    onError(null);
+  };
+
+  const selectEdge = (edgeId: string) => {
+    const edge = document.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) return;
+    setSelectedNodeId(null);
+    setSelectedEdgeId(edge.id);
+    setDraftEdgeWeight(String(edge.weight ?? 1));
+    onError(null);
+  };
+
+  const saveSelectedEdge = () => {
+    if (!selectedEdge || !document.weighted) return;
+    const parsedWeight = Number(draftEdgeWeight);
+    if (!Number.isFinite(parsedWeight) || parsedWeight < 0) {
+      onError(translateRuntimeText('Weight must be a non-negative number.', locale));
+      return;
+    }
+    onChange({
+      ...document,
+      edges: document.edges.map((edge) =>
+        edge.id === selectedEdge.id ? { ...edge, weight: parsedWeight } : edge,
+      ),
+    });
+    onError(null);
+  };
+
+  const removeEdge = (edgeId: string) => {
+    onChange({
+      ...document,
+      edges: document.edges.filter((edge) => edge.id !== edgeId),
+    });
+    if (selectedEdgeId === edgeId) setSelectedEdgeId(null);
     onError(null);
   };
 
@@ -184,6 +227,7 @@ export const GraphInputEditor = ({
       setFrom(imported.startId);
       setTo(imported.nodes.find((node) => node.id !== imported.startId)?.id ?? imported.startId);
       setSelectedNodeId(null);
+      setSelectedEdgeId(null);
       onError(null);
     } catch (error) {
       onError(translateRuntimeText(error instanceof Error ? error.message : 'Import failed.', locale));
@@ -259,8 +303,14 @@ export const GraphInputEditor = ({
         className="graph-builder-canvas"
         ref={canvasRef}
         onDoubleClick={(event) => {
+          if (event.target !== event.currentTarget) return;
           const position = positionFromEvent(event);
           addNodeAt(position.x, position.y);
+        }}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          setSelectedNodeId(null);
+          setSelectedEdgeId(null);
         }}
         onMouseMove={(event) => {
           if (!dragging) return;
@@ -291,16 +341,50 @@ export const GraphInputEditor = ({
         }}
         aria-label={t('graphCanvas', locale)}
       >
-        <svg className="builder-edges" aria-hidden="true">
+        <svg className="builder-edges">
           {document.edges.map((edge) => {
             const start = document.nodes.find((node) => node.id === edge.from);
             const end = document.nodes.find((node) => node.id === edge.to);
             if (!start || !end) return null;
             return (
-              <g key={edge.id}>
-                <line x1={`${start.x}%`} y1={`${start.y}%`} x2={`${end.x}%`} y2={`${end.y}%`} />
+              <g key={edge.id} className={selectedEdgeId === edge.id ? 'selected-edge' : ''}>
+                <line
+                  aria-hidden="true"
+                  x1={`${start.x}%`}
+                  y1={`${start.y}%`}
+                  x2={`${end.x}%`}
+                  y2={`${end.y}%`}
+                />
+                <line
+                  className="edge-hit-target"
+                  x1={`${start.x}%`}
+                  y1={`${start.y}%`}
+                  x2={`${end.x}%`}
+                  y2={`${end.y}%`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('edgeButtonLabel', locale, {
+                    from: start.label,
+                    to: end.label,
+                  })}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    selectEdge(edge.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    selectEdge(edge.id);
+                  }}
+                />
                 {document.weighted && (
-                  <text x={`${(start.x + end.x) / 2}%`} y={`${(start.y + end.y) / 2}%`}>{edge.weight ?? 1}</text>
+                  <text
+                    aria-hidden="true"
+                    x={`${(start.x + end.x) / 2}%`}
+                    y={`${(start.y + end.y) / 2}%`}
+                  >
+                    {edge.weight ?? 1}
+                  </text>
                 )}
               </g>
             );
@@ -315,6 +399,60 @@ export const GraphInputEditor = ({
             />
           )}
         </svg>
+        {selectedEdge && selectedEdgeStart && selectedEdgeEnd && (
+          <div
+            className="edge-edit-popover"
+            style={{
+              left: `${(selectedEdgeStart.x + selectedEdgeEnd.x) / 2}%`,
+              top: `${(selectedEdgeStart.y + selectedEdgeEnd.y) / 2}%`,
+            }}
+            aria-label={t('edgeEditor', locale, {
+              from: selectedEdgeStart.label,
+              to: selectedEdgeEnd.label,
+            })}
+            onClick={(event) => event.stopPropagation()}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
+            {document.weighted && (
+              <label>
+                {t('edgeWeight', locale)}
+                <input
+                  aria-label={t('selectedEdgeWeight', locale, {
+                    from: selectedEdgeStart.label,
+                    to: selectedEdgeEnd.label,
+                  })}
+                  type="number"
+                  min="0"
+                  value={draftEdgeWeight}
+                  onChange={(event) => setDraftEdgeWeight(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') saveSelectedEdge();
+                  }}
+                />
+              </label>
+            )}
+            {document.weighted && (
+              <button type="button" className="edge-save-button" onClick={saveSelectedEdge}>
+                {t('saveEdge', locale)}
+              </button>
+            )}
+            <button
+              type="button"
+              className="edge-delete-button"
+              aria-label={t('deleteSelectedEdge', locale, {
+                from: selectedEdgeStart.label,
+                to: selectedEdgeEnd.label,
+              })}
+              title={t('deleteSelectedEdge', locale, {
+                from: selectedEdgeStart.label,
+                to: selectedEdgeEnd.label,
+              })}
+              onClick={() => removeEdge(selectedEdge.id)}
+            >
+              ×
+            </button>
+          </div>
+        )}
         {document.nodes.map((node) => (
           <div
             key={node.id}
@@ -331,7 +469,10 @@ export const GraphInputEditor = ({
                 event.stopPropagation();
                 setDragging(node.id);
               }}
-              onClick={() => selectNode(node)}
+              onClick={(event) => {
+                event.stopPropagation();
+                selectNode(node);
+              }}
               onDoubleClick={(event) => {
                 event.stopPropagation();
                 removeNode(node.id);
@@ -357,35 +498,39 @@ export const GraphInputEditor = ({
           </div>
         ))}
         <span className="canvas-hint">{t('canvasHint', locale)}</span>
+        {selectedNode && (
+          <div
+            className="node-edit-controls"
+            aria-label={t('nodeEditor', locale)}
+            onClick={(event) => event.stopPropagation()}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
+            <strong>{t('nodeEditor', locale)}</strong>
+            <label>
+              {t('nodeId', locale)}
+              <input
+                aria-label={t('nodeId', locale)}
+                value={draftNodeId}
+                maxLength={64}
+                onChange={(event) => setDraftNodeId(event.target.value)}
+              />
+            </label>
+            <label>
+              {t('nodeLabel', locale)}
+              <input
+                aria-label={t('nodeLabel', locale)}
+                value={draftNodeLabel}
+                maxLength={64}
+                onChange={(event) => setDraftNodeLabel(event.target.value)}
+              />
+            </label>
+            <button type="button" onClick={saveSelectedNode}>{t('saveNode', locale)}</button>
+            <button type="button" onClick={() => removeNode(selectedNode.id)}>
+              {t('deleteNode', locale)}
+            </button>
+          </div>
+        )}
       </div>
-
-      {selectedNode && (
-        <div className="node-edit-controls" aria-label={t('nodeEditor', locale)}>
-          <strong>{t('nodeEditor', locale)}</strong>
-          <label>
-            {t('nodeId', locale)}
-            <input
-              aria-label={t('nodeId', locale)}
-              value={draftNodeId}
-              maxLength={64}
-              onChange={(event) => setDraftNodeId(event.target.value)}
-            />
-          </label>
-          <label>
-            {t('nodeLabel', locale)}
-            <input
-              aria-label={t('nodeLabel', locale)}
-              value={draftNodeLabel}
-              maxLength={64}
-              onChange={(event) => setDraftNodeLabel(event.target.value)}
-            />
-          </label>
-          <button type="button" onClick={saveSelectedNode}>{t('saveNode', locale)}</button>
-          <button type="button" onClick={() => removeNode(selectedNode.id)}>
-            {t('deleteNode', locale)}
-          </button>
-        </div>
-      )}
 
       <div className="edge-controls">
         <select value={from} onChange={(event) => setFrom(event.target.value)}>

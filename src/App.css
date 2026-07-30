@@ -166,6 +166,10 @@
   letter-spacing: 1px;
 }
 
+.panel-right > .visualizer-container .collapsed-panel-header {
+  padding-right: 76px;
+}
+
 .language-toggle {
   position: fixed;
   top: 13px;

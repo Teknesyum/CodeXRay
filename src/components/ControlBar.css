@@ -271,6 +271,36 @@
   font-size: 0.85rem;
 }
 
+.model-download-progress {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 243, 255, 0.04);
+}
+
+.model-download-progress > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font: 0.72rem var(--font-mono);
+}
+
+.model-download-progress output {
+  color: var(--neon-cyan);
+}
+
+.model-download-progress progress {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: var(--neon-cyan);
+}
+
 .model-requirement {
   margin: 0;
   color: #ffcf70;
@@ -372,6 +402,33 @@
   text-transform: uppercase;
 }
 
+.reset-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.reset-interface-button {
+  padding: 8px 11px;
+  border: 1px solid rgba(0, 243, 255, 0.45);
+  border-radius: 6px;
+  color: var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.06);
+  cursor: pointer;
+  font: 0.72rem var(--font-mono);
+  text-transform: uppercase;
+}
+
+.reset-interface-button:hover:not(:disabled) {
+  color: white;
+  background: rgba(0, 243, 255, 0.17);
+}
+
+.reset-interface-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .reset-site-button:hover:not(:disabled) {
   border-color: #ff496c;
   color: white;
@@ -389,6 +446,11 @@
   }
 
   .site-reset-section {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reset-actions {
     align-items: stretch;
     flex-direction: column;
   }

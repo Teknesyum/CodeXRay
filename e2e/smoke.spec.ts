@@ -38,6 +38,11 @@ test('accepts custom array input for a sorting algorithm', async ({ page }) => {
   await expect(page.getByLabel('Selection Sort execution')).toBeVisible();
   await expect(page.getByText('1 /')).toBeVisible();
   await expect(page.locator('.context-chip')).toHaveText(/Step 1\/\d+/);
+  await page.getByRole('button', { name: 'Pin array' }).click();
+  const watchStrip = page.getByRole('region', { name: 'Pinned variables' });
+  await expect(watchStrip).toBeVisible();
+  await expect(watchStrip.locator('.pinned-watch-name')).toHaveText('array');
+  await expect(watchStrip.locator('.pinned-watch-value')).toHaveText('[9,2,7,1]');
 });
 
 test('resizes and collapses workspace panels', async ({ page }) => {

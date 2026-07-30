@@ -57,12 +57,14 @@ describe('local assistant context', () => {
       analysis: 'O(V + E)',
       inputError: null,
       isPlaying: false,
+      pinnedVariables: ['visited'],
       locale: 'tr',
     });
 
     expect(context).toContain('Answer language: Turkish');
     expect(context).toContain('Execution progress: 2 of 3 (67%)');
     expect(context).toContain('Current source statement: visitNext();');
+    expect(context).toContain('User-pinned watch variables: visited');
     expect(context).toContain('"H"');
     expect(context).toContain('Step 1');
     expect(context).toContain('Step 2');
@@ -144,6 +146,7 @@ describe('local assistant context', () => {
       analysis: null,
       inputError: null,
       isPlaying: false,
+      pinnedVariables: ['visited'],
       locale: 'en',
     });
 

@@ -44,6 +44,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     simulationInput,
     inputError,
     isPlaying,
+    pinnedVariables,
     selectedExampleQuestion,
     setSelectedExampleQuestion,
     aiStatus,
@@ -91,6 +92,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           analysis,
           inputError,
           isPlaying,
+          pinnedVariables,
           locale,
         },
         history,
@@ -118,6 +120,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     inputError,
     isPlaying,
     locale,
+    pinnedVariables,
     simulationInput,
     steps,
   ]);

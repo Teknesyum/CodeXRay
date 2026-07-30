@@ -47,9 +47,12 @@ interface TimelineContextType {
   setLocale: (locale: Locale) => void;
   isEditingInput: boolean;
   setIsEditingInput: (editing: boolean) => void;
+  pinnedVariables: string[];
+  togglePinnedVariable: (name: string) => void;
 }
 
 const STORAGE_KEY = 'codexray.workspace.v1';
+const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
 const loadInput = (): SimulationInput => {
@@ -63,6 +66,18 @@ const loadInput = (): SimulationInput => {
     // Ignore invalid or unavailable browser storage.
   }
   return createInputPreset('array', 1);
+};
+
+const loadPinnedVariables = (): string[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PINNED_VARIABLES_KEY) ?? '[]') as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.filter((value): value is string =>
+      typeof value === 'string' && value.trim().length > 0 && value.length <= 120,
+    ))].slice(0, 20);
+  } catch {
+    return [];
+  }
 };
 
 export const TimelineProvider = ({ children }: { children: ReactNode }) => {
@@ -83,6 +98,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
   );
   const [isEditingInput, setIsEditingInput] = useState(false);
+  const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
 
   const stepForward = useCallback(() => {
     setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
@@ -95,6 +111,13 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const jumpTo = useCallback((index: number) => {
     if (index >= 0 && index < steps.length) setCurrentIndex(index);
   }, [steps.length]);
+  const togglePinnedVariable = useCallback((name: string) => {
+    setPinnedVariables((current) =>
+      current.includes(name)
+        ? current.filter((variable) => variable !== name)
+        : [...current, name].slice(-20),
+    );
+  }, []);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -120,6 +143,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('codexray.locale', locale);
     document.documentElement.lang = locale;
   }, [locale]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PINNED_VARIABLES_KEY, JSON.stringify(pinnedVariables));
+    } catch {
+      // Pinning still works for this session when storage is unavailable.
+    }
+  }, [pinnedVariables]);
 
   return (
     <TimelineContext.Provider value={{
@@ -157,6 +188,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setLocale,
       isEditingInput,
       setIsEditingInput,
+      pinnedVariables,
+      togglePinnedVariable,
     }}>
       {children}
     </TimelineContext.Provider>

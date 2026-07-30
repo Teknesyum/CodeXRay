@@ -15,6 +15,7 @@ export interface AssistantWorkspace {
   analysis: string | null;
   inputError: string | null;
   isPlaying: boolean;
+  pinnedVariables: string[];
   locale: Locale;
 }
 
@@ -144,6 +145,7 @@ export const buildAssistantContext = (workspace: AssistantWorkspace): string => 
     analysis,
     inputError,
     isPlaying,
+    pinnedVariables,
     locale,
   } = workspace;
   const safeIndex = steps.length
@@ -177,6 +179,7 @@ export const buildAssistantContext = (workspace: AssistantWorkspace): string => 
     `Algorithm: ${algorithmName}`,
     `Execution progress: ${progress}`,
     `Execution state: ${phase}`,
+    `User-pinned watch variables: ${pinnedVariables.length ? pinnedVariables.join(', ') : 'none'}`,
     `Current source line: ${currentLine ?? 'not running'}`,
     `Current source statement: ${sourceLine ?? 'none'}`,
     `Current explanation: ${currentStep?.explanation ?? 'none'}`,

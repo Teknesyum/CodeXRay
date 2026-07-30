@@ -1,10 +1,19 @@
+import { PinOff } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
-import type { ArrayVisualData, GraphVisualData, VisualData } from '../types/simulation';
+import type {
+  ArrayVisualData,
+  GraphVisualData,
+  TraceValue,
+  VisualData,
+} from '../types/simulation';
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
 import { GraphInputEditor } from './GraphInputEditor';
 import './DynamicVisualizer.css';
 
 const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
+
+const formatPinnedValue = (value: TraceValue): string =>
+  typeof value === 'string' ? value : JSON.stringify(value);
 
 const ArrayView = ({ data }: { data: ArrayVisualData }) => (
   <div className="visual-array">
@@ -133,12 +142,27 @@ export const DynamicVisualizer = ({
     locale,
     isEditingInput,
     setIsEditingInput,
+    pinnedVariables,
+    togglePinnedVariable,
   } = useTimeline();
   const currentStep = steps[currentIndex];
+  const previousStep = currentIndex > 0 ? steps[currentIndex - 1] : undefined;
   const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
     && Boolean(simulationInput.graph);
   const showBuilder = supportsBuilder && (isEditingInput || !currentStep);
   const panelTitle = showBuilder ? t('inputBuilder', locale) : t('simulationView', locale);
+  const currentVariables = currentStep?.visualData.vars ?? {};
+  const previousVariables = previousStep?.visualData.vars ?? {};
+  const pinnedEntries = pinnedVariables.map((name) => {
+    const available = Object.prototype.hasOwnProperty.call(currentVariables, name);
+    return {
+      name,
+      value: available ? currentVariables[name] : null,
+      available,
+      changed: available
+        && JSON.stringify(currentVariables[name]) !== JSON.stringify(previousVariables[name]),
+    };
+  });
 
   if (collapsed) {
     return (
@@ -188,6 +212,31 @@ export const DynamicVisualizer = ({
           </button>
         </div>
       </div>
+      {!showBuilder && pinnedEntries.length > 0 && (
+        <section className="pinned-watch-strip" aria-label={t('pinnedVariables', locale)}>
+          <span className="pinned-watch-title">{t('pinnedVariables', locale)}</span>
+          <div className="pinned-watch-list">
+            {pinnedEntries.map(({ name, value, available, changed }) => (
+              <div
+                key={name}
+                className={`pinned-watch-item ${changed ? 'changed' : ''} ${available ? '' : 'unavailable'}`}
+              >
+                <span className="pinned-watch-name">{name}</span>
+                <span className="pinned-watch-value">
+                  {available ? formatPinnedValue(value) : t('variableUnavailable', locale)}
+                </span>
+                <button
+                  type="button"
+                  aria-label={t('unpinVariable', locale, { name })}
+                  onClick={() => togglePinnedVariable(name)}
+                >
+                  <PinOff size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {showBuilder && simulationInput.graph ? (
         <GraphInputEditor
           document={simulationInput.graph}

@@ -29,7 +29,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - `src/services/inputPresets.ts`: deterministic array/string/tree/graph presets.
 - `src/services/simulators.ts`: the 13 offline algorithm implementations.
 - `TimelineContext.tsx`: playback, selected algorithm/input, analysis, and local
-  AI state. It autosaves the input workspace in browser storage.
+  AI state. It autosaves the input workspace and top-level variable pins in
+  browser storage.
 - `App.tsx`: persistent split sizes and collapse state for the five workspace
   panels; desktop splitters must remain pointer-accessible and mobile-safe.
 - `GraphInputEditor.tsx`: manual editing plus GraphDocumentV1 and level-order
@@ -57,6 +58,9 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   switching must update existing simulation steps without rerunning them.
 - Every workspace panel must remain collapsible. Desktop boundaries are
   resizable, while the mobile layout disables splitters and stacks safely.
+- Top-level variable pins sort first in Variables & Trace and mirror their live
+  current-step values in the visualization watch strip. Never show stale values
+  when a pinned key is absent from the selected step.
 - Keep assistant context bounded and explicit: include the current input, code,
   execution progress, and recent chat. Include the complete current visual state
   when it fits; otherwise label a deterministic summary. Never let old

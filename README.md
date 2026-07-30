@@ -27,6 +27,8 @@ source code and input are never sent to an API.
   to the running simulation without losing input.
 - Resizable desktop boundaries and collapsible code, trace, visualization,
   assistant, and control panels; preferences persist locally.
+- Persistent variable pins that stay at the top of Variables & Trace and mirror
+  live values in a horizontally scrollable visualization watch strip.
 
 The local model does not train on the conversation. CodeXRay restores up to 24
 messages from browser storage and sends a bounded recent subset with each

@@ -3,7 +3,7 @@
 ## Project
 
 CodeXRay is a bilingual English/Turkish React 19, TypeScript 6, and Vite 8 SPA for
-deterministic, step-by-step algorithm visualization. It supports 13 algorithms,
+deterministic, step-by-step algorithm visualization. It supports 45 algorithms,
 typed array/string/tree/graph input, a manual graph builder, and an optional
 on-device WebLLM assistant. No API key or remote AI provider is used.
 
@@ -27,7 +27,10 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - `src/types/simulation.ts`: shared input, graph, trace, visual, and step types.
 - `src/services/inputParsers.ts`: all untrusted input validation.
 - `src/services/inputPresets.ts`: deterministic array/string/tree/graph presets.
-- `src/services/simulators.ts`: the 13 offline algorithm implementations.
+- `src/services/simulators.ts` and `extended*Simulators.ts`: the 45 offline
+  algorithm implementations and dispatch.
+- `src/services/codeRegistry.ts`: preset support and explicit blocked reasons.
+  Never set `isSupported` without a distinct deterministic simulator.
 - `TimelineContext.tsx`: playback, selected algorithm/input, analysis, and local
   AI state. It autosaves the input workspace and top-level variable pins in
   browser storage.

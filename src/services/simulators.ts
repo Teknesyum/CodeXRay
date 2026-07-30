@@ -7,6 +7,9 @@ import type {
   TraceValue,
 } from '../types/simulation';
 import { parseArrayInput, parseStringInput, validateGraphDocument } from './inputParsers';
+import { extendedArraySimulators } from './extendedArraySimulators';
+import { extendedGraphSimulators } from './extendedGraphSimulators';
+import { manacher } from './extendedStringSimulators';
 
 type StepEmitter = (
   lineNumber: number | null,
@@ -491,6 +494,9 @@ const breadthFirstSearch = (graph: GraphDocumentV1): SimulationStep[] => {
 };
 
 const shortestPath = (graph: GraphDocumentV1, useHeuristic: boolean): SimulationStep[] => {
+  if (graph.edges.some((edge) => (edge.weight ?? 1) < 0)) {
+    throw new Error('Negative edge weights are not supported by Dijkstra or A*.');
+  }
   const steps: SimulationStep[] = [];
   const adjacency = adjacencyFor(graph);
   const distances: Record<string, number> = Object.fromEntries(graph.nodes.map((node) => [node.id, Number.POSITIVE_INFINITY]));
@@ -560,6 +566,41 @@ const shortestPath = (graph: GraphDocumentV1, useHeuristic: boolean): Simulation
 };
 
 const identifyAlgorithm = (name: string, code: string): string => {
+  const exact: Record<string, string> = {
+    "Kruskal's MST": 'kruskal',
+    "Prim's MST": 'prim',
+    'Bellman-Ford Algorithm': 'bellmanFord',
+    'Floyd-Warshall Algorithm': 'floydWarshall',
+    'Topological Sort': 'topologicalSort',
+    "Kosaraju's SCC": 'kosaraju',
+    "Tarjan's SCC": 'tarjan',
+    'Edmonds-Karp Max Flow': 'edmondsKarp',
+    "Dinic's Max Flow": 'dinic',
+    'Bipartite Matching (Hopcroft-Karp)': 'hopcroftKarp',
+    'Graph Coloring': 'graphColoring',
+    'Eulerian Path/Circuit': 'eulerianPath',
+    'Hamiltonian Cycle': 'hamiltonianCycle',
+    'Articulation Points': 'articulationPoints',
+    'Bridges in Graph': 'bridges',
+    "Johnson's Algorithm": 'johnson',
+    "Kadane's Algorithm": 'kadane',
+    'Longest Palindromic Substring (Manacher\'s)': 'manacher',
+    'Prefix Sum Array': 'prefix',
+    'Dutch National Flag': 'dutch',
+    "Moore's Voting Algorithm": 'moore',
+    'Trapping Rain Water': 'rain',
+    'Longest Increasing Subsequence': 'lis',
+    'Matrix Chain Multiplication': 'matrixChain',
+    'Unique Paths': 'uniquePaths',
+    'Binary Tree Inorder Traversal': 'inorder',
+    'Binary Tree Preorder Traversal': 'preorder',
+    'Binary Tree Postorder Traversal': 'postorder',
+    'Lowest Common Ancestor (LCA)': 'lca',
+    'Sieve of Eratosthenes': 'sieve',
+    'Fast Exponentiation (Modular)': 'modularPower',
+    'Reverse Linked List': 'reverseList',
+  };
+  if (exact[name]) return exact[name];
   const value = `${name} ${code}`.toLowerCase();
   if (value.includes('depth first') || value.includes('dfs')) return 'dfs';
   if (value.includes('breadth first') || value.includes('bfs')) return 'bfs';
@@ -584,12 +625,19 @@ export const simulateAlgorithm = (
 ): SimulationStep[] => {
   const algorithm = identifyAlgorithm(algorithmName, code);
   if (algorithm === 'z') return zAlgorithm(parseStringInput(input.text));
-  if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(algorithm)) {
+  if (algorithm === 'manacher') return manacher(parseStringInput(input.text));
+  if (
+    ['dfs', 'bfs', 'dijkstra', 'astar'].includes(algorithm)
+    || extendedGraphSimulators[algorithm]
+  ) {
     if (!input.graph) throw new Error('This algorithm requires a graph or tree input.');
     const graph = validateGraphDocument(input.graph);
     if (algorithm === 'dfs') return depthFirstSearch(graph);
     if (algorithm === 'bfs') return breadthFirstSearch(graph);
-    return shortestPath(graph, algorithm === 'astar');
+    if (algorithm === 'dijkstra' || algorithm === 'astar') {
+      return shortestPath(graph, algorithm === 'astar');
+    }
+    return extendedGraphSimulators[algorithm](graph);
   }
 
   const values = parseArrayInput(input.text);
@@ -601,6 +649,7 @@ export const simulateAlgorithm = (
   if (algorithm === 'bubble') return bubbleSort(values);
   if (algorithm === 'insertion') return insertionSort(values);
   if (algorithm === 'selection') return selectionSort(values);
+  if (extendedArraySimulators[algorithm]) return extendedArraySimulators[algorithm](values);
   return [{
     lineNumber: 1,
     visualData: {

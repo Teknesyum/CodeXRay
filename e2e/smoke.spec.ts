@@ -14,6 +14,27 @@ test('runs DFS and exposes the complete visited trace', async ({ page }) => {
   await expect(page.getByText(/tracked/)).toBeVisible();
 });
 
+test('runs newly supported algorithms and flags compound-input blockers', async ({ page }) => {
+  await page.goto('/');
+  const select = page.getByLabel('Algorithm preset');
+  const kruskalOption = select.locator('option').filter({ hasText: "Kruskal's MST" });
+  const kmpOption = select.locator('option').filter({ hasText: 'Knuth-Morris-Pratt' });
+  await expect(kruskalOption).toBeEnabled();
+  await expect(kmpOption).toBeDisabled();
+  await expect(kmpOption).toContainText('Blocked: Needs separate text and pattern inputs');
+
+  await select.selectOption(await kruskalOption.getAttribute('value') ?? '');
+  await page.getByRole('button', { name: /Simulate/ }).click();
+  await expect(page.getByLabel("Kruskal's MST execution")).toBeVisible();
+  await expect(page.getByText(/totalWeight/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Türkçeye geç' }).click();
+  await expect(
+    page.getByLabel('Algoritma hazırı').locator('option')
+      .filter({ hasText: 'Knuth-Morris-Pratt' }),
+  ).toContainText('Engelli: Ayrı metin ve desen girdileri gerektirir');
+});
+
 test('renames graph nodes and creates edges by dragging node handles', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');

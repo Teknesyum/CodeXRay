@@ -53,9 +53,6 @@ const normalizeEdge = (
   if (weighted) {
     const weight = edge.weight ?? 1;
     normalized.weight = assertFiniteNumber(weight, `Edge ${index + 1} weight`);
-    if (normalized.weight < 0) {
-      throw new Error('Negative edge weights are not supported by Dijkstra or A*.');
-    }
   }
   return normalized;
 };

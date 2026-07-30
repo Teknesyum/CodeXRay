@@ -9,7 +9,11 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      include: ['src/services/inputParsers.ts', 'src/services/simulators.ts'],
+      include: [
+        'src/services/inputParsers.ts',
+        'src/services/simulators.ts',
+        'src/services/extended*Simulators.ts',
+      ],
       thresholds: {
         lines: 60,
         functions: 65,

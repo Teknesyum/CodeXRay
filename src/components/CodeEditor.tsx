@@ -12,6 +12,17 @@ const inputHelpKeys: Record<InputKind, string> = {
   graph: 'graphHelp',
 };
 
+const inputHelpKeyForAlgorithm = (name: string, kind: InputKind): string => {
+  if (/Dutch National Flag/i.test(name)) return 'dutchInputHelp';
+  if (/Matrix Chain Multiplication/i.test(name)) return 'matrixChainInputHelp';
+  if (/Unique Paths/i.test(name)) return 'uniquePathsInputHelp';
+  if (/Sieve of Eratosthenes/i.test(name)) return 'sieveInputHelp';
+  if (/Fast Exponentiation/i.test(name)) return 'modularPowerInputHelp';
+  if (/Max Flow/i.test(name)) return 'maxFlowInputHelp';
+  if (/Lowest Common Ancestor/i.test(name)) return 'lcaInputHelp';
+  return inputHelpKeys[kind];
+};
+
 interface CodeEditorProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -38,6 +49,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const panelTitle = t('sourceCode', locale);
+  const inputHelpKey = inputHelpKeyForAlgorithm(algorithmName, simulationInput.kind);
 
   if (collapsed) {
     return (
@@ -71,7 +83,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
     setAlgorithmName(algorithm?.name ?? 'Custom Code');
     if (algorithm) {
       const kind = getInputKindForAlgorithm(algorithm.name);
-      setSimulationInput(createInputPreset(kind, 1));
+      setSimulationInput(createInputPreset(kind, 1, algorithm.name));
       setIsEditingInput(kind === 'graph' || kind === 'tree');
     }
     resetTimeline();
@@ -96,8 +108,13 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
         >
           <option value="">{t('presets', locale)}</option>
           {algorithmRegistry.map((algorithm, index) => (
-            <option key={algorithm.name} value={algorithm.code}>
-              {index + 1} – {algorithm.isSupported ? '✓' : '◇'} {localizeAlgorithmName(algorithm.name, locale)}
+            <option
+              key={algorithm.name}
+              value={algorithm.code}
+              disabled={!algorithm.isSupported}
+            >
+              {index + 1} – {algorithm.isSupported ? '✓' : '⛔'} {localizeAlgorithmName(algorithm.name, locale)}
+              {!algorithm.isSupported && ` — ${t('blocked', locale)}: ${translateRuntimeText(algorithm.blockedReason ?? '', locale)}`}
             </option>
           ))}
         </select>
@@ -130,7 +147,11 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
               className="preset-btn"
               key={presetIndex}
               onClick={() => {
-                setSimulationInput(createInputPreset(simulationInput.kind, presetIndex));
+                setSimulationInput(createInputPreset(
+                  simulationInput.kind,
+                  presetIndex,
+                  algorithmName,
+                ));
                 setIsEditingInput(simulationInput.kind === 'graph' || simulationInput.kind === 'tree');
                 setInputError(null);
                 resetTimeline();
@@ -144,7 +165,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
           <input
             aria-label={`${t(simulationInput.kind, locale)} ${t('simulationInput', locale)}`}
             type="text"
-            placeholder={t(inputHelpKeys[simulationInput.kind], locale)}
+            placeholder={t(inputHelpKey, locale)}
             value={simulationInput.text}
             onChange={(event) => {
               setSimulationInput({ ...simulationInput, text: event.target.value });
@@ -152,7 +173,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
             }}
           />
         )}
-        <span className="input-format-help">{t(inputHelpKeys[simulationInput.kind], locale)}</span>
+        <span className="input-format-help">{t(inputHelpKey, locale)}</span>
       </div>
       {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}
 

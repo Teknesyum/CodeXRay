@@ -67,14 +67,19 @@ export const createGraphPreset = (presetIndex = 0): GraphDocumentV1 => {
 };
 
 export const getInputKindForAlgorithm = (name: string): InputKind => {
-  if (/DFS|BFS|Dijkstra|A\*/i.test(name)) return 'graph';
-  if (/Z-Algorithm/i.test(name)) return 'string';
+  if (
+    /DFS|BFS|Dijkstra|A\*|MST|Bellman|Floyd|Topological|SCC|Max Flow|Bipartite|Graph Coloring|Eulerian|Hamiltonian|Articulation|Bridges|Johnson/i
+      .test(name)
+  ) return 'graph';
+  if (/Tree|Lowest Common Ancestor/i.test(name)) return 'tree';
+  if (/Z-Algorithm|Manacher/i.test(name)) return 'string';
   return 'array';
 };
 
 export const createInputPreset = (
   kind: InputKind,
   presetIndex = 0,
+  algorithmName = '',
 ): SimulationInput => {
   const normalized = Math.max(0, Math.min(2, presetIndex));
   if (kind === 'string') {
@@ -82,6 +87,22 @@ export const createInputPreset = (
     return { kind, text: values[normalized] };
   }
   if (kind === 'array') {
+    if (/Dutch National Flag/i.test(algorithmName)) {
+      const values = ['[2,0,2,1,1,0]', '[2,1,0,2,1,0,1,2]', '[0,2,1,2,0,1,0,2,1]'];
+      return { kind, text: values[normalized] };
+    }
+    if (/Unique Paths/i.test(algorithmName)) {
+      const values = ['[3,7]', '[5,6]', '[8,10]'];
+      return { kind, text: values[normalized] };
+    }
+    if (/Sieve of Eratosthenes/i.test(algorithmName)) {
+      const values = ['[30]', '[50]', '[100]'];
+      return { kind, text: values[normalized] };
+    }
+    if (/Fast Exponentiation/i.test(algorithmName)) {
+      const values = ['[2,10,1000]', '[7,13,97]', '[19,23,1000000007]'];
+      return { kind, text: values[normalized] };
+    }
     const values = [
       '[3, 9, 10, 15, 20, 38, 27, 5, 43, 82]',
       '[38, 27, 43, 3, 9, 82, 10, 5, 20, 15, 31, 1, 6]',
@@ -90,8 +111,47 @@ export const createInputPreset = (
     return { kind, text: values[normalized] };
   }
   if (kind === 'tree') {
-    const graph = parseBinaryTree(treePresets[normalized]);
+    let graph = parseBinaryTree(treePresets[normalized]);
+    if (/Lowest Common Ancestor/i.test(algorithmName) && graph.nodes.length >= 5) {
+      graph = {
+        ...graph,
+        startId: graph.nodes[3].id,
+        targetId: graph.nodes[4].id,
+      };
+    }
     return { kind, text: treePresets[normalized], graph };
   }
-  return { kind, text: '', graph: createGraphPreset(normalized) };
+  let graph = createGraphPreset(normalized);
+  if (/Bipartite Matching/i.test(algorithmName)) {
+    graph = {
+      ...graph,
+      directed: false,
+      weighted: false,
+      nodes: graph.nodes.slice(0, 8),
+      edges: [
+        ['1', '5'], ['1', '6'], ['2', '5'], ['2', '7'],
+        ['3', '6'], ['3', '8'], ['4', '7'], ['4', '8'],
+      ].map(([from, to], index) => ({ id: `b${index + 1}`, from, to })),
+      startId: '1',
+      targetId: '8',
+    };
+  } else if (/Hamiltonian Cycle|Graph Coloring/i.test(algorithmName)) {
+    const nodes = graph.nodes.slice(0, 10);
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    graph = {
+      ...graph,
+      directed: false,
+      nodes,
+      edges: [
+        ...graph.edges.filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to)),
+        ...(/Hamiltonian Cycle/i.test(algorithmName)
+          ? [{ id: 'ham-close', from: '10', to: '1', weight: 1 }]
+          : []),
+      ],
+      targetId: '10',
+    };
+  } else if (/Topological|SCC|Max Flow|Johnson|Bellman|Floyd/i.test(algorithmName)) {
+    graph = { ...graph, directed: true };
+  }
+  return { kind, text: '', graph };
 };

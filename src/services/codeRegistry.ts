@@ -2,9 +2,10 @@ export interface AlgorithmPreset {
   name: string;
   code: string;
   isSupported: boolean;
+  blockedReason?: string;
 }
 
-export const algorithmRegistry: AlgorithmPreset[] = [
+const algorithmPresets: AlgorithmPreset[] = [
   {
     "name": "Depth First Search (DFS)",
     "code": "void DFS(int v) {\n    visited[v] = true;\n    cout << v << \" \";\n    for (int i : adj[v]) {\n        if (!visited[i])\n            DFS(i);\n    }\n}",
@@ -306,3 +307,30 @@ export const algorithmRegistry: AlgorithmPreset[] = [
     "isSupported": false
   }
 ];
+
+const blockedAlgorithms: Record<string, string> = {
+  'Knuth-Morris-Pratt (KMP)': 'Needs separate text and pattern inputs.',
+  'Rabin-Karp Algorithm': 'Needs separate text, pattern, and modulus inputs.',
+  'Boyer-Moore Algorithm': 'Needs separate text and pattern inputs.',
+  'Sliding Window Maximum': 'Needs a window-size input.',
+  'Trie Insert & Search': 'Needs a word collection and a separate search query.',
+  'Two Pointers Technique': 'Needs a target-sum input.',
+  'Minimum Window Substring': 'Needs separate source and target strings.',
+  'Merge Intervals': 'Needs a typed interval-pair input.',
+  'Binary Search': 'Needs a search-target input.',
+  'Ternary Search': 'Needs a search-target input.',
+  '0/1 Knapsack': 'Needs weights, values, and capacity inputs.',
+  'Longest Common Subsequence': 'Needs two independent string inputs.',
+  'Edit Distance': 'Needs two independent string inputs.',
+  'Coin Change': 'Needs coin denominations and an amount input.',
+  'Detect Cycle in Linked List': 'Needs linked-list next references and a cycle entry.',
+};
+
+export const algorithmRegistry: AlgorithmPreset[] = algorithmPresets.map((algorithm) => {
+  const blockedReason = blockedAlgorithms[algorithm.name];
+  return {
+    ...algorithm,
+    isSupported: blockedReason === undefined,
+    blockedReason,
+  };
+});

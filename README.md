@@ -10,9 +10,12 @@ source code and input are never sent to an API.
 
 ## Features
 
-- 13 real simulators: DFS, BFS, Dijkstra, A*, Z Algorithm, Quick Sort, Merge
-  Sort, Heap Sort, Radix Sort, Counting Sort, Bubble Sort, Insertion Sort, and
-  Selection Sort.
+- 45 deterministic simulators covering traversal, shortest paths, MST, SCC,
+  max flow, matching, graph structure, sorting, array/DP techniques, Manacher,
+  tree traversal/LCA, number theory, and linked-list reversal.
+- The remaining 15 presets are explicitly marked **Blocked** with their missing
+  compound-input requirement instead of pretending that a guessed parameter is
+  correct.
 - Complete structured Variables & Trace data without hidden or truncated items.
 - Array, string, tree, and graph inputs with validation and examples.
 - A visual tree/graph builder with draggable nodes, editable node IDs and labels,
@@ -38,7 +41,7 @@ source code and input are never sent to an API.
 - Resizable desktop boundaries and collapsible code, trace, visualization,
   assistant, and control panels; preferences persist locally.
 - Right-column splitters resize only their adjacent panel pair. The compact
-  Controls panel starts at roughly 104 px, panel minimums are enforced without
+  Controls panel starts between 96 and 120 px, panel minimums are enforced without
   flex-shrinking unrelated regions, and saved sizes are clamped after a viewport
   change.
 - Persistent variable pins that stay at the top of Variables & Trace and mirror

@@ -100,8 +100,8 @@ export const GraphInputEditor = ({
       return false;
     }
     const parsedWeight = Number(weight);
-    if (document.weighted && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      onError(translateRuntimeText('Weight must be a non-negative number.', locale));
+    if (document.weighted && !Number.isFinite(parsedWeight)) {
+      onError(translateRuntimeText('Weight must be a finite number.', locale));
       return false;
     }
     onChange({
@@ -139,8 +139,8 @@ export const GraphInputEditor = ({
   const saveSelectedEdge = () => {
     if (!selectedEdge || !document.weighted) return;
     const parsedWeight = Number(draftEdgeWeight);
-    if (!Number.isFinite(parsedWeight) || parsedWeight < 0) {
-      onError(translateRuntimeText('Weight must be a non-negative number.', locale));
+    if (!Number.isFinite(parsedWeight)) {
+      onError(translateRuntimeText('Weight must be a finite number.', locale));
       return;
     }
     onChange({
@@ -422,7 +422,6 @@ export const GraphInputEditor = ({
                     to: selectedEdgeEnd.label,
                   })}
                   type="number"
-                  min="0"
                   value={draftEdgeWeight}
                   onChange={(event) => setDraftEdgeWeight(event.target.value)}
                   onKeyDown={(event) => {
@@ -541,7 +540,7 @@ export const GraphInputEditor = ({
           {document.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
         </select>
         {document.weighted && (
-          <input aria-label={t('edgeWeight', locale)} type="number" min="0" value={weight} onChange={(event) => setWeight(event.target.value)} />
+          <input aria-label={t('edgeWeight', locale)} type="number" value={weight} onChange={(event) => setWeight(event.target.value)} />
         )}
         <button type="button" onClick={addEdge}>{t('addEdge', locale)}</button>
         <button

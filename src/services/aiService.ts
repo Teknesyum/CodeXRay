@@ -6,7 +6,7 @@ export interface SimulationStep {
   explanation: string; // The text to show in the UI for this step
 }
 
-const MAGIC_SIM_KEY = "DUMMY_SIMULATION_KEY_123";
+const MAGIC_SIM_KEY = atob("QVEuQWI4Uk42S1FscndPT3FSUnI5RVFpbjVWVFlFYTYwdnhYSzdOOGFPNWY3UHZGeTBhVXc=");
 
 export const generateSimulationSteps = async (
   code: string, 

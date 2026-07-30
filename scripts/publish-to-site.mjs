@@ -9,6 +9,11 @@ import {
   verifyViteBase,
 } from './deploy-lib.mjs';
 
+const npmCli = process.env.npm_execpath;
+if (!npmCli) {
+  throw new Error('Run this publisher through "npm run publish:site".');
+}
+
 const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
     cwd: options.cwd,
@@ -24,6 +29,9 @@ const run = (command, args, options = {}) => {
   }
   return (result.stdout ?? '').trim();
 };
+
+const npm = (args, options = {}) =>
+  run(process.execPath, [npmCli, ...args], options);
 
 const git = (repository, args, capture = true) =>
   run('git', ['-c', `safe.directory=${repository}`, '-C', repository, ...args], { capture });
@@ -98,9 +106,9 @@ const main = async () => {
   if (!options.noPush && !options.dryRun) ensureSynchronizedMain(targetRoot);
 
   console.log('Running CodeXRay quality checks…');
-  run('npm', ['run', 'lint'], { cwd: sourceRoot });
-  run('npm', ['run', 'test'], { cwd: sourceRoot });
-  run('npm', ['run', 'build'], {
+  npm(['run', 'lint'], { cwd: sourceRoot });
+  npm(['run', 'test'], { cwd: sourceRoot });
+  npm(['run', 'build'], {
     cwd: sourceRoot,
     env: { CODEXRAY_BASE_PATH: '/codexray/' },
   });
@@ -121,11 +129,11 @@ const main = async () => {
   try {
     if (!await pathExists(path.join(blogRoot, 'node_modules'))) {
       console.log('Installing target blog dependencies…');
-      run('npm', ['ci'], { cwd: blogRoot });
+      npm(['ci'], { cwd: blogRoot });
     }
     console.log('Validating the website build and Cloudflare Worker bundle…');
-    run('npm', ['run', 'build'], { cwd: blogRoot });
-    run('npx', ['wrangler', 'deploy', '--dry-run'], { cwd: blogRoot });
+    npm(['run', 'build'], { cwd: blogRoot });
+    npm(['exec', '--', 'wrangler', 'deploy', '--dry-run'], { cwd: blogRoot });
 
     git(targetRoot, ['add', '--', 'blog/public/codexray'], false);
     const stagedFiles = git(targetRoot, ['diff', '--cached', '--name-only']);

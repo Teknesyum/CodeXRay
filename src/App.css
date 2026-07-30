@@ -50,6 +50,10 @@
   padding: 10px 20px;
   background: rgba(0, 0, 0, 0.3);
   border-top: 1px solid rgba(57, 255, 20, 0.2);
+  height: 250px; /* Fixed maximum height */
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .control-container {

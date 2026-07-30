@@ -283,11 +283,11 @@ const getMockArraySteps = (lang: string, inputVars: string): SimulationStep[] =>
   let s = "AABAABAAZ";
   
   if (inputVars === 'preset:i1') {
-    s = "AAAA";
-  } else if (inputVars === 'preset:i2') {
     s = "AABAABAAZ";
-  } else if (inputVars === 'preset:i3') {
+  } else if (inputVars === 'preset:i2') {
     s = "abacabadabacaba";
+  } else if (inputVars === 'preset:i3') {
+    s = "AABAACAADAABAACAABAA";
   } else if (inputVars) {
     const match = inputVars.match(/s\s*=\s*['"]([^'"]+)['"]/);
     if (match && match[1]) {
@@ -436,13 +436,13 @@ const getMockDfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
 const getMockBfsSteps = (lang: string, inputVars: string): SimulationStep[] => {
   let xOffsets: number[] = []; let yOffsets: number[] = []; let edges: any[] = [];
   if (inputVars === 'preset:i1') {
-    xOffsets = [50, 20, 40, 60, 80, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
-    yOffsets = [10, 40, 40, 40, 40, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70];
+    xOffsets = [50, 25, 75, 15, 35, 65, 85, 10, 20, 30, 40, 60, 70, 80, 90];
+    yOffsets = [10, 30, 30, 50, 50, 50, 50, 70, 70, 70, 70, 70, 70, 70, 70];
     edges = [
-      {from:1,to:2},{from:1,to:3},{from:1,to:4},{from:1,to:5},
-      {from:2,to:6},{from:2,to:7},{from:3,to:8},{from:3,to:9},
-      {from:4,to:10},{from:4,to:11},{from:5,to:12},{from:5,to:13},
-      {from:2,to:14},{from:5,to:15}
+      {from:1,to:2},{from:1,to:3},{from:2,to:4},{from:2,to:5},
+      {from:3,to:6},{from:3,to:7},{from:4,to:8},{from:4,to:9},
+      {from:5,to:10},{from:5,to:11},{from:6,to:12},{from:6,to:13},
+      {from:7,to:14},{from:7,to:15}
     ];
   } else if (inputVars === 'preset:i3') {
     for(let i=1; i<=15; i++) {

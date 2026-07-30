@@ -43,12 +43,12 @@
   animation: glow-pulse 3s infinite;
 }
 
-/* Array Visualization */
 .visual-array {
   display: flex;
-  gap: 10px;
+  gap: min(8px, 1vw);
   flex-wrap: wrap;
   justify-content: center;
+  width: 100%;
 }
 
 .array-cell-wrapper {
@@ -86,8 +86,8 @@
   background: #000;
   border: 1px solid rgba(0, 243, 255, 0.4);
   border-radius: 8px;
-  width: 60px;
-  height: 60px;
+  width: clamp(25px, 4vw, 60px);
+  height: clamp(25px, 4vw, 60px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -131,6 +131,10 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+.graph-edges line {
+  transition: all 0.5s ease;
 }
 
 .graph-node {

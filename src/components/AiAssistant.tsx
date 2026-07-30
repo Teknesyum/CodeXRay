@@ -91,7 +91,7 @@ export const AiAssistant: React.FC = () => {
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.role}-msg`}>
             {msg.role === 'ai' && <Bot size={14} className="msg-icon" />}
-            <p>{msg.content}</p>
+            <p>{msg.role === 'ai' && idx === chatHistory.length - 1 ? <TypewriterText text={msg.content} /> : msg.content}</p>
           </div>
         ))}
         

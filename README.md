@@ -21,6 +21,7 @@ source code and input are never sent to an API.
 - Timeline playback, line highlighting, graph states, paths, arrows, and weights.
 - Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU,
   with bounded local conversation memory and live code/input/trace context.
+  Its Turkish persona is **Bilgiç Dede**; English keeps **Master Coder**.
 - A click-to-load CodeXRay Radio using the requested YouTube Music playlist,
   with a direct playlist fallback when a track disallows embedding.
 - Browser autosave for the current input workspace.

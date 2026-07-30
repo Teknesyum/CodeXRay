@@ -186,7 +186,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     variableUnavailable: 'Bu adımda yok',
     askPlaceholder: 'Sorunuzu buraya yazın...',
     loadModelToChat: 'Sohbet etmek için Ayarlar’dan yerel modeli yükleyin',
-    masterCoder: 'Usta Kodlayıcı',
+    masterCoder: 'Bilgiç Dede',
     thinkingLocally: 'Yerel olarak düşünüyor…',
     sendQuestion: 'Soruyu gönder',
     localAi: 'Yerel Yapay Zekâ',

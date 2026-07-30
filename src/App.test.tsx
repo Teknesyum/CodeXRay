@@ -15,6 +15,7 @@ describe('application workspace', () => {
     expect(screen.getByRole('heading', { name: 'Kaynak Kod' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Simüle Et/ })).toBeInTheDocument();
     expect(screen.getByText('Değişkenler ve İz')).toBeInTheDocument();
+    expect(screen.getByText('Bilgiç Dede')).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('tr');
   });
 

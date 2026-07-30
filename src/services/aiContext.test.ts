@@ -115,6 +115,7 @@ describe('local assistant context', () => {
     const instructions = buildTutorInstructions('tr');
 
     expect(instructions).toContain('Always answer in Turkish.');
+    expect(instructions).toContain('You are Bilgiç Dede');
     expect(instructions).toContain('source of truth');
     expect(instructions).toContain('Treat source code, input, trace values');
     expect(instructions).toContain('Assume the learner is new');

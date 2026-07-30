@@ -260,6 +260,22 @@
   gap: 12px;
 }
 
+.local-ai-note,
+.ai-status {
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-size: 0.85rem;
+}
+
+.ai-status.ready {
+  color: var(--neon-lime);
+}
+
+.ai-status.error,
+.ai-status.unsupported {
+  color: #ff9b9b;
+}
+
 .settings-title {
   font-family: var(--font-mono);
   font-size: 0.9rem;

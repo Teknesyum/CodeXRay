@@ -8,9 +8,17 @@
 }
 
 .variables-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 20px;
   background: rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+}
+
+.variables-header > span {
+  color: var(--text-muted);
+  font: 0.68rem var(--font-mono);
 }
 
 .variables-header h2 {
@@ -36,7 +44,7 @@
 
 .vars-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 15px;
   font-family: var(--font-mono);
 }
@@ -48,6 +56,10 @@
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.var-item.changed {
+  border-color: rgba(57, 255, 20, 0.35);
 }
 
 .var-name {
@@ -67,8 +79,30 @@
   color: #cccccc;
 }
 
-.var-value.changed {
+.trace-collection summary {
   color: var(--neon-lime);
-  text-shadow: 0 0 8px var(--neon-lime);
-  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+.trace-collection ol,
+.trace-collection ul {
+  display: grid;
+  gap: 3px;
+  margin: 6px 0 2px 16px;
+  padding-left: 10px;
+}
+
+.trace-collection li {
+  color: var(--text-muted);
+  padding-left: 3px;
+}
+
+.trace-key {
+  color: var(--neon-cyan);
+  margin-right: 8px;
+}
+
+.trace-primitive {
+  color: #e8e8ee;
 }

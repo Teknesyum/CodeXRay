@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Loader } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bot, Loader, Send } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion } from '../services/aiService';
 import { t } from '../i18n/translations';
@@ -10,114 +10,102 @@ interface ChatMessage {
   content: string;
 }
 
-const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
-  const [displayedText, setDisplayedText] = useState('');
-  
-  useEffect(() => {
-    let currentText = '';
-    setDisplayedText('');
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        currentText += text.charAt(i);
-        setDisplayedText(currentText);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 15);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  return <span>{displayedText}</span>;
-};
-
-export const AiAssistant: React.FC = () => {
-  const { code, steps, currentIndex, analysis, apiKey, selectedExampleQuestion, setSelectedExampleQuestion } = useTimeline();
+export const AiAssistant = () => {
+  const {
+    algorithmName,
+    code,
+    steps,
+    currentIndex,
+    analysis,
+    selectedExampleQuestion,
+    setSelectedExampleQuestion,
+    aiStatus,
+  } = useTimeline();
   const currentStep = steps[currentIndex];
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom
   useEffect(() => {
-    if (chatBodyRef.current) {
-      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-    }
+    if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
   }, [chatHistory, analysis, currentStep, isTyping]);
 
-  // Clear history on new algorithm/code
-  useEffect(() => {
-    setChatHistory([]);
-  }, [code]);
+  useEffect(() => setChatHistory([]), [code]);
 
-  useEffect(() => {
-    if (selectedExampleQuestion) {
-      submitQuestion(`${selectedExampleQuestion}\n\nHow can we solve this with the current algorithm?`);
-      setSelectedExampleQuestion(null);
-    }
-  }, [selectedExampleQuestion]);
-
-  const handleAsk = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim()) return;
-    await submitQuestion(question.trim());
-  };
-
-  const submitQuestion = async (userMessage: string) => {
+  const submitQuestion = useCallback(async (userMessage: string) => {
+    const history = [...chatHistory];
     setQuestion('');
-    const currentHistory = [...chatHistory];
-    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    setChatHistory((previous) => [...previous, { role: 'user', content: userMessage }]);
     setIsTyping(true);
+    try {
+      const answer = await askQuestion(
+        userMessage,
+        algorithmName,
+        code,
+        currentStep,
+        history,
+      );
+      setChatHistory((previous) => [...previous, { role: 'ai', content: answer }]);
+    } catch (error) {
+      setChatHistory((previous) => [...previous, {
+        role: 'system',
+        content: error instanceof Error ? error.message : 'The local model could not answer.',
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  }, [algorithmName, chatHistory, code, currentStep]);
 
-    const answer = await askQuestion(userMessage, code, currentStep, apiKey, currentHistory);
-    
-    setChatHistory(prev => [...prev, { role: 'ai', content: answer }]);
-    setIsTyping(false);
-  };
+  useEffect(() => {
+    if (!selectedExampleQuestion) return;
+    if (aiStatus === 'ready') void submitQuestion(selectedExampleQuestion);
+    setSelectedExampleQuestion(null);
+  }, [aiStatus, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
 
-  const getSystemMessage = () => {
-    if (analysis) return analysis;
-    if (currentStep?.explanation) return currentStep.explanation;
-    return t('awaitingData');
-  };
+  const systemMessage = analysis
+    ?? currentStep?.explanation
+    ?? (aiStatus === 'ready'
+      ? 'Local AI is ready. Run a simulation or ask about the selected code.'
+      : 'Deterministic simulation is ready. Load the optional local model in Settings to chat.');
 
   return (
     <div className="ai-assistant">
       <div className="ai-header">
         <Bot size={16} className="ai-icon" />
         <span>{t('masterCoder')}</span>
+        <span className={`local-status-dot ${aiStatus}`} title={`Local AI: ${aiStatus}`} />
       </div>
       <div className="ai-body" ref={chatBodyRef}>
-        <div className="chat-message system-msg">
-          <p><TypewriterText text={getSystemMessage()} /></p>
-        </div>
-        
-        {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`chat-message ${msg.role}-msg`}>
-            {msg.role === 'ai' && <Bot size={14} className="msg-icon" />}
-            <p>{msg.role === 'ai' && idx === chatHistory.length - 1 ? <TypewriterText text={msg.content} /> : msg.content}</p>
+        <div className="chat-message system-msg"><p>{systemMessage}</p></div>
+        {chatHistory.map((message, index) => (
+          <div key={`${message.role}-${index}`} className={`chat-message ${message.role}-msg`}>
+            {message.role === 'ai' && <Bot size={14} className="msg-icon" />}
+            <p>{message.content}</p>
           </div>
         ))}
-        
         {isTyping && (
           <div className="chat-message ai-msg typing">
             <Loader size={14} className="spin-icon" />
-            <p>Thinking...</p>
+            <p>Thinking locally…</p>
           </div>
         )}
       </div>
-
-      <form className="ai-chat" onSubmit={handleAsk}>
-        <input 
-          type="text" 
-          placeholder={t('askPlaceholder')}
+      <form
+        className="ai-chat"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (question.trim()) void submitQuestion(question.trim());
+        }}
+      >
+        <input
+          type="text"
+          placeholder={aiStatus === 'ready' ? t('askPlaceholder') : 'Load the local model in Settings to chat'}
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          disabled={isTyping}
+          onChange={(event) => setQuestion(event.target.value)}
+          disabled={isTyping || aiStatus !== 'ready'}
         />
-        <button type="submit" className="send-btn" disabled={isTyping}>
+        <button aria-label="Send question" type="submit" className="send-btn" disabled={isTyping || aiStatus !== 'ready'}>
           <Send size={14} />
         </button>
       </form>

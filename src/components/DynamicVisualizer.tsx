@@ -1,126 +1,133 @@
-import React from 'react';
 import { useTimeline } from '../context/TimelineContext';
+import type { ArrayVisualData, GraphVisualData, VisualData } from '../types/simulation';
 import { t } from '../i18n/translations';
 import './DynamicVisualizer.css';
 
-export const DynamicVisualizer: React.FC = () => {
+const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
+
+const ArrayView = ({ data }: { data: ArrayVisualData }) => (
+  <div className="visual-array">
+    {data.values.map((value, index) => {
+      const pointers = Object.entries(data.pointers ?? {})
+        .filter(([, pointerIndex]) => pointerIndex === index)
+        .map(([name]) => name);
+      const activeColor = pointerColors[Math.max(0, Object.keys(data.pointers ?? {}).indexOf(pointers[0])) % pointerColors.length];
+      const sorted = data.sortedIndices?.includes(index);
+      return (
+        <div key={index} className="array-cell-wrapper">
+          <div className="pointers-container">
+            {pointers.map((pointer, pointerIndex) => (
+              <span
+                key={pointer}
+                className="pointer-label"
+                style={{ color: pointerColors[pointerIndex % pointerColors.length] }}
+              >
+                {pointer}
+              </span>
+            ))}
+          </div>
+          <div
+            className={`array-cell ${pointers.length ? 'active-pointer' : ''} ${sorted ? 'sorted-cell' : ''}`}
+            style={pointers.length ? { borderColor: activeColor } : undefined}
+          >
+            <div className="cell-index">{index}</div>
+            <div className="cell-value">{String(value)}</div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const GraphView = ({ data }: { data: GraphVisualData }) => (
+  <div className="visual-graph">
+    <svg className="graph-edges" aria-label="Graph edges">
+      <defs>
+        <marker id="arrow-idle" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="rgba(0, 243, 255, 0.45)" />
+        </marker>
+        <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#ff00ff" />
+        </marker>
+      </defs>
+      {data.edges.map((edge) => {
+        const start = data.nodes.find((node) => node.id === edge.from);
+        const end = data.nodes.find((node) => node.id === edge.to);
+        if (!start || !end) return null;
+        const state = edge.state ?? 'idle';
+        const marker = data.directed
+          ? `url(#arrow-${state === 'idle' ? 'idle' : 'active'})`
+          : undefined;
+        return (
+          <g key={edge.id} className={`graph-edge ${state}`}>
+            <line
+              x1={`${start.x}%`}
+              y1={`${start.y}%`}
+              x2={`${end.x}%`}
+              y2={`${end.y}%`}
+              markerEnd={marker}
+            />
+            {edge.weight !== undefined && (
+              <text x={`${(start.x + end.x) / 2}%`} y={`${(start.y + end.y) / 2}%`}>
+                {edge.weight}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+    {data.nodes.map((node) => (
+      <div
+        key={node.id}
+        className={`graph-node node-${node.state ?? 'idle'}`}
+        style={{ left: `${node.x}%`, top: `${node.y}%` }}
+        title={`Node ${node.label}: ${node.state ?? 'idle'}`}
+      >
+        {node.label}
+      </div>
+    ))}
+    <div className="graph-legend" aria-label="Graph state legend">
+      <span className="legend-queued">Queued</span>
+      <span className="legend-active">Active</span>
+      <span className="legend-visited">Visited</span>
+      <span className="legend-path">Path</span>
+    </div>
+  </div>
+);
+
+const renderVisualData = (visualData: VisualData) => {
+  if (visualData.type === 'array') return <ArrayView data={visualData} />;
+  if (visualData.type === 'graph') return <GraphView data={visualData} />;
+  return (
+    <div className="visual-variables">
+      {Object.entries(visualData.vars).map(([key, value]) => (
+        <div key={key} className="variable-card">
+          <span className="var-name">{key}</span>
+          <span className="var-value">{JSON.stringify(value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const DynamicVisualizer = () => {
   const { steps, currentIndex } = useTimeline();
   const currentStep = steps[currentIndex];
-  
-  if (!currentStep || !currentStep.visualData) {
+  if (!currentStep) {
     return (
       <div className="visualizer-empty">
-        <div className="scanning-line"></div>
+        <div className="scanning-line" />
         <p>{t('awaitingData')}</p>
       </div>
     );
   }
-
-  const { visualData } = currentStep;
-
-  const renderVisualData = () => {
-    switch (visualData.type) {
-      case 'array':
-        return (
-          <div className="visual-array">
-            {visualData.values.map((val: any, idx: number) => {
-              const pointersObj = visualData.pointers || {};
-              // Check if pointersObj is still an array (for backward compatibility if old mock is stuck)
-              const isArray = Array.isArray(pointersObj);
-              
-              let matchingPointers: string[] = [];
-              if (isArray) {
-                if (pointersObj.includes(idx)) matchingPointers.push("P");
-              } else {
-                matchingPointers = Object.keys(pointersObj).filter(k => pointersObj[k] === idx);
-              }
-              
-              const isPointer = matchingPointers.length > 0;
-              const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
-              const color = isPointer ? pointerColors[Object.keys(pointersObj).indexOf(matchingPointers[0]) % pointerColors.length || 0] : undefined;
-              
-              return (
-                <div key={idx} className="array-cell-wrapper">
-                  <div className="pointers-container">
-                    {matchingPointers.map((p) => {
-                       const pColor = pointerColors[Object.keys(pointersObj).indexOf(p) % pointerColors.length || 0];
-                       return (
-                         <span key={p} className="pointer-label" style={{ color: pColor, borderColor: pColor }}>
-                           {p}
-                         </span>
-                       );
-                    })}
-                  </div>
-                  <div 
-                    className={`array-cell ${isPointer ? 'active-pointer' : ''}`}
-                    style={isPointer ? { borderColor: color, boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}` } : {}}
-                  >
-                    <div className="cell-index">{idx}</div>
-                    <div className="cell-value">{val}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      case 'graph':
-        return (
-          <div className="visual-graph">
-            <svg className="graph-edges" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-              {visualData.edges?.map((edge: any, idx: number) => {
-                const fromNode = visualData.nodes.find((n: any) => n.id === edge.from);
-                const toNode = visualData.nodes.find((n: any) => n.id === edge.to);
-                if (!fromNode || !toNode) return null;
-                
-                // An edge is active if both nodes it connects are active, or if explicitly marked
-                const isActive = edge.active || (fromNode.active && toNode.active);
-                
-                return (
-                  <line 
-                    key={`edge-${idx}`}
-                    x1={`${fromNode.x}%`} y1={`${fromNode.y}%`} 
-                    x2={`${toNode.x}%`} y2={`${toNode.y}%`} 
-                    stroke={isActive ? 'var(--neon-magenta)' : 'rgba(0, 243, 255, 0.3)'}
-                    strokeWidth={isActive ? "3" : "2"}
-                  />
-                );
-              })}
-            </svg>
-            {visualData.nodes?.map((node: any, idx: number) => (
-              <div 
-                key={node.id || idx} 
-                className={`graph-node ${node.active ? 'active-node' : ''}`}
-                style={{ left: `${node.x}%`, top: `${node.y}%` }}
-              >
-                {node.label}
-              </div>
-            ))}
-          </div>
-        );
-      case 'variables':
-        return (
-          <div className="visual-variables">
-            {Object.entries(visualData.vars).map(([key, val]) => (
-              <div key={key} className="variable-card">
-                <span className="var-name">{key}</span>
-                <span className="var-value">{String(val)}</span>
-              </div>
-            ))}
-          </div>
-        );
-      default:
-        return <div className="json-fallback"><pre>{JSON.stringify(visualData, null, 2)}</pre></div>;
-    }
-  };
-
   return (
     <div className="dynamic-visualizer">
       <div className="visualizer-header">
         <h2>{t('simulationView')}</h2>
+        <span>{currentIndex + 1} / {steps.length}</span>
       </div>
-      <div className="visualizer-content">
-        {renderVisualData()}
-      </div>
+      <div className="visualizer-content">{renderVisualData(currentStep.visualData)}</div>
     </div>
   );
 };

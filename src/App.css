@@ -61,3 +61,72 @@
   background: rgba(10, 10, 15, 0.9);
   border-top: 1px solid rgba(0, 243, 255, 0.1);
 }
+
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .split-layout {
+    flex-direction: column;
+  }
+
+  .panel-left {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 850px;
+    border-right: 0;
+  }
+
+  .panel-right {
+    min-height: 760px;
+  }
+
+  .control-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .control-container {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel-left {
+    height: 930px;
+  }
+
+  .assistant-container {
+    padding-inline: 8px;
+  }
+
+  .input-config {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .editor-header {
+    height: auto;
+    min-height: 60px;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-block: 10px;
+  }
+
+  .registry-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .settings-modal {
+    width: calc(100% - 24px);
+  }
+}

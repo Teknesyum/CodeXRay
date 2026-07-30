@@ -1,55 +1,108 @@
 <div align="center">
-  <img src="public/favicon.svg" alt="CodeXRay Logo" width="120" />
+  <img src="public/favicon.svg" alt="CodeXRay logo" width="120" />
   <h1>CodeXRay ⚡</h1>
-  <p><strong>Look inside the heart of algorithms with AI-assisted, real-time code visualization and analysis.</strong></p>
+  <p><strong>See algorithms execute, one state change at a time.</strong></p>
 </div>
 
----
+CodeXRay is an English, browser-based algorithm visualizer built with React,
+TypeScript, and Vite. Its simulations are deterministic and local: source code
+and input are never sent to an API.
 
-## About
+## Features
 
-**CodeXRay** is a modern React and TypeScript web application that visualizes
-complex algorithms and data structures step by step. Its built-in “Master
-Coder” assistant explains how each step works, including time and space
-complexity and the underlying reasoning.
+- 13 real simulators: DFS, BFS, Dijkstra, A*, Z Algorithm, Quick Sort, Merge
+  Sort, Heap Sort, Radix Sort, Counting Sort, Bubble Sort, Insertion Sort, and
+  Selection Sort.
+- Complete structured Variables & Trace data without hidden or truncated items.
+- Array, string, tree, and graph inputs with validation and examples.
+- A visual tree/graph builder with draggable nodes, directed/weighted edges,
+  root/start/target selection, and JSON import/export.
+- Binary-tree import from level-order JSON such as `[1,2,3,null,4]`.
+- Timeline playback, line highlighting, graph states, paths, arrows, and weights.
+- Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU.
+- Browser autosave for the current input workspace.
 
-### Features
+## Development
 
-- **Dynamic visualization:** Scenarios for graph algorithms such as DFS, BFS,
-  Dijkstra, and A*, as well as sorting and string algorithms.
-- **AI assistant:** Analyzes optimization opportunities and answers questions
-  in either AI-backed or offline simulation mode.
-- **Timeline controls:** Pause, rewind, advance, and change playback speed.
-- **Input presets:** Run supported algorithms with ordered, clustered, or
-  chaotic input scenarios (`i1`, `i2`, and `i3`).
-- **Modern interface:** A dark, cyberpunk-inspired neon design.
-
-## Getting started
-
-CodeXRay uses Vite and React. Use a current Node.js LTS release.
+Use Node.js 22 or newer:
 
 ```bash
-git clone https://github.com/srknzl/CodeXRay.git
-cd CodeXRay
 npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
-
-### Available commands
+Quality commands:
 
 ```bash
-npm run dev      # Start the development server
-npm run lint     # Run Oxlint
-npm run build    # Type-check and create a production build
-npm run preview  # Preview the production build
+npm run lint
+npm run test
+npm run test:coverage
+npm run build
+npm run test:e2e
 ```
 
-## Contributing
+Playwright needs a one-time local browser install:
 
-1. Fork the repository.
-2. Create a branch (`git checkout -b feature/my-feature`).
-3. Commit your changes (`git commit -m "Add my feature"`).
-4. Push the branch (`git push origin feature/my-feature`).
-5. Open a pull request.
+```bash
+npx playwright install chromium
+```
+
+## Input formats
+
+Arrays accept JSON or comma-separated numbers:
+
+```text
+[8, 3, 5, 1]
+8, 3, 5, 1
+```
+
+Strings accept plain, quoted, or assigned values:
+
+```text
+AABAABAAZ
+"AABAABAAZ"
+s = "AABAABAAZ"
+```
+
+Trees can be built manually or imported in level order:
+
+```json
+[1, 2, 3, null, 4]
+```
+
+Graphs and general trees use the versioned `GraphDocumentV1` format exposed by
+the builder’s export panel. Node positions are percentages from 0 to 100.
+
+## Local AI
+
+Open Settings and load one of:
+
+- `Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC` — default and faster.
+- `Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC` — larger enhanced option.
+
+The model download can be large and requires a WebGPU-capable browser. The
+visualizer remains fully functional when WebGPU is unavailable.
+
+## Publish to serkanozel.me
+
+The production app is hosted at:
+
+```text
+https://serkanozel.me/codexray/
+```
+
+Preview the publication without changing the website repository:
+
+```powershell
+npm run publish:site -- --target "C:\Users\serkan\git\serkanozelme" --dry-run
+```
+
+Build, test, copy, validate, commit, push, and wait for Cloudflare with:
+
+```powershell
+npm run publish:site -- --target "C:\Users\serkan\git\serkanozelme"
+```
+
+Use `--no-push` to create and validate the target commit without pushing it.
+The command refuses dirty, divergent, or unexpected repositories and stages
+only `blog/public/codexray/**`.

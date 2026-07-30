@@ -1,58 +1,66 @@
-import React from 'react';
 import { TimelineProvider, useTimeline } from './context/TimelineContext';
 import { CodeEditor } from './components/CodeEditor';
 import { DynamicVisualizer } from './components/DynamicVisualizer';
 import { ControlBar } from './components/ControlBar';
 import { AiAssistant } from './components/AiAssistant';
 import { VariablesPanel } from './components/VariablesPanel';
-import { generateSimulationSteps, generateAnalysis } from './services/aiService';
+import { generateAnalysis, generateSimulationSteps } from './services/aiService';
+import { parseSimulationInput } from './services/inputParsers';
 import './App.css';
 
-const CodeRayApp: React.FC = () => {
-  const { code, setSteps, jumpTo, pause, setAnalysis, apiKey, inputVars } = useTimeline();
+const CodeRayApp = () => {
+  const {
+    algorithmName,
+    code,
+    setSteps,
+    setCurrentIndex,
+    pause,
+    setAnalysis,
+    simulationInput,
+    setInputError,
+  } = useTimeline();
 
-  const handleSimulate = async () => {
-    if (!code.trim()) return;
-    
+  const handleSimulate = () => {
+    if (!code.trim()) {
+      setInputError('Select an algorithm or enter source code first.');
+      return;
+    }
+    const validation = parseSimulationInput(
+      simulationInput.kind,
+      simulationInput.text,
+      simulationInput.graph,
+    );
+    if (!validation.input) {
+      setInputError(validation.error ?? 'Invalid simulation input.');
+      return;
+    }
     try {
-      const steps = await generateSimulationSteps(code, apiKey, inputVars);
-      setSteps(steps);
-      jumpTo(0);
+      const generatedSteps = generateSimulationSteps(algorithmName, code, validation.input);
+      setSteps(generatedSteps);
+      setCurrentIndex(0);
       pause();
       setAnalysis(null);
+      setInputError(null);
     } catch (error) {
-      console.error("Simulation generation failed", error);
+      setInputError(error instanceof Error ? error.message : 'Simulation failed.');
     }
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     if (!code.trim()) return;
-    try {
-      const analysisData = await generateAnalysis(code, apiKey);
-      setAnalysis(analysisData);
-    } catch (error) {
-      console.error("Analysis generation failed", error);
-    }
+    setAnalysis(generateAnalysis(algorithmName, code));
   };
 
   return (
     <div className="app-container">
       <div className="split-layout">
         <div className="panel-left">
-          <div className="left-top">
-            <CodeEditor />
-          </div>
-          <div className="left-bottom">
-            <VariablesPanel />
-          </div>
+          <div className="left-top"><CodeEditor /></div>
+          <div className="left-bottom"><VariablesPanel /></div>
         </div>
         <div className="panel-right">
-          <div className="visualizer-container">
-            <DynamicVisualizer />
-          </div>
-          <div className="assistant-container">
-            <AiAssistant />
-          </div>
+          <div className="visualizer-container"><DynamicVisualizer /></div>
+          <div className="assistant-container"><AiAssistant /></div>
           <div className="control-container">
             <ControlBar onSimulate={handleSimulate} onAnalyze={handleAnalyze} />
           </div>
@@ -62,12 +70,10 @@ const CodeRayApp: React.FC = () => {
   );
 };
 
-function App() {
-  return (
-    <TimelineProvider>
-      <CodeRayApp />
-    </TimelineProvider>
-  );
-}
+const App = () => (
+  <TimelineProvider>
+    <CodeRayApp />
+  </TimelineProvider>
+);
 
 export default App;

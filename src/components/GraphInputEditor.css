@@ -1,0 +1,138 @@
+.graph-input-editor {
+  border-bottom: 1px solid rgba(0, 243, 255, 0.12);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 14px;
+}
+
+.graph-toolbar,
+.edge-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.graph-toolbar label {
+  display: grid;
+  gap: 2px;
+  color: var(--text-muted);
+  font: 0.68rem var(--font-mono);
+  text-transform: uppercase;
+}
+
+.graph-toolbar .check-label {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+}
+
+.graph-toolbar select,
+.edge-controls select,
+.edge-controls input,
+.graph-import-export textarea {
+  color: var(--text-main);
+  background: #090910;
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+
+.graph-builder-canvas {
+  height: 215px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 243, 255, 0.22);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(rgba(0, 243, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  user-select: none;
+}
+
+.builder-edges {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+}
+
+.builder-edges line {
+  stroke: rgba(0, 243, 255, 0.55);
+  stroke-width: 2;
+}
+
+.builder-edges text {
+  fill: var(--neon-lime);
+  font: 12px var(--font-mono);
+}
+
+.builder-node {
+  width: 32px;
+  height: 32px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 50%;
+  color: white;
+  background: #080810;
+  cursor: grab;
+  z-index: 2;
+}
+
+.builder-node:active {
+  cursor: grabbing;
+  box-shadow: 0 0 12px var(--neon-magenta);
+}
+
+.canvas-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 5px;
+  color: rgba(255, 255, 255, 0.35);
+  font: 0.62rem var(--font-mono);
+}
+
+.edge-controls {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.edge-controls button,
+.graph-import-export button {
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  color: var(--neon-cyan);
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.edge-controls button:disabled {
+  opacity: 0.35;
+}
+
+.graph-import-export {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.graph-import-export p {
+  margin: 7px 0;
+}
+
+.graph-import-export textarea {
+  width: 100%;
+  height: 90px;
+  resize: vertical;
+  font-family: var(--font-mono);
+}
+
+.graph-import-export > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}

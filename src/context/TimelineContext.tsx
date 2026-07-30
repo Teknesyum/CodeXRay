@@ -1,21 +1,27 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { SimulationInput, SimulationStep } from '../types/simulation';
+import { createInputPreset } from '../services/inputPresets';
 
-export interface SimulationStep {
-  lineNumber: number | null;
-  visualData: any; // Dynamic data (nodes, arrays, strings)
-  explanation: string;
-}
+export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 
 interface TimelineContextType {
   code: string;
   setCode: (code: string) => void;
+  algorithmName: string;
+  setAlgorithmName: (name: string) => void;
   steps: SimulationStep[];
   setSteps: (steps: SimulationStep[]) => void;
   currentIndex: number;
-  setCurrentIndex: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentIndex: Dispatch<SetStateAction<number>>;
   isPlaying: boolean;
-  speed: number; // delay in ms
+  speed: number;
   play: () => void;
   pause: () => void;
   stepForward: () => void;
@@ -24,35 +30,57 @@ interface TimelineContextType {
   jumpTo: (index: number) => void;
   analysis: string | null;
   setAnalysis: (analysis: string | null) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  inputVars: string;
-  setInputVars: (vars: string) => void;
+  simulationInput: SimulationInput;
+  setSimulationInput: Dispatch<SetStateAction<SimulationInput>>;
+  inputError: string | null;
+  setInputError: (error: string | null) => void;
   selectedExampleQuestion: string | null;
-  setSelectedExampleQuestion: (q: string | null) => void;
+  setSelectedExampleQuestion: (question: string | null) => void;
+  aiModel: string;
+  setAiModel: (model: string) => void;
+  aiStatus: LocalAiStatus;
+  setAiStatus: (status: LocalAiStatus) => void;
+  aiProgress: string;
+  setAiProgress: (progress: string) => void;
 }
 
+const STORAGE_KEY = 'codexray.workspace.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
-export const TimelineProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [code, setCode] = useState<string>('');
+const loadInput = (): SimulationInput => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { simulationInput?: SimulationInput };
+      if (parsed.simulationInput) return parsed.simulationInput;
+    }
+  } catch {
+    // Ignore invalid or unavailable browser storage.
+  }
+  return createInputPreset('array', 1);
+};
+
+export const TimelineProvider = ({ children }: { children: ReactNode }) => {
+  const [code, setCode] = useState('');
+  const [algorithmName, setAlgorithmName] = useState('Custom Code');
   const [steps, setSteps] = useState<SimulationStep[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(1000); // ms per step
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1000);
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [inputVars, setInputVars] = useState<string>('');
+  const [simulationInput, setSimulationInput] = useState<SimulationInput>(loadInput);
+  const [inputError, setInputError] = useState<string | null>(null);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
+  const [aiModel, setAiModel] = useState('Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC');
+  const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
+  const [aiProgress, setAiProgress] = useState('');
 
   const stepForward = useCallback(() => {
-    setCurrentIndex((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
+    setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
   }, [steps.length]);
-
   const stepBackward = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    setCurrentIndex((previous) => Math.max(previous - 1, 0));
   }, []);
-
   const play = useCallback(() => setIsPlaying(true), []);
   const pause = useCallback(() => setIsPlaying(false), []);
   const jumpTo = useCallback((index: number) => {
@@ -60,39 +88,64 @@ export const TimelineProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [steps.length]);
 
   useEffect(() => {
-    let timer: number | null = null;
-    if (isPlaying) {
-      timer = window.setInterval(() => {
-        setCurrentIndex((prev) => {
-          if (prev < steps.length - 1) return prev + 1;
-          setIsPlaying(false);
-          return prev;
-        });
-      }, speed);
-    }
-    return () => {
-      if (timer) window.clearInterval(timer);
-    };
+    if (!isPlaying) return;
+    const timer = window.setInterval(() => {
+      setCurrentIndex((previous) => {
+        if (previous < steps.length - 1) return previous + 1;
+        setIsPlaying(false);
+        return previous;
+      });
+    }, speed);
+    return () => window.clearInterval(timer);
   }, [isPlaying, speed, steps.length]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ simulationInput }));
+    } catch {
+      // Storage can be unavailable in private browsing or constrained embeds.
+    }
+  }, [simulationInput]);
 
   return (
     <TimelineContext.Provider value={{
-        code, setCode,
-        steps, setSteps,
-        currentIndex, setCurrentIndex,
-        isPlaying, play, pause,
-        stepForward, stepBackward, jumpTo,
-        speed, setSpeed,
-        analysis, setAnalysis,
-        apiKey, setApiKey,
-        inputVars, setInputVars,
-        selectedExampleQuestion, setSelectedExampleQuestion
-      }}>
+      code,
+      setCode,
+      algorithmName,
+      setAlgorithmName,
+      steps,
+      setSteps,
+      currentIndex,
+      setCurrentIndex,
+      isPlaying,
+      speed,
+      play,
+      pause,
+      stepForward,
+      stepBackward,
+      setSpeed,
+      jumpTo,
+      analysis,
+      setAnalysis,
+      simulationInput,
+      setSimulationInput,
+      inputError,
+      setInputError,
+      selectedExampleQuestion,
+      setSelectedExampleQuestion,
+      aiModel,
+      setAiModel,
+      aiStatus,
+      setAiStatus,
+      aiProgress,
+      setAiProgress,
+    }}>
       {children}
     </TimelineContext.Provider>
   );
 };
 
+// oxlint-disable-next-line react/only-export-components
 export const useTimeline = () => {
   const context = useContext(TimelineContext);
   if (!context) throw new Error('useTimeline must be used within TimelineProvider');

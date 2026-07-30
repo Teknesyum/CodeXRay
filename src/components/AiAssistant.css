@@ -22,6 +22,29 @@
   color: var(--neon-lime);
 }
 
+.local-status-dot {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.local-status-dot.loading {
+  background: #ffb000;
+  box-shadow: 0 0 8px #ffb000;
+}
+
+.local-status-dot.ready {
+  background: var(--neon-lime);
+  box-shadow: 0 0 8px var(--neon-lime);
+}
+
+.local-status-dot.error,
+.local-status-dot.unsupported {
+  background: #ff496c;
+}
+
 .ai-body {
   padding: 15px;
   font-size: 0.95rem;

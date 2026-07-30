@@ -71,6 +71,29 @@
   transition: all 0.3s ease;
 }
 
+.input-config select {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  color: var(--text-main);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.input-format-help {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  max-width: 240px;
+}
+
+.input-error {
+  padding: 7px 20px;
+  color: #ff9b9b;
+  background: rgba(255, 40, 70, 0.08);
+  border-bottom: 1px solid rgba(255, 40, 70, 0.25);
+  font: 0.75rem var(--font-mono);
+}
+
 .input-config input:focus {
   border-color: var(--neon-magenta);
   box-shadow: 0 0 5px rgba(255, 0, 255, 0.2);

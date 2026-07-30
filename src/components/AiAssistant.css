@@ -22,6 +22,20 @@
   color: var(--neon-lime);
 }
 
+.context-chip {
+  max-width: 130px;
+  padding: 2px 6px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 999px;
+  color: var(--neon-cyan);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .local-status-dot {
   width: 7px;
   height: 7px;
@@ -43,6 +57,30 @@
 .local-status-dot.error,
 .local-status-dot.unsupported {
   background: #ff496c;
+}
+
+.clear-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.clear-chat-btn:hover:not(:disabled) {
+  border-color: var(--neon-magenta);
+  color: var(--neon-magenta);
+}
+
+.clear-chat-btn:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
 .ai-body {

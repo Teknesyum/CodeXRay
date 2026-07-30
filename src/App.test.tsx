@@ -55,4 +55,22 @@ describe('application workspace', () => {
     fireEvent.keyDown(splitter, { key: 'ArrowRight' });
     expect(container.querySelector('.panel-left')).toHaveStyle({ width: '460px' });
   });
+
+  it('restores and clears local assistant conversation memory', async () => {
+    localStorage.setItem('codexray.ai-chat.v1', JSON.stringify([
+      { role: 'user', content: 'Where are we in the trace?' },
+      { role: 'ai', content: 'The simulation is paused at the current step.' },
+    ]));
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByText('Where are we in the trace?')).toBeInTheDocument();
+    expect(screen.getByText('The simulation is paused at the current step.')).toBeInTheDocument();
+    const dfs = algorithmRegistry.find((algorithm) => algorithm.name.includes('Depth First'));
+    await user.selectOptions(screen.getByLabelText('Algorithm preset'), dfs?.code ?? '');
+    expect(screen.getByText('Where are we in the trace?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear conversation memory' }));
+    expect(screen.queryByText('Where are we in the trace?')).not.toBeInTheDocument();
+    expect(localStorage.getItem('codexray.ai-chat.v1')).toBe('[]');
+  });
 });

@@ -1,5 +1,8 @@
 import { CreateMLCEngine } from '@mlc-ai/web-llm';
 import type { InitProgressReport, MLCEngine } from '@mlc-ai/web-llm';
+import type { Locale } from '../i18n/translations';
+import { buildTutorInstructions } from '../services/aiContext';
+import type { AssistantMessage } from '../services/aiContext';
 
 interface InitializeMessage {
   id: number;
@@ -12,7 +15,8 @@ interface GenerateMessage {
   type: 'generate';
   question: string;
   context: string;
-  history: Array<{ role: string; content: string }>;
+  history: Array<Pick<AssistantMessage, 'role' | 'content'>>;
+  locale: Locale;
 }
 
 let engine: MLCEngine | undefined;
@@ -34,16 +38,18 @@ self.onmessage = async (event: MessageEvent<InitializeMessage | GenerateMessage>
       messages: [
         {
           role: 'system',
-          content: 'You are CodeXRay’s concise algorithm tutor. Use only the supplied execution context. Explain assumptions and never invent runtime state.',
+          content: buildTutorInstructions(message.locale),
         },
-        ...message.history.slice(-8).map((item) => ({
-          role: item.role === 'ai' ? 'assistant' as const : 'user' as const,
-          content: item.content,
-        })),
+        ...message.history
+          .filter((item) => item.role === 'user' || item.role === 'ai')
+          .map((item) => ({
+            role: item.role === 'ai' ? 'assistant' as const : 'user' as const,
+            content: item.content,
+          })),
         { role: 'user', content: `${message.context}\n\nQuestion: ${message.question}` },
       ],
       temperature: 0.2,
-      max_tokens: 350,
+      max_tokens: 384,
     });
     self.postMessage({
       id: message.id,

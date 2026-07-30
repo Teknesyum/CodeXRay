@@ -37,6 +37,7 @@ test('accepts custom array input for a sorting algorithm', async ({ page }) => {
   await page.getByRole('button', { name: /Simulate/ }).click();
   await expect(page.getByLabel('Selection Sort execution')).toBeVisible();
   await expect(page.getByText('1 /')).toBeVisible();
+  await expect(page.locator('.context-chip')).toHaveText(/Step 1\/\d+/);
 });
 
 test('resizes and collapses workspace panels', async ({ page }) => {

@@ -1,4 +1,6 @@
 import type { InitProgressReport } from '@mlc-ai/web-llm';
+import type { Locale } from '../i18n/translations';
+import type { AssistantMessage } from './aiContext';
 
 export const LOCAL_AI_MODELS = [
   {
@@ -92,7 +94,8 @@ export const initializeLocalAi = async (
 export const askLocalModel = (
   question: string,
   context: string,
-  history: Array<{ role: string; content: string }>,
+  history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
+  locale: Locale,
 ): Promise<string> => {
   if (!worker || !readyModel) {
     return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
@@ -100,7 +103,7 @@ export const askLocalModel = (
   const id = ++requestId;
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    worker?.postMessage({ id, type: 'generate', question, context, history });
+    worker?.postMessage({ id, type: 'generate', question, context, history, locale });
   });
 };
 

@@ -4,9 +4,9 @@
   <p><strong>See algorithms execute, one state change at a time.</strong></p>
 </div>
 
-CodeXRay is an English, browser-based algorithm visualizer built with React,
-TypeScript, and Vite. Its simulations are deterministic and local: source code
-and input are never sent to an API.
+CodeXRay is a bilingual English/Turkish browser-based algorithm visualizer built
+with React, TypeScript, and Vite. Its simulations are deterministic and local:
+source code and input are never sent to an API.
 
 ## Features
 
@@ -19,13 +19,20 @@ and input are never sent to an API.
   root/start/target selection, and JSON import/export.
 - Binary-tree import from level-order JSON such as `[1,2,3,null,4]`.
 - Timeline playback, line highlighting, graph states, paths, arrows, and weights.
-- Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU.
+- Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU,
+  with bounded local conversation memory and live code/input/trace context.
 - Browser autosave for the current input workspace.
 - Instant English/Turkish switching, including existing simulation explanations.
 - The graph/tree builder uses the large visualization panel and can switch back
   to the running simulation without losing input.
 - Resizable desktop boundaries and collapsible code, trace, visualization,
   assistant, and control panels; preferences persist locally.
+
+The local model does not train on the conversation. CodeXRay restores up to 24
+messages from browser storage and sends a bounded recent subset with each
+question. The newest workspace snapshot—current code, input, progress, selected
+line, complete current visual state, and nearby trace—always overrides older
+chat. Conversation memory can be cleared from the assistant header.
 
 ## Development
 

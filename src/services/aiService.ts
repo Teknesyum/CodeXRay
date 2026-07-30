@@ -1,12 +1,12 @@
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { simulateAlgorithm } from './simulators';
 import { askLocalModel } from './localAiService';
-import type { Locale } from '../i18n/translations';
-
-interface ChatMessage {
-  role: 'system' | 'user' | 'ai';
-  content: string;
-}
+import {
+  buildAssistantContext,
+  selectAssistantHistory,
+  type AssistantMessage,
+  type AssistantWorkspace,
+} from './aiContext';
 
 const algorithmFacts = (name: string, code: string) => {
   const source = `${name} ${code}`.toLowerCase();
@@ -97,19 +97,21 @@ export const generateQuestions = (algorithmName: string, code: string): string[]
 
 export const askQuestion = async (
   question: string,
-  algorithmName: string,
-  code: string,
-  currentStep: SimulationStep | undefined,
-  chatHistory: ChatMessage[] = [],
-  locale: Locale = 'en',
+  workspace: AssistantWorkspace,
+  chatHistory: AssistantMessage[] = [],
 ): Promise<string> => {
-  const context = [
-    `Algorithm: ${algorithmName}`,
-    `Code:\n${code}`,
-    `Current line: ${currentStep?.lineNumber ?? 'not running'}`,
-    `Current explanation: ${currentStep?.explanation ?? 'none'}`,
-    `Variables: ${JSON.stringify(currentStep?.visualData.vars ?? {})}`,
-    `Answer language: ${locale === 'tr' ? 'Turkish' : 'English'}`,
-  ].join('\n\n');
-  return askLocalModel(question, context, chatHistory);
+  const boundedQuestion = question.length > 1_000
+    ? `${question.slice(0, 960)}\n[Question shortened for the local model context window.]`
+    : question;
+  const context = buildAssistantContext(workspace);
+  const historyBudget = Math.max(
+    0,
+    Math.min(1_600, 8_500 - 1_700 - context.length - boundedQuestion.length),
+  );
+  return askLocalModel(
+    boundedQuestion,
+    context,
+    selectAssistantHistory(chatHistory, historyBudget),
+    workspace.locale,
+  );
 };

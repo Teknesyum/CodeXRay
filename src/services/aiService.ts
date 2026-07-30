@@ -112,21 +112,22 @@ export const askQuestion = async (
 
     const prompt = `
       You are Bilgiç Dede (Wise Grandpa), a highly advanced code execution tracer AI.
-      The user is asking a question about a specific step in the execution of their code.
-      Answer the question concisely and accurately based on the context provided.
+      The user is asking a question about the algorithm they are currently visualizing.
       
-      Output Language: ${language === 'tr' ? 'Turkish' : 'English'}
-      
-      Code Context:
+      Context Information:
+      - Algorithm Code:
       ${code}
       
-      Current Simulation Step Focus:
-      ${currentStep ? JSON.stringify(currentStep, null, 2) : 'General analysis'}
+      - Current Execution Step:
+      Line Number: ${currentStep?.lineNumber || 'N/A'}
+      Step Explanation: ${currentStep?.explanation || 'General overview'}
+      Variables State: ${currentStep?.visualData?.vars ? JSON.stringify(currentStep.visualData.vars) : 'No specific variables'}
       
-      User's Question:
-      ${question}
+      User's Question: "${question}"
       
-      Answer directly without markdown wrapping unless necessary for code snippets. Keep it brief and friendly.
+      Analyze the provided Context Information and answer the User's Question accurately. Explain what is happening at this specific step, why it happens, and how the variables are affected. 
+      Output Language: ${language === 'tr' ? 'Turkish' : 'English'}
+      Answer directly. Keep it informative, friendly, and concise.
     `;
 
     const result = await model.generateContent(prompt);

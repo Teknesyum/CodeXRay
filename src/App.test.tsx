@@ -75,7 +75,7 @@ describe('application workspace', () => {
     expect(localStorage.getItem('codexray.ai-chat.v1')).toBe('[]');
   });
 
-  it('offers the persisted ultra local model and explains browser-managed storage', async () => {
+  it('offers ultra local models and explains automatic browser-managed storage', async () => {
     localStorage.setItem(
       'codexray.ai-model.v1',
       'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
@@ -87,7 +87,16 @@ describe('application workspace', () => {
     const modelSelect = screen.getByRole('combobox', { name: 'On-device model' });
     expect(modelSelect).toHaveValue('Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC');
     expect(screen.getByRole('option', { name: /Qwen2.5 Coder 7B/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Qwen3.5 9B.*16 GB class/ }))
+      .toBeInTheDocument();
     expect(screen.getByText(/browser-managed OPFS\/cache/)).toBeInTheDocument();
+    expect(screen.getByText(/initializes automatically/)).toBeInTheDocument();
+
+    await user.selectOptions(modelSelect, 'Qwen3.5-9B-q4f32_1-MLC');
+    const contextSelect = screen.getByRole('combobox', { name: 'Context window' });
+    expect(contextSelect).toHaveValue('4096');
+    expect(within(contextSelect).getByRole('option', { name: /8K context.*experimental/ }))
+      .toBeInTheDocument();
   });
 
   it('opens the requested YouTube Music playlist in a compact radio player', async () => {

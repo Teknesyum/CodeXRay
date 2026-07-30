@@ -37,9 +37,14 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   plus GraphDocumentV1 and level-order tree import/export.
 - `aiContext.ts`: bounded, testable live-workspace and conversation context for
   the assistant. Current code and trace state always override older chat.
+- `aiTimelineControl.ts`: bounded parsing and key-checkpoint selection for AI
+  timeline play, pause, jump, step, and guided-tour requests.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
   Assistant conversation memory stays local and can be cleared from the UI.
-  Model weights prefer OPFS with Cache API fallback and persistent-origin storage.
+  Model weights prefer OPFS with Cache API fallback and persistent-origin storage;
+  cached selections auto-initialize and individual models can be deleted.
+- `localAiModels.ts`: shared VRAM, context-window, and response-token profiles.
+  Keep service, worker, UI labels, and tests driven by this single registry.
 - `aiResponse.ts`: deterministic cleanup for small-model repetition loops.
 - `PlaylistRadio.tsx`: click-to-load YouTube playlist iframe; keep the external
   player unmounted until user interaction and preserve its fallback link.
@@ -75,7 +80,15 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - Keep code and repository documentation in English. Never add secrets, API
   keys, or remote AI calls. Local AI must stay optional and worker-based.
 - Keep AI prompts within the 4096-token model window. Complexity questions omit
-  unrelated trace payloads, and generated prose passes repetition cleanup.
+  unrelated trace payloads, output budgets scale by model profile, length-limited
+  answers receive at most one bounded continuation, and generated prose passes
+  repetition cleanup. The Qwen3.5 9B profile may explicitly opt into the tested
+  8192-token ChatOptions override; keep 4K as the stable default and scale prompt
+  budgets with the selected window.
+- AI-authored actions are restricted to bounded deterministic timeline control.
+  Parse and validate every directive; never grant source, input, filesystem, or
+  network mutation through assistant output. Rebuild context after navigation
+  before explaining the destination step.
 - Never imply that a browser can reuse an arbitrary local filesystem path for
   WebLLM. Explain OPFS/cache persistence and unavoidable per-visit GPU setup.
 

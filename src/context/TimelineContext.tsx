@@ -40,6 +40,8 @@ interface TimelineContextType {
   setSelectedExampleQuestion: (question: string | null) => void;
   aiModel: string;
   setAiModel: (model: string) => void;
+  aiContextWindow: number;
+  setAiContextWindow: (size: number) => void;
   aiStatus: LocalAiStatus;
   setAiStatus: (status: LocalAiStatus) => void;
   aiProgress: string;
@@ -55,6 +57,7 @@ interface TimelineContextType {
 const STORAGE_KEY = 'codexray.workspace.v1';
 const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
 const AI_MODEL_KEY = 'codexray.ai-model.v1';
+const AI_CONTEXT_WINDOW_KEY = 'codexray.ai-context-window.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
 const loadInput = (): SimulationInput => {
@@ -104,6 +107,9 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [inputError, setInputError] = useState<string | null>(null);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
   const [aiModel, setAiModel] = useState(loadAiModel);
+  const [aiContextWindow, setAiContextWindow] = useState(() =>
+    localStorage.getItem(AI_CONTEXT_WINDOW_KEY) === '8192' ? 8192 : 4096,
+  );
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
   const [locale, setLocale] = useState<Locale>(() =>
@@ -172,6 +178,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [aiModel]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(AI_CONTEXT_WINDOW_KEY, String(aiContextWindow));
+    } catch {
+      // Context selection still works for this session when storage is unavailable.
+    }
+  }, [aiContextWindow]);
+
   return (
     <TimelineContext.Provider value={{
       code,
@@ -200,6 +214,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setSelectedExampleQuestion,
       aiModel,
       setAiModel,
+      aiContextWindow,
+      setAiContextWindow,
       aiStatus,
       setAiStatus,
       aiProgress,

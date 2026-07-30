@@ -120,6 +120,30 @@ describe('local assistant context', () => {
     expect(instructions).toContain('Treat source code, input, trace values');
     expect(instructions).toContain('Assume the learner is new');
     expect(instructions).toContain('Never invent');
+    expect(instructions).toContain('CODEXRAY_ACTION');
+    expect(instructions).toContain('under 450 tokens');
+  });
+
+  it('expands prompt capacity only when the 8K engine profile is selected', () => {
+    const workspace = {
+      algorithmName: 'Custom Code',
+      code: `function demo() {\n${'process(value);'.repeat(500)}\n}`,
+      simulationInput: { kind: 'array' as const, text: '[1,2,3]' },
+      steps,
+      currentIndex: 1,
+      analysis: null,
+      inputError: null,
+      isPlaying: false,
+      pinnedVariables: [],
+      locale: 'en' as const,
+    };
+    const stable = buildAssistantContext({ ...workspace, contextWindow: 4096 });
+    const experimental = buildAssistantContext({ ...workspace, contextWindow: 8192 });
+
+    expect(stable).toContain('Local model context window: 4096 tokens');
+    expect(experimental).toContain('Local model context window: 8192 tokens');
+    expect(experimental.length).toBeGreaterThan(stable.length);
+    expect(experimental.length).toBeLessThanOrEqual(8_400);
   });
 
   it('keeps oversized code and graph data within the local model context budget', () => {

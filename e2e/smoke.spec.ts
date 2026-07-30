@@ -112,3 +112,16 @@ test('opens the playlist radio without loading it before user interaction', asyn
     /OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0/,
   );
 });
+
+test('offers the 9B model and its experimental 8K context profile', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('combobox', { name: 'On-device model' })
+    .selectOption('Qwen3.5-9B-q4f32_1-MLC');
+  const context = page.getByRole('combobox', { name: 'Context window' });
+  await expect(context.locator('option[value="8192"]'))
+    .toHaveText(/8K context.*experimental/);
+  await context.selectOption('8192');
+  await expect(page.getByText(/8192-token context.*1200 response tokens/))
+    .toBeVisible();
+});

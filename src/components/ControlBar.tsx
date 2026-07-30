@@ -1,17 +1,27 @@
-import { useEffect, useState } from 'react';
-import { FastForward, Pause, Play, Settings, StepBack, StepForward } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  FastForward,
+  Pause,
+  Play,
+  Settings,
+  StepBack,
+  StepForward,
+  Trash2,
+} from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { generateQuestions } from '../services/aiService';
 import {
+  deleteLocalModel,
+  getCachedLocalModels,
   getPersistentStorageStatus,
   initializeLocalAi,
-  isLocalModelCached,
   LOCAL_AI_MODELS,
   requestPersistentLocalAiStorage,
   resetLocalAi,
   supportsLocalAi,
 } from '../services/localAiService';
 import { t, translateRuntimeText } from '../i18n/translations';
+import { selectCachedModelForAutoLoad } from '../services/localAiModels';
 import './ControlBar.css';
 
 interface ControlBarProps {
@@ -41,6 +51,8 @@ export const ControlBar = ({
     setSelectedExampleQuestion,
     aiModel,
     setAiModel,
+    aiContextWindow,
+    setAiContextWindow,
     aiStatus,
     setAiStatus,
     aiProgress,
@@ -50,30 +62,103 @@ export const ControlBar = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
-  const [modelCached, setModelCached] = useState<boolean | null>(null);
+  const [cachedModels, setCachedModels] = useState<string[]>([]);
+  const [cacheChecked, setCacheChecked] = useState(false);
+  const [deletingModel, setDeletingModel] = useState<string | null>(null);
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
+  const startupCacheFallback = useRef(true);
+  const autoLoadAttempts = useRef(new Set<string>());
   const panelTitle = t('controls', locale);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
     ?? LOCAL_AI_MODELS[0];
+  const modelCached = cacheChecked ? cachedModels.includes(aiModel) : null;
+
+  const activateModel = useCallback(async (model: string, contextWindow: number) => {
+    if (!await supportsLocalAi()) {
+      setAiStatus('unsupported');
+      setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
+      return;
+    }
+    setAiStatus('loading');
+    try {
+      setStoragePersistent(await requestPersistentLocalAiStorage());
+      await initializeLocalAi(model, contextWindow, (progress) => {
+        setAiProgress(locale === 'tr' ? t('loading', locale) : progress);
+      });
+      setCachedModels((current) => [...new Set([...current, model])]);
+      setCacheChecked(true);
+      setAiStatus('ready');
+      setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
+    } catch (error) {
+      setAiStatus('error');
+      setAiProgress(translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
+    }
+  }, [locale, setAiProgress, setAiStatus]);
 
   useEffect(() => {
-    if (!showSettings) return;
+    if (aiContextWindow <= selectedModel.maxContextWindow) return;
+    resetLocalAi();
+    setAiContextWindow(selectedModel.contextWindow);
+    setAiStatus('idle');
+    setAiProgress('');
+  }, [
+    aiContextWindow,
+    selectedModel.contextWindow,
+    selectedModel.maxContextWindow,
+    setAiContextWindow,
+    setAiProgress,
+    setAiStatus,
+  ]);
+
+  useEffect(() => {
+    if (aiContextWindow > selectedModel.maxContextWindow) return;
     let active = true;
-    setModelCached(null);
-    void Promise.all([
-      isLocalModelCached(aiModel),
-      getPersistentStorageStatus(),
-    ]).then(([cached, persistent]) => {
+    setCacheChecked(false);
+    void getCachedLocalModels().then((cached) => {
       if (!active) return;
-      setModelCached(cached);
-      setStoragePersistent(persistent);
+      setCachedModels(cached);
+      setCacheChecked(true);
+
+      const autoLoadModel = selectCachedModelForAutoLoad(
+        aiModel,
+        cached,
+        startupCacheFallback.current,
+      );
+      if (autoLoadModel && autoLoadModel !== aiModel) {
+        startupCacheFallback.current = false;
+        setAiModel(autoLoadModel);
+        return;
+      }
+      startupCacheFallback.current = false;
+      const loadKey = `${autoLoadModel}:${aiContextWindow}`;
+      if (autoLoadModel && !autoLoadAttempts.current.has(loadKey)) {
+        autoLoadAttempts.current.add(loadKey);
+        void activateModel(autoLoadModel, aiContextWindow);
+      }
     }).catch(() => {
-      if (active) setModelCached(false);
+      if (active) setCacheChecked(true);
     });
     return () => {
       active = false;
     };
-  }, [aiModel, showSettings]);
+  }, [
+    activateModel,
+    aiContextWindow,
+    aiModel,
+    selectedModel.maxContextWindow,
+    setAiModel,
+  ]);
+
+  useEffect(() => {
+    if (!showSettings) return;
+    let active = true;
+    void getPersistentStorageStatus().then((persistent) => {
+      if (active) setStoragePersistent(persistent);
+    });
+    return () => {
+      active = false;
+    };
+  }, [showSettings]);
 
   if (collapsed) {
     return (
@@ -93,24 +178,25 @@ export const ControlBar = ({
     );
   }
 
-  const loadModel = async () => {
-    if (!await supportsLocalAi()) {
-      setAiStatus('unsupported');
-      setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
-      return;
-    }
-    setAiStatus('loading');
+  const deleteStoredModel = async (model: string) => {
+    const definition = LOCAL_AI_MODELS.find((candidate) => candidate.id === model);
+    if (!window.confirm(t('confirmDeleteModel', locale, {
+      name: translateRuntimeText(definition?.label ?? model, locale),
+    }))) return;
+    setDeletingModel(model);
     try {
-      setStoragePersistent(await requestPersistentLocalAiStorage());
-      await initializeLocalAi(aiModel, (progress) => {
-        setAiProgress(locale === 'tr' ? t('loading', locale) : progress);
-      });
-      setModelCached(true);
-      setAiStatus('ready');
-      setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
+      await deleteLocalModel(model);
+      setCachedModels((current) => current.filter((id) => id !== model));
+      if (model === aiModel) {
+        setAiStatus('idle');
+        setAiProgress(t('modelDeleted', locale));
+        autoLoadAttempts.current.delete(model);
+      }
     } catch (error) {
       setAiStatus('error');
-      setAiProgress(translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
+      setAiProgress(error instanceof Error ? error.message : t('modelDeleteFailed', locale));
+    } finally {
+      setDeletingModel(null);
     }
   };
 
@@ -211,9 +297,17 @@ export const ControlBar = ({
                     value={aiModel}
                     disabled={aiStatus === 'loading'}
                     onChange={(event) => {
+                      startupCacheFallback.current = false;
+                      const nextModel = LOCAL_AI_MODELS.find((model) =>
+                        model.id === event.target.value,
+                      ) ?? LOCAL_AI_MODELS[0];
+                      autoLoadAttempts.current.delete(
+                        `${nextModel.id}:${nextModel.contextWindow}`,
+                      );
                       resetLocalAi();
-                      setAiModel(event.target.value);
-                      setModelCached(null);
+                      setAiModel(nextModel.id);
+                      setAiContextWindow(nextModel.contextWindow);
+                      setCacheChecked(false);
                       setAiStatus('idle');
                       setAiProgress('');
                     }}
@@ -222,9 +316,35 @@ export const ControlBar = ({
                       <option key={model.id} value={model.id}>{translateRuntimeText(model.label, locale)}</option>
                     ))}
                   </select>
+                  <select
+                    aria-label={t('contextWindow', locale)}
+                    className="api-provider-select"
+                    value={aiContextWindow}
+                    disabled={aiStatus === 'loading'}
+                    onChange={(event) => {
+                      const contextWindow = Number(event.target.value);
+                      startupCacheFallback.current = false;
+                      autoLoadAttempts.current.delete(`${aiModel}:${contextWindow}`);
+                      resetLocalAi();
+                      setAiContextWindow(contextWindow);
+                      setAiStatus('idle');
+                      setAiProgress('');
+                    }}
+                  >
+                    <option value={4096}>{t('context4k', locale)}</option>
+                    {selectedModel.maxContextWindow >= 8192 && (
+                      <option value={8192}>{t('context8kExperimental', locale)}</option>
+                    )}
+                  </select>
                   <p className="model-requirement">
                     {t('modelRequirement', locale, {
                       memory: (selectedModel.vramMb / 1000).toFixed(1),
+                    })}
+                  </p>
+                  <p className="model-requirement">
+                    {t('modelTokenProfile', locale, {
+                      context: aiContextWindow,
+                      output: selectedModel.maxOutputTokens + (aiContextWindow >= 8192 ? 300 : 0),
                     })}
                   </p>
                 </div>
@@ -248,9 +368,33 @@ export const ControlBar = ({
                   </span>
                 </div>
                 <p className="local-ai-note">{t('localAiStorageNote', locale)}</p>
+                <div className="stored-models">
+                  <div className="settings-title">{t('storedModels', locale)}</div>
+                  {cacheChecked && cachedModels.length === 0 && (
+                    <p className="local-ai-note">{t('noStoredModels', locale)}</p>
+                  )}
+                  {cachedModels.map((modelId) => {
+                    const model = LOCAL_AI_MODELS.find((candidate) => candidate.id === modelId);
+                    return (
+                      <div className="stored-model-row" key={modelId}>
+                        <span>{translateRuntimeText(model?.label ?? modelId, locale)}</span>
+                        <button
+                          type="button"
+                          aria-label={t('deleteStoredModel', locale, {
+                            name: translateRuntimeText(model?.label ?? modelId, locale),
+                          })}
+                          disabled={deletingModel !== null || aiStatus === 'loading'}
+                          onClick={() => void deleteStoredModel(modelId)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
                 <button
                   className="neon-button"
-                  onClick={loadModel}
+                  onClick={() => void activateModel(aiModel, aiContextWindow)}
                   disabled={aiStatus === 'loading' || aiStatus === 'ready'}
                 >
                   {aiStatus === 'loading'

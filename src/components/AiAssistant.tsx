@@ -1,13 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Loader, Send, Trash2 } from 'lucide-react';
+import { Bot, Loader, MapPin, Send, Trash2 } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion } from '../services/aiService';
 import type { AssistantMessage } from '../services/aiContext';
+import {
+  extractTimelineAction,
+  interpretTimelineRequest,
+  resolveTimelineTarget,
+  stripTimelineActions,
+  type TimelineAction,
+} from '../services/aiTimelineControl';
 import { t, translateRuntimeText } from '../i18n/translations';
 import './AiAssistant.css';
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
 const MAX_STORED_MESSAGES = 24;
+
+const navigationExplanationPrompt = (
+  originalQuestion: string,
+  action: TimelineAction,
+  targetIndex: number,
+): string => action.type === 'play'
+  ? [
+    `Original request: ${originalQuestion}`,
+    `CodeXRay safely started playback from step ${targetIndex + 1}.`,
+    'Briefly confirm that playback is running. It may advance while you answer, so do not claim that the starting snapshot is still the visible current step.',
+    'Do not emit another CODEXRAY_ACTION directive in this response.',
+  ].join('\n')
+  : [
+    `Original request: ${originalQuestion}`,
+    `CodeXRay has now safely applied the requested timeline action "${action.type}".`,
+    `The live simulation is paused at step ${targetIndex + 1}.`,
+    'Explain the exact current code line, changed variables or visual state, why this moment matters, and what the next deterministic action will be.',
+    'Do not emit another CODEXRAY_ACTION directive in this response.',
+  ].join('\n');
 
 const loadChatHistory = (): AssistantMessage[] => {
   try {
@@ -44,16 +70,21 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     simulationInput,
     inputError,
     isPlaying,
+    jumpTo,
+    pause,
+    play,
     pinnedVariables,
     selectedExampleQuestion,
     setSelectedExampleQuestion,
     aiStatus,
+    aiContextWindow,
     locale,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<AssistantMessage[]>(loadChatHistory);
   const [isTyping, setIsTyping] = useState(false);
+  const [tourSteps, setTourSteps] = useState<number[]>([]);
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const panelTitle = t('masterCoder', locale);
 
@@ -72,6 +103,18 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     }
   }, [chatHistory]);
 
+  const applyTimelineAction = useCallback((action: TimelineAction): number => {
+    const targetIndex = resolveTimelineTarget(action, steps, currentIndex);
+    if (action.type === 'play') {
+      play();
+      return targetIndex;
+    }
+    pause();
+    if (action.type === 'tour') setTourSteps(action.checkpoints);
+    jumpTo(targetIndex);
+    return targetIndex;
+  }, [currentIndex, jumpTo, pause, play, steps]);
+
   const submitQuestion = useCallback(async (userMessage: string) => {
     const history = [...chatHistory];
     setQuestion('');
@@ -81,22 +124,57 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     );
     setIsTyping(true);
     try {
-      const answer = await askQuestion(
-        userMessage,
+      const directAction = interpretTimelineRequest(userMessage, steps, currentIndex);
+      let targetIndex = currentIndex;
+      let workspaceIsPlaying = isPlaying;
+      let modelQuestion = userMessage;
+      if (directAction) {
+        targetIndex = applyTimelineAction(directAction);
+        workspaceIsPlaying = directAction.type === 'play';
+        modelQuestion = navigationExplanationPrompt(userMessage, directAction, targetIndex);
+      }
+      let answer = await askQuestion(
+        modelQuestion,
         {
           algorithmName,
           code,
           simulationInput,
           steps,
-          currentIndex,
+          currentIndex: targetIndex,
           analysis,
           inputError,
-          isPlaying,
+          isPlaying: workspaceIsPlaying,
           pinnedVariables,
+          contextWindow: aiContextWindow,
           locale,
         },
         history,
       );
+      const modelAction = directAction
+        ? null
+        : extractTimelineAction(answer, steps, currentIndex);
+      if (modelAction) {
+        targetIndex = applyTimelineAction(modelAction);
+        workspaceIsPlaying = modelAction.type === 'play';
+        answer = await askQuestion(
+          navigationExplanationPrompt(userMessage, modelAction, targetIndex),
+          {
+            algorithmName,
+            code,
+            simulationInput,
+            steps,
+            currentIndex: targetIndex,
+            analysis,
+            inputError,
+            isPlaying: workspaceIsPlaying,
+            pinnedVariables,
+            contextWindow: aiContextWindow,
+            locale,
+          },
+          history,
+        );
+      }
+      answer = stripTimelineActions(answer);
       setChatHistory((previous) =>
         [...previous, { role: 'ai' as const, content: answer }]
           .slice(-MAX_STORED_MESSAGES),
@@ -113,7 +191,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     }
   }, [
     algorithmName,
+    aiContextWindow,
     analysis,
+    applyTimelineAction,
     chatHistory,
     code,
     currentIndex,
@@ -200,6 +280,29 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           </div>
         )}
       </div>
+      {tourSteps.length > 0 && (
+        <nav className="ai-tour" aria-label={t('guidedTour', locale)}>
+          <span><MapPin size={12} /> {t('keyMoments', locale)}</span>
+          <div>
+            {tourSteps.map((index) => (
+              <button
+                key={index}
+                type="button"
+                className={index === currentIndex ? 'active' : ''}
+                aria-label={t('goToKeyMoment', locale, { step: index + 1 })}
+                disabled={isTyping || aiStatus !== 'ready'}
+                onClick={() => void submitQuestion(
+                  locale === 'tr'
+                    ? `${index + 1}. adıma git ve bu önemli noktayı anlat`
+                    : `Go to step ${index + 1} and explain this key moment`,
+                )}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
       <form
         className="ai-chat"
         onSubmit={(event) => {

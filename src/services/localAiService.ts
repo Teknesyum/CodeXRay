@@ -2,28 +2,13 @@ import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
+import { LOCAL_AI_MODELS } from './localAiModels';
 
-export const LOCAL_AI_MODELS = [
-  {
-    id: 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
-    label: 'Qwen2.5 Coder 0.5B (default, faster)',
-    vramMb: 1061,
-  },
-  {
-    id: 'Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC',
-    label: 'Qwen2.5 Coder 1.5B (enhanced)',
-    vramMb: 1889,
-  },
-  {
-    id: 'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
-    label: 'Qwen2.5 Coder 7B (ultra, highest quality)',
-    vramMb: 5107,
-  },
-] as const;
+export { LOCAL_AI_MODELS } from './localAiModels';
 
 interface WorkerResponse {
   id: number;
-  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status';
+  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted';
   text?: string;
   progress?: InitProgressReport;
 }
@@ -37,6 +22,7 @@ let worker: Worker | undefined;
 let requestId = 0;
 const pending = new Map<number, PendingRequest>();
 let readyModel: string | undefined;
+let readyContextWindow: number | undefined;
 
 const getWorker = () => {
   if (worker) return worker;
@@ -56,6 +42,7 @@ const getWorker = () => {
     worker?.terminate();
     worker = undefined;
     readyModel = undefined;
+    readyContextWindow = undefined;
   };
   return worker;
 };
@@ -83,6 +70,16 @@ export const isLocalModelCached = (model: string): Promise<boolean> => {
   }).then((status) => status === 'cached');
 };
 
+export const getCachedLocalModels = async (): Promise<string[]> => {
+  const statuses = await Promise.all(
+    LOCAL_AI_MODELS.map(async (model) => ({
+      id: model.id,
+      cached: await isLocalModelCached(model.id),
+    })),
+  );
+  return statuses.filter((status) => status.cached).map((status) => status.id);
+};
+
 export const getPersistentStorageStatus = async (): Promise<boolean | null> => {
   if (typeof navigator === 'undefined' || !navigator.storage?.persisted) return null;
   try {
@@ -103,13 +100,14 @@ export const requestPersistentLocalAiStorage = async (): Promise<boolean | null>
 
 export const initializeLocalAi = async (
   model: string,
+  contextWindow: number,
   onProgress: (text: string) => void,
 ): Promise<void> => {
   if (!await supportsLocalAi()) {
     throw new Error('WebGPU is not available in this browser.');
   }
   await requestPersistentLocalAiStorage();
-  if (readyModel === model) return Promise.resolve();
+  if (readyModel === model && readyContextWindow === contextWindow) return Promise.resolve();
   const currentWorker = getWorker();
   const id = ++requestId;
   const progressHandler = (event: MessageEvent<WorkerResponse>) => {
@@ -120,9 +118,10 @@ export const initializeLocalAi = async (
   currentWorker.addEventListener('message', progressHandler);
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    currentWorker.postMessage({ id, type: 'initialize', model });
+    currentWorker.postMessage({ id, type: 'initialize', model, contextWindow });
   }).then(() => {
     readyModel = model;
+    readyContextWindow = contextWindow;
   }).finally(() => {
     currentWorker.removeEventListener('message', progressHandler);
   });
@@ -144,10 +143,22 @@ export const askLocalModel = (
   }).then(sanitizeLocalModelAnswer);
 };
 
+export const deleteLocalModel = async (model: string): Promise<void> => {
+  if (readyModel === model) resetLocalAi();
+  if (typeof Worker === 'undefined') return;
+  const currentWorker = getWorker();
+  const id = ++requestId;
+  await new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    currentWorker.postMessage({ id, type: 'delete-model', model });
+  });
+};
+
 export const resetLocalAi = () => {
   worker?.terminate();
   worker = undefined;
   readyModel = undefined;
+  readyContextWindow = undefined;
   for (const request of pending.values()) request.reject(new Error('Local model was reset.'));
   pending.clear();
 };

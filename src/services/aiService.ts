@@ -100,13 +100,21 @@ export const askQuestion = async (
   workspace: AssistantWorkspace,
   chatHistory: AssistantMessage[] = [],
 ): Promise<string> => {
-  const boundedQuestion = question.length > 1_000
-    ? `${question.slice(0, 960)}\n[Question shortened for the local model context window.]`
+  const wideContext = (workspace.contextWindow ?? 4096) >= 8192;
+  const questionLimit = wideContext ? 1_200 : 800;
+  const boundedQuestion = question.length > questionLimit
+    ? `${question.slice(0, questionLimit - 40)}\n[Question shortened for the local model context window.]`
     : question;
   const context = buildAssistantContext(workspace, boundedQuestion);
+  const historyLimit = wideContext ? 2_400 : 1_000;
+  const totalCharacterBudget = wideContext ? 13_000 : 7_200;
+  const systemReserve = wideContext ? 2_200 : 1_800;
   const historyBudget = Math.max(
     0,
-    Math.min(1_600, 8_500 - 1_700 - context.length - boundedQuestion.length),
+    Math.min(
+      historyLimit,
+      totalCharacterBudget - systemReserve - context.length - boundedQuestion.length,
+    ),
   );
   return askLocalModel(
     boundedQuestion,

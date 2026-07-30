@@ -22,6 +22,7 @@ import {
 } from '../services/localAiService';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { selectCachedModelForAutoLoad } from '../services/localAiModels';
+import { resetCodeXRaySiteState } from '../services/siteReset';
 import './ControlBar.css';
 
 interface ControlBarProps {
@@ -198,6 +199,14 @@ export const ControlBar = ({
     } finally {
       setDeletingModel(null);
     }
+  };
+
+  const resetSite = () => {
+    if (!window.confirm(t('confirmResetSite', locale))) return;
+    resetLocalAi();
+    resetCodeXRaySiteState();
+    resetCodeXRaySiteState(sessionStorage);
+    window.location.reload();
   };
 
   const openExamples = () => {
@@ -405,6 +414,20 @@ export const ControlBar = ({
                         ? t('initializeStoredModel', locale)
                         : t('loadLocalModel', locale)}
                 </button>
+                <div className="site-reset-section">
+                  <div>
+                    <div className="settings-title">{t('resetSiteTitle', locale)}</div>
+                    <p className="local-ai-note">{t('resetSiteHelp', locale)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="reset-site-button"
+                    onClick={resetSite}
+                    disabled={aiStatus === 'loading' || deletingModel !== null}
+                  >
+                    {t('resetSite', locale)}
+                  </button>
+                </div>
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
               </div>
             </div>

@@ -125,3 +125,29 @@ test('offers the 9B model and its experimental 8K context profile', async ({ pag
   await expect(page.getByText(/8192-token context.*1200 response tokens/))
     .toBeVisible();
 });
+
+test('resets CodeXRay state without clearing unrelated origin storage', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('e2e-reset-test-seeded')) return;
+    sessionStorage.setItem('e2e-reset-test-seeded', 'true');
+    localStorage.setItem('codexray.pinned-variables.v1', '["visited"]');
+    localStorage.setItem('codexray.layout.v1', '{"leftWidth":700}');
+    localStorage.setItem('portfolio.theme', 'dark');
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  page.once('dialog', (dialog) => void dialog.accept());
+  await Promise.all([
+    page.waitForEvent('load'),
+    page.getByRole('button', { name: 'Reset site data' }).click(),
+  ]);
+
+  const storage = await page.evaluate(() => ({
+    pins: localStorage.getItem('codexray.pinned-variables.v1'),
+    layout: localStorage.getItem('codexray.layout.v1'),
+    unrelated: localStorage.getItem('portfolio.theme'),
+  }));
+  expect(storage.pins).toBe('[]');
+  expect(storage.layout).not.toContain('700');
+  expect(storage.unrelated).toBe('dark');
+});

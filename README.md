@@ -141,6 +141,11 @@ return visit. Settings lists every model stored in this origin’s OPFS/cache an
 offers an explicit delete action. Deleting a model removes its browser-managed
 files; using it again requires a fresh download.
 
+Settings also provides a scoped site reset. It removes only `codexray.*`
+local/session storage state—workspace input, chat, pins, locale, layout, and AI
+preferences—then reloads the app. It deliberately leaves OPFS/Cache API model
+files and unrelated storage belonging to the parent portfolio origin untouched.
+
 ## Publish to serkanozel.me
 
 The production app is hosted at:

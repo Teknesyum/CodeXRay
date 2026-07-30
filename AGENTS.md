@@ -45,6 +45,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   cached selections auto-initialize and individual models can be deleted.
 - `localAiModels.ts`: shared VRAM, context-window, and response-token profiles.
   Keep service, worker, UI labels, and tests driven by this single registry.
+- `siteReset.ts`: removes only `codexray.*` local/session storage state. Never
+  clear the whole origin or delete WebLLM OPFS/Cache data from the general reset.
 - `aiResponse.ts`: deterministic cleanup for small-model repetition loops.
 - `PlaylistRadio.tsx`: click-to-load YouTube playlist iframe; keep the external
   player unmounted until user interaction and preserve its fallback link.

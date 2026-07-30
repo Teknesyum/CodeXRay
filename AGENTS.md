@@ -33,8 +33,8 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   browser storage.
 - `App.tsx`: persistent split sizes and collapse state for the five workspace
   panels; desktop splitters must remain pointer-accessible and mobile-safe.
-- `GraphInputEditor.tsx`: manual editing plus GraphDocumentV1 and level-order
-  tree import/export.
+- `GraphInputEditor.tsx`: manual editing, safe node renaming, drag-to-connect,
+  plus GraphDocumentV1 and level-order tree import/export.
 - `aiContext.ts`: bounded, testable live-workspace and conversation context for
   the assistant. Current code and trace state always override older chat.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
@@ -56,6 +56,9 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   are `idle`, `queued`, `active`, `visited`, or `path` as applicable.
 - Validate GraphDocumentV1 before simulation. Dijkstra and A* reject negative
   weights; A* heuristics must remain admissible.
+- Node ID changes must atomically update edges and root/start/target references.
+  Automatic numeric IDs reuse the smallest positive gap. Drag-created edges
+  must use the same duplicate and weight validation as the form controls.
 - Add a distinct deterministic simulator and tests before setting another
   registry entry to `isSupported: true`.
 - Every new user-facing string needs English and Turkish output. Language

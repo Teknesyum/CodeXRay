@@ -14,6 +14,45 @@ test('runs DFS and exposes the complete visited trace', async ({ page }) => {
   await expect(page.getByText(/tracked/)).toBeVisible();
 });
 
+test('renames graph nodes and creates edges by dragging node handles', async ({ page }) => {
+  await page.goto('/');
+  const select = page.getByLabel('Algorithm preset');
+  const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
+  await select.selectOption(dfsValue ?? '');
+
+  await page.getByRole('button', { name: 'Node 1', exact: true }).click();
+  await page.getByLabel('Node ID').fill('21');
+  await page.getByLabel('Node label').fill('Start');
+  await page.getByRole('button', { name: 'Save node' }).click();
+  await expect(page.getByRole('button', { name: 'Node Start', exact: true })).toBeVisible();
+
+  const connector = page.getByRole('button', { name: 'Connect from node Start' });
+  const target = page.getByRole('button', { name: 'Node 5', exact: true });
+  const sourceBox = await connector.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(
+    (sourceBox?.x ?? 0) + (sourceBox?.width ?? 0) / 2,
+    (sourceBox?.y ?? 0) + (sourceBox?.height ?? 0) / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    (targetBox?.x ?? 0) + (targetBox?.width ?? 0) / 2,
+    (targetBox?.y ?? 0) + (targetBox?.height ?? 0) / 2,
+  );
+  await page.mouse.up();
+
+  await page.getByText('Import / export').click();
+  await page.getByRole('button', { name: 'Export to editor' }).click();
+  const exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
+  expect(exported.startId).toBe('21');
+  expect(exported.nodes).toContainEqual(expect.objectContaining({ id: '21', label: 'Start' }));
+  expect(exported.edges).toContainEqual(expect.objectContaining({ from: '21', to: '5' }));
+  expect(exported.edges.some((edge: { from: string; to: string }) =>
+    edge.from === '1' || edge.to === '1')).toBe(false);
+});
+
 test('switches the visible interface to Turkish instantly', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');

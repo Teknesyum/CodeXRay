@@ -15,8 +15,9 @@ source code and input are never sent to an API.
   Selection Sort.
 - Complete structured Variables & Trace data without hidden or truncated items.
 - Array, string, tree, and graph inputs with validation and examples.
-- A visual tree/graph builder with draggable nodes, directed/weighted edges,
-  root/start/target selection, and JSON import/export.
+- A visual tree/graph builder with draggable nodes, editable node IDs and labels,
+  drag-to-connect handles, directed/weighted edges, root/start/target selection,
+  and JSON import/export.
 - Binary-tree import from level-order JSON such as `[1,2,3,null,4]`.
 - Timeline playback, line highlighting, graph states, paths, arrows, and weights.
 - Optional private, on-device Qwen2.5 Coder assistant powered by WebLLM/WebGPU,
@@ -88,7 +89,9 @@ Trees can be built manually or imported in level order:
 ```
 
 Graphs and general trees use the versioned `GraphDocumentV1` format exposed by
-the builder’s export panel. Node positions are percentages from 0 to 100.
+the builder’s export panel. Node positions are percentages from 0 to 100. Click
+a node to edit its ID or label; renaming an ID updates every edge and
+root/start/target reference. New numeric IDs reuse the first available gap.
 
 ## Local AI
 

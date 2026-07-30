@@ -69,27 +69,67 @@
   stroke-width: 2;
 }
 
+.builder-edges .edge-preview {
+  stroke: var(--neon-magenta);
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+}
+
 .builder-edges text {
   fill: var(--neon-lime);
   font: 12px var(--font-mono);
 }
 
-.builder-node {
+.builder-node-shell {
   width: 32px;
   height: 32px;
   position: absolute;
   transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.builder-node {
+  width: 32px;
+  height: 32px;
+  position: relative;
   border: 1px solid var(--neon-cyan);
   border-radius: 50%;
   color: white;
   background: #080810;
   cursor: grab;
-  z-index: 2;
+  z-index: 1;
 }
 
 .builder-node:active {
   cursor: grabbing;
   box-shadow: 0 0 12px var(--neon-magenta);
+}
+
+.builder-node-shell.selected .builder-node {
+  border-color: var(--neon-magenta);
+  box-shadow: 0 0 13px rgba(255, 0, 255, 0.65);
+}
+
+.node-connector {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  z-index: 3;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 2px solid #080810;
+  border-radius: 50%;
+  outline: 1px solid var(--neon-magenta);
+  background: var(--neon-magenta);
+  box-shadow: 0 0 7px rgba(255, 0, 255, 0.65);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.node-connector:hover {
+  transform: translateY(-50%) scale(1.25);
 }
 
 .canvas-hint {
@@ -105,7 +145,44 @@
   margin-bottom: 0;
 }
 
+.node-edit-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 0, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 0, 255, 0.04);
+}
+
+.node-edit-controls strong {
+  align-self: center;
+  color: var(--neon-magenta);
+  font: 0.72rem var(--font-mono);
+  text-transform: uppercase;
+}
+
+.node-edit-controls label {
+  display: grid;
+  gap: 2px;
+  color: var(--text-muted);
+  font: 0.66rem var(--font-mono);
+  text-transform: uppercase;
+}
+
+.node-edit-controls input {
+  width: 120px;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 0, 255, 0.28);
+  border-radius: 4px;
+  color: var(--text-main);
+  background: #090910;
+}
+
 .edge-controls button,
+.node-edit-controls button,
 .graph-import-export button {
   border: 1px solid rgba(0, 243, 255, 0.35);
   color: var(--neon-cyan);

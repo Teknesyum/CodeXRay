@@ -12,6 +12,7 @@ import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
+export type Theme = 'neon' | 'dark' | 'light';
 
 interface TimelineContextType {
   code: string;
@@ -50,6 +51,8 @@ interface TimelineContextType {
   setAiProgressPercent: (progress: number | null) => void;
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   isEditingInput: boolean;
   setIsEditingInput: (editing: boolean) => void;
   pinnedVariables: string[];
@@ -118,6 +121,9 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [locale, setLocale] = useState<Locale>(() =>
     localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
   );
+  const [theme, setTheme] = useState<Theme>(() =>
+    (localStorage.getItem('codexray.theme') as Theme) || 'neon',
+  );
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
 
@@ -164,6 +170,11 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('codexray.locale', locale);
     document.documentElement.lang = locale;
   }, [locale]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.theme', theme);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     try {
@@ -227,6 +238,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setAiProgressPercent,
       locale,
       setLocale,
+      theme,
+      setTheme,
       isEditingInput,
       setIsEditingInput,
       pinnedVariables,

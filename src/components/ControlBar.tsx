@@ -64,8 +64,14 @@ export const ControlBar = ({
     aiProgressPercent,
     setAiProgressPercent,
     locale,
+    theme,
+    setTheme,
+    setLocale,
+    isEditingInput,
+    setIsEditingInput,
   } = useTimeline();
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ai' | 'ui'>('ai');
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
   const [cachedModels, setCachedModels] = useState<string[]>([]);
@@ -314,10 +320,26 @@ export const ControlBar = ({
           {showSettings && (
             <div className="settings-modal glass-panel" role="dialog" aria-label={t('settings', locale)}>
               <div className="settings-modal-header">
-                <h2>{t('localAiSettings', locale)}</h2>
+                <h2>{t('settings', locale)}</h2>
                 <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
               </div>
+              <div className="settings-tabs">
+                <button 
+                  className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('ai')}
+                >
+                  {t('aiSettingsTab', locale)}
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'ui' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('ui')}
+                >
+                  {t('uiSettingsTab', locale)}
+                </button>
+              </div>
               <div className="settings-modal-content">
+                {activeTab === 'ai' && (
+                  <>
                 <div className="settings-section">
                   <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
@@ -474,6 +496,34 @@ export const ControlBar = ({
                   </div>
                 )}
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
+                </>
+                )}
+
+                {activeTab === 'ui' && (
+                  <div className="settings-section">
+                    <div className="settings-title">{t('theme', locale)}</div>
+                    <div className="theme-selector">
+                      <button 
+                        className={`theme-btn neon-theme ${theme === 'neon' ? 'active' : ''}`}
+                        onClick={() => setTheme('neon')}
+                      >
+                        {t('themeNeon', locale)}
+                      </button>
+                      <button 
+                        className={`theme-btn dark-theme ${theme === 'dark' ? 'active' : ''}`}
+                        onClick={() => setTheme('dark')}
+                      >
+                        {t('themeDark', locale)}
+                      </button>
+                      <button 
+                        className={`theme-btn light-theme ${theme === 'light' ? 'active' : ''}`}
+                        onClick={() => setTheme('light')}
+                      >
+                        {t('themeLight', locale)}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
                   CodeXRay v1.1.0
                 </div>

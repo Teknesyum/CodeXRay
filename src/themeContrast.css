@@ -1,0 +1,166 @@
+/* Theme-specific surface colors live here so component chrome never mixes a
+   light foreground palette with legacy dark translucent backgrounds. */
+:root[data-theme="dark"] {
+  --neon-cyan: #70b7ff;
+  --neon-magenta: #ff6f91;
+  --neon-lime: #72d67a;
+  --neon-purple: #c792ff;
+  --text-muted: #b3b3b3;
+}
+
+:root[data-theme="light"] {
+  --neon-cyan: #075ca8;
+  --neon-magenta: #a40f4c;
+  --neon-lime: #216e27;
+  --neon-purple: #512da8;
+  --text-muted: #596273;
+  --theme-surface: rgba(255, 255, 255, 0.94);
+  --theme-surface-soft: rgba(241, 245, 249, 0.94);
+  --theme-surface-raised: #ffffff;
+  --theme-danger: #a8243a;
+}
+
+:root[data-theme="light"] .code-editor,
+:root[data-theme="light"] .variables-panel,
+:root[data-theme="light"] .dynamic-visualizer,
+:root[data-theme="light"] .assistant-container,
+:root[data-theme="light"] .control-container {
+  background: var(--theme-surface);
+}
+
+:root[data-theme="light"] .editor-header,
+:root[data-theme="light"] .variables-header,
+:root[data-theme="light"] .visualizer-header,
+:root[data-theme="light"] .collapsed-panel-header,
+:root[data-theme="light"] .graph-input-editor,
+:root[data-theme="light"] .input-config {
+  background: var(--theme-surface-soft);
+}
+
+:root[data-theme="light"] .panel-toggle,
+:root[data-theme="light"] .clear-chat-btn,
+:root[data-theme="light"] .preset-btn,
+:root[data-theme="light"] .var-item,
+:root[data-theme="light"] .pinned-watch-item,
+:root[data-theme="light"] .ai-tour button,
+:root[data-theme="light"] .local-storage-status span {
+  background: var(--theme-surface-raised);
+}
+
+:root[data-theme="light"] .settings-modal,
+:root[data-theme="light"] .qs-dropdown,
+:root[data-theme="light"] .edge-edit-popover,
+:root[data-theme="light"] .node-edit-controls {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(7, 92, 168, 0.08), transparent 34%),
+    radial-gradient(circle at 88% 100%, rgba(164, 15, 76, 0.06), transparent 38%),
+    var(--theme-surface-raised);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+}
+
+:root[data-theme="light"] input:not([type="range"]):not([type="checkbox"]),
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] .api-provider-select,
+:root[data-theme="light"] .api-key-input,
+:root[data-theme="light"] .custom-playlist-input {
+  color: var(--text-main);
+  background: var(--theme-surface-raised);
+  border-color: rgba(7, 92, 168, 0.35);
+}
+
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+:root[data-theme="light"] .ai-chat {
+  background:
+    linear-gradient(110deg, rgba(7, 92, 168, 0.05), rgba(164, 15, 76, 0.04)),
+    var(--theme-surface-raised);
+  box-shadow: inset 0 0 12px rgba(7, 92, 168, 0.04), 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="light"] .system-msg,
+:root[data-theme="light"] .user-msg,
+:root[data-theme="light"] .ai-msg {
+  color: var(--text-main);
+}
+
+:root[data-theme="light"] .system-msg {
+  background: var(--theme-surface-raised);
+}
+
+:root[data-theme="light"] .system-msg p,
+:root[data-theme="light"] .user-msg p,
+:root[data-theme="light"] .ai-msg p,
+:root[data-theme="light"] .chat-message .markdown-preview,
+:root[data-theme="light"] .chat-message .markdown-preview p,
+:root[data-theme="light"] .chat-message .markdown-preview li {
+  color: var(--text-main);
+}
+
+:root[data-theme="light"] .user-msg {
+  background: rgba(7, 92, 168, 0.1);
+}
+
+:root[data-theme="light"] .ai-msg {
+  background: rgba(164, 15, 76, 0.09);
+}
+
+:root[data-theme="light"] .god-mode-toggle.active,
+:root[data-theme="light"] .ai-tour button.active,
+:root[data-theme="light"] .example-tab {
+  color: var(--neon-magenta);
+  background: rgba(164, 15, 76, 0.09);
+}
+
+:root[data-theme="light"] .settings-version-footer {
+  color: var(--neon-cyan);
+  background:
+    linear-gradient(90deg, transparent, rgba(7, 92, 168, 0.06), rgba(164, 15, 76, 0.05), transparent),
+    var(--theme-surface-soft);
+}
+
+:root[data-theme="light"] .ai-load-warning-banner {
+  color: var(--theme-danger);
+  background: #fff1f3;
+  border-bottom-color: rgba(168, 36, 58, 0.25);
+}
+
+:root[data-theme="light"] .input-error,
+:root[data-theme="light"] .ai-status.error,
+:root[data-theme="light"] .ai-status.unsupported,
+:root[data-theme="light"] .reset-site-button,
+:root[data-theme="light"] .stored-model-row button {
+  color: var(--theme-danger);
+}
+
+:root[data-theme="light"] .banner-actions .action-btn {
+  color: var(--text-main);
+  background: var(--theme-surface-raised);
+  border-color: rgba(89, 98, 115, 0.45);
+}
+
+:root[data-theme="light"] .banner-actions .load-btn {
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+}
+
+:root[data-theme="light"] .canvas-hint {
+  color: var(--text-muted);
+}
+
+:root[data-theme="light"] .preset-btn:hover,
+:root[data-theme="light"] .preset-btn.active,
+:root[data-theme="light"] .reset-interface-button:hover:not(:disabled) {
+  color: var(--neon-cyan);
+  background: rgba(7, 92, 168, 0.1);
+}
+
+:root[data-theme="light"] .trace-primitive,
+:root[data-theme="light"] .var-value.unchanged,
+:root[data-theme="light"] .pinned-watch-value {
+  color: var(--text-main);
+}

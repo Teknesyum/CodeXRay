@@ -308,7 +308,7 @@ export const PlaylistRadio = () => {
             </div>
             
             <div className="track-info">
-              {trackData[currentIndex]?.title || `Track ${currentIndex + 1}`}
+              {trackData[currentIndex]?.title || 'Müzik Yükleniyor...'}
             </div>
           </div>
           
@@ -438,7 +438,7 @@ export const PlaylistRadio = () => {
                   ) : (
                     <div className="track-thumb-placeholder"><Music2 size={12} /></div>
                   )}
-                  <span className="track-title">{trackData[index]?.title || `Track ${index + 1}`}</span>
+                  <span className="track-title">{trackData[index]?.title || `Şarkı ${index + 1}`}</span>
                   {index === currentIndex && isPlaying && <Music2 size={12} className="playing-icon" />}
                 </button>
               ))}

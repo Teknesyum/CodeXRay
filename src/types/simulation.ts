@@ -91,3 +91,5 @@ export interface InputValidationResult {
   input?: SimulationInput;
   error?: string;
 }
+
+export type { Locale } from '../i18n/translations';

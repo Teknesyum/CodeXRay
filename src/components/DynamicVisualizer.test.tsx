@@ -32,6 +32,7 @@ const PopulateWatchTrace = () => {
 
 beforeEach(() => {
   localStorage.clear();
+  localStorage.setItem('codexray.locale', 'en');
   localStorage.setItem('codexray.pinned-variables.v1', '["visited"]');
 });
 afterEach(() => cleanup());

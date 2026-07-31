@@ -46,6 +46,13 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   the assistant. Current code and trace state always override older chat.
 - `aiTimelineControl.ts`: bounded parsing and key-checkpoint selection for AI
   timeline play, pause, jump, step, and guided-tour requests.
+- `godModeOrchestrator.ts`: serialized ManagerPlanV1 job graphs, specialist
+  handoffs, bounded retries, cancellation, progress events, and transactional
+  workspace application for God Mode requests.
+- `simLang.ts`, `simLangSchema.ts`, and `customSimulationCompiler.ts`: the
+  validated SimLangV1 interpreter, model-facing schema, deterministic source
+  renderer, trace compiler, checkpoint generator, and execution budgets. Never
+  execute model-authored source with `eval` or `new Function`.
 - `localAiService.ts` and `localAi.worker.ts`: optional WebGPU model lifecycle.
   Assistant conversation memory stays local and can be cleared from the UI.
   Model weights prefer OPFS with Cache API fallback and persistent-origin storage;
@@ -98,10 +105,15 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   repetition cleanup. The Qwen3.5 9B profile may explicitly opt into the tested
   8192-token ChatOptions override; keep 4K as the stable default and scale prompt
   budgets with the selected window.
-- AI-authored actions are restricted to bounded deterministic timeline control.
-  Parse and validate every directive; never grant source, input, filesystem, or
-  network mutation through assistant output. Rebuild context after navigation
-  before explaining the destination step.
+- When the user explicitly enables God Mode, AI-authored actions may atomically
+  apply validated source, input, simulation-program, timeline, and CodeXRay UI
+  changes through the typed application command bus. Never execute raw model
+  text: schema-validate every artifact, compile or interpret generated programs
+  deterministically, record an audit snapshot, and provide undo plus automatic
+  rollback on failure. God Mode never grants filesystem, operating-system,
+  credential, arbitrary network, or raw JavaScript execution authority. Rebuild
+  context from committed state after every transaction or navigation before
+  explaining the destination step.
 - Never imply that a browser can reuse an arbitrary local filesystem path for
   WebLLM. Explain OPFS/cache persistence and unavoidable per-visit GPU setup.
 

@@ -1,7 +1,7 @@
 export const RIGHT_PANEL_LIMITS = {
-  visualizer: 200,
+  visualizer: 120,
   assistant: 150,
-  controls: 82,
+  controls: 58,
   splitterTotal: 12,
 } as const;
 
@@ -10,9 +10,6 @@ export interface RightPanelSizes {
   assistantHeight: number;
   controlHeight: number;
 }
-
-const clamp = (value: number, minimum: number, maximum: number): number =>
-  Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 
 const availableHeight = (viewportHeight: number): number =>
   Math.max(
@@ -26,18 +23,17 @@ export const createDefaultRightPanelSizes = (
   viewportHeight: number,
 ): RightPanelSizes => {
   const available = availableHeight(viewportHeight);
-  const controlHeight = clamp(
-    Math.round(viewportHeight * 0.13),
-    96,
-    120,
-  );
-  const assistantHeight = clamp(
-    Math.round((available - controlHeight) * 0.4),
-    220,
-    400,
+  const controlHeight = RIGHT_PANEL_LIMITS.controls;
+  const visualizerAssistantHeight = available - controlHeight;
+  const assistantHeight = Math.min(
+    Math.max(
+      Math.round(visualizerAssistantHeight * 0.42),
+      RIGHT_PANEL_LIMITS.assistant,
+    ),
+    visualizerAssistantHeight - RIGHT_PANEL_LIMITS.visualizer,
   );
   return {
-    visualizerHeight: available - assistantHeight - controlHeight,
+    visualizerHeight: visualizerAssistantHeight - assistantHeight,
     assistantHeight,
     controlHeight,
   };

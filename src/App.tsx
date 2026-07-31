@@ -17,11 +17,16 @@ import {
   createDefaultRightPanelSizes,
   RIGHT_PANEL_LIMITS,
 } from './services/workspaceLayout';
+import {
+  GOD_MODE_UI_EVENT,
+  isGodModeUiEvent,
+} from './services/godModeUiControl';
 import './App.css';
 
 type PanelName = 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls';
 
 interface LayoutState {
+  version: 6;
   leftWidth: number;
   leftTopHeight: number;
   visualizerHeight: number;
@@ -34,6 +39,7 @@ const LAYOUT_STORAGE_KEY = 'codexray.layout.v2';
 const createDefaultLayout = (): LayoutState => {
   const right = createDefaultRightPanelSizes(window.innerHeight);
   return {
+    version: 6,
     leftWidth: 440,
     leftTopHeight: Math.max(320, Math.round(window.innerHeight * 0.56)),
     visualizerHeight: right.visualizerHeight,
@@ -53,11 +59,17 @@ const loadLayout = (): LayoutState => {
   const defaults = createDefaultLayout();
   try {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? '{}') as Partial<LayoutState>;
-    const loaded = {
+    const loaded: LayoutState = {
       ...defaults,
       ...saved,
+      version: 6,
       collapsed: { ...defaults.collapsed, ...saved.collapsed },
     };
+    if (saved.version !== 6) {
+      loaded.visualizerHeight = defaults.visualizerHeight;
+      loaded.assistantHeight = defaults.assistantHeight;
+      loaded.controlHeight = RIGHT_PANEL_LIMITS.controls;
+    }
     const normalizedRight = constrainRightPanelSizes(
       window.innerHeight,
       loaded.visualizerHeight,
@@ -74,6 +86,7 @@ const CodeRayApp = () => {
   const {
     algorithmName,
     code,
+    steps,
     setSteps,
     setCurrentIndex,
     pause,
@@ -81,8 +94,10 @@ const CodeRayApp = () => {
     simulationInput,
     setInputError,
     locale,
+    isEditingInput,
     setIsEditingInput,
     isAiMaximized,
+    setIsAiMaximized,
   } = useTimeline();
   const [layout, setLayout] = useState<LayoutState>(loadLayout);
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
@@ -112,6 +127,51 @@ const CodeRayApp = () => {
       ),
     }));
   }, [viewportHeight]);
+
+  useEffect(() => {
+    const handleGodModeUiAction = (event: Event) => {
+      if (!isGodModeUiEvent(event)) return;
+      const action = event.detail;
+      if (action.type === 'set-workspace-layout') {
+        if (action.layout === 'focus-assistant') {
+          setIsAiMaximized(true);
+          setLayout((current) => ({
+            ...current,
+            collapsed: { ...current.collapsed, assistant: false },
+          }));
+          return;
+        }
+        setIsAiMaximized(false);
+        setLayout((current) => {
+          if (action.layout === 'focus-code') return {
+            ...current,
+            leftWidth: Math.min(Math.max(620, current.leftWidth), window.innerWidth - 420),
+            collapsed: { ...current.collapsed, code: false, variables: true },
+          };
+          if (action.layout === 'focus-simulation') return {
+            ...current,
+            collapsed: { ...current.collapsed, visualizer: false, assistant: true },
+          };
+          return {
+            ...createDefaultLayout(),
+            collapsed: { ...createDefaultLayout().collapsed },
+          };
+        });
+        return;
+      }
+      if ('panel' in action) {
+        setLayout((current) => ({
+          ...current,
+          collapsed: {
+            ...current.collapsed,
+            [action.panel]: action.type === 'collapse-panel',
+          },
+        }));
+      }
+    };
+    window.addEventListener(GOD_MODE_UI_EVENT, handleGodModeUiAction);
+    return () => window.removeEventListener(GOD_MODE_UI_EVENT, handleGodModeUiAction);
+  }, [setIsAiMaximized]);
 
   const handleSimulate = () => {
     if (!code.trim()) {
@@ -261,10 +321,31 @@ const CodeRayApp = () => {
     layout.assistantHeight,
     layout.controlHeight,
   );
+  const graphBuilderActive = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
+    && (isEditingInput || steps.length === 0);
+  const rightPairHeight = rightSizes.visualizerHeight + rightSizes.assistantHeight;
+  const builderVisualizerHeight = Math.min(
+    Math.max(360, rightSizes.visualizerHeight),
+    rightPairHeight - RIGHT_PANEL_LIMITS.assistant,
+  );
+  const displayedRightSizes = graphBuilderActive
+    ? {
+      ...rightSizes,
+      visualizerHeight: builderVisualizerHeight,
+      assistantHeight: rightPairHeight - builderVisualizerHeight,
+    }
+    : rightSizes;
   const updateVisualizerAssistant = (visualizerHeight: number, assistantHeight: number) =>
     setLayout((current) => ({ ...current, visualizerHeight, assistantHeight }));
   const updateAssistantControls = (assistantHeight: number, controlHeight: number) =>
-    setLayout((current) => ({ ...current, assistantHeight, controlHeight }));
+    setLayout((current) => ({
+      ...current,
+      visualizerHeight: graphBuilderActive
+        ? displayedRightSizes.visualizerHeight
+        : current.visualizerHeight,
+      assistantHeight,
+      controlHeight,
+    }));
 
   return (
     <div className="app-container">
@@ -346,7 +427,7 @@ const CodeRayApp = () => {
                 ? { height: 44 }
                 : assistantCollapsed && controlsCollapsed
                   ? { flex: 1 }
-                  : { height: rightSizes.visualizerHeight }}
+                  : { height: displayedRightSizes.visualizerHeight }}
           >
             <DynamicVisualizer collapsed={visualizerCollapsed} onToggleCollapse={() => togglePanel('visualizer')} />
           </section>
@@ -355,26 +436,26 @@ const CodeRayApp = () => {
               className="panel-splitter horizontal"
               role="separator"
               tabIndex={0}
-              aria-valuemin={200}
+              aria-valuemin={RIGHT_PANEL_LIMITS.visualizer}
               aria-valuemax={Math.round(
-                rightSizes.visualizerHeight
-                + rightSizes.assistantHeight
+                displayedRightSizes.visualizerHeight
+                + displayedRightSizes.assistantHeight
                 - RIGHT_PANEL_LIMITS.assistant,
               )}
-              aria-valuenow={Math.round(rightSizes.visualizerHeight)}
+              aria-valuenow={Math.round(displayedRightSizes.visualizerHeight)}
               aria-label={locale === 'tr' ? 'Görselleştirici ve asistan panellerini yeniden boyutlandır' : 'Resize visualizer and assistant panels'}
               onKeyDown={(event) => resizePairWithKeyboard(
                 event,
-                rightSizes.visualizerHeight,
-                rightSizes.assistantHeight,
+                displayedRightSizes.visualizerHeight,
+                displayedRightSizes.assistantHeight,
                 RIGHT_PANEL_LIMITS.visualizer,
                 RIGHT_PANEL_LIMITS.assistant,
                 updateVisualizerAssistant,
               )}
               onPointerDown={(event) => beginPairedResize(
                 event,
-                rightSizes.visualizerHeight,
-                rightSizes.assistantHeight,
+                displayedRightSizes.visualizerHeight,
+                displayedRightSizes.assistantHeight,
                 RIGHT_PANEL_LIMITS.visualizer,
                 RIGHT_PANEL_LIMITS.assistant,
                 updateVisualizerAssistant,
@@ -389,7 +470,7 @@ const CodeRayApp = () => {
                 ? { height: 44 }
                 : controlsCollapsed
                   ? { flex: 1 }
-                  : { height: rightSizes.assistantHeight }}
+                  : { height: displayedRightSizes.assistantHeight }}
           >
             <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
           </section>
@@ -400,24 +481,24 @@ const CodeRayApp = () => {
               tabIndex={0}
               aria-valuemin={RIGHT_PANEL_LIMITS.assistant}
               aria-valuemax={Math.round(
-                rightSizes.assistantHeight
-                + rightSizes.controlHeight
+                displayedRightSizes.assistantHeight
+                + displayedRightSizes.controlHeight
                 - RIGHT_PANEL_LIMITS.controls,
               )}
-              aria-valuenow={Math.round(rightSizes.assistantHeight)}
+              aria-valuenow={Math.round(displayedRightSizes.assistantHeight)}
               aria-label={locale === 'tr' ? 'Asistan ve kontrol panellerini yeniden boyutlandır' : 'Resize assistant and controls panels'}
               onKeyDown={(event) => resizePairWithKeyboard(
                 event,
-                rightSizes.assistantHeight,
-                rightSizes.controlHeight,
+                displayedRightSizes.assistantHeight,
+                displayedRightSizes.controlHeight,
                 RIGHT_PANEL_LIMITS.assistant,
                 RIGHT_PANEL_LIMITS.controls,
                 updateAssistantControls,
               )}
               onPointerDown={(event) => beginPairedResize(
                 event,
-                rightSizes.assistantHeight,
-                rightSizes.controlHeight,
+                displayedRightSizes.assistantHeight,
+                displayedRightSizes.controlHeight,
                 RIGHT_PANEL_LIMITS.assistant,
                 RIGHT_PANEL_LIMITS.controls,
                 updateAssistantControls,
@@ -425,15 +506,14 @@ const CodeRayApp = () => {
             />
           )}
           <section
-            className={`control-container panel-region ${(controlsCollapsed || isAiMaximized) ? 'collapsed' : ''}`}
-            style={isAiMaximized
-              ? { height: 44, flex: '0 0 auto' }
-              : !visualizerCollapsed && !assistantCollapsed && !controlsCollapsed
-                ? { height: rightSizes.controlHeight, flex: '0 0 auto' }
+            className={`control-container panel-region ${controlsCollapsed ? 'collapsed' : ''}`}
+            style={!controlsCollapsed && (isAiMaximized
+              || (!visualizerCollapsed && !assistantCollapsed))
+                ? { height: displayedRightSizes.controlHeight, flex: '0 0 auto' }
                 : undefined}
           >
             <ControlBar
-              collapsed={controlsCollapsed || isAiMaximized}
+              collapsed={controlsCollapsed}
               onToggleCollapse={() => togglePanel('controls')}
               onSimulate={handleSimulate}
               onAnalyze={handleAnalyze}

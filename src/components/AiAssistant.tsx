@@ -1,16 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Loader, MapPin, Maximize2, Minimize2, Send, Trash2 } from 'lucide-react';
+import { Activity, Bot, Check, Copy, Crown, Loader, MapPin, Maximize2, Minimize2, Send, Trash2 } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
-import { askQuestion } from '../services/aiService';
+import { askQuestion, generateSimulationSteps } from '../services/aiService';
+import { planLocalActions } from '../services/localAiService';
 import type { AssistantMessage } from '../services/aiContext';
 import {
-  extractTimelineAction,
-  interpretTimelineRequest,
+  routeDeterministicCommand,
+  validateActionPlan,
   resolveTimelineTarget,
-  stripTimelineActions,
+  stripThinkBlock,
+  type DeterministicWorkspaceCommand,
   type TimelineAction,
 } from '../services/aiTimelineControl';
+import { parseSimulationInput } from '../services/inputParsers';
+import { resolveAlgorithmPresetById } from '../services/codeRegistry';
+import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
+import { routeGodModeRequest } from '../services/godModeRouting';
+import {
+  startGodModeRun,
+  type GodModeRunHandle,
+} from '../services/godModeOrchestrator';
+import { dispatchGodModeUiAction } from '../services/godModeUiControl';
+import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
+import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
 import { t, translateRuntimeText } from '../i18n/translations';
+import { GodModeProgress } from './GodModeProgress';
 import './AiAssistant.css';
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
@@ -18,22 +32,35 @@ const MAX_STORED_MESSAGES = 24;
 
 const navigationExplanationPrompt = (
   originalQuestion: string,
-  action: TimelineAction,
+  actions: DeterministicWorkspaceCommand[],
   targetIndex: number,
-): string => action.type === 'play'
-  ? [
+): string => {
+  const actionTypes = actions.map(a => a.type).join(', ');
+  return [
     `Original request: ${originalQuestion}`,
-    `CodeXRay safely started playback from step ${targetIndex + 1}.`,
-    'Briefly confirm that playback is running. It may advance while you answer, so do not claim that the starting snapshot is still the visible current step.',
-    'Do not emit another CODEXRAY_ACTION directive in this response.',
-  ].join('\n')
-  : [
-    `Original request: ${originalQuestion}`,
-    `CodeXRay has now safely applied the requested timeline action "${action.type}".`,
-    `The live simulation is paused at step ${targetIndex + 1}.`,
-    'Explain the exact current code line, changed variables or visual state, why this moment matters, and what the next deterministic action will be.',
-    'Do not emit another CODEXRAY_ACTION directive in this response.',
+    `CodeXRay successfully applied these deterministic actions: [${actionTypes}].`,
+    `The live simulation is at step ${targetIndex + 1}.`,
+    'Explain the confirmed workspace state, current code line, changed variables, and visual state.',
+    'Do not claim that any other workspace state changed.',
   ].join('\n');
+};
+
+const actionFailurePrompt = (originalQuestion: string, failure: string): string => [
+  `Original request: ${originalQuestion}`,
+  `CodeXRay could not apply the requested deterministic action: ${failure}`,
+  'Explain the failure briefly without claiming that the workspace changed.',
+].join('\n');
+
+interface ActionExecutionResult {
+  targetIndex: number;
+  isPlaying: boolean;
+  completedActions: DeterministicWorkspaceCommand[];
+  failure: string | null;
+}
+
+const assertNever = (value: never): never => {
+  throw new Error(`Unhandled deterministic action: ${JSON.stringify(value)}`);
+};
 
 const loadChatHistory = (): AssistantMessage[] => {
   try {
@@ -81,18 +108,121 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     isAiMaximized,
     setIsAiMaximized,
     locale,
+    godModeEnabled,
+    setGodModeEnabled,
+    activeSimulationPackage,
+    packageOutOfSync,
+    applySimulationPackage,
+    applyInputTransaction,
+    applyPresetTransaction,
+    undoWorkspaceTransaction,
+    redoWorkspaceTransaction,
+    canUndoWorkspace,
+    canRedoWorkspace,
+    guidedMode,
+    setGuidedMode,
+    setTheme,
+    requestRadioOpen,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<AssistantMessage[]>(loadChatHistory);
   const [isTyping, setIsTyping] = useState(false);
+  const [typingMessage, setTypingMessage] = useState<string | null>(null);
   const [tourSteps, setTourSteps] = useState<number[]>([]);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+
+  const [actionQueue, setActionQueue] = useState<DeterministicWorkspaceCommand[]>([]);
+  const [isExecutingQueue, setIsExecutingQueue] = useState(false);
+  const [isPlanningActions, setIsPlanningActions] = useState(false);
+  const [currentActionText, setCurrentActionText] = useState<string>('');
+  const [queueProgress, setQueueProgress] = useState(0);
+  const [godModePlan, setGodModePlan] = useState<ManagerPlanV1 | null>(() => {
+    const latest = loadLatestGodModePlan();
+    return latest?.jobs.length && latest.jobs.every((job) => job.status === 'completed')
+      ? null
+      : latest;
+  });
+  const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
+
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const copyResetTimerRef = useRef<number | null>(null);
+  const godModeDismissTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  const godModeRunRef = useRef<GodModeRunHandle | null>(null);
   const panelTitle = t('masterCoder', locale);
+
+  const copyAiResponse = async (content: string, index: number) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = content;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.append(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        if (!copied) throw new Error('Clipboard copy was rejected.');
+      }
+      setCopiedMessageIndex(index);
+      if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
+      copyResetTimerRef.current = window.setTimeout(() => {
+        setCopiedMessageIndex(null);
+        copyResetTimerRef.current = null;
+      }, 1800);
+    } catch {
+      // Clipboard access can be denied by browser permissions; keep the answer intact.
+    }
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      godModeRunRef.current?.cancel();
+      if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
+      if (godModeDismissTimerRef.current) window.clearTimeout(godModeDismissTimerRef.current);
+    };
+  }, []);
+
+  const stateRef = useRef({
+    code,
+    simulationInput,
+    algorithmName,
+    steps,
+    analysis,
+    inputError,
+    activeSimulationPackage,
+    packageOutOfSync,
+  });
+  useEffect(() => {
+    stateRef.current = {
+      code,
+      simulationInput,
+      algorithmName,
+      steps,
+      analysis,
+      inputError,
+      activeSimulationPackage,
+      packageOutOfSync,
+    };
+  }, [
+    activeSimulationPackage,
+    analysis,
+    code,
+    inputError,
+    packageOutOfSync,
+    simulationInput,
+    algorithmName,
+    steps,
+  ]);
 
   useEffect(() => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-  }, [chatHistory, analysis, currentStep, isTyping]);
+  }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText, typingMessage]);
 
   useEffect(() => {
     try {
@@ -105,19 +235,124 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     }
   }, [chatHistory]);
 
-  const applyTimelineAction = useCallback((action: TimelineAction): number => {
-    const targetIndex = resolveTimelineTarget(action, steps, currentIndex);
-    if (action.type === 'play') {
-      play();
-      return targetIndex;
+  const applyDeterministicActions = useCallback(async (
+    actions: DeterministicWorkspaceCommand[],
+  ): Promise<ActionExecutionResult> => {
+    setActionQueue(actions);
+    let targetIndex = currentIndex;
+    let resultingIsPlaying = isPlaying;
+    const completedActions: DeterministicWorkspaceCommand[] = [];
+    let failure: string | null = null;
+
+    try {
+      for (let index = 0; index < actions.length; index += 1) {
+        const action = actions[index];
+        const actionLabel = action.type === 'load-preset'
+          ? resolveAlgorithmPresetById(action.presetId)?.name
+            ?? t('algorithmPreset', locale)
+          : t(`aiAction_${action.type}`, locale);
+        setCurrentActionText(t('aiActionExecuting', locale, { action: actionLabel }));
+        setQueueProgress(Math.round((index / actions.length) * 100));
+        await new Promise((resolve) => window.setTimeout(resolve, 180));
+
+        switch (action.type) {
+          case 'play':
+            play();
+            resultingIsPlaying = true;
+            break;
+          case 'pause':
+            pause();
+            resultingIsPlaying = false;
+            break;
+          case 'tour':
+            setTourSteps(action.checkpoints);
+            targetIndex = action.checkpoints[0] ?? targetIndex;
+            jumpTo(targetIndex);
+            break;
+          case 'jump':
+          case 'next':
+          case 'previous':
+          case 'next-important':
+            targetIndex = resolveTimelineTarget(
+              action,
+              stateRef.current.steps,
+              targetIndex,
+            );
+            jumpTo(targetIndex);
+            break;
+          case 'load-preset': {
+            const preset = resolveAlgorithmPresetById(action.presetId);
+            if (!preset) throw new Error(t('aiPresetNotFound', locale));
+
+            const kind = getInputKindForAlgorithm(preset.name);
+            const input = createInputPreset(kind, 1, preset.name);
+            const validation = parseSimulationInput(
+              kind,
+              input.text,
+              input.graph,
+              input.parameters,
+            );
+            if (!validation.input) {
+              throw new Error(validation.error ?? t('aiPresetLoadFailed', locale));
+            }
+            const newSteps = generateSimulationSteps(
+              preset.name,
+              preset.code,
+              validation.input,
+            );
+
+            applyPresetTransaction({
+              algorithmName: preset.name,
+              code: preset.code,
+              input,
+              steps: newSteps,
+              analysis: null,
+            }, `preset-${preset.id}-${Date.now().toString(36)}`);
+            stateRef.current = {
+              algorithmName: preset.name,
+              code: preset.code,
+              simulationInput: input,
+              steps: newSteps,
+              analysis: null,
+              inputError: null,
+              activeSimulationPackage: null,
+              packageOutOfSync: false,
+            };
+            targetIndex = 0;
+            resultingIsPlaying = false;
+            pause();
+            break;
+          }
+          default:
+            assertNever(action);
+        }
+
+        completedActions.push(action);
+      }
+      setQueueProgress(100);
+      setCurrentActionText(t('aiActionCompleted', locale));
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    } catch (error) {
+      failure = error instanceof Error ? error.message : t('aiActionFailed', locale);
+      setCurrentActionText(t('aiActionFailed', locale));
+      console.error('Failed to execute deterministic action:', error);
+      await new Promise((resolve) => window.setTimeout(resolve, 500));
+    } finally {
+      if (mountedRef.current) {
+        setActionQueue([]);
+        setCurrentActionText('');
+        setQueueProgress(0);
+      }
     }
-    pause();
-    if (action.type === 'tour') setTourSteps(action.checkpoints);
-    jumpTo(targetIndex);
-    return targetIndex;
-  }, [currentIndex, jumpTo, pause, play, steps]);
+
+    return { targetIndex, isPlaying: resultingIsPlaying, completedActions, failure };
+  }, [
+    currentIndex, isPlaying, jumpTo, locale, pause, play,
+    applyPresetTransaction,
+  ]);
 
   const submitQuestion = useCallback(async (userMessage: string) => {
+    if (isExecutingQueue) return;
     const history = [...chatHistory];
     setQuestion('');
     setChatHistory((previous) =>
@@ -125,63 +360,250 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         .slice(-MAX_STORED_MESSAGES),
     );
     setIsTyping(true);
+
     try {
-      const directAction = interpretTimelineRequest(userMessage, steps, currentIndex);
+      const godModeIntent = godModeEnabled
+        ? routeGodModeRequest(userMessage, stateRef.current.steps, currentIndex)
+        : null;
+      let actionsToExecute: DeterministicWorkspaceCommand[] | null =
+        godModeIntent?.type === 'deterministic'
+          ? godModeIntent.actions
+          : routeDeterministicCommand(userMessage, stateRef.current.steps, currentIndex);
       let targetIndex = currentIndex;
       let workspaceIsPlaying = isPlaying;
       let modelQuestion = userMessage;
-      if (directAction) {
-        targetIndex = applyTimelineAction(directAction);
-        workspaceIsPlaying = directAction.type === 'play';
-        modelQuestion = navigationExplanationPrompt(userMessage, directAction, targetIndex);
+
+      if (godModeIntent?.type === 'ui-control') {
+        const now = Date.now();
+        const uiPlan: ManagerPlanV1 = {
+          version: 1,
+          runId: `gm-ui-${now.toString(36)}`,
+          request: userMessage,
+          intent: 'ui-control',
+          createdAt: now,
+          jobs: [
+            {
+              id: 'manager-route-ui-command',
+              role: 'manager',
+              label: 'Route UI command',
+              dependsOn: [],
+              weight: 35,
+              status: 'completed',
+              attempt: 1,
+              maxAttempts: 1,
+              startedAt: now,
+              finishedAt: now,
+            },
+            {
+              id: 'ui-director-apply-ui-command',
+              role: 'ui-director',
+              label: 'Apply typed UI command',
+              dependsOn: ['manager-route-ui-command'],
+              weight: 65,
+              status: 'completed',
+              attempt: 1,
+              maxAttempts: 1,
+              startedAt: now,
+              finishedAt: now,
+            },
+          ],
+        };
+        setGodModePlan(uiPlan);
+        persistGodModePlan(uiPlan);
+        if (godModeIntent.command.startsWith('theme-')) {
+          setTheme(godModeIntent.command.slice('theme-'.length) as 'neon' | 'dark' | 'light');
+        } else if (godModeIntent.command === 'radio-open') {
+          requestRadioOpen();
+        } else if (godModeIntent.command === 'radio-play' || godModeIntent.command === 'radio-pause') {
+          dispatchGodModeUiAction({
+            type: 'set-radio-state',
+            state: godModeIntent.command === 'radio-play' ? 'play' : 'pause',
+          });
+        } else {
+          const layoutCommand = godModeIntent.command as
+            | 'focus-code'
+            | 'focus-simulation'
+            | 'focus-assistant'
+            | 'balanced';
+          dispatchGodModeUiAction({
+            type: 'set-workspace-layout',
+            layout: layoutCommand,
+          });
+        }
+        const content = locale === 'tr'
+          ? 'Arayüz düzenini isteğine göre güncelledim.'
+          : 'I updated the workspace layout as requested.';
+        setChatHistory((previous) => [
+          ...previous,
+          { role: 'ai' as const, content },
+        ].slice(-MAX_STORED_MESSAGES));
+        return;
       }
-      let answer = await askQuestion(
-        modelQuestion,
-        {
-          algorithmName,
-          code,
-          simulationInput,
-          steps,
-          currentIndex: targetIndex,
-          analysis,
-          inputError,
-          isPlaying: workspaceIsPlaying,
-          pinnedVariables,
-          contextWindow: aiContextWindow,
+
+      if (
+        godModeIntent
+        && godModeIntent.type !== 'deterministic'
+      ) {
+        if (godModeDismissTimerRef.current) {
+          window.clearTimeout(godModeDismissTimerRef.current);
+          godModeDismissTimerRef.current = null;
+        }
+        setLastGodModeRequest(userMessage);
+        if (godModeIntent.type === 'discuss-current-step') pause();
+        const workspaceSnapshot: WorkspaceSnapshotV1 = {
+          version: 1,
+          algorithmName: stateRef.current.algorithmName,
+          code: stateRef.current.code,
+          simulationInput: stateRef.current.simulationInput,
+          steps: stateRef.current.steps,
+          currentIndex,
+          analysis: stateRef.current.analysis,
+          inputError: stateRef.current.inputError,
+          activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
+          packageOutOfSync: stateRef.current.packageOutOfSync,
+        };
+        const run = startGodModeRun({
+          request: userMessage,
+          intent: godModeIntent,
           locale,
-        },
-        history,
-      );
-      const modelAction = directAction
-        ? null
-        : extractTimelineAction(answer, steps, currentIndex);
-      if (modelAction) {
-        targetIndex = applyTimelineAction(modelAction);
-        workspaceIsPlaying = modelAction.type === 'play';
-        answer = await askQuestion(
-          navigationExplanationPrompt(userMessage, modelAction, targetIndex),
-          {
-            algorithmName,
-            code,
-            simulationInput,
-            steps,
-            currentIndex: targetIndex,
-            analysis,
-            inputError,
-            isPlaying: workspaceIsPlaying,
-            pinnedVariables,
-            contextWindow: aiContextWindow,
-            locale,
+          workspace: workspaceSnapshot,
+          activePackage: stateRef.current.activeSimulationPackage,
+          onPlan: (plan) => {
+            persistGodModePlan(plan);
+            if (!mountedRef.current) return;
+            setGodModePlan(plan);
+            const completed = plan.jobs.length > 0
+              && plan.jobs.every((job) => job.status === 'completed');
+            if (completed) {
+              godModeDismissTimerRef.current = window.setTimeout(() => {
+                setGodModePlan((current) => current?.runId === plan.runId ? null : current);
+                godModeDismissTimerRef.current = null;
+              }, 1_200);
+            }
           },
-          history,
-        );
+          applyPackage: (value, runId) => {
+            applySimulationPackage(value, runId);
+            setTourSteps(value.checkpoints.map((checkpoint) => checkpoint.stepIndex));
+            stateRef.current = {
+              ...stateRef.current,
+              algorithmName: value.title,
+              code: value.source.code,
+              simulationInput: value.input.value,
+              steps: value.steps,
+              analysis: value.analysis,
+              inputError: null,
+              activeSimulationPackage: value,
+              packageOutOfSync: false,
+            };
+          },
+          applyInput: (input, generatedSteps, runId) => {
+            applyInputTransaction(input, generatedSteps, runId);
+            stateRef.current = {
+              ...stateRef.current,
+              simulationInput: input,
+              steps: generatedSteps,
+              inputError: null,
+            };
+          },
+        });
+        godModeRunRef.current = run;
+        const result = await run.promise;
+        godModeRunRef.current = null;
+        if (!mountedRef.current) return;
+        const content = result.tutorAnswer
+          ? `${result.summary}\n\n${stripThinkBlock(result.tutorAnswer)}`
+          : result.summary;
+        setChatHistory((previous) => [
+          ...previous,
+          { role: 'ai' as const, content },
+        ].slice(-MAX_STORED_MESSAGES));
+        return;
       }
-      answer = stripTimelineActions(answer);
+
+      if (!actionsToExecute && aiStatus === 'ready') {
+        setIsPlanningActions(true);
+        try {
+          const planJsonStr = await planLocalActions(userMessage, JSON.stringify({
+            isPlaying,
+            steps: stateRef.current.steps.length,
+            currentIndex,
+            locale,
+          }));
+          const parsed = JSON.parse(planJsonStr);
+          const plannedActions: TimelineAction[] | null = validateActionPlan(
+            parsed,
+            stateRef.current.steps,
+          );
+          actionsToExecute = plannedActions;
+        } catch (error) {
+          console.error('Planner failed; continuing with conversation.', error);
+        } finally {
+          if (mountedRef.current) setIsPlanningActions(false);
+        }
+      }
+
+      if (actionsToExecute && actionsToExecute.length > 0) {
+        setIsExecutingQueue(true);
+        const execution = await applyDeterministicActions(actionsToExecute);
+        targetIndex = execution.targetIndex;
+        workspaceIsPlaying = execution.isPlaying;
+        modelQuestion = execution.failure
+          ? actionFailurePrompt(userMessage, execution.failure)
+          : navigationExplanationPrompt(
+            userMessage,
+            execution.completedActions,
+            targetIndex,
+          );
+        if (aiStatus !== 'ready') {
+          const content = execution.failure
+            ? t('godModeActionFailed', locale, { error: execution.failure })
+            : t('godModeActionApplied', locale);
+          setChatHistory((previous) => [
+            ...previous,
+            { role: execution.failure ? 'system' as const : 'ai' as const, content },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+      }
+
+      if (!mountedRef.current) return;
+
+      const workspace = {
+        algorithmName: stateRef.current.algorithmName,
+        code: stateRef.current.code,
+        simulationInput: stateRef.current.simulationInput,
+        steps: stateRef.current.steps,
+        currentIndex: targetIndex,
+        analysis: stateRef.current.analysis,
+        inputError: stateRef.current.inputError,
+        isPlaying: workspaceIsPlaying,
+        pinnedVariables,
+        contextWindow: aiContextWindow,
+        locale,
+      };
+
+      setTypingMessage('');
+      const answer = await askQuestion(modelQuestion, workspace, history);
+      if (!mountedRef.current) return;
+
+      const cleanedAnswer = stripThinkBlock(answer);
+
+      let i = 0;
+      while (i < cleanedAnswer.length) {
+        if (!mountedRef.current) return;
+        const chunkLength = Math.max(2, Math.floor(Math.random() * 8));
+        const currentChunk = cleanedAnswer.slice(0, i + chunkLength);
+        setTypingMessage(currentChunk);
+        i += chunkLength;
+        await new Promise((resolve) => setTimeout(resolve, 8));
+      }
+      setTypingMessage(null);
       setChatHistory((previous) =>
-        [...previous, { role: 'ai' as const, content: answer }]
+        [...previous, { role: 'ai' as const, content: cleanedAnswer }]
           .slice(-MAX_STORED_MESSAGES),
       );
     } catch (error) {
+      if (!mountedRef.current) return;
       setChatHistory((previous) =>
         [...previous, {
           role: 'system' as const,
@@ -189,29 +611,35 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         }].slice(-MAX_STORED_MESSAGES),
       );
     } finally {
-      setIsTyping(false);
+      if (mountedRef.current) {
+        setIsPlanningActions(false);
+        setIsTyping(false);
+        setIsExecutingQueue(false);
+      }
     }
   }, [
-    algorithmName,
-    aiContextWindow,
-    analysis,
-    applyTimelineAction,
     chatHistory,
-    code,
     currentIndex,
-    inputError,
     isPlaying,
-    locale,
     pinnedVariables,
-    simulationInput,
-    steps,
+    aiStatus,
+    aiContextWindow,
+    locale,
+    isExecutingQueue,
+    applyDeterministicActions,
+    applyInputTransaction,
+    applySimulationPackage,
+    godModeEnabled,
+    pause,
+    requestRadioOpen,
+    setTheme,
   ]);
 
   useEffect(() => {
     if (!selectedExampleQuestion) return;
-    if (aiStatus === 'ready') void submitQuestion(selectedExampleQuestion);
+    if (aiStatus === 'ready' || godModeEnabled) void submitQuestion(selectedExampleQuestion);
     setSelectedExampleQuestion(null);
-  }, [aiStatus, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
+  }, [aiStatus, godModeEnabled, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
 
   const systemMessage = translateRuntimeText(analysis
     ?? currentStep?.explanation
@@ -222,6 +650,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const contextLabel = steps.length
     ? t('contextStep', locale, { current: currentIndex + 1, total: steps.length })
     : t('contextCodeOnly', locale);
+  const isGodModeRunning = Boolean(godModePlan?.jobs.some((job) =>
+    job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
 
   if (collapsed) {
     return (
@@ -247,6 +677,29 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <Bot size={16} className="ai-icon" />
         <span>{panelTitle}</span>
         <span className="context-chip" title={t('contextHelp', locale)}>{contextLabel}</span>
+        <button
+          type="button"
+          className={`god-mode-toggle ${godModeEnabled ? 'active' : ''}`}
+          aria-pressed={godModeEnabled}
+          aria-label={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
+          title={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
+          onClick={() => {
+            if (godModeEnabled) godModeRunRef.current?.cancel();
+            setGodModeEnabled(!godModeEnabled);
+          }}
+        >
+          <Crown size={11} /> {t('godMode', locale)}
+        </button>
+        <button
+          type="button"
+          className={`god-mode-toggle ${guidedMode ? 'active' : ''}`}
+          aria-pressed={guidedMode}
+          aria-label={t(guidedMode ? 'guidedModeEnabled' : 'guidedModeDisabled', locale)}
+          title={t(guidedMode ? 'guidedModeEnabled' : 'guidedModeDisabled', locale)}
+          onClick={() => setGuidedMode(!guidedMode)}
+        >
+          <MapPin size={10} />
+        </button>
         <span className={`local-status-dot ${aiStatus}`} title={`${t('localAi', locale)}: ${t(`status_${aiStatus}`, locale)}`} />
         <button
           type="button"
@@ -263,7 +716,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           aria-label={t('clearConversation', locale)}
           title={t('memoryCount', locale, { count: conversationTurnCount })}
           onClick={() => setChatHistory([])}
-          disabled={conversationTurnCount === 0 || isTyping}
+          disabled={conversationTurnCount === 0 || isTyping || actionQueue.length > 0}
         >
           <Trash2 size={13} />
         </button>
@@ -276,18 +729,63 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           −
         </button>
       </div>
+
+      {/* Progress for validated deterministic actions */}
+      {actionQueue.length > 0 && (
+        <div className="ai-action-queue">
+          <div className="queue-status">
+            <Activity size={14} className="pulse-icon" />
+            <span>{currentActionText}</span>
+          </div>
+          <div className="queue-progress-bar">
+            <div className="queue-progress-fill" style={{ width: `${queueProgress}%` }} />
+          </div>
+        </div>
+      )}
+      {godModePlan && (
+        <GodModeProgress
+          plan={godModePlan}
+          locale={locale}
+          onCancel={() => godModeRunRef.current?.cancel()}
+          onUndo={undoWorkspaceTransaction}
+          onRedo={redoWorkspaceTransaction}
+          onRetry={() => {
+            if (lastGodModeRequest && !isGodModeRunning) void submitQuestion(lastGodModeRequest);
+          }}
+          canUndo={canUndoWorkspace}
+          canRedo={canRedoWorkspace}
+        />
+      )}
+
       <div className="ai-body" ref={chatBodyRef}>
         <div className="chat-message system-msg"><p>{systemMessage}</p></div>
         {chatHistory.map((message, index) => (
           <div key={`${message.role}-${index}`} className={`chat-message ${message.role}-msg`}>
             {message.role === 'ai' && <Bot size={14} className="msg-icon" />}
             <p>{message.content}</p>
+            {message.role === 'ai' && (
+              <button
+                type="button"
+                className={`copy-response-btn ${copiedMessageIndex === index ? 'copied' : ''}`}
+                aria-label={t(copiedMessageIndex === index ? 'aiResponseCopied' : 'copyAiResponse', locale)}
+                title={t(copiedMessageIndex === index ? 'aiResponseCopied' : 'copyAiResponse', locale)}
+                onClick={() => void copyAiResponse(message.content, index)}
+              >
+                {copiedMessageIndex === index ? <Check size={13} /> : <Copy size={13} />}
+              </button>
+            )}
           </div>
         ))}
-        {isTyping && (
+        {typingMessage !== null && (
+          <div className="chat-message ai-msg">
+            <Bot size={14} className="msg-icon" />
+            <p>{typingMessage}</p>
+          </div>
+        )}
+        {isTyping && actionQueue.length === 0 && typingMessage === null && (
           <div className="chat-message ai-msg typing">
             <Loader size={14} className="spin-icon" />
-            <p>{t('thinkingLocally', locale)}</p>
+            <p>{t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
           </div>
         )}
       </div>
@@ -301,7 +799,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 type="button"
                 className={index === currentIndex ? 'active' : ''}
                 aria-label={t('goToKeyMoment', locale, { step: index + 1 })}
-                disabled={isTyping || aiStatus !== 'ready'}
+                disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}
                 onClick={() => void submitQuestion(
                   locale === 'tr'
                     ? `${index + 1}. adıma git ve bu önemli noktayı anlat`
@@ -324,12 +822,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <input
           type="text"
           maxLength={600}
-          placeholder={aiStatus === 'ready' ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
+          placeholder={aiStatus === 'ready' || godModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          disabled={isTyping || aiStatus !== 'ready'}
+          disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}
         />
-        <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={isTyping || aiStatus !== 'ready'}>
+        <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}>
           <Send size={14} />
         </button>
       </form>

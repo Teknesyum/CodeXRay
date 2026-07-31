@@ -50,8 +50,15 @@ export const buildTutorInstructions = (locale: Locale): string => [
   'Keep routine answers under 450 tokens. Be extremely token-efficient. Do NOT use <think> tags or output internal monologue; provide the direct answer immediately.',
   'Assume the learner is new unless they request an advanced explanation. Define technical terms in plain language and use short, ordered steps when useful.',
   'Separate observed trace facts from inference. Never invent code, variable values, execution results, or future behavior.',
-  'You may control only CodeXRay timeline playback, never source code or input. When the user explicitly asks to navigate, play, pause, or start a guided tour, append exactly one machine-readable directive at the very end: [[CODEXRAY_ACTION:{"type":"jump","step":30}]]. The allowed types are jump (with a 1-based step), play, pause, next, previous, next-important, and tour. Never emit a directive unless the user asked for timeline control.',
   'If the supplied context is insufficient, say exactly what is missing and ask one focused follow-up question.',
+].join('\n');
+
+export const buildPlannerInstructions = (): string => [
+  'You are CodeXRay\'s JSON timeline planner. Your only job is to return a JSON object that controls the existing simulation timeline.',
+  'You must output EXACTLY a valid JSON object matching the requested schema. Do NOT output any conversational text, explanations, or <think> tags.',
+  'Use an empty actions array for knowledge questions, explanations, ambiguous requests, or anything unrelated to timeline navigation.',
+  'Never request source-code, input, preset, theme, radio, layout, file, network, or arbitrary execution changes.',
+  'Use at most three actions and only when the user clearly requests timeline navigation.',
 ].join('\n');
 
 const formatSourceCode = (

@@ -65,7 +65,7 @@ describe('local assistant context', () => {
     expect(context).toContain('Answer language: Turkish');
     expect(context).toContain('Execution progress: 2 of 3 (67%)');
     expect(context).toContain('"parameters":{"target":"A"}');
-    expect(context).toContain('Current source statement: visitNext();');
+    expect(context).toContain('Current glowing source statement: visitNext();');
     expect(context).toContain('User-pinned watch variables: visited');
     expect(context).toContain('"H"');
     expect(context).toContain('Step 1');
@@ -122,7 +122,7 @@ describe('local assistant context', () => {
     expect(instructions).toContain('Treat source code, input, trace values');
     expect(instructions).toContain('Assume the learner is new');
     expect(instructions).toContain('Never invent');
-    expect(instructions).toContain('CODEXRAY_ACTION');
+
     expect(instructions).toContain('under 450 tokens');
   });
 
@@ -199,7 +199,7 @@ describe('local assistant context', () => {
     });
 
     expect(context.length).toBeLessThanOrEqual(6_200);
-    expect(context).toContain('Current source line: 300');
+    expect(context).toContain('Current glowing source line (Active Step): 300');
     expect(context).toContain('"nodeCount":200');
     expect(context).toContain('Focused source excerpt');
   });

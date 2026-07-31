@@ -23,12 +23,14 @@
 }
 
 .panel-left {
+  --panel-action-inset: 12px;
   flex: 0 0 auto;
   min-width: 280px;
   max-width: calc(100vw - 420px);
 }
 
 .panel-right {
+  --panel-action-inset: 30px;
   flex: 1;
 }
 
@@ -68,8 +70,8 @@
 .control-container {
   z-index: 40;
   flex: 1 1 0;
-  min-height: 68px;
-  padding: 15px 30px;
+  min-height: 52px;
+  padding: 6px var(--panel-action-inset);
   overflow: visible;
   background: rgba(10, 10, 15, 0.9);
   border-top: 1px solid rgba(0, 243, 255, 0.1);
@@ -167,7 +169,13 @@
 }
 
 .panel-right > .visualizer-container .collapsed-panel-header {
-  padding-right: 76px;
+  padding-right: var(--panel-action-inset);
+}
+
+.panel-splitter::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 
 .language-toggle {

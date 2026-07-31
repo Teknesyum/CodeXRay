@@ -1,4 +1,5 @@
-import { PinOff } from 'lucide-react';
+import { CheckCircle2, LoaderCircle, PinOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import type {
   ArrayVisualData,
@@ -151,9 +152,47 @@ export const DynamicVisualizer = ({
     showAiLoadProgress,
   } = useTimeline();
 
+  const [modelLoadNotice, setModelLoadNotice] = useState<'loading' | 'ready' | null>(null);
+  const [pseudoAiProgress, setPseudoAiProgress] = useState(0);
+
   const handleLoadModel = () => {
+    setModelLoadNotice('loading');
     window.dispatchEvent(new Event('codexray:loadModel'));
   };
+
+  useEffect(() => {
+    if (modelLoadNotice !== 'loading') return;
+    if (aiStatus === 'ready') setModelLoadNotice('ready');
+    if (aiStatus === 'error' || aiStatus === 'unsupported') setModelLoadNotice(null);
+  }, [aiStatus, modelLoadNotice]);
+
+  useEffect(() => {
+    if (modelLoadNotice !== 'ready') return;
+    const timer = window.setTimeout(() => setModelLoadNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [modelLoadNotice]);
+
+  useEffect(() => {
+    if (aiStatus !== 'loading') {
+      setPseudoAiProgress(0);
+      return;
+    }
+    setPseudoAiProgress(0);
+    const timer = window.setInterval(() => {
+      setPseudoAiProgress((current) => {
+        if (current >= 20) {
+          window.clearInterval(timer);
+          return 20;
+        }
+        return current + 1;
+      });
+    }, 300);
+    return () => window.clearInterval(timer);
+  }, [aiStatus]);
+
+  const displayedAiProgress = aiStatus === 'loading'
+    ? Math.max(aiProgressPercent ?? 0, pseudoAiProgress)
+    : aiProgressPercent ?? 0;
   const currentStep = steps[currentIndex];
   const previousStep = currentIndex > 0 ? steps[currentIndex - 1] : undefined;
   const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
@@ -195,11 +234,31 @@ export const DynamicVisualizer = ({
     <>
       {showAiLoadProgress && aiStatus === 'loading' && !collapsed && (
         <div className="ai-progress-bar-container">
-          <div className="ai-progress-bar" style={{ width: `${aiProgressPercent ?? 0}%` }} />
+          <div className="ai-progress-bar" style={{ width: `${displayedAiProgress}%` }} />
+        </div>
+      )}
+
+      {modelLoadNotice && !collapsed && (
+        <div
+          className={`ai-model-load-notice ${modelLoadNotice}`}
+          role="status"
+          aria-live="polite"
+        >
+          {modelLoadNotice === 'loading'
+            ? <LoaderCircle size={16} className="ai-model-notice-spinner" />
+            : <CheckCircle2 size={16} />}
+          <span>
+            {modelLoadNotice === 'loading'
+              ? t('modelLoadingNotice', locale)
+              : t('modelLoadedNotice', locale)}
+          </span>
+          {modelLoadNotice === 'loading' && (
+            <strong>{displayedAiProgress}%</strong>
+          )}
         </div>
       )}
       
-      {showAiLoadWarning && (aiStatus === 'idle' || aiStatus === 'error' || aiStatus === 'unsupported') && !collapsed && (
+      {showAiLoadWarning && !modelLoadNotice && (aiStatus === 'idle' || aiStatus === 'error' || aiStatus === 'unsupported') && !collapsed && (
         <div className="ai-load-warning-banner">
           <span>{aiStatus === 'unsupported' ? 'Yapay Zeka bu tarayıcıda desteklenmiyor.' : 'Model Yüklenmedi! Gelişmiş özellikler için lütfen modeli yükleyin.'}</span>
           <div className="banner-actions">

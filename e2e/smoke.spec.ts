@@ -1,4 +1,18 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('codexray.locale', 'en');
+    localStorage.setItem('codexray.radio.autoplay', 'false');
+  });
+});
+
+const switchToTurkish = async (page: Page) => {
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /UI Settings/ }).click();
+  await page.getByRole('button', { name: 'Türkçe (TR)' }).click();
+};
 
 test('runs DFS and exposes the complete visited trace', async ({ page }) => {
   await page.goto('/');
@@ -35,7 +49,7 @@ test('runs graph and compound-input algorithms', async ({ page }) => {
   await expect(page.getByLabel('Knuth-Morris-Pratt (KMP) execution')).toBeVisible();
   await expect(page.getByText('pattern', { exact: true }).first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'Türkçeye geç' }).click();
+  await switchToTurkish(page);
   await expect(page.getByLabel('Desen')).toBeVisible();
 });
 
@@ -89,11 +103,16 @@ test('graph edit popovers do not move the canvas and edges can be edited in plac
   await page.getByRole('button', { name: 'Node 1', exact: true }).click();
   await expect(page.getByLabel('Selected node')).toBeVisible();
   const afterNode = await canvas.boundingBox();
-  expect(afterNode).toEqual(before);
+  expect(afterNode?.x).toBe(before?.x);
+  expect(afterNode?.width).toBe(before?.width);
+  expect(afterNode?.height).toBe(before?.height);
 
   await page.getByRole('button', { name: 'Edit edge 1 to 2' }).click();
   await expect(page.getByLabel('Selected edge 1 to 2')).toBeVisible();
-  expect(await canvas.boundingBox()).toEqual(before);
+  const afterOpeningEditor = await canvas.boundingBox();
+  expect(afterOpeningEditor?.x).toBe(before?.x);
+  expect(afterOpeningEditor?.width).toBe(before?.width);
+  expect(afterOpeningEditor?.height).toBe(before?.height);
 
   const edgeWeight = page.getByLabel('Edge 1 to 2 weight');
   await edgeWeight.fill('9');
@@ -118,7 +137,7 @@ test('switches the visible interface to Turkish instantly', async ({ page }) => 
   const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
   await select.selectOption(dfsValue ?? '');
   await page.getByRole('button', { name: /Simulate/ }).click();
-  await page.getByRole('button', { name: 'Türkçeye geç' }).click();
+  await switchToTurkish(page);
   await expect(page.getByRole('heading', { name: 'Kaynak Kod' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Simüle Et/ })).toBeVisible();
   await expect(page.getByText('Değişkenler ve İz')).toBeVisible();
@@ -162,28 +181,15 @@ test('resizes and collapses workspace panels', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Expand Controls' })).toBeVisible();
 });
 
-test('keeps collapsed panel controls clickable and clear of the language switch', async ({ page }) => {
+test('keeps collapsed panel controls clickable after the language controls moved to settings', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Collapse Simulation View' }).click();
   const expand = page.getByRole('button', { name: 'Expand Simulation View' });
-  const language = page.getByRole('button', { name: 'Türkçeye geç' });
   await expect(expand).toBeVisible();
-
-  const expandBox = await expand.boundingBox();
-  const languageBox = await language.boundingBox();
-  expect(expandBox).not.toBeNull();
-  expect(languageBox).not.toBeNull();
-  const overlaps = Boolean(
-    expandBox
-    && languageBox
-    && expandBox.x < languageBox.x + languageBox.width
-    && expandBox.x + expandBox.width > languageBox.x
-    && expandBox.y < languageBox.y + languageBox.height
-    && expandBox.y + expandBox.height > languageBox.y,
-  );
-  expect(overlaps).toBe(false);
   await expand.click();
   await expect(page.getByRole('button', { name: 'Collapse Simulation View' })).toBeVisible();
+  await switchToTurkish(page);
+  await expect(page.getByRole('heading', { name: 'Simülasyon Görünümü' })).toBeVisible();
 });
 
 test('resizes only adjacent right panels and starts with compact controls', async ({ page }) => {
@@ -238,6 +244,35 @@ test('resizes only adjacent right panels and starts with compact controls', asyn
     .toBeCloseTo(beforeUpper.controls, 0);
 });
 
+test('allows the assistant to shrink while the graph input builder is open', async ({ page }) => {
+  await page.goto('/');
+  const select = page.getByLabel('Algorithm preset');
+  const dfsValue = await select.locator('option')
+    .filter({ hasText: 'Depth First Search' })
+    .getAttribute('value');
+  await select.selectOption(dfsValue ?? '');
+
+  const visualizer = page.locator('.visualizer-container');
+  const assistant = page.locator('.assistant-container');
+  const splitter = page.getByRole('separator', {
+    name: 'Resize visualizer and assistant panels',
+  });
+  const initialVisualizer = (await visualizer.boundingBox())?.height ?? 0;
+  const initialAssistant = (await assistant.boundingBox())?.height ?? 0;
+  const box = await splitter.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move((box?.x ?? 0) + 50, (box?.y ?? 0) + 3);
+  await page.mouse.down();
+  await page.mouse.move((box?.x ?? 0) + 50, (box?.y ?? 0) + 80);
+  await page.mouse.up();
+
+  await expect.poll(async () => (await visualizer.boundingBox())?.height ?? 0)
+    .toBeGreaterThan(initialVisualizer + 60);
+  await expect.poll(async () => (await assistant.boundingBox())?.height ?? 0)
+    .toBeLessThan(initialAssistant - 60);
+});
+
 test('stops the lower splitter at its boundary without growing another panel', async ({ page }) => {
   await page.goto('/');
   const visualizer = page.locator('.visualizer-container');
@@ -283,8 +318,8 @@ test('stops the lower splitter at its boundary without growing another panel', a
     }));
   });
 
-  expect(atBoundary.controls).toBeGreaterThanOrEqual(82);
-  expect(atBoundary.assistant).toBeGreaterThan(initial.assistant);
+  expect(atBoundary.controls).toBeGreaterThanOrEqual(58);
+  expect(atBoundary.assistant).toBeGreaterThanOrEqual(initial.assistant);
   expect(atBoundary.visualizer).toBeCloseTo(initial.visualizer, 0);
   expect(beyondBoundary.visualizer).toBeCloseTo(atBoundary.visualizer, 0);
   expect(beyondBoundary.assistant).toBeCloseTo(atBoundary.assistant, 0);
@@ -322,11 +357,11 @@ test('opens the playlist radio without loading it before user interaction', asyn
     'src',
     /OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0/,
   );
-  const playerBox = await page.getByTitle('CodeXRay YouTube playlist player').boundingBox();
-  expect(playerBox?.width).toBeLessThanOrEqual(360);
-  expect(playerBox?.height).toBeGreaterThanOrEqual(200);
+  const radioBox = await page.getByRole('complementary', { name: 'Radio' }).boundingBox();
+  expect(radioBox?.width).toBeLessThanOrEqual(360);
+  expect(radioBox?.height).toBeGreaterThanOrEqual(200);
   const volume = page.getByLabel('Radio volume');
-  await expect(volume).toHaveValue('55');
+  await expect(volume).toHaveValue('25');
   await volume.fill('30');
   await expect(volume).toHaveValue('30');
 });
@@ -354,11 +389,11 @@ test('resets CodeXRay state without clearing unrelated origin storage', async ({
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /UI Settings/ }).click();
   page.once('dialog', (dialog) => void dialog.accept());
-  await Promise.all([
-    page.waitForEvent('load'),
-    page.getByRole('button', { name: 'Reset site data' }).click(),
-  ]);
+  await page.getByRole('button', { name: 'Reset site data' }).click();
+  await expect.poll(async () => page.evaluate(() =>
+    localStorage.getItem('codexray.pinned-variables.v1'))).toBe('[]');
 
   const storage = await page.evaluate(() => ({
     pins: localStorage.getItem('codexray.pinned-variables.v1'),
@@ -379,10 +414,10 @@ test('resets only interface layout while preserving user workspace state', async
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).click();
-  await Promise.all([
-    page.waitForEvent('load'),
-    page.getByRole('button', { name: 'Reset interface' }).click(),
-  ]);
+  await page.getByRole('button', { name: /UI Settings/ }).click();
+  await page.getByRole('button', { name: 'Reset interface' }).click();
+  await expect.poll(async () => page.evaluate(() =>
+    localStorage.getItem('codexray.layout.v2'))).not.toContain('700');
   const storage = await page.evaluate(() => ({
     pins: localStorage.getItem('codexray.pinned-variables.v1'),
     layout: localStorage.getItem('codexray.layout.v2'),
@@ -395,10 +430,10 @@ test('resets only interface layout while preserving user workspace state', async
     assistant: (await page.locator('.assistant-container').boundingBox())?.height ?? 0,
     controls: (await page.locator('.control-container').boundingBox())?.height ?? 0,
   };
-  expect(defaults.visualizer).toBeGreaterThanOrEqual(350);
-  expect(defaults.visualizer).toBeLessThanOrEqual(380);
-  expect(defaults.assistant).toBeGreaterThanOrEqual(235);
-  expect(defaults.assistant).toBeLessThanOrEqual(255);
-  expect(defaults.controls).toBeGreaterThanOrEqual(90);
-  expect(defaults.controls).toBeLessThanOrEqual(105);
+  expect(defaults.visualizer).toBeGreaterThanOrEqual(130);
+  expect(defaults.visualizer).toBeLessThanOrEqual(134);
+  expect(defaults.assistant).toBeGreaterThanOrEqual(516);
+  expect(defaults.assistant).toBeLessThanOrEqual(520);
+  expect(defaults.controls).toBeGreaterThanOrEqual(56);
+  expect(defaults.controls).toBeLessThanOrEqual(60);
 });

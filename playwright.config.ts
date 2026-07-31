@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const localBrowserChannel = process.env.CODEXRAY_E2E_CHANNEL as
+  | 'chrome'
+  | 'msedge'
+  | undefined;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -8,6 +13,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
+    ...(localBrowserChannel ? { channel: localBrowserChannel } : {}),
   },
   webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVER ? undefined : {
     command: 'npm run dev -- --host 127.0.0.1 --port 4173',

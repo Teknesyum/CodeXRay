@@ -4,14 +4,19 @@ import userEvent from '@testing-library/user-event';
 import App from './App';
 import { algorithmRegistry } from './services/codeRegistry';
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  localStorage.setItem('codexray.locale', 'en');
+});
 afterEach(() => cleanup());
 
 describe('application workspace', () => {
   it('switches the complete shell to Turkish immediately', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Türkçeye geç' }));
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: /UI Settings/ }));
+    await user.click(screen.getByRole('button', { name: 'Türkçe (TR)' }));
     expect(screen.getByRole('heading', { name: 'Kaynak Kod' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Simüle Et/ })).toBeInTheDocument();
     expect(screen.getByText('Değişkenler ve İz')).toBeInTheDocument();
@@ -100,6 +105,7 @@ describe('application workspace', () => {
   });
 
   it('opens the requested YouTube Music playlist in a compact radio player', async () => {
+    localStorage.setItem('codexray.radio.autoplay', 'false');
     const user = userEvent.setup();
     render(<App />);
 
@@ -111,6 +117,7 @@ describe('application workspace', () => {
     expect(screen.getByRole('link', { name: 'Open playlist in YouTube Music' }).getAttribute('href'))
       .toContain('music.youtube.com/playlist');
     await user.click(screen.getByRole('button', { name: 'Close CodeXRay Radio' }));
-    expect(screen.queryByTitle('CodeXRay YouTube playlist player')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open CodeXRay Radio' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Radio')).toHaveStyle({ display: 'none' });
   });
 });

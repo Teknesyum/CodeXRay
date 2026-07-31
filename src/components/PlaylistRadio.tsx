@@ -1,7 +1,12 @@
 import { ExternalLink, Music2, Radio, Volume2, VolumeX, Minus, Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTimeline } from '../context/TimelineContext';
+import { GOD_MODE_UI_EVENT, isGodModeUiEvent } from '../services/godModeUiControl';
 import { t } from '../i18n/translations';
+import {
+  getEmbeddedRadioPlaylist,
+  getRadioTrackTitle,
+} from '../services/radioPlaylistMetadata';
 import './PlaylistRadio.css';
 
 interface YouTubePlayer {
@@ -54,6 +59,26 @@ const OPENING_TRACK = {
 const youtubeThumbnail = (videoId: string) =>
   `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
+const extractListId = (urlOrId: string) => {
+  let id = urlOrId;
+  const match = urlOrId.match(/[?&]list=([^&]+)/);
+  if (match) id = match[1];
+
+  // Mixes (RD...) do not expose playlist data via API, fallback to a known working playlist.
+  if (id.startsWith('RD') || id.includes('http')) {
+    id = 'PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u';
+  }
+  return id;
+};
+
+const createEmbeddedTrackData = (playlistId: string) =>
+  Object.fromEntries(
+    getEmbeddedRadioPlaylist(playlistId).map(({ id, title }, index) => [
+      index,
+      { title, thumb: youtubeThumbnail(id) },
+    ]),
+  );
+
 const loadYouTubeApi = (): Promise<YouTubeApi> => {
   if (window.YT?.Player) return Promise.resolve(window.YT);
   if (youtubeApiPromise) return youtubeApiPromise;
@@ -85,44 +110,59 @@ export const PlaylistRadio = () => {
     radioMinimizeSeconds,
     radioOpenRequest,
   } = useTimeline();
+  const initialPlaylistId = useRef(extractListId(radioPlaylistId));
+  const embeddedInitialPlaylist = getEmbeddedRadioPlaylist(initialPlaylistId.current);
   const [minimized, setMinimized] = useState(!radioAutoplay);
   const [hasStarted, setHasStarted] = useState(radioAutoplay);
   const [volume, setVolume] = useState(25);
   const [muted, setMuted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playRequested, setPlayRequested] = useState(radioAutoplay);
   const [isLooping, setIsLooping] = useState(true);
   const [isShuffled, setIsShuffled] = useState(false);
-  const [playlist, setPlaylist] = useState<string[]>([]);
+  const [playlist, setPlaylist] = useState<string[]>(() =>
+    embeddedInitialPlaylist.map(({ id }) => id),
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [showRing, setShowRing] = useState(false);
-  const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
+  const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>(
+    () => createEmbeddedTrackData(initialPlaylistId.current),
+  );
   const [currentTrack, setCurrentTrack] = useState(OPENING_TRACK);
   const handledOpenRequest = useRef(radioOpenRequest);
   const hoverTimeoutRef = useRef<number | null>(null);
-  const extractListId = (urlOrId: string) => {
-    let id = urlOrId;
-    const match = urlOrId.match(/[?&]list=([^&]+)/);
-    if (match) {
-      id = match[1];
-    }
-    
-    // Mixes (RD...) do not expose playlist data via API, fallback to a known working playlist
-    if (id.startsWith('RD') || id.includes('http')) {
-      id = 'PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u';
-    }
-    return id;
-  };
-  
-  const initialPlaylistId = useRef(extractListId(radioPlaylistId));
   const activePlaylistId = useRef(initialPlaylistId.current);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
+  const loopRef = useRef(isLooping);
+  const shuffleRef = useRef(isShuffled);
   volumeRef.current = volume;
+  loopRef.current = isLooping;
+  shuffleRef.current = isShuffled;
+
+  const syncPlaylist = useCallback((player: YouTubePlayer) => {
+    const nextPlaylist = player.getPlaylist();
+    if (!nextPlaylist || nextPlaylist.length === 0) return false;
+
+    setPlaylist(nextPlaylist);
+    setTrackData((previous) => Object.fromEntries(
+      nextPlaylist.map((id, index) => [index, {
+        title: previous[index]?.title
+          || getRadioTrackTitle(activePlaylistId.current, id)
+          || '',
+        thumb: youtubeThumbnail(id),
+      }]),
+    ));
+
+    const playlistIndex = player.getPlaylistIndex();
+    if (playlistIndex >= 0) setCurrentIndex(playlistIndex);
+    return true;
+  }, []);
 
   useEffect(() => {
     if (extractListId(radioPlaylistId) !== activePlaylistId.current) {
@@ -132,11 +172,40 @@ export const PlaylistRadio = () => {
   }, [radioPlaylistId]);
 
   useEffect(() => {
+    if (!radioAutoplay) return;
+    setMinimized(false);
+    setHasStarted(true);
+    setPlayRequested(true);
+  }, [radioAutoplay]);
+
+  useEffect(() => {
     if (radioOpenRequest === handledOpenRequest.current) return;
     handledOpenRequest.current = radioOpenRequest;
     setMinimized(false);
     setHasStarted(true);
   }, [radioOpenRequest]);
+
+  useEffect(() => {
+    const handleGodModeRadioAction = (event: Event) => {
+      if (!isGodModeUiEvent(event) || event.detail.type !== 'set-radio-state') return;
+      if (event.detail.state === 'open') {
+        setMinimized(false);
+        setHasStarted(true);
+        return;
+      }
+      if (event.detail.state === 'play') {
+        setMinimized(false);
+        setHasStarted(true);
+        setPlayRequested(true);
+        playerRef.current?.playVideo();
+        return;
+      }
+      setPlayRequested(false);
+      playerRef.current?.pauseVideo();
+    };
+    window.addEventListener(GOD_MODE_UI_EVENT, handleGodModeRadioAction);
+    return () => window.removeEventListener(GOD_MODE_UI_EVENT, handleGodModeRadioAction);
+  }, []);
 
   useEffect(() => {
     if (!hasStarted || !iframeRef.current) return;
@@ -150,25 +219,31 @@ export const PlaylistRadio = () => {
               if (!active) return;
               playerRef.current = target;
               target.setVolume(volumeRef.current);
+              // YouTube's loop flag repeats the whole playlist. CodeXRay owns
+              // single-track repeat explicitly in onStateChange instead.
+              target.setLoop(false);
+              target.setShuffle(shuffleRef.current);
               setMuted(target.isMuted());
               setPlayerReady(true);
+              setIsPlaying(target.getPlayerState() === 1);
               setDuration(target.getDuration());
+              syncPlaylist(target);
             },
             onStateChange: (event) => {
               const player = event.target as YouTubePlayer;
-              if (event.data === 1) setIsPlaying(true);
-              else if (event.data === 2) setIsPlaying(false);
-              
-              const pl = player.getPlaylist();
-              if (pl && pl.length > 0) {
-                setPlaylist(pl);
-                setTrackData((previous) => Object.fromEntries(
-                  pl.map((id, index) => [index, {
-                    title: previous[index]?.title ?? '',
-                    thumb: youtubeThumbnail(id),
-                  }]),
-                ));
+              player.setLoop(false);
+              if (event.data === 0 && loopRef.current) {
+                setCurrentTime(0);
+                setPlayRequested(true);
+                player.seekTo(0, true);
+                player.playVideo();
+                return;
               }
+              setIsPlaying(event.data === 1);
+              if (event.data === 1) setPlayRequested(false);
+              
+              syncPlaylist(player);
+              const pl = player.getPlaylist();
               
               const idx = player.getPlaylistIndex();
               if (idx !== undefined && idx !== -1) setCurrentIndex(idx);
@@ -204,7 +279,36 @@ export const PlaylistRadio = () => {
       playerRef.current = null;
       setPlayerReady(false);
     };
-  }, [hasStarted]);
+  }, [hasStarted, syncPlaylist]);
+
+  useEffect(() => {
+    if (!playerReady || !playRequested || isPlaying) return;
+    const requestPlayback = () => playerRef.current?.playVideo();
+
+    // Try immediately. Browsers may reject audible autoplay until the first
+    // user gesture; keep the same request queued for that gesture instead of
+    // pretending that playback has already started.
+    requestPlayback();
+    window.addEventListener('pointerdown', requestPlayback, { capture: true, once: true });
+    window.addEventListener('keydown', requestPlayback, { capture: true, once: true });
+    return () => {
+      window.removeEventListener('pointerdown', requestPlayback, true);
+      window.removeEventListener('keydown', requestPlayback, true);
+    };
+  }, [isPlaying, playRequested, playerReady]);
+
+  useEffect(() => {
+    if (!playerReady) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      const player = playerRef.current;
+      attempts += 1;
+      if ((player && syncPlaylist(player)) || attempts >= 20) {
+        window.clearInterval(timer);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [playerReady, syncPlaylist]);
 
   useEffect(() => {
     if (!isPlaying || !playerReady) return;
@@ -225,13 +329,11 @@ export const PlaylistRadio = () => {
         return;
       }
 
+      setShowRing(true);
       hoverTimeoutRef.current = window.setTimeout(() => {
-        setShowRing(true);
-        hoverTimeoutRef.current = window.setTimeout(() => {
-          setMinimized(true);
-          setShowRing(false);
-        }, radioMinimizeSeconds * 1000);
-      }, 1000);
+        setMinimized(true);
+        setShowRing(false);
+      }, radioMinimizeSeconds * 1000);
     } else {
       setShowRing(false);
     }
@@ -245,12 +347,15 @@ export const PlaylistRadio = () => {
       const nextPlaylistId = extractListId(radioPlaylistId);
       if (nextPlaylistId === activePlaylistId.current) return;
       activePlaylistId.current = nextPlaylistId;
-      setTrackData({});
-      setPlaylist([]);
+      const embeddedPlaylist = getEmbeddedRadioPlaylist(nextPlaylistId);
+      setTrackData(createEmbeddedTrackData(nextPlaylistId));
+      setPlaylist(embeddedPlaylist.map(({ id }) => id));
       playerRef.current.loadPlaylist({
         listType: 'playlist',
         list: nextPlaylistId
       });
+      playerRef.current.setLoop(false);
+      playerRef.current.setShuffle(shuffleRef.current);
     }
   }, [radioPlaylistId, playerReady]);
 
@@ -300,8 +405,15 @@ export const PlaylistRadio = () => {
             </a>
             <div className="minimize-btn-wrapper">
               {!isHovered && !minimized && showRing && (
-                <svg className="countdown-ring" width="24" height="24" style={{ animationDuration: `${radioMinimizeSeconds}s` }}>
-                  <rect x="2" y="2" width="20" height="20" rx="4" />
+                <svg className="countdown-ring" width="24" height="24">
+                  <rect
+                    x="2"
+                    y="2"
+                    width="20"
+                    height="20"
+                    rx="4"
+                    style={{ animationDuration: `${radioMinimizeSeconds}s` }}
+                  />
                 </svg>
               )}
               <button
@@ -356,6 +468,7 @@ export const PlaylistRadio = () => {
               onClick={() => {
                 if (!playerRef.current) return;
                 const newShuffle = !isShuffled;
+                shuffleRef.current = newShuffle;
                 playerRef.current.setShuffle(newShuffle);
                 setIsShuffled(newShuffle);
               }}
@@ -376,9 +489,13 @@ export const PlaylistRadio = () => {
               title={isPlaying ? t('pause', locale) : t('play', locale)}
               onClick={() => {
                 const player = playerRef.current;
-                if (!player) return;
-                if (isPlaying) player.pauseVideo();
-                else player.playVideo();
+                if (isPlaying) {
+                  setPlayRequested(false);
+                  player?.pauseVideo();
+                } else {
+                  setPlayRequested(true);
+                  player?.playVideo();
+                }
               }}
             >
               {isPlaying ? <Pause size={18} /> : <Play size={18} />}
@@ -398,7 +515,8 @@ export const PlaylistRadio = () => {
               onClick={() => {
                 if (!playerRef.current) return;
                 const newLoop = !isLooping;
-                playerRef.current.setLoop(newLoop);
+                loopRef.current = newLoop;
+                playerRef.current.setLoop(false);
                 setIsLooping(newLoop);
               }}
             >

@@ -23,7 +23,10 @@ const PopulateTrace = () => {
   return null;
 };
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  localStorage.setItem('codexray.locale', 'en');
+});
 afterEach(() => cleanup());
 
 describe('VariablesPanel', () => {

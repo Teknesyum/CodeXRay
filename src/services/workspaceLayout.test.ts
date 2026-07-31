@@ -8,14 +8,14 @@ import {
 describe('workspace layout sizing', () => {
   it('keeps the default controls compact across common desktop heights', () => {
     expect(createDefaultRightPanelSizes(720)).toEqual({
-      visualizerHeight: 367,
-      assistantHeight: 245,
-      controlHeight: 96,
+      visualizerHeight: 377,
+      assistantHeight: 273,
+      controlHeight: 58,
     });
     expect(createDefaultRightPanelSizes(1080)).toEqual({
-      visualizerHeight: 569,
-      assistantHeight: 379,
-      controlHeight: 120,
+      visualizerHeight: 586,
+      assistantHeight: 424,
+      controlHeight: 58,
     });
   });
 

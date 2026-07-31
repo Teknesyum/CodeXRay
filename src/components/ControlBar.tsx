@@ -382,10 +382,10 @@ export const ControlBar = ({
                   {t('radioSettingsTab', locale)}
                 </button>
               </div>
-              <div className="settings-modal-content">
+              <div className={`settings-modal-content ${activeTab === 'ai' ? 'ai-settings-layout' : ''}`}>
                 {activeTab === 'ai' && (
                   <>
-                <div className="settings-section">
+                <div className="settings-section ai-model-settings">
                   <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
                     aria-label={t('onDeviceModel', locale)}
@@ -446,7 +446,7 @@ export const ControlBar = ({
                     })}
                   </p>
                 </div>
-                <p className="local-ai-note">
+                <p className="local-ai-note ai-privacy-note">
                   {t('localAiPrivacy', locale)}
                 </p>
                 <div className="local-storage-status">
@@ -465,7 +465,7 @@ export const ControlBar = ({
                         : t('persistentStorageBestEffort', locale)}
                   </span>
                 </div>
-                <p className="local-ai-note">{t('localAiStorageNote', locale)}</p>
+                <p className="local-ai-note ai-storage-note">{t('localAiStorageNote', locale)}</p>
                 <div className="stored-models">
                   <div className="settings-title">{t('storedModels', locale)}</div>
                   {cacheChecked && cachedModels.length === 0 && (
@@ -491,7 +491,7 @@ export const ControlBar = ({
                   })}
                 </div>
                 <button
-                  className="neon-button"
+                  className="neon-button ai-load-button"
                   onClick={() => void activateModel(aiModel, aiContextWindow)}
                   disabled={aiStatus === 'loading' || aiStatus === 'ready'}
                 >
@@ -503,7 +503,7 @@ export const ControlBar = ({
                         ? t('initializeStoredModel', locale)
                         : t('loadLocalModel', locale)}
                 </button>
-                <div className="settings-section">
+                <div className="settings-section ai-load-preferences">
                   <div className="settings-title">AI Yükleme Ayarları</div>
                   <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
                     <input
@@ -709,10 +709,11 @@ export const ControlBar = ({
                     </div>
                   </>
                 )}
-                <div style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
-                  CodeXRay v2.0.0
-                </div>
               </div>
+              <footer className="settings-version-footer" aria-label="CodeXRay version">
+                <span>CodeXRay</span>
+                <strong>v2.0.0</strong>
+              </footer>
             </div>
           )}
         </div>

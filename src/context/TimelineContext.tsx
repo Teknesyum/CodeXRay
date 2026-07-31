@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useReducer,
   useState,
 } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
@@ -10,6 +11,7 @@ import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { createInputPreset } from '../services/inputPresets';
 import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
+import type { CustomSimulationPackageV1 } from '../types/godMode';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type Theme = 'neon' | 'dark' | 'light';
@@ -73,6 +75,29 @@ interface TimelineContextType {
   requestRadioOpen: () => void;
   radioAutoplay: boolean;
   setRadioAutoplay: (autoplay: boolean) => void;
+  godModeEnabled: boolean;
+  setGodModeEnabled: (enabled: boolean) => void;
+  activeSimulationPackage: CustomSimulationPackageV1 | null;
+  packageOutOfSync: boolean;
+  applySimulationPackage: (value: CustomSimulationPackageV1, runId: string) => void;
+  applyInputTransaction: (
+    input: SimulationInput,
+    steps: SimulationStep[],
+    runId: string,
+  ) => void;
+  applyPresetTransaction: (value: {
+    algorithmName: string;
+    code: string;
+    input: SimulationInput;
+    steps: SimulationStep[];
+    analysis: string | null;
+  }, runId: string) => void;
+  undoWorkspaceTransaction: () => void;
+  redoWorkspaceTransaction: () => void;
+  canUndoWorkspace: boolean;
+  canRedoWorkspace: boolean;
+  guidedMode: boolean;
+  setGuidedMode: (enabled: boolean) => void;
 }
 
 const STORAGE_KEY = 'codexray.workspace.v1';
@@ -80,6 +105,165 @@ const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
 const AI_MODEL_KEY = 'codexray.ai-model.v1';
 const AI_CONTEXT_WINDOW_KEY = 'codexray.ai-context-window.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
+
+interface WorkspaceState {
+  code: string;
+  algorithmName: string;
+  steps: SimulationStep[];
+  currentIndex: number;
+  analysis: string | null;
+  simulationInput: SimulationInput;
+  inputError: string | null;
+  activePackage: CustomSimulationPackageV1 | null;
+  packageOutOfSync: boolean;
+  undo: WorkspaceSnapshot[];
+  redo: WorkspaceSnapshot[];
+  lastTransactionId: string | null;
+}
+
+type WorkspaceSnapshot = Omit<WorkspaceState, 'undo' | 'redo' | 'lastTransactionId'>;
+
+type WorkspaceAction =
+  | { type: 'set-code'; value: string }
+  | { type: 'set-algorithm'; value: string }
+  | { type: 'set-steps'; value: SimulationStep[] }
+  | { type: 'set-index'; value: SetStateAction<number> }
+  | { type: 'set-analysis'; value: string | null }
+  | { type: 'set-input'; value: SetStateAction<SimulationInput> }
+  | { type: 'set-input-error'; value: string | null }
+  | { type: 'apply-package'; value: CustomSimulationPackageV1; runId: string }
+  | { type: 'apply-input'; input: SimulationInput; steps: SimulationStep[]; runId: string }
+  | {
+    type: 'apply-preset';
+    value: {
+      algorithmName: string;
+      code: string;
+      input: SimulationInput;
+      steps: SimulationStep[];
+      analysis: string | null;
+    };
+    runId: string;
+  }
+  | { type: 'undo' }
+  | { type: 'redo' };
+
+const workspaceSnapshot = (state: WorkspaceState): WorkspaceSnapshot => ({
+  code: state.code,
+  algorithmName: state.algorithmName,
+  steps: state.steps,
+  currentIndex: state.currentIndex,
+  analysis: state.analysis,
+  simulationInput: state.simulationInput,
+  inputError: state.inputError,
+  activePackage: state.activePackage,
+  packageOutOfSync: state.packageOutOfSync,
+});
+
+const WORKSPACE_HISTORY_LIMIT = 12;
+
+const workspaceReducer = (state: WorkspaceState, action: WorkspaceAction): WorkspaceState => {
+  switch (action.type) {
+    case 'set-code':
+      return {
+        ...state,
+        code: action.value,
+        packageOutOfSync: Boolean(
+          state.activePackage && action.value !== state.activePackage.source.code,
+        ),
+      };
+    case 'set-algorithm': return { ...state, algorithmName: action.value };
+    case 'set-steps': return { ...state, steps: action.value };
+    case 'set-index': {
+      const next = typeof action.value === 'function'
+        ? action.value(state.currentIndex)
+        : action.value;
+      return { ...state, currentIndex: next };
+    }
+    case 'set-analysis': return { ...state, analysis: action.value };
+    case 'set-input': {
+      const next = typeof action.value === 'function'
+        ? action.value(state.simulationInput)
+        : action.value;
+      return { ...state, simulationInput: next };
+    }
+    case 'set-input-error': return { ...state, inputError: action.value };
+    case 'apply-package':
+      return {
+        ...state,
+        code: action.value.source.code,
+        algorithmName: action.value.title,
+        steps: action.value.steps,
+        currentIndex: 0,
+        analysis: action.value.analysis,
+        simulationInput: action.value.input.value,
+        inputError: null,
+        activePackage: action.value,
+        packageOutOfSync: false,
+        undo: [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
+        redo: [],
+        lastTransactionId: action.runId,
+      };
+    case 'apply-input': {
+      const nextPackage = state.activePackage
+        ? {
+          ...state.activePackage,
+          input: { ...state.activePackage.input, value: action.input },
+          steps: action.steps,
+        }
+        : null;
+      return {
+        ...state,
+        simulationInput: action.input,
+        steps: action.steps,
+        currentIndex: 0,
+        analysis: nextPackage?.analysis ?? state.analysis,
+        inputError: null,
+        activePackage: nextPackage,
+        packageOutOfSync: false,
+        undo: [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
+        redo: [],
+        lastTransactionId: action.runId,
+      };
+    }
+    case 'apply-preset':
+      return {
+        ...state,
+        algorithmName: action.value.algorithmName,
+        code: action.value.code,
+        simulationInput: action.value.input,
+        steps: action.value.steps,
+        currentIndex: 0,
+        analysis: action.value.analysis,
+        inputError: null,
+        activePackage: null,
+        packageOutOfSync: false,
+        undo: [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
+        redo: [],
+        lastTransactionId: action.runId,
+      };
+    case 'undo': {
+      const previous = state.undo.at(-1);
+      if (!previous) return state;
+      return {
+        ...previous,
+        undo: state.undo.slice(0, -1),
+        redo: [workspaceSnapshot(state), ...state.redo].slice(0, WORKSPACE_HISTORY_LIMIT),
+        lastTransactionId: 'undo',
+      };
+    }
+    case 'redo': {
+      const next = state.redo[0];
+      if (!next) return state;
+      return {
+        ...next,
+        undo: [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
+        redo: state.redo.slice(1),
+        lastTransactionId: 'redo',
+      };
+    }
+    default: return state;
+  }
+};
 
 const loadInput = (): SimulationInput => {
   try {
@@ -117,15 +301,44 @@ const loadAiModel = (): string => {
 };
 
 export const TimelineProvider = ({ children }: { children: ReactNode }) => {
-  const [code, setCode] = useState('');
-  const [algorithmName, setAlgorithmName] = useState('Custom Code');
-  const [steps, setSteps] = useState<SimulationStep[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [workspace, dispatchWorkspace] = useReducer(workspaceReducer, null, () => ({
+    code: '',
+    algorithmName: 'Custom Code',
+    steps: [],
+    currentIndex: 0,
+    analysis: null,
+    simulationInput: loadInput(),
+    inputError: null,
+    activePackage: null,
+    packageOutOfSync: false,
+    undo: [],
+    redo: [],
+    lastTransactionId: null,
+  }));
+  const {
+    code,
+    algorithmName,
+    steps,
+    currentIndex,
+    analysis,
+    simulationInput,
+    inputError,
+  } = workspace;
+  const setCode = useCallback((value: string) => dispatchWorkspace({ type: 'set-code', value }), []);
+  const setAlgorithmName = useCallback((value: string) => dispatchWorkspace({ type: 'set-algorithm', value }), []);
+  const setSteps = useCallback((value: SimulationStep[]) => dispatchWorkspace({ type: 'set-steps', value }), []);
+  const setCurrentIndex: Dispatch<SetStateAction<number>> = useCallback(
+    (value) => dispatchWorkspace({ type: 'set-index', value }),
+    [],
+  );
+  const setAnalysis = useCallback((value: string | null) => dispatchWorkspace({ type: 'set-analysis', value }), []);
+  const setSimulationInput: Dispatch<SetStateAction<SimulationInput>> = useCallback(
+    (value) => dispatchWorkspace({ type: 'set-input', value }),
+    [],
+  );
+  const setInputError = useCallback((value: string | null) => dispatchWorkspace({ type: 'set-input-error', value }), []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1000);
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [simulationInput, setSimulationInput] = useState<SimulationInput>(loadInput);
-  const [inputError, setInputError] = useState<string | null>(null);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
   const [aiModel, setAiModel] = useState(loadAiModel);
   const [aiContextWindow, setAiContextWindow] = useState(() =>
@@ -163,21 +376,53 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
     localStorage.getItem('codexray.radio.autoplay') !== 'false'
   );
+  const [godModeEnabled, setGodModeEnabled] = useState(() =>
+    localStorage.getItem('codexray.ai.godMode') !== 'false'
+  );
+  const [guidedMode, setGuidedMode] = useState(() =>
+    localStorage.getItem('codexray.ai.guidedMode') !== 'false'
+  );
   const requestRadioOpen = useCallback(() => {
     setRadioOpenRequest((request) => request + 1);
+  }, []);
+  const applySimulationPackage = useCallback((value: CustomSimulationPackageV1, runId: string) => {
+    setIsPlaying(false);
+    dispatchWorkspace({ type: 'apply-package', value, runId });
+  }, []);
+  const applyInputTransaction = useCallback((input: SimulationInput, value: SimulationStep[], runId: string) => {
+    setIsPlaying(false);
+    dispatchWorkspace({ type: 'apply-input', input, steps: value, runId });
+  }, []);
+  const applyPresetTransaction = useCallback((value: {
+    algorithmName: string;
+    code: string;
+    input: SimulationInput;
+    steps: SimulationStep[];
+    analysis: string | null;
+  }, runId: string) => {
+    setIsPlaying(false);
+    dispatchWorkspace({ type: 'apply-preset', value, runId });
+  }, []);
+  const undoWorkspaceTransaction = useCallback(() => {
+    setIsPlaying(false);
+    dispatchWorkspace({ type: 'undo' });
+  }, []);
+  const redoWorkspaceTransaction = useCallback(() => {
+    setIsPlaying(false);
+    dispatchWorkspace({ type: 'redo' });
   }, []);
 
   const stepForward = useCallback(() => {
     setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
-  }, [steps.length]);
+  }, [setCurrentIndex, steps.length]);
   const stepBackward = useCallback(() => {
     setCurrentIndex((previous) => Math.max(previous - 1, 0));
-  }, []);
+  }, [setCurrentIndex]);
   const play = useCallback(() => setIsPlaying(true), []);
   const pause = useCallback(() => setIsPlaying(false), []);
   const jumpTo = useCallback((index: number) => {
     if (index >= 0 && index < steps.length) setCurrentIndex(index);
-  }, [steps.length]);
+  }, [setCurrentIndex, steps.length]);
   const togglePinnedVariable = useCallback((name: string) => {
     setPinnedVariables((current) =>
       current.includes(name)
@@ -190,13 +435,20 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     if (!isPlaying) return;
     const timer = window.setInterval(() => {
       setCurrentIndex((previous) => {
-        if (previous < steps.length - 1) return previous + 1;
+        if (previous < steps.length - 1) {
+          const next = previous + 1;
+          if (guidedMode && workspace.activePackage?.checkpoints.some((checkpoint) =>
+            checkpoint.autoPause && checkpoint.stepIndex === next)) {
+            setIsPlaying(false);
+          }
+          return next;
+        }
         setIsPlaying(false);
         return previous;
       });
     }, speed);
     return () => window.clearInterval(timer);
-  }, [isPlaying, speed, steps.length]);
+  }, [guidedMode, isPlaying, setCurrentIndex, speed, steps.length, workspace.activePackage]);
 
   useEffect(() => {
     try {
@@ -247,6 +499,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('codexray.radio.autoplay', String(radioAutoplay));
   }, [radioAutoplay]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.ai.godMode', String(godModeEnabled));
+  }, [godModeEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.ai.guidedMode', String(guidedMode));
+  }, [guidedMode]);
 
   useEffect(() => {
     try {
@@ -324,6 +584,19 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       requestRadioOpen,
       radioAutoplay,
       setRadioAutoplay,
+      godModeEnabled,
+      setGodModeEnabled,
+      activeSimulationPackage: workspace.activePackage,
+      packageOutOfSync: workspace.packageOutOfSync,
+      applySimulationPackage,
+      applyInputTransaction,
+      applyPresetTransaction,
+      undoWorkspaceTransaction,
+      redoWorkspaceTransaction,
+      canUndoWorkspace: workspace.undo.length > 0,
+      canRedoWorkspace: workspace.redo.length > 0,
+      guidedMode,
+      setGuidedMode,
     }}>
       {children}
     </TimelineContext.Provider>

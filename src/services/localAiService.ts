@@ -3,19 +3,45 @@ import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
 import { LOCAL_AI_MODELS } from './localAiModels';
+import type { GodModeAgentRole } from '../types/godMode';
 
 export { LOCAL_AI_MODELS } from './localAiModels';
 
 interface WorkerResponse {
   id: number;
-  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted';
+  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted' | 'agent-event';
   text?: string;
   progress?: InitProgressReport;
+  status?: 'queued' | 'running' | 'cancelled';
 }
 
 interface PendingRequest {
   resolve: (value: string) => void;
   reject: (reason: Error) => void;
+  onAgentEvent?: (event: LocalAgentProgress) => void;
+}
+
+export interface LocalAgentProgress {
+  requestId: number;
+  status: 'queued' | 'running' | 'cancelled';
+  text: string;
+}
+
+export interface LocalAgentRequest {
+  role: GodModeAgentRole;
+  instructions: string;
+  context: string;
+  locale: Locale;
+  responseSchema?: Record<string, unknown>;
+  jsonMode?: boolean;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface LocalAgentHandle {
+  requestId: number;
+  promise: Promise<string>;
+  cancel: () => void;
 }
 
 let worker: Worker | undefined;
@@ -32,6 +58,14 @@ const getWorker = () => {
     if (response.type === 'progress') return;
     const request = pending.get(response.id);
     if (!request) return;
+    if (response.type === 'agent-event') {
+      request.onAgentEvent?.({
+        requestId: response.id,
+        status: response.status ?? 'running',
+        text: response.text ?? '',
+      });
+      return;
+    }
     pending.delete(response.id);
     if (response.type === 'error') request.reject(new Error(response.text ?? 'Local model failed.'));
     else request.resolve(response.text ?? '');
@@ -145,6 +179,45 @@ export const askLocalModel = (
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
   }).then(sanitizeLocalModelAnswer);
+};
+
+export const planLocalActions = (
+  question: string,
+  context: string,
+): Promise<string> => {
+  if (!worker || !readyModel) {
+    return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
+  }
+  const id = ++requestId;
+  return new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    worker?.postMessage({ id, type: 'plan', question, context });
+  });
+};
+
+export const runLocalAgent = (
+  request: LocalAgentRequest,
+  onProgress?: (progress: LocalAgentProgress) => void,
+): LocalAgentHandle => {
+  if (!worker || !readyModel) {
+    return {
+      requestId: -1,
+      promise: Promise.reject(new Error('Load a local AI model from Settings before running God Mode agents.')),
+      cancel: () => undefined,
+    };
+  }
+  const id = ++requestId;
+  const promise = new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject, onAgentEvent: onProgress });
+    worker?.postMessage({ id, type: 'agent-run', ...request });
+  });
+  return {
+    requestId: id,
+    promise,
+    cancel: () => {
+      if (pending.has(id)) worker?.postMessage({ id, type: 'agent-cancel' });
+    },
+  };
 };
 
 export const deleteLocalModel = async (model: string): Promise<void> => {

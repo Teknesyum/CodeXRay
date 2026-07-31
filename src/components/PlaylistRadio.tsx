@@ -109,6 +109,13 @@ export const PlaylistRadio = () => {
   volumeRef.current = volume;
 
   useEffect(() => {
+    if (extractListId(radioPlaylistId) !== initialPlaylistId.current) {
+      setMinimized(false);
+      setHasStarted(true);
+    }
+  }, [radioPlaylistId]);
+
+  useEffect(() => {
     if (!hasStarted || !iframeRef.current) return;
     let active = true;
     void loadYouTubeApi()

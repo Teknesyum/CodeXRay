@@ -679,9 +679,9 @@ export const ControlBar = ({
                           SirensCeol (Varsayılan)
                         </button>
                         <button 
-                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z' ? 'active' : ''}`}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63' ? 'active' : ''}`}
                           onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z';
+                            const url = 'https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63';
                             setRadioPlaylistId(url);
                             setTempPlaylistUrl(url);
                           }}
@@ -689,9 +689,9 @@ export const ControlBar = ({
                           Kodlama & Odak (Lofi)
                         </button>
                         <button 
-                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68' ? 'active' : ''}`}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w' ? 'active' : ''}`}
                           onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68';
+                            const url = 'https://youtube.com/playlist?list=PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w';
                             setRadioPlaylistId(url);
                             setTempPlaylistUrl(url);
                           }}
@@ -709,9 +709,9 @@ export const ControlBar = ({
                           Lofi Hip Hop Mix
                         </button>
                         <button 
-                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_' ? 'active' : ''}`}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL2140A0411C65DD13' ? 'active' : ''}`}
                           onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_';
+                            const url = 'https://youtube.com/playlist?list=PL2140A0411C65DD13';
                             setRadioPlaylistId(url);
                             setTempPlaylistUrl(url);
                           }}

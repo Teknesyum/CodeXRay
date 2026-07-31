@@ -81,7 +81,6 @@ const CodeRayApp = () => {
     simulationInput,
     setInputError,
     locale,
-    setLocale,
     setIsEditingInput,
     isAiMaximized,
   } = useTimeline();
@@ -269,14 +268,6 @@ const CodeRayApp = () => {
 
   return (
     <div className="app-container">
-      <button
-        className="language-toggle"
-        type="button"
-        onClick={() => setLocale(locale === 'en' ? 'tr' : 'en')}
-        aria-label={locale === 'en' ? 'Türkçeye geç' : 'Switch to English'}
-      >
-        {locale === 'en' ? 'TR' : 'EN'}
-      </button>
       <div className="split-layout">
         <div className="panel-left" style={{ width: layout.leftWidth }}>
           <section

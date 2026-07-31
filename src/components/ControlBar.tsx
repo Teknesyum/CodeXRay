@@ -75,6 +75,7 @@ export const ControlBar = ({
     radioAutoplay,
     setRadioAutoplay,
     locale,
+    setLocale,
     theme,
     setTheme,
   } = useTimeline();
@@ -517,6 +518,37 @@ export const ControlBar = ({
                     </button>
                   </div>
                 </div>
+
+                <div className="settings-section">
+                  <div className="settings-title">AI Yükleme Ayarları</div>
+                  <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
+                    <input
+                      type="checkbox"
+                      className="neon-checkbox"
+                      checked={autoLoadAiModel}
+                      onChange={(e) => setAutoLoadAiModel(e.target.checked)}
+                    />
+                    <span className="checkbox-text">Önbellekteki Modeli Otomatik Yükle</span>
+                  </label>
+                  <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
+                    <input
+                      type="checkbox"
+                      className="neon-checkbox"
+                      checked={showAiLoadWarning}
+                      onChange={(e) => setShowAiLoadWarning(e.target.checked)}
+                    />
+                    <span className="checkbox-text">Model Yüklenmedi Uyarısını Göster</span>
+                  </label>
+                  <label className="neon-checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="neon-checkbox"
+                      checked={showAiLoadProgress}
+                      onChange={(e) => setShowAiLoadProgress(e.target.checked)}
+                    />
+                    <span className="checkbox-text">Model Yüklenirken İlerlemeyi Göster</span>
+                  </label>
+                </div>
                 {aiStatus === 'loading' && (
                   <div className="model-download-progress">
                     <div>
@@ -560,34 +592,21 @@ export const ControlBar = ({
                       </div>
                     </div>
                     <div className="settings-section">
-                      <div className="settings-title">{t('uiSettingsTab', locale)} (AI)</div>
-                      <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
-                        <input
-                          type="checkbox"
-                          className="neon-checkbox"
-                          checked={autoLoadAiModel}
-                          onChange={(e) => setAutoLoadAiModel(e.target.checked)}
-                        />
-                        <span className="checkbox-text">Önbellekteki Modeli Otomatik Yükle</span>
-                      </label>
-                      <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
-                        <input
-                          type="checkbox"
-                          className="neon-checkbox"
-                          checked={showAiLoadWarning}
-                          onChange={(e) => setShowAiLoadWarning(e.target.checked)}
-                        />
-                        <span className="checkbox-text">Model Yüklenmedi Uyarısını Göster</span>
-                      </label>
-                      <label className="neon-checkbox-label">
-                        <input
-                          type="checkbox"
-                          className="neon-checkbox"
-                          checked={showAiLoadProgress}
-                          onChange={(e) => setShowAiLoadProgress(e.target.checked)}
-                        />
-                        <span className="checkbox-text">Model Yüklenirken İlerlemeyi Göster</span>
-                      </label>
+                      <div className="settings-title">{t('language', locale) || 'Dil (Language)'}</div>
+                      <div className="theme-selector">
+                        <button 
+                          className={`theme-btn neon-theme ${locale === 'en' ? 'active' : ''}`}
+                          onClick={() => setLocale('en')}
+                        >
+                          English (EN)
+                        </button>
+                        <button 
+                          className={`theme-btn neon-theme ${locale === 'tr' ? 'active' : ''}`}
+                          onClick={() => setLocale('tr')}
+                        >
+                          Türkçe (TR)
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}

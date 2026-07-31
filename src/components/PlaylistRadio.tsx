@@ -1,4 +1,4 @@
-import { ExternalLink, Music2, Radio, Volume2, VolumeX, X, Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react';
+import { ExternalLink, Music2, Radio, Volume2, VolumeX, Minus, Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import { t } from '../i18n/translations';
@@ -227,7 +227,7 @@ export const PlaylistRadio = () => {
               title={t('closeRadio', locale)}
               onClick={() => setMinimized(true)}
             >
-              <X size={15} />
+              <Minus size={15} />
             </button>
           </div>
           <iframe
@@ -332,42 +332,40 @@ export const PlaylistRadio = () => {
 
           <div className="playlist-radio-volume">
             <button
-          type="button"
-          aria-label={muted ? t('unmuteRadio', locale) : t('muteRadio', locale)}
-          title={muted ? t('unmuteRadio', locale) : t('muteRadio', locale)}
-          disabled={!playerReady}
-          onClick={() => {
-            const player = playerRef.current;
-            if (!player) return;
-            if (muted) player.unMute();
-            else player.mute();
-            setMuted(!muted);
-          }}
-        >
-          {muted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
-        </button>
-        <label>
-          <span>{t('volume', locale)}</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            className="neon-slider"
-            aria-label={t('radioVolume', locale)}
-            onChange={(event) => {
-              const nextVolume = Number(event.target.value);
-              setVolume(nextVolume);
-              playerRef.current?.setVolume(nextVolume);
-              if (nextVolume > 0 && muted) {
-                playerRef.current?.unMute();
-                setMuted(false);
-              }
-            }}
-          />
-          <output>{volume}%</output>
-        </label>
-      </div>
+              type="button"
+              className="mute-btn time-text"
+              aria-label={muted ? t('unmuteRadio', locale) : t('muteRadio', locale)}
+              title={muted ? t('unmuteRadio', locale) : t('muteRadio', locale)}
+              disabled={!playerReady}
+              onClick={() => {
+                const player = playerRef.current;
+                if (!player) return;
+                if (muted) player.unMute();
+                else player.mute();
+                setMuted(!muted);
+              }}
+            >
+              {muted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              className="neon-slider progress-slider"
+              aria-label={t('radioVolume', locale)}
+              onChange={(event) => {
+                const nextVolume = Number(event.target.value);
+                setVolume(nextVolume);
+                playerRef.current?.setVolume(nextVolume);
+                if (nextVolume > 0 && muted) {
+                  playerRef.current?.unMute();
+                  setMuted(false);
+                }
+              }}
+            />
+            <span className="time-text">{volume}%</span>
+          </div>
 
           {playlist.length > 0 && (
             <div className="radio-playlist-menu">

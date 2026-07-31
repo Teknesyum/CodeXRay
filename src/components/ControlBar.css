@@ -208,8 +208,9 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 60%;
-  max-width: 600px;
+  width: 70%;
+  max-width: 800px;
+  min-height: 500px;
   background: rgba(10, 10, 15, 0.98);
   border: 1px solid rgba(0, 243, 255, 0.4);
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 243, 255, 0.2);
@@ -218,6 +219,7 @@
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .settings-modal-header {

@@ -7,6 +7,7 @@ This document tracks all version history, improvements, bug fixes, and feature a
 ### Eklendi (Added)
 - **Kapsamlı AI Geliştirme Rehberi**: Yapay zekanın (Antigravity ve diğer modellerin) projeyi daha hızlı ve hatasız anlaması için `.agents/AGENTS.md` sistem dosyası oluşturuldu. İçerisinde mimari şemalar, geliştirme kuralları ve klasör yapıları bulunuyor.
 - **Radyo Otoplay & Minimal UI**: Radyo paneli tamamen küçültülerek bir "minimal medya oynatıcısına" çevrildi. Video/kapak fotoğrafı gizlendi. Seçilen YouTube Müzik listesi (`OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0`) radyo açılır açılmaz otomatik çalmaya (autoplay) başladı. Ayriyeten, radyo ikonuna tıklandığında müzik kesilmeden arayüz minimize edilebilir hale getirildi.
+- **Radyo Medya Kontrolleri**: Minimal oynatıcı arayüzüne (YouTube Iframe API entegrasyonu ile) "Oynat/Durdur", "Önceki/Sonraki Şarkı", "Döngü (Loop)" ve "Karışık Çal (Shuffle)" butonları eklendi. Tam donanımlı bir müzik kontrolcüsü haline getirildi.
 - **Detaylı Kurulum Rehberi**: `README.md` güncellendi ve Windows, macOS ve Linux sistemler için net komutları içeren "Kolay Yükleme Talimatları" (Quick Start & Installation) eklendi.
 - **Versiyon Takip Sistemi (Update Notes)**: `UPDATENOTES.md` (bu dosya) projeye dahil edildi. Uygulama içerisindeki Ayarlar menüsüne mevcut sürümü gösteren bir ibare (v1.1.0) yerleştirildi.
 

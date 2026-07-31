@@ -52,26 +52,45 @@ question. The newest workspace snapshot—current code, input, progress, selecte
 line, complete current visual state, and nearby trace—always overrides older
 chat. Conversation memory can be cleared from the assistant header.
 
-## Development
+## Quick Start & Installation
 
-Use Node.js 22 or newer:
+To run CodeXRay locally, you'll need [Node.js](https://nodejs.org/) (version 22 or newer) installed on your system.
+
+### Windows
+
+1. Download and install [Git for Windows](https://gitforwindows.org/) and [Node.js](https://nodejs.org/).
+2. Open PowerShell or Command Prompt and run:
+   ```cmd
+   git clone https://github.com/srknzl/CodeXRay.git
+   cd CodeXRay
+   npm ci
+   npm run dev
+   ```
+
+### macOS / Linux
+
+1. Ensure Git and Node.js are installed via your package manager (e.g., `brew install git node` for macOS, or `sudo apt install git nodejs` for Ubuntu).
+2. Open your terminal and run:
+   ```bash
+   git clone https://github.com/srknzl/CodeXRay.git
+   cd CodeXRay
+   npm ci
+   npm run dev
+   ```
+
+### Quality & Testing Commands
+
+Once the project is running, you can use the following commands to ensure code quality:
 
 ```bash
-npm ci
-npm run dev
+npm run lint           # Run ESLint to check for code issues
+npm run test           # Run unit tests
+npm run test:coverage  # Run unit tests with coverage report
+npm run build          # Build the project for production
+npm run test:e2e       # Run End-to-End tests
 ```
 
-Quality commands:
-
-```bash
-npm run lint
-npm run test
-npm run test:coverage
-npm run build
-npm run test:e2e
-```
-
-Playwright needs a one-time local browser install:
+Playwright needs a one-time local browser install for E2E tests:
 
 ```bash
 npx playwright install chromium

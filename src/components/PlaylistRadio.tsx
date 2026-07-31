@@ -70,7 +70,7 @@ const loadYouTubeApi = (): Promise<YouTubeApi> => {
 };
 
 export const PlaylistRadio = () => {
-  const { locale, radioPlaylistId, radioAutoplay } = useTimeline();
+  const { locale, radioPlaylistId, radioAutoplay, radioMinimizeSeconds } = useTimeline();
   const [minimized, setMinimized] = useState(!radioAutoplay);
   const [hasStarted, setHasStarted] = useState(radioAutoplay);
   const [volume, setVolume] = useState(25);
@@ -197,7 +197,7 @@ export const PlaylistRadio = () => {
         hoverTimeoutRef.current = window.setTimeout(() => {
           setMinimized(true);
           setShowRing(false);
-        }, 4000); // 4 seconds animation
+        }, radioMinimizeSeconds * 1000); // Dynamic animation duration
       }, 1000); // 1 second delay
     } else {
       setShowRing(false);
@@ -265,7 +265,7 @@ export const PlaylistRadio = () => {
             </a>
             <div className="minimize-btn-wrapper">
               {!isHovered && !minimized && showRing && (
-                <svg className="countdown-ring" width="24" height="24">
+                <svg className="countdown-ring" width="24" height="24" style={{ animationDuration: `${radioMinimizeSeconds}s` }}>
                   <rect x="2" y="2" width="20" height="20" rx="4" />
                 </svg>
               )}

@@ -57,6 +57,8 @@ interface TimelineContextType {
   setIsAiMaximized: (max: boolean) => void;
   autoLoadAiModel: boolean;
   setAutoLoadAiModel: (auto: boolean) => void;
+  radioMinimizeSeconds: number;
+  setRadioMinimizeSeconds: (seconds: number) => void;
   locale: Locale;
   setLocale: (locale: Locale) => void;
   theme: Theme;
@@ -139,9 +141,13 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [autoLoadAiModel, setAutoLoadAiModel] = useState(() => 
     localStorage.getItem('codexray.ai.autoLoad') !== 'false'
   );
+  const [radioMinimizeSeconds, setRadioMinimizeSeconds] = useState(() => {
+    const val = localStorage.getItem('codexray.radio.minimizeSeconds');
+    return val ? parseInt(val, 10) : 4;
+  });
   const [isAiMaximized, setIsAiMaximized] = useState(false);
   const [locale, setLocale] = useState<Locale>(() =>
-    localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
+    localStorage.getItem('codexray.locale') === 'en' ? 'en' : 'tr',
   );
   const [theme, setTheme] = useState<Theme>(() =>
     (localStorage.getItem('codexray.theme') as Theme) || 'neon',
@@ -225,6 +231,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, [autoLoadAiModel]);
 
   useEffect(() => {
+    localStorage.setItem('codexray.radio.minimizeSeconds', radioMinimizeSeconds.toString());
+  }, [radioMinimizeSeconds]);
+
+  useEffect(() => {
     localStorage.setItem('codexray.radio.playlist', radioPlaylistId);
   }, [radioPlaylistId]);
 
@@ -290,6 +300,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setShowAiLoadProgress,
       autoLoadAiModel,
       setAutoLoadAiModel,
+      radioMinimizeSeconds,
+      setRadioMinimizeSeconds,
       isAiMaximized,
       setIsAiMaximized,
       locale,

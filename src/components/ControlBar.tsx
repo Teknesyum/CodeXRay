@@ -74,6 +74,8 @@ export const ControlBar = ({
     setRadioPlaylistId,
     radioAutoplay,
     setRadioAutoplay,
+    radioMinimizeSeconds,
+    setRadioMinimizeSeconds,
     locale,
     setLocale,
     theme,
@@ -623,6 +625,24 @@ export const ControlBar = ({
                         />
                         <span className="checkbox-text">{t('radioAutoplay', locale)}</span>
                       </label>
+                    </div>
+                    <div className="settings-section">
+                      <div className="settings-title">Otomatik Kapanma Süresi</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                          type="range"
+                          className="progress-slider"
+                          min="1"
+                          max="15"
+                          step="1"
+                          value={radioMinimizeSeconds}
+                          onChange={(e) => setRadioMinimizeSeconds(Number(e.target.value))}
+                          style={{ flex: 1 }}
+                        />
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', width: '30px' }}>
+                          {radioMinimizeSeconds}s
+                        </span>
+                      </div>
                     </div>
                     <div className="settings-section">
                       <div className="settings-title">{t('radioPlaylist', locale)}</div>

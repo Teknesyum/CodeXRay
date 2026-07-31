@@ -474,6 +474,9 @@ export const ControlBar = ({
                   </div>
                 )}
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
+                <div style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
+                  CodeXRay v1.1.0
+                </div>
               </div>
             </div>
           )}

@@ -14,8 +14,11 @@ import type {
   SimLangExpression,
   SimLangFunctionV1,
   SimLangStatement,
-  VisualizationContractV1,
+  SemanticEdgeRoleV1,
+  SemanticNodeRoleV1,
+  VisualizationContract,
 } from '../types/godMode';
+import { isVisualizationV2 } from './visualizationDesigner';
 
 type RuntimeScalar = string | number | boolean | null;
 type RuntimeValue =
@@ -30,7 +33,7 @@ interface RuntimeEnvironment {
   input: SimulationInput;
   graph?: GraphDocumentV1;
   source: RenderedSourceV1;
-  visualization: VisualizationContractV1;
+  visualization: VisualizationContract;
   functions: Map<string, SimLangFunctionV1>;
   steps: SimulationStep[];
   instructions: number;
@@ -721,6 +724,51 @@ const addGraphEdge = (
   }
 };
 
+const semanticNodeIds = (
+  source: SemanticNodeRoleV1['source'],
+  environment: RuntimeEnvironment,
+): Set<string> => {
+  if (source.kind === 'input-start') return new Set(environment.graph ? [environment.graph.startId] : []);
+  if (source.kind === 'input-target') return new Set(environment.graph?.targetId ? [environment.graph.targetId] : []);
+  if (source.kind === 'variable') {
+    const value = getVariableOrUndefined(environment, source.variable);
+    return new Set(typeof value === 'string' ? [value] : []);
+  }
+  if (source.kind === 'collection') {
+    return new Set(arrayOfStrings(getVariableOrUndefined(environment, source.variable)));
+  }
+  if (!('variables' in source)) return new Set();
+  const [left, right] = source.variables.map((name: string) =>
+    new Set(arrayOfStrings(getVariableOrUndefined(environment, name))));
+  return new Set([...left].filter((id) => right.has(id)));
+};
+
+const edgeRoleMatches = (
+  role: SemanticEdgeRoleV1,
+  edge: { from: string; to: string },
+  environment: RuntimeEnvironment,
+): boolean => {
+  const matches = (from: string, to: string) =>
+    (edge.from === from && edge.to === to)
+    || (!environment.graph?.directed && edge.from === to && edge.to === from);
+  if (role.source.kind === 'active-variables') {
+    const from = getVariableOrUndefined(environment, role.source.fromVariable);
+    const to = getVariableOrUndefined(environment, role.source.toVariable);
+    return typeof from === 'string' && typeof to === 'string' && matches(from, to);
+  }
+  if (role.source.kind === 'path') {
+    const path = arrayOfStrings(getVariableOrUndefined(environment, role.source.variable));
+    return path.slice(0, -1).some((from, index) => matches(from, path[index + 1]));
+  }
+  const value = getVariableOrUndefined(environment, role.source.variable);
+  const entries = value instanceof Map
+    ? [...value.entries()]
+    : value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Set)
+      ? Object.entries(value)
+      : [];
+  return entries.some(([child, parent]) => typeof parent === 'string' && matches(parent, child));
+};
+
 const buildVisualData = (environment: RuntimeEnvironment): VisualData => {
   const variables = allVariables(environment);
   const contract = environment.visualization;
@@ -755,27 +803,47 @@ const buildVisualData = (environment: RuntimeEnvironment): VisualData => {
     const hasEdge = (edges: Set<string>, from: string, to: string): boolean =>
       edges.has(graphEdgeKey(from, to))
       || (!environment.graph?.directed && edges.has(graphEdgeKey(to, from)));
+    const nodeRoleMembership = isVisualizationV2(contract)
+      ? contract.nodeRoles.map((role) => ({ role, ids: semanticNodeIds(role.source, environment) }))
+      : [];
     const visual: GraphVisualData = {
       type: 'graph',
       directed: environment.graph.directed,
-      nodes: environment.graph.nodes.map((node) => ({
-        ...node,
-        state: path.has(node.id)
+      nodes: environment.graph.nodes.map((node) => {
+        const semanticRoles = nodeRoleMembership
+          .filter(({ ids }) => ids.has(node.id))
+          .map(({ role }) => role)
+          .sort((left, right) => right.priority - left.priority);
+        return {
+          ...node,
+          state: path.has(node.id)
           ? 'path'
           : active.has(node.id)
             ? 'active'
             : queued.has(node.id)
               ? 'queued'
               : visited.has(node.id) ? 'visited' : 'idle',
-      })),
-      edges: environment.graph.edges.map((edge) => ({
-        ...edge,
-        state: hasEdge(pathEdges, edge.from, edge.to)
+          semanticRoles: semanticRoles.map((role) => role.id),
+          semanticStyle: semanticRoles[0]?.style,
+        };
+      }),
+      edges: environment.graph.edges.map((edge) => {
+        const semanticRoles = isVisualizationV2(contract)
+          ? contract.edgeRoles
+            .filter((role) => edgeRoleMatches(role, edge, environment))
+            .sort((left, right) => right.priority - left.priority)
+          : [];
+        return {
+          ...edge,
+          state: hasEdge(pathEdges, edge.from, edge.to)
           ? 'path'
           : hasEdge(activeEdges, edge.from, edge.to) || hasEdge(traversedEdges, edge.from, edge.to)
-            ? 'active'
+            ? semanticRoles.some((role) => role.source.kind === 'parent-map') ? 'visited' : 'active'
             : 'idle',
-      })),
+          semanticRoles: semanticRoles.map((role) => role.id),
+          semanticStyle: semanticRoles[0]?.style,
+        };
+      }),
       vars: variables,
     };
     return visual;
@@ -991,7 +1059,7 @@ export interface SimLangExecutionResult {
 export const executeSimLang = (
   program: ProgramSpecV1,
   input: SimulationInput,
-  visualization: VisualizationContractV1,
+  visualization: VisualizationContract,
   source = renderProgramSource(program),
 ): SimLangExecutionResult => {
   const validation = validateProgramSpec(program);

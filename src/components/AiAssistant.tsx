@@ -15,7 +15,7 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { routeGodModeRequest } from '../services/godModeRouting';
+import { canonicalCustomTitle, routeGodModeRequest } from '../services/godModeRouting';
 import {
   startGodModeRun,
   type GodModeRunHandle,
@@ -25,6 +25,7 @@ import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRu
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { GodModeProgress } from './GodModeProgress';
+import { MarkdownPreview } from './MarkdownPreview';
 import './AiAssistant.css';
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
@@ -90,6 +91,7 @@ interface AiAssistantProps {
 export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) => {
   const {
     algorithmName,
+    setAlgorithmName,
     code,
     steps,
     currentIndex,
@@ -100,6 +102,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     jumpTo,
     pause,
     play,
+    setSpeed,
     pinnedVariables,
     selectedExampleQuestion,
     setSelectedExampleQuestion,
@@ -113,6 +116,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     activeSimulationPackage,
     packageOutOfSync,
     applySimulationPackage,
+    applyVisualPackageTransaction,
     applyInputTransaction,
     applyPresetTransaction,
     undoWorkspaceTransaction,
@@ -150,6 +154,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const godModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const godModeRunRef = useRef<GodModeRunHandle | null>(null);
+  const narratedCheckpointsRef = useRef(new Set<string>());
   const panelTitle = t('masterCoder', locale);
 
   const copyAiResponse = async (content: string, index: number) => {
@@ -450,6 +455,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         }
         setLastGodModeRequest(userMessage);
         if (godModeIntent.type === 'discuss-current-step') pause();
+        if (godModeIntent.type === 'create-algorithm') {
+          const pendingTitle = canonicalCustomTitle(userMessage, locale);
+          setAlgorithmName(pendingTitle);
+          stateRef.current = { ...stateRef.current, algorithmName: pendingTitle };
+        }
         const workspaceSnapshot: WorkspaceSnapshotV1 = {
           version: 1,
           algorithmName: stateRef.current.algorithmName,
@@ -496,6 +506,17 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               packageOutOfSync: false,
             };
           },
+          applyVisualPackage: (value, runId) => {
+            applyVisualPackageTransaction(value, runId);
+            stateRef.current = {
+              ...stateRef.current,
+              simulationInput: value.input.value,
+              steps: value.steps,
+              inputError: null,
+              activeSimulationPackage: value,
+              packageOutOfSync: false,
+            };
+          },
           applyInput: (input, generatedSteps, runId) => {
             applyInputTransaction(input, generatedSteps, runId);
             stateRef.current = {
@@ -517,6 +538,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           ...previous,
           { role: 'ai' as const, content },
         ].slice(-MAX_STORED_MESSAGES));
+        if (result.package?.teachingPlan.autoStart) {
+          setSpeed(result.package.teachingPlan.suggestedSpeed);
+          play();
+        }
         return;
       }
 
@@ -629,10 +654,14 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     applyDeterministicActions,
     applyInputTransaction,
     applySimulationPackage,
+    applyVisualPackageTransaction,
     godModeEnabled,
     pause,
+    play,
     requestRadioOpen,
     setTheme,
+    setAlgorithmName,
+    setSpeed,
   ]);
 
   useEffect(() => {
@@ -640,6 +669,43 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     if (aiStatus === 'ready' || godModeEnabled) void submitQuestion(selectedExampleQuestion);
     setSelectedExampleQuestion(null);
   }, [aiStatus, godModeEnabled, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
+
+  useEffect(() => {
+    narratedCheckpointsRef.current.clear();
+  }, [activeSimulationPackage?.id]);
+
+  useEffect(() => {
+    if (!guidedMode || isPlaying || !activeSimulationPackage) return;
+    if (godModePlan?.jobs.some((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')) return;
+    const teachingCheckpoint = activeSimulationPackage.teachingPlan.checkpoints.find(
+      ({ checkpoint }) => checkpoint.stepIndex === currentIndex,
+    );
+    if (!teachingCheckpoint) return;
+    const key = `${activeSimulationPackage.id}:${currentIndex}`;
+    if (narratedCheckpointsRef.current.has(key)) return;
+    narratedCheckpointsRef.current.add(key);
+    const { narration } = teachingCheckpoint;
+    const labels = locale === 'tr'
+      ? ['Kod', 'Veri', 'Görsel', 'Mantık', 'Zaman']
+      : ['Code', 'Data', 'Visual', 'Reasoning', 'Time'];
+    const content = [
+      `${labels[0]}: ${narration.lenses.code}`,
+      `${labels[1]}: ${narration.lenses.data}`,
+      `${labels[2]}: ${narration.lenses.visual}`,
+      `${labels[3]}: ${narration.lenses.reasoning}`,
+      `${labels[4]}: ${narration.lenses.time}`,
+      `${locale === 'tr' ? 'Değişmez koşul' : 'Invariant'}: ${narration.invariant}`,
+      `${locale === 'tr' ? 'Sıradaki olası hareket' : 'Next possible move'}: ${narration.nextMove}`,
+    ];
+    if (currentIndex === activeSimulationPackage.steps.length - 1) {
+      const result = activeSimulationPackage.teachingPlan.finalResult;
+      content.push('', `${locale === 'tr' ? 'Final sonuç' : 'Final result'}: ${result.summary}`, result.correctness);
+    }
+    setChatHistory((previous) => [
+      ...previous,
+      { role: 'ai' as const, content: content.join('\n') },
+    ].slice(-MAX_STORED_MESSAGES));
+  }, [activeSimulationPackage, currentIndex, godModePlan, guidedMode, isPlaying, locale]);
 
   const systemMessage = translateRuntimeText(analysis
     ?? currentStep?.explanation
@@ -758,11 +824,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       )}
 
       <div className="ai-body" ref={chatBodyRef}>
-        <div className="chat-message system-msg"><p>{systemMessage}</p></div>
+        <div className="chat-message system-msg"><MarkdownPreview content={systemMessage} /></div>
         {chatHistory.map((message, index) => (
           <div key={`${message.role}-${index}`} className={`chat-message ${message.role}-msg`}>
             {message.role === 'ai' && <Bot size={14} className="msg-icon" />}
-            <p>{message.content}</p>
+            {message.role === 'user'
+              ? <p>{message.content}</p>
+              : <MarkdownPreview content={message.content} />}
             {message.role === 'ai' && (
               <button
                 type="button"
@@ -779,7 +847,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         {typingMessage !== null && (
           <div className="chat-message ai-msg">
             <Bot size={14} className="msg-icon" />
-            <p>{typingMessage}</p>
+            <MarkdownPreview content={typingMessage} />
           </div>
         )}
         {isTyping && actionQueue.length === 0 && typingMessage === null && (

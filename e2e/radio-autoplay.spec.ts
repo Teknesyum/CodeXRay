@@ -4,6 +4,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.radio.autoplay', 'true');
+    localStorage.setItem('codexray.radio.minimizeSeconds', '16');
 
     type PlayerEvents = {
       onReady: (event: { target: MockPlayer }) => void;
@@ -25,6 +26,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
 
     class MockPlayer {
       private state = -1;
+      private index = 0;
       private readonly events: PlayerEvents;
 
       constructor(_element: HTMLIFrameElement, options: { events: PlayerEvents }) {
@@ -35,6 +37,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
         };
         radioWindow.__endRadioTrack = () => {
           this.state = 0;
+          this.index = 1;
           this.events.onStateChange?.({ data: 0, target: this });
         };
         window.setTimeout(() => this.events.onReady({ target: this }), 0);
@@ -57,11 +60,12 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
       getPlayerState() { return this.state; }
       nextVideo() {}
       previousVideo() {}
-      getPlaylist() { return ['8zj8h15VmQw']; }
-      getPlaylistIndex() { return 0; }
-      getVideoData() { return { title: 'Up', video_id: '8zj8h15VmQw' }; }
+      getPlaylist() { return ['8zj8h15VmQw', 'next-track']; }
+      getPlaylistIndex() { return this.index; }
+      getVideoData() { return { title: this.index === 0 ? 'Up' : 'Next', video_id: this.index === 0 ? '8zj8h15VmQw' : 'next-track' }; }
       playVideoAt(index: number) {
         radioWindow.__radioPlayAtIndices.push(index);
+        this.index = index;
         this.state = 1;
         this.events.onStateChange?.({ data: 1, target: this });
       }
@@ -95,10 +99,10 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
     window as Window & { __endRadioTrack: () => void }
   ).__endRadioTrack());
   await expect.poll(() => page.evaluate(() => (
-    window as Window & { __radioSeekCalls: number[] }
-  ).__radioSeekCalls)).toEqual([0]);
-  expect(await page.evaluate(() => (
     window as Window & { __radioPlayAtIndices: number[] }
-  ).__radioPlayAtIndices)).toEqual([]);
+  ).__radioPlayAtIndices)).toEqual([0]);
+  expect(await page.evaluate(() => (
+    window as Window & { __radioSeekCalls: number[] }
+  ).__radioSeekCalls)).toEqual([]);
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
 });

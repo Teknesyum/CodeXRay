@@ -32,4 +32,25 @@ describe('God Mode routing', () => {
       template: 'bidirectional-bfs',
     });
   });
+
+  it('distinguishes opening a preset, authoring code, using the current graph, and asking a question', () => {
+    expect(routeGodModeRequest('BFS sayfasını aç', [], 0)).toEqual({
+      type: 'deterministic',
+      actions: [{ type: 'load-preset', presetId: 'breadth-first-search-bfs' }],
+    });
+    expect(routeGodModeRequest('BFS kodu yaz', [], 0)).toEqual({
+      type: 'create-algorithm',
+      template: 'model-authored',
+    });
+    expect(routeGodModeRequest('Elimdeki graph için BFS oluştur', [], 0)).toEqual({
+      type: 'create-algorithm',
+      template: 'model-authored',
+    });
+    expect(routeGodModeRequest('BFS nedir?', [], 0)).toBeNull();
+  });
+
+  it('routes structural and visual-only graph changes through input transactions', () => {
+    expect(routeGodModeRequest('Bu grapha iki node ekle, hedefi değiştir', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeGodModeRequest('Nodeları daha geniş yay, iki cepheyi farklı şekillerle göster', [], 0)).toEqual({ type: 'adapt-input' });
+  });
 });

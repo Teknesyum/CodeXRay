@@ -7,11 +7,13 @@ import {
   useState,
 } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { SimulationInput, SimulationStep } from '../types/simulation';
+import type { GraphDocumentV1, SimulationInput, SimulationStep } from '../types/simulation';
 import { createInputPreset } from '../services/inputPresets';
 import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
 import type { CustomSimulationPackageV1 } from '../types/godMode';
+import { compileCustomSimulationPackage } from '../services/customSimulationCompiler';
+import { classifyGraphChange, patchPackageGraphLayout } from '../services/graphTransactions';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type Theme = 'neon' | 'dark' | 'light';
@@ -37,6 +39,7 @@ interface TimelineContextType {
   setAnalysis: (analysis: string | null) => void;
   simulationInput: SimulationInput;
   setSimulationInput: Dispatch<SetStateAction<SimulationInput>>;
+  applyGraphTransaction: (graph: GraphDocumentV1) => 'layout' | 'structural' | 'failed';
   inputError: string | null;
   setInputError: (error: string | null) => void;
   selectedExampleQuestion: string | null;
@@ -80,6 +83,7 @@ interface TimelineContextType {
   activeSimulationPackage: CustomSimulationPackageV1 | null;
   packageOutOfSync: boolean;
   applySimulationPackage: (value: CustomSimulationPackageV1, runId: string) => void;
+  applyVisualPackageTransaction: (value: CustomSimulationPackageV1, runId: string) => void;
   applyInputTransaction: (
     input: SimulationInput,
     steps: SimulationStep[],
@@ -132,6 +136,7 @@ type WorkspaceAction =
   | { type: 'set-input'; value: SetStateAction<SimulationInput> }
   | { type: 'set-input-error'; value: string | null }
   | { type: 'apply-package'; value: CustomSimulationPackageV1; runId: string }
+  | { type: 'apply-graph-layout'; value: CustomSimulationPackageV1; runId: string }
   | { type: 'apply-input'; input: SimulationInput; steps: SimulationStep[]; runId: string }
   | {
     type: 'apply-preset';
@@ -184,7 +189,14 @@ const workspaceReducer = (state: WorkspaceState, action: WorkspaceAction): Works
       const next = typeof action.value === 'function'
         ? action.value(state.simulationInput)
         : action.value;
-      return { ...state, simulationInput: next };
+      return {
+        ...state,
+        simulationInput: next,
+        packageOutOfSync: Boolean(
+          state.activePackage
+          && JSON.stringify(next) !== JSON.stringify(state.activePackage.input.value),
+        ),
+      };
     }
     case 'set-input-error': return { ...state, inputError: action.value };
     case 'apply-package':
@@ -200,6 +212,20 @@ const workspaceReducer = (state: WorkspaceState, action: WorkspaceAction): Works
         activePackage: action.value,
         packageOutOfSync: false,
         undo: [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
+        redo: [],
+        lastTransactionId: action.runId,
+      };
+    case 'apply-graph-layout':
+      return {
+        ...state,
+        steps: action.value.steps,
+        simulationInput: action.value.input.value,
+        inputError: null,
+        activePackage: action.value,
+        packageOutOfSync: false,
+        undo: state.lastTransactionId?.startsWith('graph-layout-')
+          ? state.undo
+          : [...state.undo, workspaceSnapshot(state)].slice(-WORKSPACE_HISTORY_LIMIT),
         redo: [],
         lastTransactionId: action.runId,
       };
@@ -389,6 +415,9 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     setIsPlaying(false);
     dispatchWorkspace({ type: 'apply-package', value, runId });
   }, []);
+  const applyVisualPackageTransaction = useCallback((value: CustomSimulationPackageV1, runId: string) => {
+    dispatchWorkspace({ type: 'apply-graph-layout', value, runId });
+  }, []);
   const applyInputTransaction = useCallback((input: SimulationInput, value: SimulationStep[], runId: string) => {
     setIsPlaying(false);
     dispatchWorkspace({ type: 'apply-input', input, steps: value, runId });
@@ -403,6 +432,56 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     setIsPlaying(false);
     dispatchWorkspace({ type: 'apply-preset', value, runId });
   }, []);
+  const applyGraphTransaction = useCallback((graph: GraphDocumentV1): 'layout' | 'structural' | 'failed' => {
+    const activePackage = workspace.activePackage;
+    const previousGraph = activePackage?.input.value.graph;
+    if (!activePackage || !previousGraph) {
+      dispatchWorkspace({
+        type: 'set-input',
+        value: { kind: graph.mode, text: JSON.stringify(graph), graph, origin: 'user' },
+      });
+      return 'structural';
+    }
+    const change = classifyGraphChange(previousGraph, graph);
+    if (change === 'layout') {
+      const patched = patchPackageGraphLayout(activePackage, graph);
+      dispatchWorkspace({
+        type: 'apply-graph-layout',
+        value: patched,
+        runId: `graph-layout-${Date.now().toString(36)}`,
+      });
+      return 'layout';
+    }
+    try {
+      const patchedPackage = patchPackageGraphLayout(activePackage, graph);
+      const value = compileCustomSimulationPackage({
+        id: `${activePackage.id}-graph-${Date.now().toString(36)}`,
+        title: activePackage.title,
+        locale,
+        program: activePackage.program,
+        input: {
+          ...activePackage.input,
+          value: { kind: graph.mode, text: '', graph, origin: 'user' },
+          origin: 'user',
+        },
+        visualization: patchedPackage.visualization,
+        analysis: activePackage.analysis,
+      });
+      setIsPlaying(false);
+      dispatchWorkspace({
+        type: 'apply-package',
+        value,
+        runId: `graph-structural-${Date.now().toString(36)}`,
+      });
+      return 'structural';
+    } catch (error) {
+      dispatchWorkspace({
+        type: 'set-input-error',
+        value: error instanceof Error ? error.message : 'The custom graph could not be recompiled.',
+      });
+      return 'failed';
+    }
+  }, [locale, workspace.activePackage]);
   const undoWorkspaceTransaction = useCallback(() => {
     setIsPlaying(false);
     dispatchWorkspace({ type: 'undo' });
@@ -546,6 +625,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setAnalysis,
       simulationInput,
       setSimulationInput,
+      applyGraphTransaction,
       inputError,
       setInputError,
       selectedExampleQuestion,
@@ -589,6 +669,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       activeSimulationPackage: workspace.activePackage,
       packageOutOfSync: workspace.packageOutOfSync,
       applySimulationPackage,
+      applyVisualPackageTransaction,
       applyInputTransaction,
       applyPresetTransaction,
       undoWorkspaceTransaction,

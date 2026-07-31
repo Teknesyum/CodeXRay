@@ -7,7 +7,7 @@ import type {
   ManagerJobV1,
   ManagerPlanV1,
   ProgramSpecV1,
-  VisualizationContractV1,
+  VisualizationContract,
   WorkspaceSnapshotV1,
 } from '../types/godMode';
 import type { SimulationInput, SimulationStep } from '../types/simulation';
@@ -19,11 +19,14 @@ import { runLocalAgent, type LocalAgentHandle, type LocalAgentRequest } from './
 import { validateProgramSpec } from './simLang';
 import { PROGRAM_SPEC_V1_SCHEMA, SIMLANG_AUTHOR_INSTRUCTIONS } from './simLangSchema';
 import {
-  BIDIRECTIONAL_BFS_VISUALIZATION,
-  createBidirectionalBfsInput,
   createBidirectionalBfsProgram,
 } from './simLangBuiltins';
-import type { GodModeIntent } from './godModeRouting';
+import { canonicalCustomTitle, type GodModeIntent } from './godModeRouting';
+import { createAgentInputContract } from './agentInputGenerator';
+import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
+import { createVisualizationContractV2 } from './visualizationDesigner';
+import { applyStructuralGraphRequest, isVisualOnlyGraphRequest, spreadGraphLayout } from './graphRequestEdits';
+import { patchPackageGraphLayout } from './graphTransactions';
 
 export interface GodModeRunResult {
   runId: string;
@@ -48,6 +51,7 @@ export interface GodModeOrchestratorOptions {
   onPlan: (plan: ManagerPlanV1) => void;
   onEvent?: (job: ManagerJobV1) => void;
   applyPackage: (value: CustomSimulationPackageV1, runId: string) => Promise<void> | void;
+  applyVisualPackage?: (value: CustomSimulationPackageV1, runId: string) => Promise<void> | void;
   applyInput: (
     input: SimulationInput,
     steps: SimulationStep[],
@@ -102,15 +106,21 @@ const createJobs = (intent: GodModeOrchestratorOptions['intent']): ManagerJobV1[
     job('scout', 'Inspect live workspace', 8, ['manager-decompose-request']),
     job('architect', 'Design algorithm contract', 12, ['scout-inspect-live-workspace']),
     job('code-author', 'Author executable program', 17, ['architect-design-algorithm-contract']),
-    job('input-engineer', 'Build compatible input', 12, ['architect-design-algorithm-contract']),
-    job('compiler', 'Compile source and trace', 15, [
-      'code-author-author-executable-program',
-      'input-engineer-build-compatible-input',
+    job('input-engineer', 'Build original teaching input', 10, ['architect-design-algorithm-contract']),
+    job('visual-designer', 'Design semantic visual language', 9, ['architect-design-algorithm-contract']),
+    job('layout-engineer', 'Resolve responsive graph layout', 8, [
+      'input-engineer-build-original-teaching-input',
+      'visual-designer-design-semantic-visual-language',
     ]),
-    job('critic', 'Test and review package', 10, ['compiler-compile-source-and-trace']),
-    job('manager', 'Apply workspace transaction', 8, ['critic-test-and-review-package']),
-    job('trace-analyst', 'Mark discussion checkpoints', 6, ['manager-apply-workspace-transaction']),
-    job('tutor', 'Prepare five-lens tour', 6, ['trace-analyst-mark-discussion-checkpoints']),
+    job('compiler', 'Compile source and trace', 13, [
+      'code-author-author-executable-program',
+      'layout-engineer-resolve-responsive-graph-layout',
+    ]),
+    job('critic', 'Test visual and trace alignment', 8, ['compiler-compile-source-and-trace']),
+    job('manager', 'Apply workspace transaction', 7, ['critic-test-visual-and-trace-alignment']),
+    job('trace-director', 'Direct live teaching checkpoints', 6, ['manager-apply-workspace-transaction']),
+    job('result-analyst', 'Ground final result analysis', 5, ['trace-director-direct-live-teaching-checkpoints']),
+    job('tutor', 'Prepare five-lens live tour', 6, ['result-analyst-ground-final-result-analysis']),
   ];
 };
 
@@ -410,6 +420,8 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       });
 
       if (options.intent.type === 'adapt-input') {
+        const visualOnly = Boolean(options.activePackage?.input.value.graph)
+          && isVisualOnlyGraphRequest(options.request);
         const input = await runJob('input-engineer-build-compatible-input', async () => {
           const kind = options.activePackage?.input.kind
             ?? getInputKindForAlgorithm(options.workspace.algorithmName);
@@ -421,7 +433,16 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
               options.workspace.simulationInput.parameters,
             ).input
             : undefined;
-          const generated = current ?? createInputPreset(kind, 2, options.workspace.algorithmName);
+          let generated = current ?? createInputPreset(kind, 2, options.workspace.algorithmName);
+          if (generated.graph && visualOnly) {
+            generated = { ...generated, text: '', graph: spreadGraphLayout(generated.graph) };
+          } else if (generated.graph && options.activePackage) {
+            generated = {
+              ...generated,
+              text: '',
+              graph: applyStructuralGraphRequest(generated.graph, options.request),
+            };
+          }
           const advice = await callOptionalAgent(
             'input-engineer',
             'Inspect the code and proposed input. Briefly state whether the input kind is compatible and name one useful edge case.',
@@ -442,15 +463,26 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           const parsed = parseSimulationInput(input.kind, input.text, input.graph, input.parameters);
           if (!parsed.input) throw new Error(parsed.error ?? 'Generated input is invalid.');
           if (options.activePackage) {
-            updatedPackage = compileCustomSimulationPackage({
-              id: `${options.activePackage.id}-input-${Date.now().toString(36)}`,
-              title: options.activePackage.title,
-              locale: options.locale,
-              program: options.activePackage.program,
-              input: { ...options.activePackage.input, value: parsed.input },
-              visualization: options.activePackage.visualization,
-              analysis: options.activePackage.analysis,
-            });
+            if (visualOnly && parsed.input.graph) {
+              updatedPackage = patchPackageGraphLayout(options.activePackage, parsed.input.graph);
+            } else {
+              const patched = parsed.input.graph
+                ? patchPackageGraphLayout(options.activePackage, parsed.input.graph)
+                : options.activePackage;
+              updatedPackage = compileCustomSimulationPackage({
+                id: `${options.activePackage.id}-input-${Date.now().toString(36)}`,
+                title: options.activePackage.title,
+                locale: options.locale,
+                program: options.activePackage.program,
+                input: {
+                  ...options.activePackage.input,
+                  value: { ...parsed.input, origin: 'user' },
+                  origin: 'user',
+                },
+                visualization: patched.visualization,
+                analysis: options.activePackage.analysis,
+              });
+            }
             return updatedPackage.steps;
           }
           return generateSimulationSteps(options.workspace.algorithmName, options.workspace.code, parsed.input);
@@ -467,7 +499,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           );
         });
         await runJob('manager-apply-workspace-transaction', () => updatedPackage
-          ? options.applyPackage(updatedPackage, runId)
+          ? visualOnly && options.applyVisualPackage
+            ? options.applyVisualPackage(updatedPackage, runId)
+            : options.applyPackage(updatedPackage, runId)
           : options.applyInput(input, steps, runId));
         const tutorAnswer = await runJob('tutor-explain-updated-workspace', () =>
           callOptionalAgent(
@@ -515,6 +549,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         else if (creationIntent.template === 'model-authored') {
           throw new Error('The Algorithm Architect returned an invalid contract.');
         }
+        design = { ...design, title: canonicalCustomTitle(options.request, options.locale) };
         setJob('architect-design-algorithm-contract', {
           summary: parsed ? `${parsed.title}: ${parsed.complexity.time}` : 'Validated deterministic architecture fallback selected.',
         });
@@ -578,39 +613,71 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         });
       }
 
-      const input: InputContractV1 = await runJob('input-engineer-build-compatible-input', async () => {
-        const value = creationIntent.template === 'bidirectional-bfs'
-          ? createBidirectionalBfsInput()
-          : {
-            version: 1 as const,
-            kind: design.inputKind,
-            description: `Generated ${design.inputKind} input for ${design.title}.`,
-            constraints: [design.termination, ...design.invariants.slice(0, 3)],
-            value: createInputPreset(design.inputKind, 2, design.title),
-          };
+      let input: InputContractV1 = await runJob('input-engineer-build-original-teaching-input', async () => {
+        const value = createAgentInputContract(design, options.request, options.workspace);
         const response = await callOptionalAgent(
           'input-engineer',
-          'Review the proposed input against the algorithm contract. Identify incompatibilities and one edge case. Application validation is authoritative.',
+          'Review the proposed teaching input against the algorithm contract. Preserve user input when origin=user. Identify one pedagogically useful branch. Application validation is authoritative.',
           JSON.stringify(value),
           'The application input validator accepted the proposed contract.',
           undefined,
           240,
         );
-        setJob('input-engineer-build-compatible-input', { summary: response.slice(0, 260) });
+        const origin = value.origin === 'fallback'
+          ? `FALLBACK: ${value.fallbackReason ?? 'agent input generation failed'}`
+          : value.origin === 'user' ? 'User input preserved.' : 'Original teaching input generated.';
+        setJob('input-engineer-build-original-teaching-input', { summary: `${origin} ${response}`.slice(0, 260) });
         return value;
       });
-      const visualization: VisualizationContractV1 = creationIntent.template === 'bidirectional-bfs'
-        ? BIDIRECTIONAL_BFS_VISUALIZATION
-        : {
-          version: 1,
-          type: design.inputKind === 'graph' || design.inputKind === 'tree'
-            ? 'graph'
-            : design.inputKind === 'array' ? 'array' : 'variables',
-          activeVariables: ['current', 'node', 'i', 'j'],
-          queuedVariables: ['queue', 'frontier'],
-          visitedVariables: ['visited'],
-          pathVariable: 'path',
+      let visualization: VisualizationContract;
+      await runJob('visual-designer-design-semantic-visual-language', async () => {
+        const provisionalLayout = input.value.graph
+          ? createGraphLayoutSpec(input.value.graph, design.title)
+          : createGraphLayoutSpec({
+            version: 1,
+            mode: 'graph',
+            directed: false,
+            weighted: false,
+            nodes: [{ id: '1', label: '1', x: 50, y: 50 }],
+            edges: [],
+            startId: '1',
+          }, design.title);
+        visualization = createVisualizationContractV2(design, input.value, provisionalLayout);
+        const response = await callOptionalAgent(
+          'visual-designer',
+          'Review the supplied semantic roles, frontier palette, result emphasis, and legend. Do not invent graph nodes or trace variables.',
+          JSON.stringify({ request: options.request, design, visualization }),
+          'Semantic roles use trace-backed variables and distinct frontier palettes.',
+          undefined,
+          280,
+        );
+        setJob('visual-designer-design-semantic-visual-language', { summary: response.slice(0, 260) });
+        return visualization;
+      });
+      await runJob('layout-engineer-resolve-responsive-graph-layout', async () => {
+        if (!input.value.graph) return input;
+        const layout = createGraphLayoutSpec(input.value.graph, design.title);
+        const graph = applyGraphLayout(input.value.graph, layout);
+        const quality = inspectGraphLayout(graph, Math.min(5, layout.minimumNodeDistance / 2));
+        if (!quality.valid) throw new Error('Layout Engineer could not produce a collision-free graph.');
+        input = {
+          ...input,
+          value: { ...input.value, text: '', graph },
         };
+        visualization = createVisualizationContractV2(design, input.value, layout);
+        const response = await callOptionalAgent(
+          'layout-engineer',
+          'Review the deterministic layout quality report and briefly state why the strategy fits this graph.',
+          JSON.stringify({ strategy: layout.strategy, quality, graph }),
+          `${layout.strategy} layout passed overlap, bounds, and edge-endpoint checks.`,
+          undefined,
+          220,
+        );
+        setJob('layout-engineer-resolve-responsive-graph-layout', { summary: response.slice(0, 260) });
+        return input;
+      });
+      // The visual designer job always initializes this value before the layout job.
+      const committedVisualization = visualization!;
       const packageValue = await runJob('compiler-compile-source-and-trace', () =>
         compileCustomSimulationPackage({
           id: `${program.id}-${runId}`,
@@ -618,45 +685,59 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           locale: options.locale,
           program,
           input,
-          visualization,
+          visualization: committedVisualization,
           analysis: [
             `Purpose: ${design.purpose}`,
             `Time Complexity: ${design.complexity.time}`,
             `Space Complexity: ${design.complexity.space}`,
             `Invariant: ${design.invariants.join(' ')}`,
           ].join('\n'),
+          invariants: design.invariants,
         }));
-      await runJob('critic-test-and-review-package', async () => {
+      await runJob('critic-test-visual-and-trace-alignment', async () => {
         if (!packageValue.tests.passed) throw new Error('Deterministic package tests failed.');
+        if (!packageValue.teachingPlan.checkpoints.length) throw new Error('Teaching plan has no grounded checkpoints.');
         const response = await callOptionalAgent(
           'critic',
-          'Review the already validated package test report. Report only concrete algorithmic concerns.',
-          JSON.stringify({ design, tests: packageValue.tests, finalStep: packageValue.steps.at(-1) }),
+          'Review the validated package test report, semantic roles, and real teaching checkpoints. Report only concrete mismatches.',
+          JSON.stringify({ design, tests: packageValue.tests, visualization: packageValue.visualization, checkpoints: packageValue.checkpoints, finalStep: packageValue.steps.at(-1) }),
           JSON.stringify({ passed: true, issues: [], summary: 'Deterministic package tests passed.' }),
           critiqueSchema,
           320,
         );
         const parsed = safeJsonObject(response);
-        setJob('critic-test-and-review-package', {
+        setJob('critic-test-visual-and-trace-alignment', {
           summary: typeof parsed?.summary === 'string' ? parsed.summary.slice(0, 260) : 'Deterministic tests passed.',
         });
         return response;
       });
       await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
-      await runJob('trace-analyst-mark-discussion-checkpoints', async () => {
+      await runJob('trace-director-direct-live-teaching-checkpoints', async () => {
         const response = await callOptionalAgent(
-          'trace-analyst',
-          'Review only the supplied real checkpoints and explain why meeting and reconstruction are important.',
-          JSON.stringify(packageValue.checkpoints),
-          'Validated checkpoints cover initialization, frontier expansion, meeting, and path reconstruction.',
+          'trace-director',
+          'Review only the supplied real checkpoint narrations. Confirm that every referenced step and variable exists; do not invent any.',
+          JSON.stringify(packageValue.teachingPlan.checkpoints),
+          'Validated checkpoints cover initialization, critical decisions, meeting, and the final result.',
           undefined,
           260,
         );
-        setJob('trace-analyst-mark-discussion-checkpoints', { summary: response.slice(0, 260) });
+        setJob('trace-director-direct-live-teaching-checkpoints', { summary: response.slice(0, 260) });
+        return response;
+      });
+      await runJob('result-analyst-ground-final-result-analysis', async () => {
+        const response = await callOptionalAgent(
+          'result-analyst',
+          'Review the deterministic final result analysis. Do not add metrics absent from the final snapshot.',
+          JSON.stringify(packageValue.teachingPlan.finalResult),
+          packageValue.teachingPlan.finalResult.summary,
+          undefined,
+          260,
+        );
+        setJob('result-analyst-ground-final-result-analysis', { summary: response.slice(0, 260) });
         return response;
       });
       const groundedTour = deterministicPackageTour(options.locale, packageValue);
-      const tutorAnswer = await runJob('tutor-prepare-five-lens-tour', async () => {
+      const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', async () => {
         const generated = await callOptionalAgent(
           'tutor',
           'Introduce the generated algorithm through five short labels: Code, Data, Visual, Reasoning, Time. Ground every claim in the supplied committed package.',

@@ -1,5 +1,6 @@
 import { CheckCircle2, LoaderCircle, PinOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import type {
   ArrayVisualData,
@@ -9,6 +10,7 @@ import type {
 } from '../types/simulation';
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
 import { GraphInputEditor } from './GraphInputEditor';
+import { isVisualizationV2 } from '../services/visualizationDesigner';
 import './DynamicVisualizer.css';
 
 const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
@@ -51,7 +53,11 @@ const ArrayView = ({ data }: { data: ArrayVisualData }) => (
 );
 
 const GraphView = ({ data }: { data: GraphVisualData }) => {
-  const { locale } = useTimeline();
+  const { locale, activeSimulationPackage } = useTimeline();
+  const legend = activeSimulationPackage
+    && isVisualizationV2(activeSimulationPackage.visualization)
+    ? activeSimulationPackage.visualization.legend
+    : null;
   return (
     <div className="visual-graph">
       <svg className="graph-edges" aria-label={t('graphEdges', locale)}>
@@ -68,17 +74,27 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
           const end = data.nodes.find((node) => node.id === edge.to);
           if (!start || !end) return null;
           const state = edge.state ?? 'idle';
+          const edgeStyle = edge.semanticStyle;
           const marker = data.directed
             ? `url(#arrow-${state === 'idle' ? 'idle' : 'active'})`
             : undefined;
           return (
-            <g key={edge.id} className={`graph-edge ${state}`}>
+            <g
+              key={edge.id}
+              className={`graph-edge ${state}`}
+              data-semantic-roles={edge.semanticRoles?.join(' ') ?? ''}
+            >
               <line
                 x1={`${start.x}%`}
                 y1={`${start.y}%`}
                 x2={`${end.x}%`}
                 y2={`${end.y}%`}
                 markerEnd={marker}
+                style={edgeStyle ? {
+                  stroke: edgeStyle.color,
+                  strokeWidth: edgeStyle.width,
+                  opacity: edgeStyle.opacity,
+                } : undefined}
               />
               {edge.weight !== undefined && (
                 <text x={`${(start.x + end.x) / 2}%`} y={`${(start.y + end.y) / 2}%`}>
@@ -92,18 +108,40 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
       {data.nodes.map((node) => (
         <div
           key={node.id}
-          className={`graph-node node-${node.state ?? 'idle'}`}
-          style={{ left: `${node.x}%`, top: `${node.y}%` }}
-          title={`${t('node', locale)} ${node.label}: ${t(node.state ?? 'idle', locale)}`}
+          className={`graph-node node-${node.state ?? 'idle'} shape-${node.semanticStyle?.shape ?? 'circle'} ${node.semanticStyle?.pulse ? `pulse-${node.semanticStyle.pulse}` : ''}`}
+          data-semantic-roles={node.semanticRoles?.join(' ') ?? ''}
+          style={{
+            left: `${node.x}%`,
+            top: `${node.y}%`,
+            width: node.semanticStyle ? `${node.semanticStyle.size}px` : undefined,
+            height: node.semanticStyle ? `${node.semanticStyle.size}px` : undefined,
+            borderColor: node.semanticStyle?.stroke,
+            background: node.semanticStyle?.fill,
+            '--node-glow-color': node.semanticStyle?.stroke,
+            '--node-glow-strength': node.semanticStyle?.glow ?? 0.5,
+          } as CSSProperties}
+          title={`${t('node', locale)} ${node.label}: ${t(node.state ?? 'idle', locale)}${node.semanticRoles?.length ? ` — ${node.semanticRoles.join(', ')}` : ''}`}
         >
           {node.label}
         </div>
       ))}
       <div className="graph-legend" aria-label={t('graphLegend', locale)}>
-        <span className="legend-queued">{t('queued', locale)}</span>
-        <span className="legend-active">{t('active', locale)}</span>
-        <span className="legend-visited">{t('visited', locale)}</span>
-        <span className="legend-path">{t('path', locale)}</span>
+        {legend ? legend.map((item) => (
+          <span
+            key={item.role}
+            className={`semantic-legend shape-${item.shape ?? 'circle'}`}
+            style={{ '--legend-color': item.color } as CSSProperties}
+          >
+            {item.label}
+          </span>
+        )) : (
+          <>
+            <span className="legend-queued">{t('queued', locale)}</span>
+            <span className="legend-active">{t('active', locale)}</span>
+            <span className="legend-visited">{t('visited', locale)}</span>
+            <span className="legend-path">{t('path', locale)}</span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -138,7 +176,7 @@ export const DynamicVisualizer = ({
     steps,
     currentIndex,
     simulationInput,
-    setSimulationInput,
+    applyGraphTransaction,
     setInputError,
     locale,
     isEditingInput,
@@ -327,11 +365,7 @@ export const DynamicVisualizer = ({
         <GraphInputEditor
           document={simulationInput.graph}
           locale={locale}
-          onChange={(graph) => setSimulationInput({
-            kind: graph.mode,
-            text: JSON.stringify(graph),
-            graph,
-          })}
+          onChange={applyGraphTransaction}
           onError={setInputError}
         />
       ) : currentStep ? (

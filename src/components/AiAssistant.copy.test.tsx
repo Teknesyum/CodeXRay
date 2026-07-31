@@ -41,4 +41,21 @@ describe('AiAssistant response copy control', () => {
     expect(writeText).toHaveBeenCalledWith('The pointer advances after the comparison.');
     expect(screen.getByRole('button', { name: 'AI response copied' })).toHaveClass('copied');
   });
+
+  it('previews AI Markdown while keeping user input as plain text', () => {
+    localStorage.setItem('codexray.ai-chat.v1', JSON.stringify([
+      { role: 'user', content: '**Do not format this**' },
+      { role: 'ai', content: '## Explanation\n\nUse `index + 1`.' },
+    ]));
+
+    render(
+      <TimelineProvider>
+        <AiAssistant collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Explanation', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText('index + 1').tagName).toBe('CODE');
+    expect(screen.getByText('**Do not format this**').querySelector('strong')).toBeNull();
+  });
 });

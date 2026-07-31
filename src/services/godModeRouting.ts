@@ -2,6 +2,8 @@ import type { SimulationStep } from '../types/simulation';
 import type { DeterministicWorkspaceCommand } from './aiTimelineControl';
 import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
 import { findImportantStepIndices } from './aiTimelineControl';
+import type { Locale } from '../i18n/translations';
+import { localizeAlgorithmName } from '../i18n/translations';
 
 export type GodModeIntent =
   | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'model-authored' }
@@ -37,6 +39,16 @@ export const normalizeGodModeText = (value: string): string => value
   .replace(/[^a-z0-9*+\s.-]/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
+
+export const canonicalCustomTitle = (request: string, locale: Locale): string => {
+  const normalized = normalizeGodModeText(request);
+  const base = /\b(iki yonlu|cift yonlu|bidirectional)\b/.test(normalized) && /\bbfs\b/.test(normalized)
+    ? locale === 'tr' ? 'İki Yönlü BFS' : 'Bidirectional BFS'
+    : resolveAlgorithmPresetFromCommand(request)?.name
+      ? localizeAlgorithmName(resolveAlgorithmPresetFromCommand(request)?.name ?? '', locale)
+      : locale === 'tr' ? 'Özel Algoritma' : 'Custom Algorithm';
+  return `${base} — ${locale === 'tr' ? 'Özel' : 'Custom'}`;
+};
 
 const hasWorkspaceVerb = (text: string): boolean =>
   /\b(ac|acsana|acabilir|acar|yukle|goster|getir|sec|open|load|show|switch)\b/.test(text);
@@ -83,6 +95,10 @@ export const routeGodModeRequest = (
     && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|adapt|create|prepare|change)\b/.test(text)) {
     return { type: 'adapt-input' };
   }
+  if (/\b(graph\w*|graf\w*|node\w*|dugum\w*|cephe\w*|frontier\w*|layout\w*|yerlesim\w*)\b/.test(text)
+    && /\b(duzenle|uyarla|degistir|ekle|sil|yay|genislet|yerlestir|renklendir|adapt|change|add|remove|spread|restyle|layout)\b/.test(text)) {
+    return { type: 'adapt-input' };
+  }
   if (/\b(bunu|burayi|bu adimi|mevcut adimi)\b/.test(text)
     && /\b(tartis|anlat|incele|acikla|discuss|explain)\b/.test(text)) {
     return { type: 'discuss-current-step' };
@@ -110,10 +126,9 @@ export const routeGodModeRequest = (
   }
   if (/\b(yaz|olustur|kur|ekle|generate|create|write)\b/.test(text)) {
     const existingPreset = resolveAlgorithmPresetFromCommand(text);
-    if (existingPreset) return {
-      type: 'deterministic',
-      actions: [{ type: 'load-preset', presetId: existingPreset.id }],
-    };
+    if (existingPreset && /\b(kod\w*|algoritma\w*|program\w*|mevcut|elimdeki|current|custom)\b/.test(text)) {
+      return { type: 'create-algorithm', template: 'model-authored' };
+    }
   }
   const explanatory = /\b(nedir|nasil|neden|niye|farki|anlat|acikla|what|how|why|difference)\b/.test(text);
   if (hasWorkspaceVerb(text) && !explanatory) {

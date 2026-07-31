@@ -2,6 +2,27 @@
 
 This document tracks all version history, improvements, bug fixes, and feature additions made to CodeXRay.
 
+## Unreleased — God Mode 2
+
+### Added
+
+- Added `VisualizationContractV2` and `GraphLayoutSpecV1` with trace-backed semantic node and edge roles, dual-frontier styling, responsive deterministic layout, collision checks, custom legends, and result emphasis.
+- Added Visual Designer, Layout Engineer, Trace Director, and Result Analyst jobs to the local God Mode queue.
+- Added `TeachingPlanV1` and `StepNarrationV1`. Generated packages now contain grounded checkpoint narration across code, data, visual, reasoning, and time lenses, plus final metrics and correctness analysis.
+- Added automatic guided playback for generated packages. Playback pauses at real high-priority checkpoints and the assistant narrates the committed snapshot.
+- Added graph transaction classification. Position-only edits preserve trace semantics; structural edits recompile atomically and retain the last working package on failure.
+- Added original teaching-input generation with explicit user, agent, and fallback provenance.
+
+### Changed
+
+- Rebuilt all three ready-made inputs for every algorithm around algorithm-specific teaching cases, including meaningful misses, duplicates, negative-only cases, DAGs, SCCs, flow networks, articulation structures, and weighted shortest-path graphs.
+- God Mode routing now distinguishes opening a preset, authoring custom code, preserving the current graph, changing only layout, and asking a knowledge-only question.
+- Custom workspace titles are canonical and update immediately when generation starts.
+
+### Fixed
+
+- Single-track radio repeat now reselects the last playing playlist index after YouTube reports `ENDED`, preventing the playlist from advancing while repeat is active.
+
 ## [v1.1.0] - 2026-07-31
 
 ### Eklendi (Added)

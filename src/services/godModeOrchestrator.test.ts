@@ -66,7 +66,9 @@ describe('God Mode orchestrator', () => {
     });
     const result = await run.promise;
 
-    expect(result.package?.title).toBe('Bidirectional BFS');
+    expect(result.package?.title).toBe('İki Yönlü BFS — Özel');
+    expect(result.package?.visualization.version).toBe(2);
+    expect(result.package?.teachingPlan.checkpoints.length).toBeGreaterThan(2);
     expect(result.package?.steps.length).toBeGreaterThan(3);
     expect(applyPackage).toHaveBeenCalledTimes(1);
     expect(latestPlan).not.toBeNull();

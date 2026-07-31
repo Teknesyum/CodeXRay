@@ -279,6 +279,16 @@
   stroke-width: 3;
 }
 
+.graph-edge.visited line {
+  stroke: rgba(0, 201, 255, 0.68);
+  stroke-width: 2.5;
+}
+
+.graph-edge.active line[style*="stroke"] {
+  stroke-dasharray: 7 6;
+  animation: graph-edge-flow 800ms linear infinite;
+}
+
 .graph-edge.path line {
   stroke: var(--neon-lime);
   stroke-width: 4;
@@ -311,11 +321,40 @@
   box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
 }
 
+.graph-node[style*="--node-glow-color"] {
+  box-shadow:
+    0 0 calc(8px + 14px * var(--node-glow-strength)) var(--node-glow-color),
+    inset 0 0 calc(5px + 8px * var(--node-glow-strength)) color-mix(in srgb, var(--node-glow-color) 28%, transparent);
+}
+
+.graph-node.shape-rounded { border-radius: 11px; }
+.graph-node.shape-diamond { border-radius: 8px; transform: translate(-50%, -50%) rotate(45deg); }
+.graph-node.shape-diamond > * { transform: rotate(-45deg); }
+.graph-node.shape-hexagon { border-radius: 0; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); }
+.graph-node.shape-star { border-radius: 0; clip-path: polygon(50% 0, 61% 34%, 98% 35%, 68% 56%, 79% 94%, 50% 72%, 21% 94%, 32% 56%, 2% 35%, 39% 34%); }
+
+.graph-node.pulse-outward::after,
+.graph-node.pulse-inward::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 1px solid var(--node-glow-color, var(--neon-cyan));
+  border-radius: inherit;
+  pointer-events: none;
+  animation: node-pulse-outward 1.8s ease-out infinite;
+}
+
+.graph-node.pulse-inward::after { animation-name: node-pulse-inward; }
+
 .graph-node.node-active {
   border-color: var(--neon-magenta);
   box-shadow: 0 0 20px var(--neon-magenta), inset 0 0 10px var(--neon-magenta);
   transform: translate(-50%, -50%) scale(1.3);
   z-index: 10;
+}
+
+.graph-node.node-active.shape-diamond {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.22);
 }
 
 .graph-node.node-queued {
@@ -353,10 +392,34 @@
   border-radius: 50%;
 }
 
+.graph-legend .semantic-legend::before {
+  background: var(--legend-color);
+  box-shadow: 0 0 7px var(--legend-color);
+}
+
+.graph-legend .semantic-legend.shape-diamond::before { border-radius: 1px; transform: rotate(45deg); }
+.graph-legend .semantic-legend.shape-star::before { border-radius: 0; clip-path: polygon(50% 0, 61% 34%, 98% 35%, 68% 56%, 79% 94%, 50% 72%, 21% 94%, 32% 56%, 2% 35%, 39% 34%); }
+
 .legend-queued::before { background: #ffb000; }
 .legend-active::before { background: var(--neon-magenta); }
 .legend-visited::before { background: var(--neon-cyan); }
 .legend-path::before { background: var(--neon-lime); }
+
+@keyframes graph-edge-flow { to { stroke-dashoffset: -13; } }
+@keyframes node-pulse-outward {
+  0% { opacity: 0.7; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1.55); }
+}
+@keyframes node-pulse-inward {
+  0% { opacity: 0; transform: scale(1.55); }
+  100% { opacity: 0.75; transform: scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-edge.active line[style*="stroke"],
+  .graph-node.pulse-outward::after,
+  .graph-node.pulse-inward::after { animation: none; }
+}
 
 /* Variables View */
 .visual-variables {

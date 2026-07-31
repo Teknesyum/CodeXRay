@@ -141,6 +141,7 @@ export const PlaylistRadio = () => {
   const volumeRef = useRef(volume);
   const loopRef = useRef(isLooping);
   const shuffleRef = useRef(isShuffled);
+  const lastPlayingIndexRef = useRef(0);
   volumeRef.current = volume;
   loopRef.current = isLooping;
   shuffleRef.current = isShuffled;
@@ -235,8 +236,10 @@ export const PlaylistRadio = () => {
               if (event.data === 0 && loopRef.current) {
                 setCurrentTime(0);
                 setPlayRequested(true);
-                player.seekTo(0, true);
-                player.playVideo();
+                // YouTube may advance the playlist index before emitting ENDED.
+                // Re-select the last playing item so single-track repeat never
+                // leaks into the following track.
+                player.playVideoAt(lastPlayingIndexRef.current);
                 return;
               }
               setIsPlaying(event.data === 1);
@@ -246,7 +249,10 @@ export const PlaylistRadio = () => {
               const pl = player.getPlaylist();
               
               const idx = player.getPlaylistIndex();
-              if (idx !== undefined && idx !== -1) setCurrentIndex(idx);
+              if (idx !== undefined && idx !== -1) {
+                setCurrentIndex(idx);
+                if (event.data === 1) lastPlayingIndexRef.current = idx;
+              }
               
               const vData = player.getVideoData();
               if (vData?.title) {
@@ -362,7 +368,7 @@ export const PlaylistRadio = () => {
   const embedUrl = [
     `https://www.youtube.com/embed/${OPENING_TRACK_VIDEO_ID}`,
     `?listType=playlist&list=${initialPlaylistId.current}`,
-    `&hl=${locale}&playsinline=1&loop=1&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
+    `&hl=${locale}&playsinline=1&loop=0&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
     `&origin=${encodeURIComponent(window.location.origin)}`,
   ].join('');
 
@@ -511,6 +517,7 @@ export const PlaylistRadio = () => {
             <button
               type="button"
               className={`control-btn ${isLooping ? 'active' : ''}`}
+              aria-pressed={isLooping}
               title={t('loop', locale)}
               onClick={() => {
                 if (!playerRef.current) return;

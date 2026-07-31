@@ -6,7 +6,24 @@ export type TraceValue =
 
 export type InputKind = 'array' | 'string' | 'tree' | 'graph';
 export type NodeState = 'idle' | 'queued' | 'active' | 'visited' | 'path';
-export type EdgeState = 'idle' | 'active' | 'path';
+export type EdgeState = 'idle' | 'active' | 'visited' | 'path';
+export type GraphNodeShape = 'circle' | 'rounded' | 'diamond' | 'hexagon' | 'star';
+
+export interface GraphNodeVisualStyle {
+  shape: GraphNodeShape;
+  size: number;
+  stroke: string;
+  fill: string;
+  glow: number;
+  pulse?: 'outward' | 'inward' | 'steady';
+}
+
+export interface GraphEdgeVisualStyle {
+  color: string;
+  width: number;
+  opacity: number;
+  animation?: 'none' | 'flow' | 'pulse';
+}
 
 export interface GraphNode {
   id: string;
@@ -39,6 +56,7 @@ export interface SimulationInput {
   text: string;
   graph?: GraphDocumentV1;
   parameters?: Record<string, string>;
+  origin?: 'preset' | 'user' | 'agent';
 }
 
 export interface ArrayVisualData {
@@ -51,10 +69,14 @@ export interface ArrayVisualData {
 
 export interface GraphVisualNode extends GraphNode {
   state?: NodeState;
+  semanticRoles?: string[];
+  semanticStyle?: GraphNodeVisualStyle;
 }
 
 export interface GraphVisualEdge extends GraphEdge {
   state?: EdgeState;
+  semanticRoles?: string[];
+  semanticStyle?: GraphEdgeVisualStyle;
 }
 
 export interface GraphVisualData {

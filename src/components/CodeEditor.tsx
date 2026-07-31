@@ -174,7 +174,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
             placeholder={t(inputHelpKey, locale)}
             value={simulationInput.text}
             onChange={(event) => {
-              setSimulationInput({ ...simulationInput, text: event.target.value });
+              setSimulationInput({ ...simulationInput, text: event.target.value, origin: 'user' });
               setInputError(null);
             }}
           />
@@ -190,6 +190,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
               onChange={(event) => {
                 setSimulationInput({
                   ...simulationInput,
+                  origin: 'user',
                   parameters: {
                     ...simulationInput.parameters,
                     [definition.key]: event.target.value,

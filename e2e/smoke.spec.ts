@@ -19,6 +19,7 @@ test('runs DFS and exposes the complete visited trace', async ({ page }) => {
   const select = page.getByLabel('Algorithm preset');
   const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
   await select.selectOption(dfsValue ?? '');
+  await page.getByRole('button', { name: 'i1' }).click();
   await expect(page.locator('.panel-right .graph-input-editor')).toBeVisible();
   await expect(page.locator('.panel-left .graph-input-editor')).toHaveCount(0);
   await page.getByRole('button', { name: /Simulate/ }).click();
@@ -58,63 +59,53 @@ test('renames graph nodes and creates edges by dragging node handles', async ({ 
   const select = page.getByLabel('Algorithm preset');
   const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
   await select.selectOption(dfsValue ?? '');
+  await page.getByRole('button', { name: 'i1' }).click();
 
-  await page.getByRole('button', { name: 'Node 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Node S', exact: true }).click();
   await page.getByLabel('Node ID').fill('21');
   await page.getByLabel('Node label').fill('Start');
   await page.getByRole('button', { name: 'Save node' }).click();
   await expect(page.getByRole('button', { name: 'Node Start', exact: true })).toBeVisible();
 
   const connector = page.getByRole('button', { name: 'Connect from node Start' });
-  const target = page.getByRole('button', { name: 'Node 5', exact: true });
-  const sourceBox = await connector.boundingBox();
-  const targetBox = await target.boundingBox();
-  expect(sourceBox).not.toBeNull();
-  expect(targetBox).not.toBeNull();
-  await page.mouse.move(
-    (sourceBox?.x ?? 0) + (sourceBox?.width ?? 0) / 2,
-    (sourceBox?.y ?? 0) + (sourceBox?.height ?? 0) / 2,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    (targetBox?.x ?? 0) + (targetBox?.width ?? 0) / 2,
-    (targetBox?.y ?? 0) + (targetBox?.height ?? 0) / 2,
-  );
-  await page.mouse.up();
+  const target = page.getByRole('button', { name: 'Node G', exact: true });
+  await connector.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'mouse' });
+  await target.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'mouse' });
 
   await page.getByText('Import / export').click();
   await page.getByRole('button', { name: 'Export to editor' }).click();
   const exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
   expect(exported.startId).toBe('21');
   expect(exported.nodes).toContainEqual(expect.objectContaining({ id: '21', label: 'Start' }));
-  expect(exported.edges).toContainEqual(expect.objectContaining({ from: '21', to: '5' }));
+  expect(exported.edges).toContainEqual(expect.objectContaining({ from: '21', to: 'G' }));
   expect(exported.edges.some((edge: { from: string; to: string }) =>
-    edge.from === '1' || edge.to === '1')).toBe(false);
+    edge.from === 'S' || edge.to === 'S')).toBe(false);
 });
 
 test('graph edit popovers do not move the canvas and edges can be edited in place', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');
-  const dfsValue = await select.locator('option').filter({ hasText: 'Depth First Search' }).getAttribute('value');
-  await select.selectOption(dfsValue ?? '');
+  const dijkstraValue = await select.locator('option').filter({ hasText: "Dijkstra's Shortest Path" }).getAttribute('value');
+  await select.selectOption(dijkstraValue ?? '');
+  await page.getByRole('button', { name: 'i1' }).click();
 
   const canvas = page.getByLabel(/Graph builder canvas/);
   const before = await canvas.boundingBox();
-  await page.getByRole('button', { name: 'Node 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Node S', exact: true }).click();
   await expect(page.getByLabel('Selected node')).toBeVisible();
   const afterNode = await canvas.boundingBox();
   expect(afterNode?.x).toBe(before?.x);
   expect(afterNode?.width).toBe(before?.width);
   expect(afterNode?.height).toBe(before?.height);
 
-  await page.getByRole('button', { name: 'Edit edge 1 to 2' }).click();
-  await expect(page.getByLabel('Selected edge 1 to 2')).toBeVisible();
+  await page.getByRole('button', { name: 'Edit edge S to A' }).click();
+  await expect(page.getByLabel('Selected edge S to A')).toBeVisible();
   const afterOpeningEditor = await canvas.boundingBox();
   expect(afterOpeningEditor?.x).toBe(before?.x);
   expect(afterOpeningEditor?.width).toBe(before?.width);
   expect(afterOpeningEditor?.height).toBe(before?.height);
 
-  const edgeWeight = page.getByLabel('Edge 1 to 2 weight');
+  const edgeWeight = page.getByLabel('Edge S to A weight');
   await edgeWeight.fill('9');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByText('Import / export').click();
@@ -122,7 +113,7 @@ test('graph edit popovers do not move the canvas and edges can be edited in plac
   let exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
   expect(exported.edges.find((edge: { id: string }) => edge.id === 'e1').weight).toBe(9);
 
-  await page.getByRole('button', { name: 'Delete edge 1 to 2' }).click();
+  await page.getByRole('button', { name: 'Delete edge S to A' }).click();
   await page.getByRole('button', { name: 'Export to editor' }).click();
   exported = JSON.parse(await page.locator('.graph-import-export textarea').inputValue());
   expect(exported.edges.some((edge: { id: string }) => edge.id === 'e1')).toBe(false);
@@ -430,10 +421,10 @@ test('resets only interface layout while preserving user workspace state', async
     assistant: (await page.locator('.assistant-container').boundingBox())?.height ?? 0,
     controls: (await page.locator('.control-container').boundingBox())?.height ?? 0,
   };
-  expect(defaults.visualizer).toBeGreaterThanOrEqual(130);
-  expect(defaults.visualizer).toBeLessThanOrEqual(134);
-  expect(defaults.assistant).toBeGreaterThanOrEqual(516);
-  expect(defaults.assistant).toBeLessThanOrEqual(520);
+  expect(defaults.visualizer).toBeGreaterThanOrEqual(375);
+  expect(defaults.visualizer).toBeLessThanOrEqual(379);
+  expect(defaults.assistant).toBeGreaterThanOrEqual(271);
+  expect(defaults.assistant).toBeLessThanOrEqual(275);
   expect(defaults.controls).toBeGreaterThanOrEqual(56);
   expect(defaults.controls).toBeLessThanOrEqual(60);
 });

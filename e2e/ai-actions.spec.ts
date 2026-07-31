@@ -16,7 +16,7 @@ test('loads DFS in God Mode without waiting for a local model', async ({ page })
   await expect(page.getByText('The requested workspace action was applied.')).toBeVisible();
   await chatInput.fill('write bidirectional BFS for me');
   await chatInput.press('Enter');
-  await expect(page.getByLabel('Bidirectional BFS execution')).toBeVisible();
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
 });
 
@@ -192,22 +192,39 @@ test('builds and applies bidirectional BFS through the visible God Mode queue', 
   await chatInput.press('Enter');
 
   await expect(page.locator('.code-display')).toContainText('reconstructPath');
-  await expect(page.getByLabel('Bidirectional BFS execution')).toBeVisible();
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
+  await expect(page.locator('.graph-node[data-semantic-roles~="start"]')).toHaveCount(1);
+  await expect(page.locator('.graph-node[data-semantic-roles~="target"]')).toHaveClass(/shape-diamond/);
+  await expect(page.getByText('Start frontier', { exact: true })).toBeVisible();
+  await expect(page.getByText('Target frontier', { exact: true })).toBeVisible();
   await expect(page.getByText('Code Author', { exact: true })).toBeVisible();
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
   await expect(page.getByText(/code, input, and \d+-step simulation were applied/i)).toBeVisible();
   await expect(page.getByText(/Code: Two independent BFS frontiers/i)).toBeVisible();
   await expect(page.locator('.god-mode-progress')).toHaveCount(0, { timeout: 4_000 });
 
+  const pauseButton = page.getByRole('button', { name: 'Pause' });
+  if (await pauseButton.count()) await pauseButton.click();
+  const previousStep = page.getByRole('button', { name: 'Previous step' });
+  for (let index = 0; index < 60 && !await previousStep.isDisabled(); index += 1) {
+    await previousStep.click();
+  }
   const nextStep = page.getByRole('button', { name: 'Next step' });
-  await expect.poll(async () => {
-    for (let index = 0; index < 3; index += 1) await nextStep.click();
-    return page.locator('.graph-edge.active').count();
-  }, { timeout: 5_000 }).toBeGreaterThan(0);
+  let inspectedEdgeFound = false;
+  for (let index = 0; index < 60; index += 1) {
+    if (await page.locator('.graph-edge[data-semantic-roles~="inspect-start"], .graph-edge[data-semantic-roles~="inspect-target"]').count()) {
+      inspectedEdgeFound = true;
+      break;
+    }
+    if (await nextStep.isDisabled()) break;
+    await nextStep.click();
+  }
+  expect(inspectedEdgeFound).toBe(true);
+  await expect(page.locator('.graph-edge[data-semantic-roles~="tree-start"], .graph-edge[data-semantic-roles~="tree-target"]').first()).toBeVisible();
 
   await chatInput.fill('bu kod için inputları düzenle');
   await chatInput.press('Enter');
   await expect(page.getByText(/Compatible input and trace applied/i)).toBeVisible();
-  await expect(page.getByLabel('Bidirectional BFS execution')).toBeVisible();
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
 });

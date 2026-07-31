@@ -6,7 +6,7 @@ import type {
   PackageTestCaseV1,
   PackageTestReportV1,
   ProgramSpecV1,
-  VisualizationContractV1,
+  VisualizationContract,
 } from '../types/godMode';
 import type { Locale, SimulationStep, TraceValue } from '../types/simulation';
 import { parseSimulationInput } from './inputParsers';
@@ -16,6 +16,9 @@ import {
   SimLangError,
   validateProgramSpec,
 } from './simLang';
+import { inspectGraphLayout } from './graphLayout';
+import { createTeachingPlan } from './teachingPlan';
+import { isVisualizationV2 } from './visualizationDesigner';
 
 const checkpointCategory = (explanation: string, index: number, total: number): DiscussionCheckpointCategory => {
   const normalized = explanation.toLocaleLowerCase('tr-TR');
@@ -60,7 +63,7 @@ const finalVariables = (steps: SimulationStep[]): Record<string, TraceValue> =>
 
 export const runPackageTests = (
   program: ProgramSpecV1,
-  visualization: VisualizationContractV1,
+  visualization: VisualizationContract,
   testCases: PackageTestCaseV1[],
 ): PackageTestReportV1 => {
   const source = renderProgramSource(program);
@@ -101,9 +104,10 @@ interface CompilePackageOptions {
   locale: Locale;
   program: ProgramSpecV1;
   input: InputContractV1;
-  visualization: VisualizationContractV1;
+  visualization: VisualizationContract;
   analysis: string;
   testCases?: PackageTestCaseV1[];
+  invariants?: string[];
 }
 
 export const compileCustomSimulationPackage = (
@@ -116,7 +120,9 @@ export const compileCustomSimulationPackage = (
   if (options.input.version !== 1 || options.input.kind !== options.program.inputKind) {
     throw new SimLangError('Input contract does not match the program input kind.');
   }
-  if (options.visualization.version !== 1) throw new SimLangError('Visualization contract is invalid.');
+  if (options.visualization.version !== 1 && options.visualization.version !== 2) {
+    throw new SimLangError('Visualization contract is invalid.');
+  }
   const inputValidation = parseSimulationInput(
     options.input.value.kind,
     options.input.value.text,
@@ -124,6 +130,22 @@ export const compileCustomSimulationPackage = (
     options.input.value.parameters,
   );
   if (!inputValidation.input) throw new SimLangError(inputValidation.error ?? 'Invalid package input.');
+  if (isVisualizationV2(options.visualization)) {
+    const roleIds = [
+      ...options.visualization.nodeRoles.map((role) => `node:${role.id}`),
+      ...options.visualization.edgeRoles.map((role) => `edge:${role.id}`),
+    ];
+    if (new Set(roleIds).size !== roleIds.length) throw new SimLangError('Visualization role IDs must be unique.');
+    if (inputValidation.input.graph) {
+      const quality = inspectGraphLayout(
+        inputValidation.input.graph,
+        Math.min(5, options.visualization.layout.minimumNodeDistance / 2),
+      );
+      if (!quality.valid) {
+        throw new SimLangError(`Graph layout failed quality checks: overlaps=${quality.overlaps.length}, bounds=${quality.outOfBounds.length}, edges=${quality.missingEdgeEndpoints.length}.`);
+      }
+    }
+  }
   const source = renderProgramSource(options.program);
   const execution = executeSimLang(options.program, inputValidation.input, options.visualization, source);
   const tests = runPackageTests(options.program, options.visualization, options.testCases ?? [{
@@ -135,6 +157,14 @@ export const compileCustomSimulationPackage = (
   if (!tests.passed) {
     throw new SimLangError(`Package tests failed: ${tests.results.filter((result) => !result.passed).map((result) => result.message).join(' ')}`);
   }
+  const checkpoints = reviewTrace(execution.steps);
+  const teachingPlan = createTeachingPlan(
+    execution.steps,
+    checkpoints,
+    inputValidation.input,
+    options.locale,
+    options.invariants,
+  );
   return {
     version: 1,
     id: options.id,
@@ -143,11 +173,15 @@ export const compileCustomSimulationPackage = (
     createdAt: Date.now(),
     program: options.program,
     source,
-    input: { ...options.input, value: inputValidation.input },
+    input: {
+      ...options.input,
+      value: { ...inputValidation.input, origin: options.input.value.origin },
+    },
     visualization: options.visualization,
     steps: execution.steps,
     analysis: options.analysis,
-    checkpoints: reviewTrace(execution.steps),
+    checkpoints,
+    teachingPlan,
     tests,
   };
 };

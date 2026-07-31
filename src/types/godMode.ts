@@ -4,6 +4,8 @@ import type {
   SimulationInput,
   SimulationStep,
   TraceValue,
+  GraphEdgeVisualStyle,
+  GraphNodeVisualStyle,
 } from './simulation';
 
 export type GodModeAgentRole =
@@ -12,10 +14,14 @@ export type GodModeAgentRole =
   | 'architect'
   | 'code-author'
   | 'input-engineer'
+  | 'visual-designer'
+  | 'layout-engineer'
   | 'compiler'
   | 'critic'
   | 'trace-analyst'
+  | 'trace-director'
   | 'tutor'
+  | 'result-analyst'
   | 'ui-director';
 
 export type AgentJobStatus =
@@ -219,6 +225,8 @@ export interface InputContractV1 {
   description: string;
   constraints: string[];
   value: SimulationInput;
+  origin?: 'user' | 'agent' | 'fallback';
+  fallbackReason?: string;
 }
 
 export interface VisualizationContractV1 {
@@ -231,6 +239,70 @@ export interface VisualizationContractV1 {
   activeEdges?: Array<{ fromVariable: string; toVariable: string }>;
   traversedEdgeMapVariables?: string[];
 }
+
+export type GraphLayoutStrategy =
+  | 'layered'
+  | 'tree'
+  | 'radial'
+  | 'dual-frontier'
+  | 'force-directed';
+
+export interface GraphLayoutSpecV1 {
+  version: 1;
+  strategy: GraphLayoutStrategy;
+  groups: Array<{ id: string; nodeIds: string[]; layer?: number }>;
+  layers: string[][];
+  pinnedNodeIds: string[];
+  minimumNodeDistance: number;
+  axis?: { startId: string; targetId: string };
+  collisionResolution: 'spread' | 'radial-jitter';
+  userPositions: Record<string, { x: number; y: number }>;
+  responsive: {
+    narrowStrategy: GraphLayoutStrategy;
+    mobileScale: number;
+    minimumNodeDistance: number;
+  };
+}
+
+export type SemanticRoleSourceV1 =
+  | { kind: 'input-start' | 'input-target' }
+  | { kind: 'variable'; variable: string }
+  | { kind: 'collection'; variable: string }
+  | { kind: 'intersection'; variables: [string, string] };
+
+export interface SemanticNodeRoleV1 {
+  id: string;
+  label: string;
+  source: SemanticRoleSourceV1;
+  priority: number;
+  style: GraphNodeVisualStyle;
+}
+
+export interface SemanticEdgeRoleV1 {
+  id: string;
+  label: string;
+  source:
+    | { kind: 'active-variables'; fromVariable: string; toVariable: string }
+    | { kind: 'parent-map'; variable: string }
+    | { kind: 'path'; variable: string };
+  priority: number;
+  style: GraphEdgeVisualStyle;
+}
+
+export interface VisualizationContractV2
+  extends Omit<VisualizationContractV1, 'version'> {
+  version: 2;
+  nodeRoles: SemanticNodeRoleV1[];
+  edgeRoles: SemanticEdgeRoleV1[];
+  frontierLayers: Array<{ id: string; label: string; variable: string; color: string }>;
+  layout: GraphLayoutSpecV1;
+  legend: Array<{ role: string; label: string; color: string; shape?: GraphNodeVisualStyle['shape'] }>;
+  resultHighlights: string[];
+  responsive: { compactLegend: boolean; hideEdgeLabelsBelow: number };
+  editable: { layout: boolean; nodeStyles: boolean; graphStructure: boolean };
+}
+
+export type VisualizationContract = VisualizationContractV1 | VisualizationContractV2;
 
 export type DiscussionCheckpointCategory =
   | 'initialization'
@@ -249,6 +321,46 @@ export interface DiscussionCheckpointV1 {
   reason: string;
   lenses: Array<'code' | 'data' | 'visual' | 'reasoning' | 'time'>;
   autoPause: boolean;
+}
+
+export interface StepNarrationV1 {
+  version: 1;
+  stepIndex: number;
+  activeLine: number | null;
+  changedVariables: Record<string, { before: TraceValue | null; after: TraceValue | null }>;
+  nodeDiffs: string[];
+  edgeDiffs: string[];
+  decisionReason: string;
+  invariant: string;
+  nextMove: string;
+  previousDifference: string;
+  lenses: {
+    code: string;
+    data: string;
+    visual: string;
+    reasoning: string;
+    time: string;
+  };
+}
+
+export interface ResultAnalysisV1 {
+  summary: string;
+  inputComparison: string;
+  metrics: Record<string, TraceValue>;
+  correctness: string;
+}
+
+export interface TeachingPlanV1 {
+  version: 1;
+  introduction: string;
+  checkpoints: Array<{
+    checkpoint: DiscussionCheckpointV1;
+    narration: StepNarrationV1;
+  }>;
+  autoStart: boolean;
+  suggestedSpeed: number;
+  finalResult: ResultAnalysisV1;
+  followUpQuestions: string[];
 }
 
 export interface PackageTestCaseV1 {
@@ -283,10 +395,11 @@ export interface CustomSimulationPackageV1 {
   program: ProgramSpecV1;
   source: RenderedSourceV1;
   input: InputContractV1;
-  visualization: VisualizationContractV1;
+  visualization: VisualizationContract;
   steps: SimulationStep[];
   analysis: string;
   checkpoints: DiscussionCheckpointV1[];
+  teachingPlan: TeachingPlanV1;
   tests: PackageTestReportV1;
 }
 

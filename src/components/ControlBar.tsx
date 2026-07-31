@@ -669,34 +669,54 @@ export const ControlBar = ({
                       <div className="settings-title">{t('radioPresets', locale)}</div>
                       <div className="playlist-presets">
                         <button 
-                          className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u')}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u' ? 'active' : ''}`}
+                          onClick={() => {
+                            const url = 'https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u';
+                            setRadioPlaylistId(url);
+                            setTempPlaylistUrl(url);
+                          }}
                         >
-                          Up Cdk (Varsayılan)
+                          NCS Telifsiz Müzik (Varsayılan)
                         </button>
                         <button 
-                          className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z')}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z' ? 'active' : ''}`}
+                          onClick={() => {
+                            const url = 'https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z';
+                            setRadioPlaylistId(url);
+                            setTempPlaylistUrl(url);
+                          }}
                         >
-                          Coding Focus
+                          Kodlama & Odak (Lofi)
                         </button>
                         <button 
-                          className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68')}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68' ? 'active' : ''}`}
+                          onClick={() => {
+                            const url = 'https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68';
+                            setRadioPlaylistId(url);
+                            setTempPlaylistUrl(url);
+                          }}
                         >
-                          Synthwave
+                          Synthwave & Retrowave
                         </button>
                         <button 
-                          className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo')}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo' ? 'active' : ''}`}
+                          onClick={() => {
+                            const url = 'https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo';
+                            setRadioPlaylistId(url);
+                            setTempPlaylistUrl(url);
+                          }}
                           >
-                          Lofi Hip Hop
+                          Lofi Hip Hop Mix
                         </button>
                         <button 
-                          className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_')}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_' ? 'active' : ''}`}
+                          onClick={() => {
+                            const url = 'https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_';
+                            setRadioPlaylistId(url);
+                            setTempPlaylistUrl(url);
+                          }}
                         >
-                          Classical Focus
+                          Klasik Müzik
                         </button>
                       </div>
                     </div>

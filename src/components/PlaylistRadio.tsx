@@ -72,7 +72,7 @@ export const PlaylistRadio = () => {
   const { locale } = useTimeline();
   const [minimized, setMinimized] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
-  const [volume, setVolume] = useState(55);
+  const [volume, setVolume] = useState(25);
   const [muted, setMuted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);

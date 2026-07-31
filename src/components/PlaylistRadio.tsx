@@ -4,9 +4,6 @@ import { useTimeline } from '../context/TimelineContext';
 import { t } from '../i18n/translations';
 import './PlaylistRadio.css';
 
-const PLAYLIST_ID = 'OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0';
-const PLAYLIST_URL = `https://music.youtube.com/playlist?list=${PLAYLIST_ID}`;
-
 interface YouTubePlayer {
   destroy: () => void;
   isMuted: () => boolean;
@@ -24,6 +21,10 @@ interface YouTubePlayer {
   getPlaylistIndex: () => number;
   getVideoData: () => { title: string } | null;
   playVideoAt: (index: number) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  loadPlaylist: (args: { listType: string; list: string }) => void;
 }
 
 interface YouTubeApi {
@@ -31,7 +32,7 @@ interface YouTubeApi {
     element: HTMLIFrameElement,
     options: { events: { 
       onReady: (event: { target: YouTubePlayer }) => void;
-      onStateChange?: (event: { data: number }) => void;
+      onStateChange?: (event: { data: number; target: YouTubePlayer }) => void;
     } },
   ) => YouTubePlayer;
 }
@@ -69,9 +70,9 @@ const loadYouTubeApi = (): Promise<YouTubeApi> => {
 };
 
 export const PlaylistRadio = () => {
-  const { locale } = useTimeline();
-  const [minimized, setMinimized] = useState(true);
-  const [hasStarted, setHasStarted] = useState(false);
+  const { locale, radioPlaylistId, radioAutoplay } = useTimeline();
+  const [minimized, setMinimized] = useState(!radioAutoplay);
+  const [hasStarted, setHasStarted] = useState(radioAutoplay);
   const [volume, setVolume] = useState(25);
   const [muted, setMuted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
@@ -80,8 +81,11 @@ export const PlaylistRadio = () => {
   const [isShuffled, setIsShuffled] = useState(false);
   const [playlist, setPlaylist] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
   const trackDataFetched = useRef(false);
+  const initialPlaylistId = useRef(radioPlaylistId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
@@ -101,6 +105,7 @@ export const PlaylistRadio = () => {
               target.setVolume(volumeRef.current);
               setMuted(target.isMuted());
               setPlayerReady(true);
+              setDuration(target.getDuration());
             },
             onStateChange: (event) => {
               const player = event.target as YouTubePlayer;
@@ -139,6 +144,8 @@ export const PlaylistRadio = () => {
                   [idx]: { title: vData.title, thumb: prev[idx]?.thumb || '' },
                 }));
               }
+              
+              setDuration(player.getDuration());
             }
           },
         });
@@ -151,10 +158,31 @@ export const PlaylistRadio = () => {
     };
   }, [hasStarted]);
 
+  useEffect(() => {
+    if (!isPlaying || !playerReady) return;
+    const interval = window.setInterval(() => {
+      if (playerRef.current) {
+        setCurrentTime(playerRef.current.getCurrentTime());
+      }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isPlaying, playerReady]);
+
+  useEffect(() => {
+    if (playerReady && playerRef.current) {
+      trackDataFetched.current = false;
+      setTrackData({});
+      playerRef.current.loadPlaylist({
+        listType: 'playlist',
+        list: radioPlaylistId
+      });
+    }
+  }, [radioPlaylistId, playerReady]);
+
   const embedUrl = [
     'https://www.youtube.com/embed',
-    `?listType=playlist&list=${PLAYLIST_ID}`,
-    `&hl=${locale}&playsinline=1&loop=1&rel=0&controls=1&enablejsapi=1&autoplay=1`,
+    `?listType=playlist&list=${initialPlaylistId.current}`,
+    `&hl=${locale}&playsinline=1&loop=1&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
     `&origin=${encodeURIComponent(window.location.origin)}`,
   ].join('');
 
@@ -185,7 +213,7 @@ export const PlaylistRadio = () => {
             <Music2 size={16} />
             <span>CodeXRay Radio</span>
             <a
-              href={PLAYLIST_URL}
+              href={`https://music.youtube.com/playlist?list=${radioPlaylistId}`}
               target="_blank"
               rel="noreferrer"
               aria-label={t('openPlaylist', locale)}
@@ -285,6 +313,23 @@ export const PlaylistRadio = () => {
             </button>
           </div>
 
+          <div className="playlist-radio-progress">
+            <span className="time-text">{formatTime(currentTime)}</span>
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              className="progress-slider neon-slider"
+              onChange={(e) => {
+                const time = Number(e.target.value);
+                setCurrentTime(time);
+                playerRef.current?.seekTo(time, true);
+              }}
+            />
+            <span className="time-text">{formatTime(duration)}</span>
+          </div>
+
           <div className="playlist-radio-volume">
             <button
           type="button"
@@ -308,6 +353,7 @@ export const PlaylistRadio = () => {
             min="0"
             max="100"
             value={volume}
+            className="neon-slider"
             aria-label={t('radioVolume', locale)}
             onChange={(event) => {
               const nextVolume = Number(event.target.value);
@@ -348,3 +394,10 @@ export const PlaylistRadio = () => {
     </>
   );
 };
+
+function formatTime(seconds: number) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}

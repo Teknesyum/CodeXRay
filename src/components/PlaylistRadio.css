@@ -135,12 +135,29 @@
   box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
 }
 
+.playlist-radio-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 2px;
+}
+
+.time-text {
+  color: var(--text-muted);
+  font: 500 0.65rem var(--font-mono);
+  min-width: 35px;
+  text-align: center;
+}
+
+.progress-slider {
+  flex: 1;
+}
+
 .playlist-radio-volume {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 9px;
-  border-top: 1px solid rgba(0, 243, 255, 0.12);
+  gap: 12px;
+  padding: 8px 12px 14px;
 }
 
 .playlist-radio-volume > button {

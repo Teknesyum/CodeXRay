@@ -63,15 +63,16 @@ export const ControlBar = ({
     setAiProgress,
     aiProgressPercent,
     setAiProgressPercent,
+    radioPlaylistId,
+    setRadioPlaylistId,
+    radioAutoplay,
+    setRadioAutoplay,
     locale,
     theme,
     setTheme,
-    setLocale,
-    isEditingInput,
-    setIsEditingInput,
   } = useTimeline();
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ai' | 'ui'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'ui' | 'radio'>('ai');
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
   const [cachedModels, setCachedModels] = useState<string[]>([]);
@@ -336,6 +337,12 @@ export const ControlBar = ({
                 >
                   {t('uiSettingsTab', locale)}
                 </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'radio' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('radio')}
+                >
+                  {t('radioSettingsTab', locale)}
+                </button>
               </div>
               <div className="settings-modal-content">
                 {activeTab === 'ai' && (
@@ -523,6 +530,70 @@ export const ControlBar = ({
                       </button>
                     </div>
                   </div>
+                )}
+                {activeTab === 'radio' && (
+                  <>
+                    <div className="settings-section">
+                      <div className="settings-title">{t('radioAutoplay', locale)}</div>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={radioAutoplay}
+                          onChange={(e) => setRadioAutoplay(e.target.checked)}
+                        />
+                        <span>{t('radioAutoplay', locale)}</span>
+                      </label>
+                    </div>
+                    <div className="settings-section">
+                      <div className="settings-title">{t('radioCustomPlaylist', locale)}</div>
+                      <input
+                        type="text"
+                        className="custom-playlist-input"
+                        value={radioPlaylistId}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const listMatch = val.match(/[?&]list=([^&]+)/);
+                          setRadioPlaylistId(listMatch ? listMatch[1] : val);
+                        }}
+                        placeholder="e.g. OLAK5uy_koji..."
+                      />
+                    </div>
+                    <div className="settings-section">
+                      <div className="settings-title">{t('radioPresets', locale)}</div>
+                      <div className="playlist-presets">
+                        <button 
+                          className="action-btn"
+                          onClick={() => setRadioPlaylistId('OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0')}
+                        >
+                          Up Cdk (Varsayılan)
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => setRadioPlaylistId('RDCLAK5uy_m5ENJ7vW7WpI0q3C3jT2g2L-0w_x4eC7s')}
+                        >
+                          Coding Focus
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => setRadioPlaylistId('RDCLAK5uy_kQh-E5X44l2b_H7R7sE3h_qP9T-bT9U9A')}
+                        >
+                          Synthwave
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => setRadioPlaylistId('RDCLAK5uy_n5XFdzqO0r_B3X5F0uO8S_r7g9O2n5L-8')}
+                          >
+                          Lofi Hip Hop
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => setRadioPlaylistId('RDCLAK5uy_k1zN6k3cT_F3t2p4M1J8L5K1h_w9x9y3k')}
+                        >
+                          Classical Focus
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
                 <div style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
                   CodeXRay v1.1.0

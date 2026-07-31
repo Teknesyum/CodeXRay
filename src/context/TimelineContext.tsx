@@ -57,6 +57,10 @@ interface TimelineContextType {
   setIsEditingInput: (editing: boolean) => void;
   pinnedVariables: string[];
   togglePinnedVariable: (name: string) => void;
+  radioPlaylistId: string;
+  setRadioPlaylistId: (id: string) => void;
+  radioAutoplay: boolean;
+  setRadioAutoplay: (autoplay: boolean) => void;
 }
 
 const STORAGE_KEY = 'codexray.workspace.v1';
@@ -126,6 +130,12 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   );
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
+  const [radioPlaylistId, setRadioPlaylistId] = useState(() => 
+    localStorage.getItem('codexray.radio.playlist') || 'OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0'
+  );
+  const [radioAutoplay, setRadioAutoplay] = useState(() => 
+    localStorage.getItem('codexray.radio.autoplay') !== 'false'
+  );
 
   const stepForward = useCallback(() => {
     setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
@@ -183,6 +193,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       // Pinning still works for this session when storage is unavailable.
     }
   }, [pinnedVariables]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.radio.playlist', radioPlaylistId);
+  }, [radioPlaylistId]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.radio.autoplay', String(radioAutoplay));
+  }, [radioAutoplay]);
 
   useEffect(() => {
     try {
@@ -244,6 +262,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setIsEditingInput,
       pinnedVariables,
       togglePinnedVariable,
+      radioPlaylistId,
+      setRadioPlaylistId,
+      radioAutoplay,
+      setRadioAutoplay,
     }}>
       {children}
     </TimelineContext.Provider>

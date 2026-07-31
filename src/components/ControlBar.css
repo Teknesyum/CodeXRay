@@ -606,3 +606,6 @@
   border-color: var(--neon-magenta);
   box-shadow: 0 0 10px rgba(255, 0, 255, 0.2);
 }
+
+.custom-playlist-input { width: 100%; padding: 8px 12px; background: rgba(5, 5, 8, 0.8); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 6px; color: #fff; font-family: var(--font-mono); margin-top: 10px; }
+.playlist-presets { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }

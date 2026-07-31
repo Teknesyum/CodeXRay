@@ -19,7 +19,7 @@ interface YouTubePlayer {
   setShuffle: (shufflePlaylist: boolean) => void;
   getPlaylist: () => string[] | null;
   getPlaylistIndex: () => number;
-  getVideoData: () => { title: string } | null;
+  getVideoData: () => { title: string; video_id?: string } | null;
   playVideoAt: (index: number) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
@@ -45,6 +45,14 @@ declare global {
 }
 
 let youtubeApiPromise: Promise<YouTubeApi> | undefined;
+const OPENING_TRACK_VIDEO_ID = '8zj8h15VmQw';
+const OPENING_TRACK = {
+  title: 'Up — CDK',
+  thumb: `https://i.ytimg.com/vi/${OPENING_TRACK_VIDEO_ID}/hqdefault.jpg`,
+};
+
+const youtubeThumbnail = (videoId: string) =>
+  `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
 const loadYouTubeApi = (): Promise<YouTubeApi> => {
   if (window.YT?.Player) return Promise.resolve(window.YT);
@@ -70,7 +78,13 @@ const loadYouTubeApi = (): Promise<YouTubeApi> => {
 };
 
 export const PlaylistRadio = () => {
-  const { locale, radioPlaylistId, radioAutoplay, radioMinimizeSeconds } = useTimeline();
+  const {
+    locale,
+    radioPlaylistId,
+    radioAutoplay,
+    radioMinimizeSeconds,
+    radioOpenRequest,
+  } = useTimeline();
   const [minimized, setMinimized] = useState(!radioAutoplay);
   const [hasStarted, setHasStarted] = useState(radioAutoplay);
   const [volume, setVolume] = useState(25);
@@ -86,7 +100,8 @@ export const PlaylistRadio = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [showRing, setShowRing] = useState(false);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
-  const trackDataFetched = useRef(false);
+  const [currentTrack, setCurrentTrack] = useState(OPENING_TRACK);
+  const handledOpenRequest = useRef(radioOpenRequest);
   const hoverTimeoutRef = useRef<number | null>(null);
   const extractListId = (urlOrId: string) => {
     let id = urlOrId;
@@ -103,17 +118,25 @@ export const PlaylistRadio = () => {
   };
   
   const initialPlaylistId = useRef(extractListId(radioPlaylistId));
+  const activePlaylistId = useRef(initialPlaylistId.current);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
 
   useEffect(() => {
-    if (extractListId(radioPlaylistId) !== initialPlaylistId.current) {
+    if (extractListId(radioPlaylistId) !== activePlaylistId.current) {
       setMinimized(false);
       setHasStarted(true);
     }
   }, [radioPlaylistId]);
+
+  useEffect(() => {
+    if (radioOpenRequest === handledOpenRequest.current) return;
+    handledOpenRequest.current = radioOpenRequest;
+    setMinimized(false);
+    setHasStarted(true);
+  }, [radioOpenRequest]);
 
   useEffect(() => {
     if (!hasStarted || !iframeRef.current) return;
@@ -139,34 +162,35 @@ export const PlaylistRadio = () => {
               const pl = player.getPlaylist();
               if (pl && pl.length > 0) {
                 setPlaylist(pl);
-                // Sadece ilk seferde tüm listeyi fetch et
-                if (!trackDataFetched.current) {
-                  trackDataFetched.current = true;
-                  pl.forEach((id, idx) => {
-                    fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${id}`)
-                      .then((r) => r.json())
-                      .then((data) => {
-                        if (data && data.title) {
-                          setTrackData((prev) => ({
-                            ...prev,
-                            [idx]: { title: data.title, thumb: data.thumbnail_url },
-                          }));
-                        }
-                      })
-                      .catch(() => {});
-                  });
-                }
+                setTrackData((previous) => Object.fromEntries(
+                  pl.map((id, index) => [index, {
+                    title: previous[index]?.title ?? '',
+                    thumb: youtubeThumbnail(id),
+                  }]),
+                ));
               }
               
               const idx = player.getPlaylistIndex();
               if (idx !== undefined && idx !== -1) setCurrentIndex(idx);
               
               const vData = player.getVideoData();
-              if (vData && vData.title && idx !== undefined && idx !== -1) {
-                setTrackData((prev) => ({
-                  ...prev,
-                  [idx]: { title: vData.title, thumb: prev[idx]?.thumb || '' },
-                }));
+              if (vData?.title) {
+                const activeVideoId = vData.video_id || (idx >= 0 ? pl?.[idx] : undefined);
+                const activeTrack = {
+                  title: activeVideoId === OPENING_TRACK_VIDEO_ID
+                    ? OPENING_TRACK.title
+                    : vData.title,
+                  thumb: activeVideoId
+                    ? youtubeThumbnail(activeVideoId)
+                    : OPENING_TRACK.thumb,
+                };
+                setCurrentTrack(activeTrack);
+                if (idx >= 0) {
+                  setTrackData((previous) => ({
+                    ...previous,
+                    [idx]: activeTrack,
+                  }));
+                }
               }
               
               setDuration(player.getDuration());
@@ -214,21 +238,24 @@ export const PlaylistRadio = () => {
     return () => {
       if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
     };
-  }, [isHovered, minimized, hasStarted]);
+  }, [isHovered, minimized, hasStarted, radioMinimizeSeconds]);
 
   useEffect(() => {
     if (playerReady && playerRef.current) {
+      const nextPlaylistId = extractListId(radioPlaylistId);
+      if (nextPlaylistId === activePlaylistId.current) return;
+      activePlaylistId.current = nextPlaylistId;
       setTrackData({});
-      trackDataFetched.current = false;
+      setPlaylist([]);
       playerRef.current.loadPlaylist({
         listType: 'playlist',
-        list: extractListId(radioPlaylistId)
+        list: nextPlaylistId
       });
     }
   }, [radioPlaylistId, playerReady]);
 
   const embedUrl = [
-    'https://www.youtube.com/embed',
+    `https://www.youtube.com/embed/${OPENING_TRACK_VIDEO_ID}`,
     `?listType=playlist&list=${initialPlaylistId.current}`,
     `&hl=${locale}&playsinline=1&loop=1&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
     `&origin=${encodeURIComponent(window.location.origin)}`,
@@ -299,10 +326,10 @@ export const PlaylistRadio = () => {
           />
 
           <div className={`radio-visualizer ${isPlaying ? 'playing' : ''}`}>
-            {trackData[currentIndex]?.thumb ? (
+            {currentTrack.thumb ? (
               <img 
-                src={trackData[currentIndex].thumb} 
-                alt="cover" 
+                src={currentTrack.thumb}
+                alt={currentTrack.title}
                 className="album-art" 
               />
             ) : (
@@ -312,10 +339,12 @@ export const PlaylistRadio = () => {
             <div className="waves-container">
               <div className="wave wave-1"></div>
               <div className="wave wave-2"></div>
+              <div className="wave wave-3"></div>
+              <div className="wave wave-4"></div>
             </div>
             
             <div className="track-info">
-              {trackData[currentIndex]?.title || 'Müzik Yükleniyor...'}
+              {currentTrack.title}
             </div>
           </div>
           
@@ -441,7 +470,12 @@ export const PlaylistRadio = () => {
                 >
                   <span className="track-number">{index + 1}</span>
                   {trackData[index]?.thumb ? (
-                    <img src={trackData[index].thumb} alt="thumb" className="track-thumb" />
+                    <img
+                      src={trackData[index].thumb}
+                      alt="thumb"
+                      className="track-thumb"
+                      loading="lazy"
+                    />
                   ) : (
                     <div className="track-thumb-placeholder"><Music2 size={12} /></div>
                   )}

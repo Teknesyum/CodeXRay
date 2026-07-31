@@ -72,6 +72,7 @@ export const ControlBar = ({
     setAutoLoadAiModel,
     radioPlaylistId,
     setRadioPlaylistId,
+    requestRadioOpen,
     radioAutoplay,
     setRadioAutoplay,
     radioMinimizeSeconds,
@@ -89,6 +90,12 @@ export const ControlBar = ({
 
   const handleApplyPlaylist = () => {
     setRadioPlaylistId(tempPlaylistUrl);
+    requestRadioOpen();
+  };
+  const selectRadioPlaylist = (url: string) => {
+    setRadioPlaylistId(url);
+    setTempPlaylistUrl(url);
+    requestRadioOpen();
   };
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'ui' | 'radio'>('ai');
@@ -670,51 +677,31 @@ export const ControlBar = ({
                       <div className="playlist-presets">
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0' ? 'active' : ''}`}
-                          onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0';
-                            setRadioPlaylistId(url);
-                            setTempPlaylistUrl(url);
-                          }}
+                          onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0')}
                         >
                           SirensCeol (Varsayılan)
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63' ? 'active' : ''}`}
-                          onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63';
-                            setRadioPlaylistId(url);
-                            setTempPlaylistUrl(url);
-                          }}
+                          onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63')}
                         >
                           Kodlama & Odak (Lofi)
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w' ? 'active' : ''}`}
-                          onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w';
-                            setRadioPlaylistId(url);
-                            setTempPlaylistUrl(url);
-                          }}
+                          onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w')}
                         >
                           Synthwave & Retrowave
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo' ? 'active' : ''}`}
-                          onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo';
-                            setRadioPlaylistId(url);
-                            setTempPlaylistUrl(url);
-                          }}
+                          onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo')}
                           >
                           Lofi Hip Hop Mix
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL2140A0411C65DD13' ? 'active' : ''}`}
-                          onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PL2140A0411C65DD13';
-                            setRadioPlaylistId(url);
-                            setTempPlaylistUrl(url);
-                          }}
+                          onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=PL2140A0411C65DD13')}
                         >
                           Klasik Müzik
                         </button>
@@ -723,7 +710,7 @@ export const ControlBar = ({
                   </>
                 )}
                 <div style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
-                  CodeXRay v1.1.0
+                  CodeXRay v2.0.0
                 </div>
               </div>
             </div>

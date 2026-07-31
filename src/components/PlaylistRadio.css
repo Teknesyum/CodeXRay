@@ -301,11 +301,15 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 50px;
+  height: 64px;
   z-index: 1;
+  filter: drop-shadow(0 -3px 8px rgba(0, 243, 255, 0.12));
 }
 
-.wave-1, .wave-2 {
+.wave-1,
+.wave-2,
+.wave-3,
+.wave-4 {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -316,34 +320,72 @@
 }
 
 .radio-visualizer.playing .wave-1,
-.radio-visualizer.playing .wave-2 {
+.radio-visualizer.playing .wave-2,
+.radio-visualizer.playing .wave-3,
+.radio-visualizer.playing .wave-4 {
   opacity: 1;
 }
 
 .wave-1 {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 100' preserveAspectRatio='none'%3E%3Cpath d='M0,90 Q33.333,72.81 66.666,90 Q100,64.52 133.333,90 Q166.666,21.94 200,90 Q233.333,56.43 266.666,90 Q300,18.15 333.333,90 Q366.666,15.52 400,90 Q433.333,45.18 466.666,90 Q500,16.87 533.333,90 Q566.666,33.46 600,90 Q633.333,62.83 666.666,90 Q700,62.50 733.333,90 Q766.666,34.69 800,90 Q833.333,73.33 866.666,90 Q900,52.73 933.333,90 Q966.666,33.68 1000,90 L1000,100 L0,100 Z' fill='%2300f3ff' opacity='0.25' /%3E%3C/svg%3E") repeat-x;
-  background-size: 280px 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 64' preserveAspectRatio='none'%3E%3Cpath d='M0 45 C10 22 20 22 30 45 S50 68 60 45 S80 18 90 45 S110 66 120 45 S140 25 160 45 V64 H0Z' fill='%2300f3ff' fill-opacity='.12'/%3E%3C/svg%3E") repeat-x;
+  background-size: 72px 72%;
   background-position: bottom;
-  animation: waveSlideHorizontal-1 25s linear infinite;
-  z-index: 2;
-}
-
-.wave-2 {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 100' preserveAspectRatio='none'%3E%3Cpath d='M0,98 Q25,35.31 50,98 Q75,41.39 100,98 Q125,64.38 150,98 Q175,19.76 200,98 Q225,58.33 250,98 Q275,65.40 300,98 Q325,37.87 350,98 Q375,45.80 400,98 Q425,27.44 450,98 Q475,81.87 500,98 Q525,41.83 550,98 Q575,53.06 600,98 Q625,17.72 650,98 Q675,64.10 700,98 Q725,20.31 750,98 Q775,27.81 800,98 Q825,26.26 850,98 Q875,66.71 900,98 Q925,30.68 950,98 Q975,37.68 1000,98 L1000,100 L0,100 Z' fill='%23ff00ff' opacity='0.25' /%3E%3C/svg%3E") repeat-x;
-  background-size: 240px 100%;
-  background-position: bottom;
-  animation: waveSlideHorizontal-2 30s linear infinite;
+  animation: waveFlowRight 20s linear infinite;
+  filter: blur(1.1px);
+  transform: translateY(2px);
   z-index: 1;
 }
 
-@keyframes waveSlideHorizontal-1 {
-  0% { background-position-x: 0; }
-  100% { background-position-x: 280px; }
+.wave-2 {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 64' preserveAspectRatio='none'%3E%3Cpath d='M0 50 C9 34 18 34 27 50 S45 64 54 50 S72 27 81 50 S99 67 108 50 S126 31 144 50 V64 H0Z' fill='%23ff00ff' fill-opacity='.19'/%3E%3C/svg%3E") repeat-x;
+  background-size: 68px 92%;
+  background-position: bottom;
+  animation: waveFlowLeft 24s linear infinite;
+  z-index: 4;
 }
 
-@keyframes waveSlideHorizontal-2 {
+.wave-3 {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 64' preserveAspectRatio='none'%3E%3Cpath d='M0 53 C8 39 16 39 24 53 S40 65 48 53 S64 35 72 53 S88 65 96 53 S112 42 120 53 V64 H0Z' fill='%237b61ff' fill-opacity='.17'/%3E%3C/svg%3E") repeat-x;
+  background-size: 62px 82%;
+  background-position: bottom;
+  animation: waveFlowRightCompact 27s linear infinite;
+  z-index: 3;
+}
+
+.wave-4 {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 104 64' preserveAspectRatio='none'%3E%3Cpath d='M0 56 C6.5 46 13 46 19.5 56 S32.5 64 39 56 S52 42 58.5 56 S71.5 65 78 56 S91 47 104 56 V64 H0Z' fill='%2300f3ff' fill-opacity='.07'/%3E%3C/svg%3E") repeat-x;
+  background-size: 56px 70%;
+  background-position: bottom;
+  animation: waveFlowLeftCompact 30s linear infinite;
+  filter: blur(0.8px);
+  z-index: 0;
+}
+
+@keyframes waveFlowRight {
   0% { background-position-x: 0; }
-  100% { background-position-x: -240px; }
+  100% { background-position-x: 72px; }
+}
+
+@keyframes waveFlowLeft {
+  0% { background-position-x: 0; }
+  100% { background-position-x: -68px; }
+}
+
+@keyframes waveFlowRightCompact {
+  0% { background-position-x: 0; }
+  100% { background-position-x: 62px; }
+}
+
+@keyframes waveFlowLeftCompact {
+  0% { background-position-x: 0; }
+  100% { background-position-x: -56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radio-visualizer.playing .wave,
+  .radio-visualizer.playing .album-art {
+    animation-play-state: paused;
+  }
 }
 
 .track-info {

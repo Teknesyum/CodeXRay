@@ -69,6 +69,8 @@ interface TimelineContextType {
   togglePinnedVariable: (name: string) => void;
   radioPlaylistId: string;
   setRadioPlaylistId: (id: string) => void;
+  radioOpenRequest: number;
+  requestRadioOpen: () => void;
   radioAutoplay: boolean;
   setRadioAutoplay: (autoplay: boolean) => void;
 }
@@ -157,9 +159,13 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [radioPlaylistId, setRadioPlaylistId] = useState(() => 
     localStorage.getItem('codexray.radio.playlist') || 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0'
   );
+  const [radioOpenRequest, setRadioOpenRequest] = useState(0);
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
     localStorage.getItem('codexray.radio.autoplay') !== 'false'
   );
+  const requestRadioOpen = useCallback(() => {
+    setRadioOpenRequest((request) => request + 1);
+  }, []);
 
   const stepForward = useCallback(() => {
     setCurrentIndex((previous) => Math.min(previous + 1, Math.max(steps.length - 1, 0)));
@@ -314,6 +320,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       togglePinnedVariable,
       radioPlaylistId,
       setRadioPlaylistId,
+      radioOpenRequest,
+      requestRadioOpen,
       radioAutoplay,
       setRadioAutoplay,
     }}>

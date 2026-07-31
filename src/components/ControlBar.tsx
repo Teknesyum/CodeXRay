@@ -669,14 +669,14 @@ export const ControlBar = ({
                       <div className="settings-title">{t('radioPresets', locale)}</div>
                       <div className="playlist-presets">
                         <button 
-                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u' ? 'active' : ''}`}
+                          className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0' ? 'active' : ''}`}
                           onClick={() => {
-                            const url = 'https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u';
+                            const url = 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0';
                             setRadioPlaylistId(url);
                             setTempPlaylistUrl(url);
                           }}
                         >
-                          NCS Telifsiz Müzik (Varsayılan)
+                          SirensCeol (Varsayılan)
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z' ? 'active' : ''}`}

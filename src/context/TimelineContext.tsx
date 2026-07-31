@@ -155,7 +155,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
   const [radioPlaylistId, setRadioPlaylistId] = useState(() => 
-    localStorage.getItem('codexray.radio.playlist') || 'https://www.youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u'
+    localStorage.getItem('codexray.radio.playlist') || 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0'
   );
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
     localStorage.getItem('codexray.radio.autoplay') !== 'false'

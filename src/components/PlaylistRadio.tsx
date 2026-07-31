@@ -83,8 +83,10 @@ export const PlaylistRadio = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
   const trackDataFetched = useRef(false);
+  const hoverTimeoutRef = useRef<number | null>(null);
   const extractListId = (urlOrId: string) => {
     const match = urlOrId.match(/[?&]list=([^&]+)/);
     return match ? match[1] : urlOrId;
@@ -174,6 +176,23 @@ export const PlaylistRadio = () => {
   }, [isPlaying, playerReady]);
 
   useEffect(() => {
+    if (!hasStarted || minimized) {
+      if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+      return;
+    }
+    if (!isHovered) {
+      hoverTimeoutRef.current = window.setTimeout(() => {
+        setMinimized(true);
+      }, 3000);
+    } else {
+      if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    }
+    return () => {
+      if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    };
+  }, [isHovered, minimized, hasStarted]);
+
+  useEffect(() => {
     if (playerReady && playerRef.current) {
       trackDataFetched.current = false;
       setTrackData({});
@@ -213,6 +232,8 @@ export const PlaylistRadio = () => {
           className="playlist-radio" 
           aria-label={t('radio', locale)}
           style={{ display: minimized ? 'none' : 'block' }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
           <div className="playlist-radio-header">
             <Music2 size={16} />
@@ -226,14 +247,22 @@ export const PlaylistRadio = () => {
             >
               <ExternalLink size={14} />
             </a>
-            <button
-              type="button"
-              aria-label={t('closeRadio', locale)}
-              title={t('closeRadio', locale)}
-              onClick={() => setMinimized(true)}
-            >
-              <Minus size={15} />
-            </button>
+            <div className="minimize-btn-wrapper">
+              {!isHovered && !minimized && (
+                <svg className="countdown-ring" width="24" height="24">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              )}
+              <button
+                type="button"
+                className="minimize-btn"
+                aria-label={t('closeRadio', locale)}
+                title={t('closeRadio', locale)}
+                onClick={() => setMinimized(true)}
+              >
+                <Minus size={15} />
+              </button>
+            </div>
           </div>
           <iframe
             ref={iframeRef}
@@ -245,16 +274,22 @@ export const PlaylistRadio = () => {
             allowFullScreen
           />
 
-          <div className={`radio-waves ${isPlaying ? 'playing' : ''}`}>
-            {trackData[currentIndex]?.thumb && (
+          <div className={`radio-visualizer ${isPlaying ? 'playing' : ''}`}>
+            {trackData[currentIndex]?.thumb ? (
               <img 
                 src={trackData[currentIndex].thumb} 
                 alt="cover" 
-                className="wave-background-cover" 
+                className="album-art" 
               />
+            ) : (
+              <div className="album-art-placeholder"><Music2 size={32} /></div>
             )}
-            <div className="wave wave-1"></div>
-            <div className="wave wave-2"></div>
+            
+            <div className="waves-container">
+              <div className="wave wave-1"></div>
+              <div className="wave wave-2"></div>
+            </div>
+            
             <div className="track-info">
               {trackData[currentIndex]?.title || `Track ${currentIndex + 1}`}
             </div>

@@ -177,9 +177,135 @@
 }
 
 .playlist-radio-volume output {
-  min-width: 34px;
-  color: var(--neon-magenta);
+  width: 25px;
+  color: var(--text-main);
   text-align: right;
+}
+
+/* Radio Waves Animation */
+.radio-waves {
+  position: relative;
+  height: 25px;
+  margin: 10px 10px 0;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  border: 1px solid rgba(0, 243, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wave-1, .wave-2 {
+  position: absolute;
+  top: 15px;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 40%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.radio-waves.playing .wave-1,
+.radio-waves.playing .wave-2 {
+  opacity: 1;
+}
+
+.wave-1 {
+  background: rgba(0, 243, 255, 0.2);
+  animation: waveSlide 4s infinite linear;
+}
+
+.wave-2 {
+  background: rgba(255, 0, 255, 0.2);
+  animation: waveSlide 6s infinite linear;
+  top: 18px;
+  left: -40%;
+}
+
+@keyframes waveSlide {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.track-info {
+  position: relative;
+  z-index: 5;
+  font: 0.75rem var(--font-mono);
+  color: #fff;
+  text-shadow: 0 0 5px #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+}
+
+/* Playlist Menu */
+.radio-playlist-menu {
+  max-height: 150px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(0, 243, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  margin-top: 5px;
+}
+
+.radio-playlist-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.radio-playlist-menu::-webkit-scrollbar-thumb {
+  background: rgba(0, 243, 255, 0.2);
+  border-radius: 2px;
+}
+
+.playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 15px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.playlist-item:hover {
+  background: rgba(0, 243, 255, 0.05);
+  color: var(--text-main);
+}
+
+.playlist-item.active {
+  background: rgba(0, 243, 255, 0.1);
+  color: var(--neon-cyan);
+}
+
+.track-number {
+  font: 0.7rem var(--font-mono);
+  opacity: 0.7;
+  width: 20px;
+}
+
+.track-title {
+  font: 0.8rem var(--font-sans);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playing-icon {
+  color: var(--neon-magenta);
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
 }
 
 .playlist-radio > p {

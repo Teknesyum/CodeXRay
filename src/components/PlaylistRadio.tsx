@@ -20,6 +20,10 @@ interface YouTubePlayer {
   previousVideo: () => void;
   setLoop: (loopPlaylists: boolean) => void;
   setShuffle: (shufflePlaylist: boolean) => void;
+  getPlaylist: () => string[] | null;
+  getPlaylistIndex: () => number;
+  getVideoData: () => { title: string } | null;
+  playVideoAt: (index: number) => void;
 }
 
 interface YouTubeApi {
@@ -74,6 +78,9 @@ export const PlaylistRadio = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLooping, setIsLooping] = useState(true);
   const [isShuffled, setIsShuffled] = useState(false);
+  const [playlist, setPlaylist] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [trackTitles, setTrackTitles] = useState<Record<number, string>>({});
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
@@ -95,9 +102,20 @@ export const PlaylistRadio = () => {
               setPlayerReady(true);
             },
             onStateChange: (event) => {
-              // 1 = playing, 2 = paused
+              const player = event.target as YouTubePlayer;
               if (event.data === 1) setIsPlaying(true);
               else if (event.data === 2) setIsPlaying(false);
+              
+              const pl = player.getPlaylist();
+              if (pl) setPlaylist(pl);
+              
+              const idx = player.getPlaylistIndex();
+              if (idx !== undefined && idx !== -1) setCurrentIndex(idx);
+              
+              const vData = player.getVideoData();
+              if (vData && vData.title && idx !== undefined && idx !== -1) {
+                setTrackTitles(prev => ({...prev, [idx]: vData.title}));
+              }
             }
           },
         });
@@ -170,6 +188,14 @@ export const PlaylistRadio = () => {
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
           />
+
+          <div className={`radio-waves ${isPlaying ? 'playing' : ''}`}>
+            <div className="wave wave-1"></div>
+            <div className="wave wave-2"></div>
+            <div className="track-info">
+              {trackTitles[currentIndex] || `Track ${currentIndex + 1}`}
+            </div>
+          </div>
           
           <div className="playlist-radio-controls">
             <button
@@ -266,6 +292,22 @@ export const PlaylistRadio = () => {
           <output>{volume}%</output>
         </label>
       </div>
+
+          {playlist.length > 0 && (
+            <div className="radio-playlist-menu">
+              {playlist.map((_, index) => (
+                <button
+                  key={index}
+                  className={`playlist-item ${index === currentIndex ? 'active' : ''}`}
+                  onClick={() => playerRef.current?.playVideoAt(index)}
+                >
+                  <span className="track-number">{index + 1}</span>
+                  <span className="track-title">{trackTitles[index] || `Track ${index + 1}`}</span>
+                  {index === currentIndex && isPlaying && <Music2 size={12} className="playing-icon" />}
+                </button>
+              ))}
+            </div>
+          )}
         </aside>
       )}
     </>

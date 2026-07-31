@@ -31,12 +31,15 @@ const cleanProse = (value: string): string => {
 };
 
 export const sanitizeLocalModelAnswer = (answer: string): string => {
-  const segments = answer.trim().split(/(```[\s\S]*?```)/g);
+  // DeepSeek R1 gibi modellerin <think> bloklarını tamamen kaldır.
+  const withoutThink = answer.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+  const segments = withoutThink.split(/(```[\s\S]*?```)/g);
   const cleaned = segments
     .map((segment) => segment.startsWith('```') ? segment : cleanProse(segment))
     .filter(Boolean)
     .join('\n\n')
     .trim();
-  return cleaned || answer.trim();
+  return cleaned || withoutThink.trim();
 };
 

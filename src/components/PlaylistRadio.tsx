@@ -80,7 +80,8 @@ export const PlaylistRadio = () => {
   const [isShuffled, setIsShuffled] = useState(false);
   const [playlist, setPlaylist] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [trackTitles, setTrackTitles] = useState<Record<number, string>>({});
+  const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
+  const trackDataFetched = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
@@ -107,14 +108,36 @@ export const PlaylistRadio = () => {
               else if (event.data === 2) setIsPlaying(false);
               
               const pl = player.getPlaylist();
-              if (pl) setPlaylist(pl);
+              if (pl && pl.length > 0) {
+                setPlaylist(pl);
+                // Sadece ilk seferde tüm listeyi fetch et
+                if (!trackDataFetched.current) {
+                  trackDataFetched.current = true;
+                  pl.forEach((id, idx) => {
+                    fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${id}`)
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (data && data.title) {
+                          setTrackData((prev) => ({
+                            ...prev,
+                            [idx]: { title: data.title, thumb: data.thumbnail_url },
+                          }));
+                        }
+                      })
+                      .catch(() => {});
+                  });
+                }
+              }
               
               const idx = player.getPlaylistIndex();
               if (idx !== undefined && idx !== -1) setCurrentIndex(idx);
               
               const vData = player.getVideoData();
               if (vData && vData.title && idx !== undefined && idx !== -1) {
-                setTrackTitles(prev => ({...prev, [idx]: vData.title}));
+                setTrackData((prev) => ({
+                  ...prev,
+                  [idx]: { title: vData.title, thumb: prev[idx]?.thumb || '' },
+                }));
               }
             }
           },
@@ -190,10 +213,17 @@ export const PlaylistRadio = () => {
           />
 
           <div className={`radio-waves ${isPlaying ? 'playing' : ''}`}>
+            {trackData[currentIndex]?.thumb && (
+              <img 
+                src={trackData[currentIndex].thumb} 
+                alt="cover" 
+                className="wave-background-cover" 
+              />
+            )}
             <div className="wave wave-1"></div>
             <div className="wave wave-2"></div>
             <div className="track-info">
-              {trackTitles[currentIndex] || `Track ${currentIndex + 1}`}
+              {trackData[currentIndex]?.title || `Track ${currentIndex + 1}`}
             </div>
           </div>
           
@@ -302,7 +332,12 @@ export const PlaylistRadio = () => {
                   onClick={() => playerRef.current?.playVideoAt(index)}
                 >
                   <span className="track-number">{index + 1}</span>
-                  <span className="track-title">{trackTitles[index] || `Track ${index + 1}`}</span>
+                  {trackData[index]?.thumb ? (
+                    <img src={trackData[index].thumb} alt="thumb" className="track-thumb" />
+                  ) : (
+                    <div className="track-thumb-placeholder"><Music2 size={12} /></div>
+                  )}
+                  <span className="track-title">{trackData[index]?.title || `Track ${index + 1}`}</span>
                   {index === currentIndex && isPlaying && <Music2 size={12} className="playing-icon" />}
                 </button>
               ))}

@@ -196,15 +196,43 @@
   justify-content: center;
 }
 
+.track-thumb, .track-thumb-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.track-thumb-placeholder {
+  background: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.wave-background-cover {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  object-fit: cover;
+  opacity: 0.3;
+  filter: blur(2px);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .wave-1, .wave-2 {
   position: absolute;
-  top: 15px;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  border-radius: 40%;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   transition: opacity 0.3s;
+  z-index: 1;
 }
 
 .radio-waves.playing .wave-1,
@@ -213,20 +241,27 @@
 }
 
 .wave-1 {
-  background: rgba(0, 243, 255, 0.2);
-  animation: waveSlide 4s infinite linear;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath d='M0,30 Q25,15 50,30 T100,30 L100,40 L0,40 Z' fill='%2300f3ff' opacity='0.4' /%3E%3C/svg%3E") repeat-x;
+  background-size: 50px 100%;
+  background-position: bottom;
+  animation: waveSlideHorizontal-1 3s linear infinite;
 }
 
 .wave-2 {
-  background: rgba(255, 0, 255, 0.2);
-  animation: waveSlide 6s infinite linear;
-  top: 18px;
-  left: -40%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath d='M0,30 Q25,20 50,30 T100,30 L100,40 L0,40 Z' fill='%23ff00ff' opacity='0.4' /%3E%3C/svg%3E") repeat-x;
+  background-size: 60px 100%;
+  background-position: bottom;
+  animation: waveSlideHorizontal-2 4s linear infinite;
 }
 
-@keyframes waveSlide {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes waveSlideHorizontal-1 {
+  0% { background-position-x: 0; }
+  100% { background-position-x: 100px; }
+}
+
+@keyframes waveSlideHorizontal-2 {
+  0% { background-position-x: 0; }
+  100% { background-position-x: -120px; }
 }
 
 .track-info {

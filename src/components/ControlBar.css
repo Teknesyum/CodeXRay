@@ -539,9 +539,58 @@
 .settings-title {
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--neon-cyan);
   text-transform: uppercase;
   letter-spacing: 1px;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+}
+
+.neon-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.neon-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(0, 243, 255, 0.5);
+  border-radius: 4px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+}
+
+.neon-checkbox:checked {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.neon-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--neon-cyan);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  box-shadow: 1px 1px 2px rgba(0, 243, 255, 0.3);
+}
+
+.checkbox-text {
+  color: var(--text-main);
+  font-size: 0.95rem;
 }
 
 .lang-toggles {

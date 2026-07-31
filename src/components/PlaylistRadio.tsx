@@ -85,7 +85,12 @@ export const PlaylistRadio = () => {
   const [duration, setDuration] = useState(0);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
   const trackDataFetched = useRef(false);
-  const initialPlaylistId = useRef(radioPlaylistId);
+  const extractListId = (urlOrId: string) => {
+    const match = urlOrId.match(/[?&]list=([^&]+)/);
+    return match ? match[1] : urlOrId;
+  };
+  
+  const initialPlaylistId = useRef(extractListId(radioPlaylistId));
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const volumeRef = useRef(volume);
@@ -174,7 +179,7 @@ export const PlaylistRadio = () => {
       setTrackData({});
       playerRef.current.loadPlaylist({
         listType: 'playlist',
-        list: radioPlaylistId
+        list: extractListId(radioPlaylistId)
       });
     }
   }, [radioPlaylistId, playerReady]);
@@ -213,7 +218,7 @@ export const PlaylistRadio = () => {
             <Music2 size={16} />
             <span>CodeXRay Radio</span>
             <a
-              href={`https://music.youtube.com/playlist?list=${radioPlaylistId}`}
+              href={`https://music.youtube.com/playlist?list=${extractListId(radioPlaylistId)}`}
               target="_blank"
               rel="noreferrer"
               aria-label={t('openPlaylist', locale)}

@@ -535,13 +535,14 @@ export const ControlBar = ({
                   <>
                     <div className="settings-section">
                       <div className="settings-title">{t('radioAutoplay', locale)}</div>
-                      <label className="checkbox-label">
+                      <label className="neon-checkbox-label">
                         <input
                           type="checkbox"
+                          className="neon-checkbox"
                           checked={radioAutoplay}
                           onChange={(e) => setRadioAutoplay(e.target.checked)}
                         />
-                        <span>{t('radioAutoplay', locale)}</span>
+                        <span className="checkbox-text">{t('radioAutoplay', locale)}</span>
                       </label>
                     </div>
                     <div className="settings-section">
@@ -550,12 +551,8 @@ export const ControlBar = ({
                         type="text"
                         className="custom-playlist-input"
                         value={radioPlaylistId}
-                        onChange={(e) => {
-                          const val = e.target.value.trim();
-                          const listMatch = val.match(/[?&]list=([^&]+)/);
-                          setRadioPlaylistId(listMatch ? listMatch[1] : val);
-                        }}
-                        placeholder="e.g. OLAK5uy_koji..."
+                        onChange={(e) => setRadioPlaylistId(e.target.value)}
+                        placeholder="https://youtube.com/playlist?list=..."
                       />
                     </div>
                     <div className="settings-section">
@@ -563,31 +560,31 @@ export const ControlBar = ({
                       <div className="playlist-presets">
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0')}
+                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDlzBjZBpA-aU')}
                         >
                           Up Cdk (Varsayılan)
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('RDCLAK5uy_m5ENJ7vW7WpI0q3C3jT2g2L-0w_x4eC7s')}
+                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_m5ENJ7vW7WpI0q3C3jT2g2L-0w_x4eC7s')}
                         >
                           Coding Focus
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('RDCLAK5uy_kQh-E5X44l2b_H7R7sE3h_qP9T-bT9U9A')}
+                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_kQh-E5X44l2b_H7R7sE3h_qP9T-bT9U9A')}
                         >
                           Synthwave
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('RDCLAK5uy_n5XFdzqO0r_B3X5F0uO8S_r7g9O2n5L-8')}
+                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_n5XFdzqO0r_B3X5F0uO8S_r7g9O2n5L-8')}
                           >
                           Lofi Hip Hop
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('RDCLAK5uy_k1zN6k3cT_F3t2p4M1J8L5K1h_w9x9y3k')}
+                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_k1zN6k3cT_F3t2p4M1J8L5K1h_w9x9y3k')}
                         >
                           Classical Focus
                         </button>

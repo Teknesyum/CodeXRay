@@ -770,9 +770,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <button
           type="button"
           className={`panel-action-btn maximize-btn neon-toggle ${isAiMaximized ? 'active' : ''}`}
-          aria-label={isAiMaximized ? 'Minimize AI panel' : 'Maximize AI panel'}
+          aria-label={t(isAiMaximized ? 'minimizeAiPanel' : 'maximizeAiPanel', locale)}
           onClick={() => setIsAiMaximized(!isAiMaximized)}
-          title={isAiMaximized ? 'Küçült' : 'Tam Ekran'}
+          title={t(isAiMaximized ? 'minimizeAiPanel' : 'maximizeAiPanel', locale)}
         >
           {isAiMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>

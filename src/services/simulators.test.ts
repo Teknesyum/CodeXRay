@@ -24,6 +24,12 @@ describe('deterministic simulators', () => {
           steps.every((step) => step.explanation.length > 0),
           `${algorithm.name} preset ${presetIndex + 1}`,
         ).toBe(true);
+        const sourceLineCount = algorithm.code.split('\n').length;
+        expect(
+          steps.every((step) => step.lineNumber === null
+            || (step.lineNumber >= 1 && step.lineNumber <= sourceLineCount)),
+          `${algorithm.name} preset ${presetIndex + 1} line mapping`,
+        ).toBe(true);
         for (const step of steps) {
           if (translateRuntimeText(step.explanation, 'tr') === step.explanation) {
             untranslated.add(step.explanation);
@@ -32,6 +38,18 @@ describe('deterministic simulators', () => {
       }
     }
     expect([...untranslated]).toEqual([]);
+  });
+
+  it('replays identical inputs deterministically without mutating them', () => {
+    for (const algorithm of supported) {
+      const kind = getInputKindForAlgorithm(algorithm.name);
+      const input = createInputPreset(kind, 1, algorithm.name);
+      const snapshot = structuredClone(input);
+      const first = simulateAlgorithm(algorithm.name, algorithm.code, input);
+      const second = simulateAlgorithm(algorithm.name, algorithm.code, input);
+      expect(second, algorithm.name).toEqual(first);
+      expect(input, `${algorithm.name} input mutation`).toEqual(snapshot);
+    }
   });
 
   it('keeps all 15 visited DFS nodes in structured trace data', () => {

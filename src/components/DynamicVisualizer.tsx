@@ -298,12 +298,12 @@ export const DynamicVisualizer = ({
       
       {showAiLoadWarning && !modelLoadNotice && (aiStatus === 'idle' || aiStatus === 'error' || aiStatus === 'unsupported') && !collapsed && (
         <div className="ai-load-warning-banner">
-          <span>{aiStatus === 'unsupported' ? 'Yapay Zeka bu tarayıcıda desteklenmiyor.' : 'Model Yüklenmedi! Gelişmiş özellikler için lütfen modeli yükleyin.'}</span>
+          <span>{t(aiStatus === 'unsupported' ? 'aiUnsupportedBrowser' : 'aiModelMissing', locale)}</span>
           <div className="banner-actions">
             {aiStatus !== 'unsupported' && (
-              <button type="button" className="action-btn load-btn" onClick={handleLoadModel}>Yükle</button>
+              <button type="button" className="action-btn load-btn" onClick={handleLoadModel}>{t('load', locale)}</button>
             )}
-            <button type="button" className="action-btn hide-btn" onClick={() => setShowAiLoadWarning(false)}>Gizle</button>
+            <button type="button" className="action-btn hide-btn" onClick={() => setShowAiLoadWarning(false)}>{t('hide', locale)}</button>
           </div>
         </div>
       )}

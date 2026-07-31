@@ -10,6 +10,8 @@ describe('translations', () => {
   it('provides Turkish UI labels and interpolation', () => {
     expect(t('sourceCode', 'tr')).toBe('Kaynak Kod');
     expect(t('arrayCount', 'tr', { count: 15 })).toBe('Dizi(15)');
+    expect(t('trackFallback', 'en', { number: 3 })).toBe('Track 3');
+    expect(t('trackFallback', 'tr', { number: 3 })).toBe('Şarkı 3');
   });
 
   it('localizes every supported algorithm label', () => {
@@ -28,5 +30,10 @@ describe('translations', () => {
       'Sorting completed. Every value is in its final position.',
       'tr',
     )).toBe('Sıralama tamamlandı. Her değer son konumunda.');
+  });
+
+  it('localizes validation errors from untrusted input parsing', () => {
+    expect(translateRuntimeText('Array input cannot contain empty items.', 'tr'))
+      .toBe('Dizi girdisi boş eleman içeremez.');
   });
 });

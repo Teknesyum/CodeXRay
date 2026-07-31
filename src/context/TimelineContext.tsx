@@ -110,6 +110,22 @@ const AI_MODEL_KEY = 'codexray.ai-model.v1';
 const AI_CONTEXT_WINDOW_KEY = 'codexray.ai-context-window.v1';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
+const readStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeStorage = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Preferences remain available for the current session when storage is unavailable.
+  }
+};
+
 interface WorkspaceState {
   code: string;
   algorithmName: string;
@@ -368,45 +384,46 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
   const [aiModel, setAiModel] = useState(loadAiModel);
   const [aiContextWindow, setAiContextWindow] = useState(() =>
-    localStorage.getItem(AI_CONTEXT_WINDOW_KEY) === '8192' ? 8192 : 4096,
+    readStorage(AI_CONTEXT_WINDOW_KEY) === '8192' ? 8192 : 4096,
   );
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
   const [aiProgressPercent, setAiProgressPercent] = useState<number | null>(null);
   const [showAiLoadWarning, setShowAiLoadWarning] = useState(() => 
-    localStorage.getItem('codexray.ai.showWarning') !== 'false'
+    readStorage('codexray.ai.showWarning') !== 'false'
   );
   const [showAiLoadProgress, setShowAiLoadProgress] = useState(() => 
-    localStorage.getItem('codexray.ai.showProgress') !== 'false'
+    readStorage('codexray.ai.showProgress') !== 'false'
   );
   const [autoLoadAiModel, setAutoLoadAiModel] = useState(() => 
-    localStorage.getItem('codexray.ai.autoLoad') !== 'false'
+    readStorage('codexray.ai.autoLoad') !== 'false'
   );
   const [radioMinimizeSeconds, setRadioMinimizeSeconds] = useState(() => {
-    const val = localStorage.getItem('codexray.radio.minimizeSeconds');
-    return val ? parseInt(val, 10) : 4;
+    const parsed = Number(readStorage('codexray.radio.minimizeSeconds'));
+    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 16 ? parsed : 4;
   });
   const [isAiMaximized, setIsAiMaximized] = useState(false);
   const [locale, setLocale] = useState<Locale>(() =>
-    localStorage.getItem('codexray.locale') === 'en' ? 'en' : 'tr',
+    readStorage('codexray.locale') === 'en' ? 'en' : 'tr',
   );
-  const [theme, setTheme] = useState<Theme>(() =>
-    (localStorage.getItem('codexray.theme') as Theme) || 'neon',
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = readStorage('codexray.theme');
+    return saved === 'dark' || saved === 'light' || saved === 'neon' ? saved : 'neon';
+  });
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
   const [radioPlaylistId, setRadioPlaylistId] = useState(() => 
-    localStorage.getItem('codexray.radio.playlist') || 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0'
+    readStorage('codexray.radio.playlist') || 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0'
   );
   const [radioOpenRequest, setRadioOpenRequest] = useState(0);
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
-    localStorage.getItem('codexray.radio.autoplay') !== 'false'
+    readStorage('codexray.radio.autoplay') !== 'false'
   );
   const [godModeEnabled, setGodModeEnabled] = useState(() =>
-    localStorage.getItem('codexray.ai.godMode') !== 'false'
+    readStorage('codexray.ai.godMode') !== 'false'
   );
   const [guidedMode, setGuidedMode] = useState(() =>
-    localStorage.getItem('codexray.ai.guidedMode') !== 'false'
+    readStorage('codexray.ai.guidedMode') !== 'false'
   );
   const requestRadioOpen = useCallback(() => {
     setRadioOpenRequest((request) => request + 1);
@@ -538,12 +555,12 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, [simulationInput]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.locale', locale);
+    writeStorage('codexray.locale', locale);
     document.documentElement.lang = locale;
   }, [locale]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.theme', theme);
+    writeStorage('codexray.theme', theme);
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
@@ -556,35 +573,35 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, [pinnedVariables]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.ai.showWarning', showAiLoadWarning.toString());
+    writeStorage('codexray.ai.showWarning', showAiLoadWarning.toString());
   }, [showAiLoadWarning]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.ai.showProgress', showAiLoadProgress.toString());
+    writeStorage('codexray.ai.showProgress', showAiLoadProgress.toString());
   }, [showAiLoadProgress]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.ai.autoLoad', autoLoadAiModel.toString());
+    writeStorage('codexray.ai.autoLoad', autoLoadAiModel.toString());
   }, [autoLoadAiModel]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.radio.minimizeSeconds', radioMinimizeSeconds.toString());
+    writeStorage('codexray.radio.minimizeSeconds', radioMinimizeSeconds.toString());
   }, [radioMinimizeSeconds]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.radio.playlist', radioPlaylistId);
+    writeStorage('codexray.radio.playlist', radioPlaylistId);
   }, [radioPlaylistId]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.radio.autoplay', String(radioAutoplay));
+    writeStorage('codexray.radio.autoplay', String(radioAutoplay));
   }, [radioAutoplay]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.ai.godMode', String(godModeEnabled));
+    writeStorage('codexray.ai.godMode', String(godModeEnabled));
   }, [godModeEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('codexray.ai.guidedMode', String(guidedMode));
+    writeStorage('codexray.ai.guidedMode', String(guidedMode));
   }, [guidedMode]);
 
   useEffect(() => {

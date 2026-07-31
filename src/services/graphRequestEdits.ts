@@ -2,7 +2,7 @@ import type { GraphDocumentV1 } from '../types/simulation';
 import { nextNodeId } from './graphEditorUtils';
 
 export const isVisualOnlyGraphRequest = (request: string): boolean =>
-  /(?:node|d[uü][gğ][uü]m).*(?:geni[sş]|yay|ara|yerle[sş])|(?:cephe|frontier).*(?:renk|[sş]ekil)|(?:layout|yerle[sş]im).*(?:de[gğ]i[sş]|d[uü]zen)/i.test(request)
+  /(?:node|d[uü][gğ][uü]m).*(?:geni[sş]|yay|spread|spacing|ara|yerle[sş])|(?:cephe|frontier).*(?:renk|color|[sş]ekil|shape)|(?:layout|yerle[sş]im).*(?:de[gğ]i[sş]|change|d[uü]zen|arrange)|(?:de[gğ]i[sş]|change|d[uü]zen|arrange).*(?:layout|yerle[sş]im)/i.test(request)
   && !/(?:ekle|sil|yeniden adland[ıi]r|hedefi de[gğ]i[sş]|add|remove|rename|change target)/i.test(request);
 
 export const spreadGraphLayout = (graph: GraphDocumentV1, factor = 1.24): GraphDocumentV1 => ({
@@ -56,4 +56,3 @@ export const applyStructuralGraphRequest = (
   }
   return next;
 };
-

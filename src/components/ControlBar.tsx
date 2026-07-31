@@ -53,6 +53,7 @@ export const ControlBar = ({
     speed,
     setSpeed,
     steps,
+    currentIndex,
     setSelectedExampleQuestion,
     aiModel,
     setAiModel,
@@ -98,6 +99,9 @@ export const ControlBar = ({
     requestRadioOpen();
   };
   const [showSettings, setShowSettings] = useState(false);
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
+  const settingsDialogRef = useRef<HTMLDivElement>(null);
+  const settingsWasOpen = useRef(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'ui' | 'radio'>('ai');
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
   const [exampleQuestions, setExampleQuestions] = useState<string[]>([]);
@@ -111,6 +115,12 @@ export const ControlBar = ({
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
     ?? LOCAL_AI_MODELS[0];
   const modelCached = cacheChecked ? cachedModels.includes(aiModel) : null;
+
+  useEffect(() => {
+    if (showSettings) settingsDialogRef.current?.focus();
+    else if (settingsWasOpen.current) settingsTriggerRef.current?.focus();
+    settingsWasOpen.current = showSettings;
+  }, [showSettings]);
 
   const activateModel = useCallback(async (model: string, contextWindow: number) => {
     if (!await supportsLocalAi()) {
@@ -322,7 +332,7 @@ export const ControlBar = ({
       </div>
 
       <div className="control-group playback-controls">
-        <button aria-label={t('previousStep', locale)} className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0}>
+        <button aria-label={t('previousStep', locale)} className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0 || currentIndex <= 0}>
           <StepBack size={28} />
         </button>
         {isPlaying ? (
@@ -334,7 +344,7 @@ export const ControlBar = ({
             <Play size={16} />
           </button>
         )}
-        <button aria-label={t('nextStep', locale)} className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0}>
+        <button aria-label={t('nextStep', locale)} className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0 || currentIndex >= steps.length - 1}>
           <StepForward size={28} />
         </button>
       </div>
@@ -353,14 +363,27 @@ export const ControlBar = ({
           />
         </div>
         <div className="settings-container">
-          <button aria-label={t('settings', locale)} className="icon-btn settings-btn" onClick={() => setShowSettings(!showSettings)}>
+          <button ref={settingsTriggerRef} aria-label={t('settings', locale)} className="icon-btn settings-btn" onClick={() => setShowSettings(!showSettings)}>
             <Settings size={18} />
           </button>
           {showSettings && (
-            <div className="settings-modal glass-panel" role="dialog" aria-label={t('settings', locale)}>
+            <div
+              ref={settingsDialogRef}
+              className="settings-modal glass-panel"
+              role="dialog"
+              aria-label={t('settings', locale)}
+              tabIndex={-1}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setShowSettings(false);
+              }}
+            >
               <div className="settings-modal-header">
                 <h2>{t('settings', locale)}</h2>
-                <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
+                <button
+                  className="close-btn"
+                  aria-label={t('closeSettings', locale)}
+                  onClick={() => setShowSettings(false)}
+                >×</button>
               </div>
               <div className="settings-tabs">
                 <button 
@@ -504,7 +527,7 @@ export const ControlBar = ({
                         : t('loadLocalModel', locale)}
                 </button>
                 <div className="settings-section ai-load-preferences">
-                  <div className="settings-title">AI Yükleme Ayarları</div>
+                  <div className="settings-title">{t('aiLoadPreferences', locale)}</div>
                   <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
                     <input
                       type="checkbox"
@@ -512,7 +535,7 @@ export const ControlBar = ({
                       checked={autoLoadAiModel}
                       onChange={(e) => setAutoLoadAiModel(e.target.checked)}
                     />
-                    <span className="checkbox-text">Önbellekteki Modeli Otomatik Yükle</span>
+                    <span className="checkbox-text">{t('autoLoadCachedModel', locale)}</span>
                   </label>
                   <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
                     <input
@@ -521,7 +544,7 @@ export const ControlBar = ({
                       checked={showAiLoadWarning}
                       onChange={(e) => setShowAiLoadWarning(e.target.checked)}
                     />
-                    <span className="checkbox-text">Model Yüklenmedi Uyarısını Göster</span>
+                    <span className="checkbox-text">{t('showAiLoadWarning', locale)}</span>
                   </label>
                   <label className="neon-checkbox-label">
                     <input
@@ -530,7 +553,7 @@ export const ControlBar = ({
                       checked={showAiLoadProgress}
                       onChange={(e) => setShowAiLoadProgress(e.target.checked)}
                     />
-                    <span className="checkbox-text">Model Yüklenirken İlerlemeyi Göster</span>
+                    <span className="checkbox-text">{t('showAiLoadProgress', locale)}</span>
                   </label>
                 </div>
                 {aiStatus === 'loading' && (
@@ -634,7 +657,7 @@ export const ControlBar = ({
                       </label>
                     </div>
                     <div className="settings-section">
-                      <div className="settings-title">Otomatik Kapanma Süresi</div>
+                      <div className="settings-title">{t('radioMinimizeDelay', locale)}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <input
                           type="range"
@@ -647,7 +670,7 @@ export const ControlBar = ({
                           style={{ flex: 1 }}
                         />
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', width: '30px', textAlign: 'right' }}>
-                          {radioMinimizeSeconds > 15 ? 'Hiç' : `${radioMinimizeSeconds}s`}
+                          {radioMinimizeSeconds > 15 ? t('never', locale) : `${radioMinimizeSeconds}s`}
                         </span>
                       </div>
                     </div>
@@ -679,7 +702,7 @@ export const ControlBar = ({
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0' ? 'active' : ''}`}
                           onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0')}
                         >
-                          SirensCeol (Varsayılan)
+                          SirensCeol ({t('defaultLabel', locale)})
                         </button>
                         <button 
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PLjigMzkDwo3CLT0g1XhPoovK9TUMkwR63' ? 'active' : ''}`}
@@ -703,7 +726,7 @@ export const ControlBar = ({
                           className={`theme-btn neon-theme ${radioPlaylistId === 'https://youtube.com/playlist?list=PL2140A0411C65DD13' ? 'active' : ''}`}
                           onClick={() => selectRadioPlaylist('https://youtube.com/playlist?list=PL2140A0411C65DD13')}
                         >
-                          Klasik Müzik
+                          {t('classicalMusic', locale)}
                         </button>
                       </div>
                     </div>

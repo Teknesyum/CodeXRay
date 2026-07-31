@@ -7,6 +7,7 @@ const localBrowserChannel = process.env.CODEXRAY_E2E_CHANNEL as
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: process.env.CODEXRAY_REAL_AI === '1' ? undefined : '**/real-ai.spec.ts',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',

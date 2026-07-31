@@ -50,7 +50,12 @@ describe('GraphInputEditor', () => {
       { id: 'A', label: 'A', x: 10, y: 10 },
       { id: 'n1', label: 'n1', x: 20, y: 20 },
       { id: 'n3', label: 'n3', x: 30, y: 30 },
-    ])).toBe('n2');
+    ])).toBe('1');
+    expect(nextNodeId([
+      { id: '1', label: 'One', x: 10, y: 10 },
+      { id: 'named', label: 'Named', x: 20, y: 20 },
+      { id: '3', label: 'Three', x: 30, y: 30 },
+    ])).toBe('2');
   });
 
   it('renames a node and updates every graph reference safely', async () => {
@@ -104,6 +109,28 @@ describe('GraphInputEditor', () => {
     ) as GraphDocumentV1;
     expect(currentDocument.edges).toHaveLength(1);
     expect(currentDocument.edges[0]).toMatchObject({ from: '1', to: '2' });
+  });
+
+  it('adds a node from a keyboard-accessible control using the smallest numeric gap', async () => {
+    const user = userEvent.setup();
+    render(<Harness value={{
+      ...initialDocument,
+      nodes: [
+        { id: '1', label: 'One', x: 20, y: 20 },
+        { id: 'named', label: 'Named', x: 80, y: 80 },
+        { id: '3', label: 'Three', x: 50, y: 50 },
+      ],
+      edges: [],
+      startId: '1',
+      targetId: 'named',
+    }} />);
+
+    await user.click(screen.getByRole('button', { name: 'Add node' }));
+    const currentDocument = JSON.parse(
+      screen.getByTestId('graph-document').textContent ?? '{}',
+    ) as GraphDocumentV1;
+    expect(currentDocument.nodes.map((node) => node.id)).toContain('2');
+    expect(currentDocument.nodes.find((node) => node.id === '2')).toMatchObject({ x: 10, y: 10 });
   });
 
   it('edits and quickly deletes a selected weighted edge', async () => {

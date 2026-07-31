@@ -75,6 +75,18 @@ export const GraphInputEditor = ({
     onError(null);
   };
 
+  const addNode = () => {
+    for (let y = 10; y <= 90; y += 10) {
+      for (let x = 10; x <= 90; x += 10) {
+        if (document.nodes.every((node) => Math.hypot(node.x - x, node.y - y) >= 8)) {
+          addNodeAt(x, y);
+          return;
+        }
+      }
+    }
+    addNodeAt(50, 50);
+  };
+
   const positionFromEvent = (
     event: Pick<ReactMouseEvent<HTMLDivElement>, 'clientX' | 'clientY'>,
   ) => {
@@ -542,6 +554,7 @@ export const GraphInputEditor = ({
         {document.weighted && (
           <input aria-label={t('edgeWeight', locale)} type="number" value={weight} onChange={(event) => setWeight(event.target.value)} />
         )}
+        <button type="button" onClick={addNode}>{t('addNode', locale)}</button>
         <button type="button" onClick={addEdge}>{t('addEdge', locale)}</button>
         <button
           type="button"

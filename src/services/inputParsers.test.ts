@@ -15,6 +15,8 @@ describe('input parsers', () => {
 
   it('rejects non-numeric array items', () => {
     expect(() => parseArrayInput('[1, "x"]')).toThrow('finite number');
+    expect(() => parseArrayInput('1,,2')).toThrow('empty items');
+    expect(() => parseArrayInput('1, ,2')).toThrow('empty items');
   });
 
   it('accepts plain, quoted, and assigned string input', () => {
@@ -53,5 +55,27 @@ describe('input parsers', () => {
     })).toThrow('unknown node');
 
     expect(() => parseBinaryTree('[1,null,2,3]')).toThrow('has no parent');
+  });
+
+  it('rejects a disconnected cycle disguised by valid parent counts', () => {
+    expect(() => validateGraphDocument({
+      version: 1,
+      mode: 'tree',
+      directed: true,
+      weighted: false,
+      nodes: [
+        { id: 'root', label: 'Root', x: 10, y: 10 },
+        { id: 'leaf', label: 'Leaf', x: 30, y: 30 },
+        { id: 'cycle-a', label: 'A', x: 60, y: 30 },
+        { id: 'cycle-b', label: 'B', x: 80, y: 60 },
+      ],
+      edges: [
+        { id: 'root-leaf', from: 'root', to: 'leaf' },
+        { id: 'cycle-a-b', from: 'cycle-a', to: 'cycle-b' },
+        { id: 'cycle-b-a', from: 'cycle-b', to: 'cycle-a' },
+      ],
+      rootId: 'root',
+      startId: 'root',
+    })).toThrow(/reachable|cycle/i);
   });
 });

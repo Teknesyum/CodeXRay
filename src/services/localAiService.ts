@@ -178,7 +178,15 @@ export const askLocalModel = (
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
-  }).then(sanitizeLocalModelAnswer);
+  }).then((answer) => {
+    const cleaned = sanitizeLocalModelAnswer(answer);
+    if (!cleaned) {
+      throw new Error(locale === 'tr'
+        ? 'Yerel model güvenli ve görünür bir cevap üretmedi. Lütfen tekrar deneyin.'
+        : 'The local model did not produce a safe visible answer. Please try again.');
+    }
+    return cleaned;
+  });
 };
 
 export const planLocalActions = (

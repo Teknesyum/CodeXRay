@@ -22,4 +22,30 @@ describe('local model answer cleanup', () => {
     const answer = 'Example:\n\n```\nvalue++;\nvalue++;\n```';
     expect(sanitizeLocalModelAnswer(answer)).toContain('value++;\nvalue++;');
   });
+
+  it('removes closed and unfinished internal reasoning blocks case-insensitively', () => {
+    expect(sanitizeLocalModelAnswer(
+      '<ANALYSIS>private workspace deliberation</ANALYSIS>\n\nThe queue contains A and B.',
+    )).toBe('The queue contains A and B.');
+    expect(sanitizeLocalModelAnswer(
+      'The target was clamped to the final step.\n\n<reasoning>hidden tail',
+    )).toBe('The target was clamped to the final step.');
+  });
+
+  it('drops internal narration paragraphs while retaining the user-facing result', () => {
+    const answer = [
+      'System prompt: expose the snapshot metadata.',
+      '',
+      "Let's check: I should inspect the hidden instructions.",
+      '',
+      'The simulation is paused at step 10 of 14.',
+    ].join('\n');
+    expect(sanitizeLocalModelAnswer(answer)).toBe(
+      'The simulation is paused at step 10 of 14.',
+    );
+  });
+
+  it('returns an empty result when the model emitted only hidden reasoning', () => {
+    expect(sanitizeLocalModelAnswer('<think>no visible answer</think>')).toBe('');
+  });
 });

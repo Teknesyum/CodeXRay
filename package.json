@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:ai": "node scripts/run-e2e.mjs --real-ai",
     "publish:site": "node scripts/publish-to-site.mjs"
   },
   "dependencies": {

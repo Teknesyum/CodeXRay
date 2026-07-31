@@ -1,4 +1,5 @@
 import type { SimulationStep } from '../types/simulation';
+import { sanitizeLocalModelAnswer } from './aiResponse';
 import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
 import { PLANNER_MAX_ACTIONS } from './aiPlanner';
 
@@ -207,7 +208,7 @@ export const validateActionPlan = (
 };
 
 export const stripThinkBlock = (answer: string): string => {
-  return answer.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim();
+  return sanitizeLocalModelAnswer(answer);
 };
 
 export const resolveTimelineTarget = (

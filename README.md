@@ -83,12 +83,18 @@ To run CodeXRay locally, you'll need [Node.js](https://nodejs.org/) (version 22 
 Once the project is running, you can use the following commands to ensure code quality:
 
 ```bash
-npm run lint           # Run ESLint to check for code issues
+npm run lint           # Run oxlint to check for code issues
 npm run test           # Run unit tests
 npm run test:coverage  # Run unit tests with coverage report
 npm run build          # Build the project for production
-npm run test:e2e       # Run End-to-End tests
+npm run test:e2e       # Run deterministic end-to-end tests
+npm run test:e2e:ai    # Download and test the real on-device WebLLM model
 ```
+
+The real-AI suite is intentionally separate because it requires a WebGPU-capable
+browser, downloads the selected model into browser-managed storage, and can take
+several minutes on its first run. Set `CODEXRAY_E2E_CHANNEL=chrome` or `msedge`
+when the bundled Chromium build does not expose WebGPU on the test machine.
 
 Playwright needs a one-time local browser install for E2E tests:
 

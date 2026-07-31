@@ -103,6 +103,22 @@ export const validateGraphDocument = (value: unknown): GraphDocumentV1 => {
         throw new Error(`Tree node ${node.id} must have exactly one parent.`);
       }
     }
+    const children = new Map(nodes.map((node) => [node.id, [] as string[]]));
+    for (const edge of edges) children.get(edge.from)?.push(edge.to);
+    const reachable = new Set<string>();
+    const visiting = new Set<string>();
+    const visit = (id: string) => {
+      if (visiting.has(id)) throw new Error('A tree cannot contain a cycle.');
+      if (reachable.has(id)) return;
+      visiting.add(id);
+      for (const child of children.get(id) ?? []) visit(child);
+      visiting.delete(id);
+      reachable.add(id);
+    };
+    visit(root);
+    if (reachable.size !== nodes.length) {
+      throw new Error('Every tree node must be reachable from the root; cycles are not allowed.');
+    }
   }
 
   return {
@@ -125,7 +141,11 @@ export const parseArrayInput = (text: string): number[] => {
   try {
     value = JSON.parse(trimmed);
   } catch {
-    value = trimmed.split(',').map((part) => Number(part.trim()));
+    const parts = trimmed.split(',');
+    if (parts.some((part) => part.trim() === '')) {
+      throw new Error('Array input cannot contain empty items.');
+    }
+    value = parts.map((part) => Number(part.trim()));
   }
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error('Array input must contain at least one number.');

@@ -32,7 +32,7 @@ const checkpointCategory = (explanation: string, index: number, total: number): 
 };
 
 export const reviewTrace = (steps: SimulationStep[], maximum = 10): DiscussionCheckpointV1[] => {
-  if (!steps.length) return [];
+  if (!steps.length || maximum <= 0) return [];
   const candidates = steps.map((step, stepIndex) => {
     const category = checkpointCategory(step.explanation, stepIndex, steps.length);
     const priority = category === 'meeting' || category === 'result'
@@ -47,12 +47,13 @@ export const reviewTrace = (steps: SimulationStep[], maximum = 10): DiscussionCh
       autoPause: priority >= 0.9,
     };
   });
-  const required = new Set([0, steps.length - 1]);
-  candidates.filter((candidate) => candidate.priority >= 0.9).forEach((candidate) => required.add(candidate.stepIndex));
+  const limit = Math.min(maximum, steps.length);
+  const required = new Set([0]);
+  if (limit > 1) required.add(steps.length - 1);
   const remaining = candidates
     .filter((candidate) => !required.has(candidate.stepIndex))
     .sort((left, right) => right.priority - left.priority || left.stepIndex - right.stepIndex);
-  remaining.slice(0, Math.max(0, maximum - required.size)).forEach((candidate) => required.add(candidate.stepIndex));
+  remaining.slice(0, Math.max(0, limit - required.size)).forEach((candidate) => required.add(candidate.stepIndex));
   return candidates.filter((candidate) => required.has(candidate.stepIndex))
     .sort((left, right) => left.stepIndex - right.stepIndex)
     .map((candidate) => ({ ...candidate, lenses: [...candidate.lenses] }));

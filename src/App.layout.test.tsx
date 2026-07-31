@@ -17,7 +17,7 @@ describe('right workspace layout', () => {
     const controls = container.querySelector('.control-container');
 
     expect(controls).toHaveStyle({ height: '58px' });
-    await user.click(screen.getByRole('button', { name: 'Maximize AI panel' }));
+    await user.click(screen.getByRole('button', { name: 'YZ panelini büyüt' }));
 
     expect(controls).not.toHaveClass('collapsed');
     expect(controls).toHaveStyle({ height: '58px' });

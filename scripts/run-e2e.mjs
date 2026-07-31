@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const playwrightCli = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');
 const url = 'http://127.0.0.1:4173';
+const realAi = process.argv.includes('--real-ai');
 
 const server = spawn(process.execPath, [
   viteCli,
@@ -37,9 +38,16 @@ const waitForServer = async () => {
 
 try {
   await waitForServer();
-  const test = spawn(process.execPath, [playwrightCli, 'test'], {
+  const testArgs = realAi
+    ? [playwrightCli, 'test', 'e2e/real-ai.spec.ts']
+    : [playwrightCli, 'test'];
+  const test = spawn(process.execPath, testArgs, {
     cwd: root,
-    env: { ...process.env, PLAYWRIGHT_EXTERNAL_SERVER: '1' },
+    env: {
+      ...process.env,
+      PLAYWRIGHT_EXTERNAL_SERVER: '1',
+      ...(realAi ? { CODEXRAY_REAL_AI: '1' } : {}),
+    },
     stdio: 'inherit',
     shell: false,
   });

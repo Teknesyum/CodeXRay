@@ -496,31 +496,6 @@ export const ControlBar = ({
                         ? t('initializeStoredModel', locale)
                         : t('loadLocalModel', locale)}
                 </button>
-                <div className="site-reset-section">
-                  <div>
-                    <div className="settings-title">{t('resetSiteTitle', locale)}</div>
-                    <p className="local-ai-note">{t('resetSiteHelp', locale)}</p>
-                  </div>
-                  <div className="reset-actions">
-                    <button
-                      type="button"
-                      className="reset-interface-button"
-                      onClick={resetInterface}
-                      disabled={aiStatus === 'loading' || deletingModel !== null}
-                    >
-                      {t('resetInterface', locale)}
-                    </button>
-                    <button
-                      type="button"
-                      className="reset-site-button"
-                      onClick={resetSite}
-                      disabled={aiStatus === 'loading' || deletingModel !== null}
-                    >
-                      {t('resetSite', locale)}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="settings-section">
                   <div className="settings-title">AI Yükleme Ayarları</div>
                   <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
@@ -607,6 +582,31 @@ export const ControlBar = ({
                           onClick={() => setLocale('tr')}
                         >
                           Türkçe (TR)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="site-reset-section">
+                      <div>
+                        <div className="settings-title">{t('resetSiteTitle', locale)}</div>
+                        <p className="local-ai-note">{t('resetSiteHelp', locale)}</p>
+                      </div>
+                      <div className="reset-actions">
+                        <button
+                          type="button"
+                          className="reset-interface-button"
+                          onClick={resetInterface}
+                          disabled={aiStatus === 'loading' || deletingModel !== null}
+                        >
+                          {t('resetInterface', locale)}
+                        </button>
+                        <button
+                          type="button"
+                          className="reset-site-button"
+                          onClick={resetSite}
+                          disabled={aiStatus === 'loading' || deletingModel !== null}
+                        >
+                          {t('resetSite', locale)}
                         </button>
                       </div>
                     </div>

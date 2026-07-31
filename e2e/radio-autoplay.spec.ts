@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('autoplay opens the radio, requests playback, and reflects the confirmed player state', async ({ page }) => {
+test('confirms autoplay, routes Demons to its embeddable upload, and surfaces player errors', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.radio.autoplay', 'true');
@@ -9,6 +9,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
     type PlayerEvents = {
       onReady: (event: { target: MockPlayer }) => void;
       onStateChange?: (event: { data: number; target: MockPlayer }) => void;
+      onError?: (event: { data: number; target: MockPlayer }) => void;
     };
     const radioWindow = window as Window & {
       __radioPlayCalls: number;
@@ -16,6 +17,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
       __endRadioTrack: () => void;
       __radioPlayAtIndices: number[];
       __radioSeekCalls: number[];
+      __failRadioWithError: (code: number) => void;
       YT?: { Player: typeof MockPlayer };
     };
     radioWindow.__radioPlayCalls = 0;
@@ -23,10 +25,12 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
     radioWindow.__endRadioTrack = () => undefined;
     radioWindow.__radioPlayAtIndices = [];
     radioWindow.__radioSeekCalls = [];
+    radioWindow.__failRadioWithError = () => undefined;
 
     class MockPlayer {
       private state = -1;
       private index = 0;
+      private playlist = ['YHH7NKb8m5c', 'gNp624IXWI4'];
       private readonly events: PlayerEvents;
 
       constructor(_element: HTMLIFrameElement, options: { events: PlayerEvents }) {
@@ -39,6 +43,10 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
           this.state = 0;
           this.index = 1;
           this.events.onStateChange?.({ data: 0, target: this });
+        };
+        radioWindow.__failRadioWithError = (code: number) => {
+          this.state = -1;
+          this.events.onError?.({ data: code, target: this });
         };
         window.setTimeout(() => this.events.onReady({ target: this }), 0);
       }
@@ -60,9 +68,9 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
       getPlayerState() { return this.state; }
       nextVideo() {}
       previousVideo() {}
-      getPlaylist() { return ['8zj8h15VmQw', 'next-track']; }
+      getPlaylist() { return this.playlist; }
       getPlaylistIndex() { return this.index; }
-      getVideoData() { return { title: this.index === 0 ? 'Up' : 'Next', video_id: this.index === 0 ? '8zj8h15VmQw' : 'next-track' }; }
+      getVideoData() { return { title: this.index === 0 ? 'Imitation' : 'Demons', video_id: this.index === 0 ? 'YHH7NKb8m5c' : 'gNp624IXWI4' }; }
       playVideoAt(index: number) {
         radioWindow.__radioPlayAtIndices.push(index);
         this.index = index;
@@ -74,7 +82,7 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
       seekTo(seconds: number, _allowSeekAhead: boolean) {
         radioWindow.__radioSeekCalls.push(seconds);
       }
-      loadPlaylist(_args: { listType: string; list: string }) {}
+      loadPlaylist(_args: { listType: string; list: string; index?: number }) {}
     }
 
     Object.defineProperty(radioWindow, 'YT', {
@@ -86,6 +94,19 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
   await page.goto('/');
   const radio = page.getByRole('complementary', { name: 'Radio' });
   await expect(radio).toBeVisible();
+  await expect(page.getByTitle('CodeXRay YouTube playlist player')).toHaveAttribute(
+    'src',
+    /playlist=.*gNp624IXWI4/,
+  );
+  await expect(page.getByTitle('CodeXRay YouTube playlist player')).not.toHaveAttribute(
+    'src',
+    /SX69IjN7PLc/,
+  );
+  await expect(page.getByTitle('CodeXRay YouTube playlist player')).not.toHaveAttribute(
+    'src',
+    /-Yk1p0OevRw/,
+  );
+  await expect(radio.getByText('Push', { exact: true })).toHaveCount(0);
   await expect(radio.locator('button[title="Play"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (
     window as Window & { __radioPlayCalls: number }
@@ -105,4 +126,21 @@ test('autoplay opens the radio, requests playback, and reflects the confirmed pl
     window as Window & { __radioSeekCalls: number[] }
   ).__radioSeekCalls)).toEqual([]);
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
+
+  await radio.getByRole('button', { name: /2 thumb Demons/ }).click();
+  await expect.poll(() => page.evaluate(() => (
+    window as Window & { __radioPlayAtIndices: number[] }
+  ).__radioPlayAtIndices)).toEqual([0, 1]);
+  expect(await page.evaluate(() => (
+    window as Window & { __radioPlayAtIndices: number[] }
+  ).__radioPlayAtIndices)).not.toContain(2);
+  await expect(radio.getByText('Demons', { exact: true }).first()).toBeVisible();
+  await expect(radio.locator('button[title="Pause"]')).toBeVisible();
+
+  await page.evaluate(() => (
+    window as Window & { __failRadioWithError: (code: number) => void }
+  ).__failRadioWithError(150));
+  await expect(radio.getByRole('status')).toContainText('error 150');
+  await expect(radio.getByRole('status')).toHaveAttribute('data-youtube-error-code', '150');
+  await expect(radio.locator('button[title="Play"]')).toBeVisible();
 });

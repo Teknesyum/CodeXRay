@@ -13,7 +13,7 @@ sentence in section 18 of the requirements must not be signed yet.
 
 Current verified baseline:
 
-- 39 Vitest files and 171 passing unit/integration tests.
+- 39 Vitest files and 173 passing unit/integration tests.
 - 21 passing deterministic Playwright tests.
 - One opt-in real-WebLLM Playwright test in `e2e/real-ai.spec.ts`.
 - The real-WebLLM test has been exercised in bundled Chromium, which exposed
@@ -66,7 +66,7 @@ settings focus, responsive layout, radio opening, and all three themes.
 | 23. Watch and cancel agent queue | Partial | Orchestrator cancellation unit test; visible successful queue E2E | Add mid-run UI cancellation with queued/running/cancelled states, honest progress, no partial application, and unlocked controls/chat. |
 | 24. Agent failure and rollback | Partial | Transaction rollback and bounded orchestration tests | Add visible compile-failure E2E with bounded retries, failed specialist identity/reason, atomic rollback, and no completed claim. |
 | 25. Radio autoplay truth | Partial | Mocked autoplay/player-state E2E | Add blocked-autoplay and first-interaction retry cases; assert Pause and wave never claim playback before player confirmation. |
-| 26. Radio loop and minimize | Partial | Mock natural track-end loop assertion; manual Demons reproduction | Add previous/next, shuffle, mute/volume, loop-off advancement, unchanged title/art, countdown timing, hover pause/restart policy, and `Never` behavior. Demons updates title/art/duration but remains paused; expose YouTube `onError` and `onAutoplayBlocked` before deciding whether the cause is media policy or an item-specific player error. |
+| 26. Radio loop and minimize | Partial | Mock natural track-end loop assertion; Demons fallback/error E2E; real-browser 46-item source audit | Add previous/next, shuffle, mute/volume, loop-off advancement, unchanged title/art, countdown timing, hover pause/restart policy, and `Never` behavior. The curated default queue contains 45 verified playable tracks: Demons routes around its error-150 Topic upload and Push is excluded because both known official uploads reject embedding. |
 | 27. Error storm | Missing | Individual error paths have scattered unit coverage | Build one fault-injection E2E combining invalid input, model inference failure, radio API failure, God Mode cancel, and corrupt layout state; prove isolation and recovery without reset. |
 | 28. Narrow-screen real use | Partial | Manual 390px overflow/splitter check | Add mobile Playwright project and complete algorithm/timeline/AI/settings/radio flow; assert no horizontal overflow, clipped dialogs, or inaccessible composer/tracker. |
 | 29. Reset boundary | Covered | `siteReset.test.ts` and two reset E2Es | Retain; optionally add OPFS/Cache API mocks that prove model assets are untouched by both reset modes. |
@@ -120,20 +120,29 @@ minutes for a ready state the application could never reach. The test now probes
 an actual adapter and skips immediately when none can be acquired. A supported
 Chrome/Edge GPU run is still required; a skip is not acceptance evidence.
 
-### KDEF-02 — Demons selection does not enter confirmed playback
+### KDEF-02 — Demons selection did not enter confirmed playback (resolved)
 
 In a real interactive browser session, **Imitation** entered the playing state,
 while selecting **Demons** changed the displayed title, artwork, and duration to
-4:14 but left the control in **Play**. The YouTube oEmbed endpoint returned valid
-metadata for video `SX69IjN7PLc`, so the item exists, but that does not prove it
-can play in the current embedded-player/browser-policy combination.
+4:14 but left the control in **Play**. After wiring the previously ignored
+`onError` event, YouTube reported error `150`: the playlist's Topic upload
+`SX69IjN7PLc` rejects iframe playback.
 
-`PlaylistRadio.tsx` registers `onReady` and `onStateChange` only. It does not
-register `onError` or `onAutoplayBlocked`, so the application discards the event
-needed to distinguish an embed restriction, unavailable media, playback error,
-or browser autoplay block. Add both events, bilingual visible feedback, a retry
-path through an explicit user gesture, and mocked regression cases before
-claiming this defect fixed.
+The default playlist now preserves the same Demons position and metadata but
+loads the artist upload `gNp624IXWI4`. A second real-browser run reached confirmed
+playing state with no error notice. `onError` and `onAutoplayBlocked` now provide
+bilingual visible feedback, and unit plus mocked Playwright assertions protect
+the override and error-state behavior.
+
+### KDEF-03 — Push rejects embedded playback (resolved by exclusion)
+
+A clean-player audit of all 46 source entries found 44 directly playable items,
+the corrected Demons item, and one remaining failure. The Topic upload for
+**Push** (`-Yk1p0OevRw`) returns YouTube error `150`. The artist's official
+`lU_bOCABUaM` upload returns the same error, so there is no verified official
+iframe-safe replacement. CodeXRay excludes Push from its curated 45-item player
+queue while retaining the external YouTube Music playlist link. Do not add an
+unofficial mirror solely to preserve the item count.
 
 ## Prioritized backlog for follow-up agents
 
@@ -184,8 +193,9 @@ claiming this defect fixed.
     analysis, variables, highlights, or timeline state remains.
 - [ ] **TST-P1-04 — Full radio controller contract**
   - Extend `radio-autoplay.spec.ts` for scenario 26 and API-load fallback.
-  - First expose and test YouTube `onError` and `onAutoplayBlocked`; retain the
-    external playlist fallback and never claim playback before state `1`.
+  - Retain the external playlist fallback and never claim playback before state
+    `1`; remaining work is previous/next, shuffle, volume, minimize timing, and
+    broader API-load failure coverage.
 - [ ] **TST-P1-05 — Mobile, keyboard, and reduced motion**
   - Add mobile and keyboard Playwright projects and a reduced-motion project.
   - Exercise the complete narrow-screen workflow rather than checking CSS alone.

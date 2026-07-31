@@ -49,6 +49,15 @@ const DEFAULT_RADIO_TRACK_TITLES: Record<string, string> = {
   PLBvKmOkC5Y: 'The Test (Remastered 2025)',
 };
 
+// The album playlist points Demons at a Topic upload that rejects iframe
+// playback with YouTube error 150. Keep the playlist position and metadata,
+// but load the artist's embeddable upload when that item is selected.
+const DEFAULT_RADIO_PLAYBACK_OVERRIDES: Record<string, string> = {
+  SX69IjN7PLc: 'gNp624IXWI4',
+};
+
+const DEFAULT_RADIO_UNPLAYABLE_TRACK_IDS = new Set(['-Yk1p0OevRw']);
+
 export interface EmbeddedRadioTrack {
   id: string;
   title: string;
@@ -56,7 +65,9 @@ export interface EmbeddedRadioTrack {
 
 const DEFAULT_RADIO_TRACKS: readonly EmbeddedRadioTrack[] = Object.entries(
   DEFAULT_RADIO_TRACK_TITLES,
-).map(([id, title]) => ({ id, title }));
+)
+  .filter(([id]) => !DEFAULT_RADIO_UNPLAYABLE_TRACK_IDS.has(id))
+  .map(([id, title]) => ({ id, title }));
 
 export const getEmbeddedRadioPlaylist = (
   playlistId: string,
@@ -67,3 +78,8 @@ export const getRadioTrackTitle = (playlistId: string, videoId: string) =>
   playlistId === DEFAULT_RADIO_PLAYLIST_ID
     ? DEFAULT_RADIO_TRACK_TITLES[videoId]
     : undefined;
+
+export const getRadioPlaybackVideoId = (playlistId: string, videoId: string) =>
+  playlistId === DEFAULT_RADIO_PLAYLIST_ID
+    ? DEFAULT_RADIO_PLAYBACK_OVERRIDES[videoId] || videoId
+    : videoId;

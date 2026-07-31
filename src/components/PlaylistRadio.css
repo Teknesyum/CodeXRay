@@ -142,6 +142,12 @@
   padding: 10px 12px 2px;
 }
 
+.radio-playback-notice {
+  margin: 8px 12px 0;
+  color: #ff9b9b;
+  font: 0.68rem/1.4 var(--font-mono);
+}
+
 .time-text {
   color: var(--text-muted);
   font: 500 0.65rem var(--font-mono);

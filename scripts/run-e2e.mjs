@@ -8,6 +8,7 @@ const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const playwrightCli = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');
 const url = 'http://127.0.0.1:4173';
 const realAi = process.argv.includes('--real-ai');
+const realRadio = process.argv.includes('--real-radio');
 
 const server = spawn(process.execPath, [
   viteCli,
@@ -40,13 +41,16 @@ try {
   await waitForServer();
   const testArgs = realAi
     ? [playwrightCli, 'test', 'e2e/real-ai.spec.ts']
-    : [playwrightCli, 'test'];
+    : realRadio
+      ? [playwrightCli, 'test', 'e2e/real-radio.spec.ts']
+      : [playwrightCli, 'test'];
   const test = spawn(process.execPath, testArgs, {
     cwd: root,
     env: {
       ...process.env,
       PLAYWRIGHT_EXTERNAL_SERVER: '1',
       ...(realAi ? { CODEXRAY_REAL_AI: '1' } : {}),
+      ...(realRadio ? { CODEXRAY_REAL_RADIO: '1' } : {}),
     },
     stdio: 'inherit',
     shell: false,

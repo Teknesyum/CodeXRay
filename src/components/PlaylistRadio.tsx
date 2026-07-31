@@ -5,6 +5,7 @@ import { GOD_MODE_UI_EVENT, isGodModeUiEvent } from '../services/godModeUiContro
 import { t } from '../i18n/translations';
 import {
   getEmbeddedRadioPlaylist,
+  getRadioPlaybackVideoId,
   getRadioTrackTitle,
 } from '../services/radioPlaylistMetadata';
 import './PlaylistRadio.css';
@@ -29,18 +30,24 @@ interface YouTubePlayer {
   getCurrentTime: () => number;
   getDuration: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
-  loadPlaylist: (args: { listType: string; list: string }) => void;
+  loadPlaylist: (args: { listType: string; list: string; index?: number }) => void;
 }
 
 interface YouTubeApi {
   Player: new (
     element: HTMLIFrameElement,
-    options: { events: { 
+    options: { events: {
       onReady: (event: { target: YouTubePlayer }) => void;
       onStateChange?: (event: { data: number; target: YouTubePlayer }) => void;
+      onError?: (event: { data: number; target: YouTubePlayer }) => void;
+      onAutoplayBlocked?: (event: { target: YouTubePlayer }) => void;
     } },
   ) => YouTubePlayer;
 }
+
+type PlaybackNotice =
+  | { type: 'autoplay-blocked' }
+  | { type: 'player-error'; code: number };
 
 declare global {
   interface Window {
@@ -127,12 +134,18 @@ export const PlaylistRadio = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playbackNotice, setPlaybackNotice] = useState<PlaybackNotice | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [showRing, setShowRing] = useState(false);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>(
     () => createEmbeddedTrackData(initialPlaylistId.current),
   );
-  const [currentTrack, setCurrentTrack] = useState(OPENING_TRACK);
+  const [currentTrack, setCurrentTrack] = useState(() => embeddedInitialPlaylist[0]
+    ? {
+        title: embeddedInitialPlaylist[0].title,
+        thumb: youtubeThumbnail(embeddedInitialPlaylist[0].id),
+      }
+    : OPENING_TRACK);
   const handledOpenRequest = useRef(radioOpenRequest);
   const hoverTimeoutRef = useRef<number | null>(null);
   const activePlaylistId = useRef(initialPlaylistId.current);
@@ -147,6 +160,13 @@ export const PlaylistRadio = () => {
   shuffleRef.current = isShuffled;
 
   const syncPlaylist = useCallback((player: YouTubePlayer) => {
+    const embeddedPlaylist = getEmbeddedRadioPlaylist(activePlaylistId.current);
+    if (embeddedPlaylist.length > 0) {
+      const playlistIndex = player.getPlaylistIndex();
+      if (playlistIndex >= 0) setCurrentIndex(playlistIndex);
+      return true;
+    }
+
     const nextPlaylist = player.getPlaylist();
     if (!nextPlaylist || nextPlaylist.length === 0) return false;
 
@@ -243,7 +263,10 @@ export const PlaylistRadio = () => {
                 return;
               }
               setIsPlaying(event.data === 1);
-              if (event.data === 1) setPlayRequested(false);
+              if (event.data === 1) {
+                setPlayRequested(false);
+                setPlaybackNotice(null);
+              }
               
               syncPlaylist(player);
               const pl = player.getPlaylist();
@@ -275,7 +298,16 @@ export const PlaylistRadio = () => {
               }
               
               setDuration(player.getDuration());
-            }
+            },
+            onError: (event) => {
+              setIsPlaying(false);
+              setPlayRequested(false);
+              setPlaybackNotice({ type: 'player-error', code: event.data });
+            },
+            onAutoplayBlocked: () => {
+              setIsPlaying(false);
+              setPlaybackNotice({ type: 'autoplay-blocked' });
+            },
           },
         });
       })
@@ -365,9 +397,16 @@ export const PlaylistRadio = () => {
     }
   }, [radioPlaylistId, playerReady]);
 
+  const embeddedPlaybackIds = embeddedInitialPlaylist.map(({ id }) =>
+    getRadioPlaybackVideoId(initialPlaylistId.current, id));
+  const embeddedOpeningId = embeddedPlaybackIds[0] || OPENING_TRACK_VIDEO_ID;
+  const embeddedQueue = embeddedPlaybackIds.join(',');
+  const playlistQuery = embeddedPlaybackIds.length > 0
+    ? `?playlist=${embeddedQueue}`
+    : `?listType=playlist&list=${initialPlaylistId.current}`;
   const embedUrl = [
-    `https://www.youtube.com/embed/${OPENING_TRACK_VIDEO_ID}`,
-    `?listType=playlist&list=${initialPlaylistId.current}`,
+    `https://www.youtube.com/embed/${embeddedOpeningId}`,
+    playlistQuery,
     `&hl=${locale}&playsinline=1&loop=0&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
     `&origin=${encodeURIComponent(window.location.origin)}`,
   ].join('');
@@ -548,6 +587,20 @@ export const PlaylistRadio = () => {
             <span className="time-text">{formatTime(duration)}</span>
           </div>
 
+          {playbackNotice && (
+            <p
+              className="radio-playback-notice"
+              role="status"
+              data-youtube-error-code={playbackNotice.type === 'player-error'
+                ? playbackNotice.code
+                : undefined}
+            >
+              {playbackNotice.type === 'autoplay-blocked'
+                ? t('radioAutoplayBlocked', locale)
+                : t('radioPlaybackError', locale, { code: playbackNotice.code })}
+            </p>
+          )}
+
           <div className="playlist-radio-volume">
             <button
               type="button"
@@ -591,7 +644,16 @@ export const PlaylistRadio = () => {
                 <button
                   key={index}
                   className={`playlist-item ${index === currentIndex ? 'active' : ''}`}
-                  onClick={() => playerRef.current?.playVideoAt(index)}
+                  onClick={() => {
+                    const player = playerRef.current;
+                    if (!player) return;
+                    setPlaybackNotice(null);
+                    setCurrentTime(0);
+                    setDuration(0);
+                    setCurrentIndex(index);
+                    setPlayRequested(true);
+                    player.playVideoAt(index);
+                  }}
                 >
                   <span className="track-number">{index + 1}</span>
                   {trackData[index]?.thumb ? (

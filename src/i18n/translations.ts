@@ -269,6 +269,8 @@ const dictionaries: Record<Locale, Dictionary> = {
     muteRadio: 'Mute radio',
     unmuteRadio: 'Unmute radio',
     radioFallback: 'Playback availability is controlled by YouTube. If embedding is unavailable, open the playlist in YouTube Music.',
+    radioAutoplayBlocked: 'Playback was blocked by the browser. Press Play to try again.',
+    radioPlaybackError: 'YouTube could not play this track (error {code}). Open the playlist in YouTube Music.',
   },
   tr: {
     sourceCode: 'Kaynak Kod',
@@ -536,6 +538,8 @@ const dictionaries: Record<Locale, Dictionary> = {
     muteRadio: 'Radyonun sesini kapat',
     unmuteRadio: 'Radyonun sesini aç',
     radioFallback: 'Oynatma kullanılabilirliğini YouTube belirler. Gömülü oynatma kapalıysa listeyi YouTube Music’te açın.',
+    radioAutoplayBlocked: 'Oynatma tarayıcı tarafından engellendi. Yeniden denemek için Oynat’a basın.',
+    radioPlaybackError: 'YouTube bu parçayı oynatamadı (hata {code}). Listeyi YouTube Music’te açın.',
   },
 };
 

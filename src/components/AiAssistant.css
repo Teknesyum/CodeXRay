@@ -305,3 +305,8 @@
   color: #fff;
   text-shadow: 0 0 5px var(--neon-cyan);
 }
+
+.maximize-btn { background: transparent; border: none; color: var(--neon-cyan); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; padding: 4px; border-radius: 4px; margin-left: auto; }
+.maximize-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 5px rgba(0, 243, 255, 0.3); }
+.maximize-btn.active { color: var(--neon-magenta); }
+.maximize-btn.active:hover { background: rgba(255, 0, 255, 0.1); box-shadow: 0 0 5px rgba(255, 0, 255, 0.3); }

@@ -84,12 +84,22 @@ export const PlaylistRadio = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [showRing, setShowRing] = useState(false);
   const [trackData, setTrackData] = useState<Record<number, { title: string; thumb: string }>>({});
   const trackDataFetched = useRef(false);
   const hoverTimeoutRef = useRef<number | null>(null);
   const extractListId = (urlOrId: string) => {
+    let id = urlOrId;
     const match = urlOrId.match(/[?&]list=([^&]+)/);
-    return match ? match[1] : urlOrId;
+    if (match) {
+      id = match[1];
+    }
+    
+    // Mixes (RD...) do not expose playlist data via API, fallback to a known working playlist
+    if (id.startsWith('RD') || id.includes('http')) {
+      id = 'PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u';
+    }
+    return id;
   };
   
   const initialPlaylistId = useRef(extractListId(radioPlaylistId));
@@ -178,13 +188,19 @@ export const PlaylistRadio = () => {
   useEffect(() => {
     if (!hasStarted || minimized) {
       if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+      setShowRing(false);
       return;
     }
     if (!isHovered) {
       hoverTimeoutRef.current = window.setTimeout(() => {
-        setMinimized(true);
-      }, 3000);
+        setShowRing(true);
+        hoverTimeoutRef.current = window.setTimeout(() => {
+          setMinimized(true);
+          setShowRing(false);
+        }, 4000); // 4 seconds animation
+      }, 1000); // 1 second delay
     } else {
+      setShowRing(false);
       if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
     }
     return () => {
@@ -194,8 +210,8 @@ export const PlaylistRadio = () => {
 
   useEffect(() => {
     if (playerReady && playerRef.current) {
-      trackDataFetched.current = false;
       setTrackData({});
+      trackDataFetched.current = false;
       playerRef.current.loadPlaylist({
         listType: 'playlist',
         list: extractListId(radioPlaylistId)
@@ -248,9 +264,9 @@ export const PlaylistRadio = () => {
               <ExternalLink size={14} />
             </a>
             <div className="minimize-btn-wrapper">
-              {!isHovered && !minimized && (
+              {!isHovered && !minimized && showRing && (
                 <svg className="countdown-ring" width="24" height="24">
-                  <circle cx="12" cy="12" r="10" />
+                  <rect x="2" y="2" width="20" height="20" rx="4" />
                 </svg>
               )}
               <button

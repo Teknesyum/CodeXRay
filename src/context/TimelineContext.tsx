@@ -48,7 +48,15 @@ interface TimelineContextType {
   aiProgress: string;
   setAiProgress: (progress: string) => void;
   aiProgressPercent: number | null;
-  setAiProgressPercent: (progress: number | null) => void;
+  setAiProgressPercent: (percent: number | null) => void;
+  showAiLoadWarning: boolean;
+  setShowAiLoadWarning: (show: boolean) => void;
+  showAiLoadProgress: boolean;
+  setShowAiLoadProgress: (show: boolean) => void;
+  isAiMaximized: boolean;
+  setIsAiMaximized: (max: boolean) => void;
+  autoLoadAiModel: boolean;
+  setAutoLoadAiModel: (auto: boolean) => void;
   locale: Locale;
   setLocale: (locale: Locale) => void;
   theme: Theme;
@@ -122,6 +130,16 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
   const [aiProgressPercent, setAiProgressPercent] = useState<number | null>(null);
+  const [showAiLoadWarning, setShowAiLoadWarning] = useState(() => 
+    localStorage.getItem('codexray.ai.showWarning') !== 'false'
+  );
+  const [showAiLoadProgress, setShowAiLoadProgress] = useState(() => 
+    localStorage.getItem('codexray.ai.showProgress') !== 'false'
+  );
+  const [autoLoadAiModel, setAutoLoadAiModel] = useState(() => 
+    localStorage.getItem('codexray.ai.autoLoad') !== 'false'
+  );
+  const [isAiMaximized, setIsAiMaximized] = useState(false);
   const [locale, setLocale] = useState<Locale>(() =>
     localStorage.getItem('codexray.locale') === 'tr' ? 'tr' : 'en',
   );
@@ -131,7 +149,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);
   const [radioPlaylistId, setRadioPlaylistId] = useState(() => 
-    localStorage.getItem('codexray.radio.playlist') || 'https://music.youtube.com/playlist?list=RDlzBjZBpA-aU'
+    localStorage.getItem('codexray.radio.playlist') || 'https://www.youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u'
   );
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
     localStorage.getItem('codexray.radio.autoplay') !== 'false'
@@ -195,6 +213,18 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, [pinnedVariables]);
 
   useEffect(() => {
+    localStorage.setItem('codexray.ai.showWarning', showAiLoadWarning.toString());
+  }, [showAiLoadWarning]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.ai.showProgress', showAiLoadProgress.toString());
+  }, [showAiLoadProgress]);
+
+  useEffect(() => {
+    localStorage.setItem('codexray.ai.autoLoad', autoLoadAiModel.toString());
+  }, [autoLoadAiModel]);
+
+  useEffect(() => {
     localStorage.setItem('codexray.radio.playlist', radioPlaylistId);
   }, [radioPlaylistId]);
 
@@ -254,6 +284,14 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setAiProgress,
       aiProgressPercent,
       setAiProgressPercent,
+      showAiLoadWarning,
+      setShowAiLoadWarning,
+      showAiLoadProgress,
+      setShowAiLoadProgress,
+      autoLoadAiModel,
+      setAutoLoadAiModel,
+      isAiMaximized,
+      setIsAiMaximized,
       locale,
       setLocale,
       theme,

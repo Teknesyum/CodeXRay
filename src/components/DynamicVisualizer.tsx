@@ -144,7 +144,16 @@ export const DynamicVisualizer = ({
     setIsEditingInput,
     pinnedVariables,
     togglePinnedVariable,
+    aiStatus,
+    aiProgressPercent,
+    showAiLoadWarning,
+    setShowAiLoadWarning,
+    showAiLoadProgress,
   } = useTimeline();
+
+  const handleLoadModel = () => {
+    window.dispatchEvent(new Event('codexray:loadModel'));
+  };
   const currentStep = steps[currentIndex];
   const previousStep = currentIndex > 0 ? steps[currentIndex - 1] : undefined;
   const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
@@ -183,7 +192,25 @@ export const DynamicVisualizer = ({
   }
 
   return (
-    <div className="dynamic-visualizer">
+    <>
+      {showAiLoadProgress && aiStatus === 'loading' && !collapsed && (
+        <div className="ai-progress-bar-container">
+          <div className="ai-progress-bar" style={{ width: `${aiProgressPercent ?? 0}%` }} />
+        </div>
+      )}
+      
+      {showAiLoadWarning && (aiStatus === 'idle' || aiStatus === 'error' || aiStatus === 'unsupported') && !collapsed && (
+        <div className="ai-load-warning-banner">
+          <span>{aiStatus === 'unsupported' ? 'Yapay Zeka bu tarayıcıda desteklenmiyor.' : 'Model Yüklenmedi! Gelişmiş özellikler için lütfen modeli yükleyin.'}</span>
+          <div className="banner-actions">
+            {aiStatus !== 'unsupported' && (
+              <button type="button" className="action-btn load-btn" onClick={handleLoadModel}>Yükle</button>
+            )}
+            <button type="button" className="action-btn hide-btn" onClick={() => setShowAiLoadWarning(false)}>Gizle</button>
+          </div>
+        </div>
+      )}
+      <div className="dynamic-visualizer">
       <div className="visualizer-header">
         <h2>{panelTitle}</h2>
         <div className="visualizer-header-actions">
@@ -263,5 +290,6 @@ export const DynamicVisualizer = ({
         </div>
       )}
     </div>
+    </>
   );
 };

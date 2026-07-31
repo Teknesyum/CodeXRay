@@ -7,6 +7,7 @@ import {
   StepBack,
   StepForward,
   Trash2,
+  Check,
 } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { generateQuestions } from '../services/aiService';
@@ -63,6 +64,12 @@ export const ControlBar = ({
     setAiProgress,
     aiProgressPercent,
     setAiProgressPercent,
+    showAiLoadWarning,
+    setShowAiLoadWarning,
+    showAiLoadProgress,
+    setShowAiLoadProgress,
+    autoLoadAiModel,
+    setAutoLoadAiModel,
     radioPlaylistId,
     setRadioPlaylistId,
     radioAutoplay,
@@ -71,6 +78,15 @@ export const ControlBar = ({
     theme,
     setTheme,
   } = useTimeline();
+  const [tempPlaylistUrl, setTempPlaylistUrl] = useState(radioPlaylistId);
+
+  useEffect(() => {
+    setTempPlaylistUrl(radioPlaylistId);
+  }, [radioPlaylistId]);
+
+  const handleApplyPlaylist = () => {
+    setRadioPlaylistId(tempPlaylistUrl);
+  };
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'ui' | 'radio'>('ai');
   const [showQuestionsMenu, setShowQuestionsMenu] = useState(false);
@@ -151,6 +167,9 @@ export const ControlBar = ({
         return;
       }
       startupCacheFallback.current = false;
+      
+      if (!autoLoadAiModel) return;
+
       const loadKey = `${autoLoadModel}:${aiContextWindow}`;
       if (autoLoadModel && !autoLoadAttempts.current.has(loadKey)) {
         autoLoadAttempts.current.add(loadKey);
@@ -168,7 +187,16 @@ export const ControlBar = ({
     aiModel,
     selectedModel.maxContextWindow,
     setAiModel,
+    autoLoadAiModel,
   ]);
+
+  useEffect(() => {
+    const handleLoadModel = () => {
+      void activateModel(aiModel, aiContextWindow);
+    };
+    window.addEventListener('codexray:loadModel', handleLoadModel);
+    return () => window.removeEventListener('codexray:loadModel', handleLoadModel);
+  }, [activateModel, aiModel, aiContextWindow]);
 
   useEffect(() => {
     if (!showSettings) return;
@@ -507,29 +535,61 @@ export const ControlBar = ({
                 )}
 
                 {activeTab === 'ui' && (
-                  <div className="settings-section">
-                    <div className="settings-title">{t('theme', locale)}</div>
-                    <div className="theme-selector">
-                      <button 
-                        className={`theme-btn neon-theme ${theme === 'neon' ? 'active' : ''}`}
-                        onClick={() => setTheme('neon')}
-                      >
-                        {t('themeNeon', locale)}
-                      </button>
-                      <button 
-                        className={`theme-btn dark-theme ${theme === 'dark' ? 'active' : ''}`}
-                        onClick={() => setTheme('dark')}
-                      >
-                        {t('themeDark', locale)}
-                      </button>
-                      <button 
-                        className={`theme-btn light-theme ${theme === 'light' ? 'active' : ''}`}
-                        onClick={() => setTheme('light')}
-                      >
-                        {t('themeLight', locale)}
-                      </button>
+                  <>
+                    <div className="settings-section">
+                      <div className="settings-title">{t('theme', locale)}</div>
+                      <div className="theme-selector">
+                        <button 
+                          className={`theme-btn neon-theme ${theme === 'neon' ? 'active' : ''}`}
+                          onClick={() => setTheme('neon')}
+                        >
+                          {t('themeNeon', locale)}
+                        </button>
+                        <button 
+                          className={`theme-btn dark-theme ${theme === 'dark' ? 'active' : ''}`}
+                          onClick={() => setTheme('dark')}
+                        >
+                          {t('themeDark', locale)}
+                        </button>
+                        <button 
+                          className={`theme-btn light-theme ${theme === 'light' ? 'active' : ''}`}
+                          onClick={() => setTheme('light')}
+                        >
+                          {t('themeLight', locale)}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                    <div className="settings-section">
+                      <div className="settings-title">{t('uiSettingsTab', locale)} (AI)</div>
+                      <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
+                        <input
+                          type="checkbox"
+                          className="neon-checkbox"
+                          checked={autoLoadAiModel}
+                          onChange={(e) => setAutoLoadAiModel(e.target.checked)}
+                        />
+                        <span className="checkbox-text">Önbellekteki Modeli Otomatik Yükle</span>
+                      </label>
+                      <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>
+                        <input
+                          type="checkbox"
+                          className="neon-checkbox"
+                          checked={showAiLoadWarning}
+                          onChange={(e) => setShowAiLoadWarning(e.target.checked)}
+                        />
+                        <span className="checkbox-text">Model Yüklenmedi Uyarısını Göster</span>
+                      </label>
+                      <label className="neon-checkbox-label">
+                        <input
+                          type="checkbox"
+                          className="neon-checkbox"
+                          checked={showAiLoadProgress}
+                          onChange={(e) => setShowAiLoadProgress(e.target.checked)}
+                        />
+                        <span className="checkbox-text">Model Yüklenirken İlerlemeyi Göster</span>
+                      </label>
+                    </div>
+                  </>
                 )}
                 {activeTab === 'radio' && (
                   <>
@@ -546,14 +606,25 @@ export const ControlBar = ({
                       </label>
                     </div>
                     <div className="settings-section">
-                      <div className="settings-title">{t('radioCustomPlaylist', locale)}</div>
-                      <input
-                        type="text"
-                        className="custom-playlist-input"
-                        value={radioPlaylistId}
-                        onChange={(e) => setRadioPlaylistId(e.target.value)}
-                        placeholder="https://youtube.com/playlist?list=..."
-                      />
+                      <div className="settings-title">{t('radioPlaylist', locale)}</div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="custom-playlist-input"
+                          value={tempPlaylistUrl}
+                          onChange={(e) => setTempPlaylistUrl(e.target.value)}
+                          placeholder="https://youtube.com/playlist?list=..."
+                        />
+                        <button 
+                          type="button"
+                          className="action-btn"
+                          style={{ padding: '6px' }}
+                          onClick={handleApplyPlaylist}
+                          title={t('apply', locale)}
+                        >
+                          <Check size={18} />
+                        </button>
+                      </div>
                     </div>
                     <div className="settings-section">
                       <div className="settings-title">{t('radioPresets', locale)}</div>

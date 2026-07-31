@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Loader, MapPin, Send, Trash2 } from 'lucide-react';
+import { Bot, Loader, MapPin, Maximize2, Minimize2, Send, Trash2 } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion } from '../services/aiService';
 import type { AssistantMessage } from '../services/aiContext';
@@ -78,6 +78,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setSelectedExampleQuestion,
     aiStatus,
     aiContextWindow,
+    isAiMaximized,
+    setIsAiMaximized,
     locale,
   } = useTimeline();
   const currentStep = steps[currentIndex];
@@ -246,6 +248,15 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <span>{panelTitle}</span>
         <span className="context-chip" title={t('contextHelp', locale)}>{contextLabel}</span>
         <span className={`local-status-dot ${aiStatus}`} title={`${t('localAi', locale)}: ${t(`status_${aiStatus}`, locale)}`} />
+        <button
+          type="button"
+          className={`panel-action-btn maximize-btn neon-toggle ${isAiMaximized ? 'active' : ''}`}
+          aria-label={isAiMaximized ? 'Minimize AI panel' : 'Maximize AI panel'}
+          onClick={() => setIsAiMaximized(!isAiMaximized)}
+          title={isAiMaximized ? 'Küçült' : 'Tam Ekran'}
+        >
+          {isAiMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
         <button
           type="button"
           className="clear-chat-btn"

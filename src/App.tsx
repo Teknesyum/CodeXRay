@@ -83,6 +83,7 @@ const CodeRayApp = () => {
     locale,
     setLocale,
     setIsEditingInput,
+    isAiMaximized,
   } = useTimeline();
   const [layout, setLayout] = useState<LayoutState>(loadLayout);
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
@@ -348,15 +349,17 @@ const CodeRayApp = () => {
         <div className="panel-right">
           <section
             className={`visualizer-container panel-region ${visualizerCollapsed ? 'collapsed' : ''}`}
-            style={visualizerCollapsed
-              ? { height: 44 }
-              : assistantCollapsed && controlsCollapsed
-                ? { flex: 1 }
-                : { height: rightSizes.visualizerHeight }}
+            style={isAiMaximized 
+              ? { display: 'none' } 
+              : visualizerCollapsed
+                ? { height: 44 }
+                : assistantCollapsed && controlsCollapsed
+                  ? { flex: 1 }
+                  : { height: rightSizes.visualizerHeight }}
           >
             <DynamicVisualizer collapsed={visualizerCollapsed} onToggleCollapse={() => togglePanel('visualizer')} />
           </section>
-          {!visualizerCollapsed && !assistantCollapsed && (
+          {!visualizerCollapsed && !assistantCollapsed && !isAiMaximized && (
             <div
               className="panel-splitter horizontal"
               role="separator"
@@ -388,16 +391,18 @@ const CodeRayApp = () => {
             />
           )}
           <section
-            className={`assistant-container panel-region ${assistantCollapsed ? 'collapsed' : ''}`}
-            style={assistantCollapsed
-              ? { height: 44 }
-              : controlsCollapsed
-                ? { flex: 1 }
-                : { height: rightSizes.assistantHeight }}
+            className={`assistant-container panel-region ${assistantCollapsed ? 'collapsed' : ''} ${isAiMaximized ? 'maximized' : ''}`}
+            style={isAiMaximized
+              ? { flex: 1 }
+              : assistantCollapsed
+                ? { height: 44 }
+                : controlsCollapsed
+                  ? { flex: 1 }
+                  : { height: rightSizes.assistantHeight }}
           >
             <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
           </section>
-          {!assistantCollapsed && !controlsCollapsed && (
+          {!assistantCollapsed && !controlsCollapsed && !isAiMaximized && (
             <div
               className="panel-splitter horizontal"
               role="separator"
@@ -429,13 +434,15 @@ const CodeRayApp = () => {
             />
           )}
           <section
-            className={`control-container panel-region ${controlsCollapsed ? 'collapsed' : ''}`}
-            style={!visualizerCollapsed && !assistantCollapsed && !controlsCollapsed
-              ? { height: rightSizes.controlHeight, flex: '0 0 auto' }
-              : undefined}
+            className={`control-container panel-region ${(controlsCollapsed || isAiMaximized) ? 'collapsed' : ''}`}
+            style={isAiMaximized
+              ? { height: 44, flex: '0 0 auto' }
+              : !visualizerCollapsed && !assistantCollapsed && !controlsCollapsed
+                ? { height: rightSizes.controlHeight, flex: '0 0 auto' }
+                : undefined}
           >
             <ControlBar
-              collapsed={controlsCollapsed}
+              collapsed={controlsCollapsed || isAiMaximized}
               onToggleCollapse={() => togglePanel('controls')}
               onSimulate={handleSimulate}
               onAnalyze={handleAnalyze}

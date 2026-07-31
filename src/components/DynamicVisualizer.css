@@ -383,3 +383,12 @@
 .var-value {
   font-weight: bold;
 }
+
+.ai-progress-bar-container { width: 100%; height: 3px; background: rgba(255,255,255,0.1); }
+.ai-progress-bar { height: 100%; background: var(--neon-cyan); box-shadow: 0 0 5px var(--neon-cyan); transition: width 0.3s ease; }
+.ai-load-warning-banner { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: rgba(255, 155, 155, 0.1); border-bottom: 1px solid rgba(255, 155, 155, 0.2); color: #ff9b9b; font-size: 0.85rem; font-family: var(--font-mono); }
+.banner-actions { display: flex; gap: 8px; }
+.banner-actions .action-btn { padding: 4px 8px; font-size: 0.8rem; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; color: #fff; cursor: pointer; transition: all 0.2s; }
+.banner-actions .load-btn { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+.banner-actions .load-btn:hover { background: rgba(0, 243, 255, 0.1); }
+.banner-actions .hide-btn:hover { background: rgba(255, 255, 255, 0.1); }

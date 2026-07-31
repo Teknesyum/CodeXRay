@@ -186,22 +186,23 @@ export const PlaylistRadio = () => {
   }, [isPlaying, playerReady]);
 
   useEffect(() => {
-    if (!hasStarted || minimized) {
-      if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
-      setShowRing(false);
-      return;
-    }
-    if (!isHovered) {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    
+    if (!isHovered && hasStarted && !minimized) {
+      if (radioMinimizeSeconds > 15) {
+        setShowRing(false);
+        return;
+      }
+
       hoverTimeoutRef.current = window.setTimeout(() => {
         setShowRing(true);
         hoverTimeoutRef.current = window.setTimeout(() => {
           setMinimized(true);
           setShowRing(false);
-        }, radioMinimizeSeconds * 1000); // Dynamic animation duration
-      }, 1000); // 1 second delay
+        }, radioMinimizeSeconds * 1000);
+      }, 1000);
     } else {
       setShowRing(false);
-      if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
     }
     return () => {
       if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);

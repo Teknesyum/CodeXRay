@@ -633,14 +633,14 @@ export const ControlBar = ({
                           type="range"
                           className="progress-slider"
                           min="1"
-                          max="15"
+                          max="16"
                           step="1"
                           value={radioMinimizeSeconds}
                           onChange={(e) => setRadioMinimizeSeconds(Number(e.target.value))}
                           style={{ flex: 1 }}
                         />
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', width: '30px' }}>
-                          {radioMinimizeSeconds}s
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', width: '30px', textAlign: 'right' }}>
+                          {radioMinimizeSeconds > 15 ? 'Hiç' : `${radioMinimizeSeconds}s`}
                         </span>
                       </div>
                     </div>
@@ -670,31 +670,31 @@ export const ControlBar = ({
                       <div className="playlist-presets">
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDlzBjZBpA-aU')}
+                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLRBp0Fe2Gpglq-J-Hv0p-y0wk3lQk570u')}
                         >
                           Up Cdk (Varsayılan)
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_m5ENJ7vW7WpI0q3C3jT2g2L-0w_x4eC7s')}
+                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PL5O39726X9NfE3qC9m_2P5n_x3k5Xg_5Z')}
                         >
                           Coding Focus
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_kQh-E5X44l2b_H7R7sE3h_qP9T-bT9U9A')}
+                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLW2F58rCEn8M_WkG-5k4VlG_wJ2bW0k68')}
                         >
                           Synthwave
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_n5XFdzqO0r_B3X5F0uO8S_r7g9O2n5L-8')}
+                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo')}
                           >
                           Lofi Hip Hop
                         </button>
                         <button 
                           className="action-btn"
-                          onClick={() => setRadioPlaylistId('https://music.youtube.com/playlist?list=RDCLAK5uy_k1zN6k3cT_F3t2p4M1J8L5K1h_w9x9y3k')}
+                          onClick={() => setRadioPlaylistId('https://youtube.com/playlist?list=PL4kL-r88P5gW_xJb1Lpxf7e914kYqO0N_')}
                         >
                           Classical Focus
                         </button>

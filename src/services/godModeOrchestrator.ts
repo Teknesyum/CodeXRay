@@ -602,10 +602,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         let problemSpec: ProblemSpecV2 | undefined;
         let algorithmPlan: DpFamilyContractV2 | undefined;
         await runJob('architect-design-algorithm-contract', async () => {
-          const response = await callAgent(
+          const response = await callOptionalAgent(
             'architect',
             `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the predict-winner interval-DP algorithm. Output matching the megaDpUpdateSchema.`,
             JSON.stringify({ request: options.request, numbers: resolved.numbers }),
+            '{}',
             megaDpUpdateSchema,
             1200,
           );
@@ -617,7 +618,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             setJob('architect-design-algorithm-contract', { summary });
             return summary;
           }
-          throw new Error('Failed to extract interval-DP contracts.');
+          const summary = 'Selected the validated deterministic predict-winner interval-DP contract fallback.';
+          setJob('architect-design-algorithm-contract', { summary });
+          return summary;
         });
         await runJob('code-author-author-executable-program', async () => {
           const summary = await callOptionalAgent(
@@ -720,10 +723,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         let problemSpec: ProblemSpecV2 | undefined;
         let algorithmPlan: DpFamilyContractV2 | undefined;
         await runJob('architect-design-algorithm-contract', async () => {
-          const response = await callAgent(
+          const response = await callOptionalAgent(
             'architect',
             `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the ${template} dynamic programming algorithm. Output matching the megaDpUpdateSchema.`,
             JSON.stringify({ request: options.request, workspace: options.workspace }),
+            '{}',
             megaDpUpdateSchema,
             1200,
           );
@@ -735,7 +739,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             setJob('architect-design-algorithm-contract', { summary });
             return summary;
           }
-          throw new Error('Failed to extract DP contracts.');
+          const summary = `Selected the validated deterministic ${template} contract fallback.`;
+          setJob('architect-design-algorithm-contract', { summary });
+          return summary;
         });
         await runJob('code-author-author-executable-program', async () => {
           const summary = `Selected the deterministic, source-mapped ${template} implementation.`;
@@ -876,7 +882,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       } else {
         program = await runJob('code-author-author-executable-program', async () => {
           let lastErrors: string[] = [];
-          for (let attempt = 1; attempt <= 2; attempt += 1) {
+          let lastCandidateExcerpt = '';
+          let previousFailureKey = '';
+          for (let attempt = 1; attempt <= 3; attempt += 1) {
             if (attempt > 1) setJob('code-author-author-executable-program', {
               status: 'retrying',
               attempt,
@@ -891,7 +899,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
                   `The required inputKind is ${design.inputKind}.`,
                   attempt > 1 ? `Repair these validation errors: ${lastErrors.join(' ')}` : '',
                 ].filter(Boolean).join(' '),
-                JSON.stringify({ request: options.request, design }),
+                JSON.stringify({
+                  request: options.request,
+                  design,
+                  ...(attempt > 1 ? { previousCandidateExcerpt: lastCandidateExcerpt } : {}),
+                }),
                 attempt === 1 ? PROGRAM_SPEC_V1_SCHEMA : undefined,
                 1_150,
                 attempt > 1,
@@ -902,6 +914,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
               if (/timed out|cancelled|load a local ai model/i.test(message)) throw error;
               continue;
             }
+            lastCandidateExcerpt = response.slice(0, 2_400);
             const parsed = safeJsonObject(response);
             const validation = validateProgramSpec(parsed);
             if (validation.valid && validation.program && validation.program.inputKind === design.inputKind) {
@@ -914,6 +927,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             lastErrors = validation.errors.length
               ? validation.errors
               : [`Program inputKind must be ${design.inputKind}.`];
+            const failureKey = lastErrors.slice(0, 4).join('|');
+            if (failureKey === previousFailureKey) break;
+            previousFailureKey = failureKey;
           }
           throw new Error(`Code Author could not produce valid SimLang: ${lastErrors.join(' ')}`);
         });
@@ -1012,6 +1028,12 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           320,
         );
         const parsed = safeJsonObject(response);
+        if (parsed?.passed === false) {
+          const issues = Array.isArray(parsed.issues)
+            ? parsed.issues.filter((issue): issue is string => typeof issue === 'string').slice(0, 6)
+            : [];
+          throw new Error(`Critic rejected the package: ${issues.join('; ') || String(parsed.summary ?? 'validation failed')}`);
+        }
         setJob('critic-test-visual-and-trace-alignment', {
           summary: typeof parsed?.summary === 'string' ? parsed.summary.slice(0, 260) : 'Deterministic tests passed.',
         });

@@ -4,6 +4,7 @@ import type { AssistantMessage } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
 import { LOCAL_AI_MODELS } from './localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
+import type { LocalAgentResultV2 } from '../types/webSource';
 
 export { LOCAL_AI_MODELS } from './localAiModels';
 
@@ -13,10 +14,11 @@ interface WorkerResponse {
   text?: string;
   progress?: InitProgressReport;
   status?: 'queued' | 'running' | 'cancelled';
+  result?: LocalAgentResultV2;
 }
 
 interface PendingRequest {
-  resolve: (value: string) => void;
+  resolve: (value: never) => void;
   reject: (reason: Error) => void;
   onAgentEvent?: (event: LocalAgentProgress) => void;
 }
@@ -41,6 +43,12 @@ export interface LocalAgentRequest {
 export interface LocalAgentHandle {
   requestId: number;
   promise: Promise<string>;
+  cancel: () => void;
+}
+
+export interface DetailedLocalAgentHandle {
+  requestId: number;
+  promise: Promise<LocalAgentResultV2>;
   cancel: () => void;
 }
 
@@ -69,7 +77,7 @@ const getWorker = () => {
     }
     pending.delete(response.id);
     if (response.type === 'error') request.reject(new Error(response.text ?? 'Local model failed.'));
-    else request.resolve(response.text ?? '');
+    else request.resolve((response.result ?? response.text ?? '') as never);
   };
   worker.onerror = (event) => {
     for (const request of pending.values()) request.reject(new Error(event.message));
@@ -233,12 +241,28 @@ export const runLocalAgent = (
     };
   }
   const id = ++requestId;
-  const timeoutMs = Math.min(
-    120_000,
-    Math.max(30_000, 20_000 + (request.maxTokens ?? 500) * 60),
+  const queueTimeoutMs = 120_000;
+  const inferenceTimeoutMs = Math.min(
+    300_000,
+    Math.max(60_000, 45_000 + (request.maxTokens ?? 500) * 140),
   );
+  let phase: 'queue' | 'inference' = 'queue';
+  let timeout: ReturnType<typeof globalThis.setTimeout>;
   const basePromise = new Promise<string>((resolve, reject) => {
-    pending.set(id, { resolve, reject, onAgentEvent: onProgress });
+    pending.set(id, {
+      resolve: resolve as (value: never) => void,
+      reject,
+      onAgentEvent: (progress) => {
+        onProgress?.(progress);
+        if (progress.status === 'running' && phase === 'queue') {
+          phase = 'inference';
+          globalThis.clearTimeout(timeout);
+          timeout = globalThis.setTimeout(() => {
+            cancelRequest(`God Mode ${request.role} agent timed out during inference after ${Math.round(inferenceTimeoutMs / 1_000)} seconds.`);
+          }, inferenceTimeoutMs);
+        }
+      },
+    });
     worker?.postMessage({ id, type: 'agent-run', ...request });
   });
   const cancelRequest = (message: string) => {
@@ -248,14 +272,64 @@ export const runLocalAgent = (
     activeRequest.reject(new Error(message));
     worker?.postMessage({ id, type: 'agent-cancel' });
   };
-  const timeout = globalThis.setTimeout(() => {
-    cancelRequest(`God Mode ${request.role} agent timed out after ${Math.round(timeoutMs / 1_000)} seconds.`);
-  }, timeoutMs);
+  timeout = globalThis.setTimeout(() => {
+    cancelRequest(`God Mode ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
+  }, queueTimeoutMs);
   const promise = basePromise.finally(() => globalThis.clearTimeout(timeout));
   return {
     requestId: id,
     promise,
     cancel: () => cancelRequest('God Mode agent was cancelled.'),
+  };
+};
+
+export const runLocalAgentDetailed = (
+  request: LocalAgentRequest,
+  onProgress?: (progress: LocalAgentProgress) => void,
+): DetailedLocalAgentHandle => {
+  if (!worker || !readyModel) {
+    return {
+      requestId: -1,
+      promise: Promise.reject(new Error('Load a solve-capable local AI model before running web problem agents.')),
+      cancel: () => undefined,
+    };
+  }
+  const id = ++requestId;
+  const queueTimeoutMs = 120_000;
+  const inferenceTimeoutMs = Math.min(300_000, Math.max(60_000, 45_000 + (request.maxTokens ?? 500) * 140));
+  let phase: 'queue' | 'inference' = 'queue';
+  let timeout: ReturnType<typeof globalThis.setTimeout>;
+  const basePromise = new Promise<LocalAgentResultV2>((resolve, reject) => {
+    pending.set(id, {
+      resolve: resolve as (value: never) => void,
+      reject,
+      onAgentEvent: (progress) => {
+        onProgress?.(progress);
+        if (progress.status === 'running' && phase === 'queue') {
+          phase = 'inference';
+          globalThis.clearTimeout(timeout);
+          timeout = globalThis.setTimeout(() => {
+            cancelRequest(`Web problem ${request.role} agent timed out during inference after ${Math.round(inferenceTimeoutMs / 1_000)} seconds.`);
+          }, inferenceTimeoutMs);
+        }
+      },
+    });
+    worker?.postMessage({ id, type: 'agent-run', detailed: true, ...request });
+  });
+  const cancelRequest = (message: string) => {
+    const activeRequest = pending.get(id);
+    if (!activeRequest) return;
+    pending.delete(id);
+    activeRequest.reject(new Error(message));
+    worker?.postMessage({ id, type: 'agent-cancel' });
+  };
+  timeout = globalThis.setTimeout(() => {
+    cancelRequest(`Web problem ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
+  }, queueTimeoutMs);
+  return {
+    requestId: id,
+    promise: basePromise.finally(() => globalThis.clearTimeout(timeout)),
+    cancel: () => cancelRequest('Web problem agent was cancelled.'),
   };
 };
 

@@ -136,6 +136,49 @@ test('switches the visible interface to Turkish instantly', async ({ page }) => 
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
 });
 
+test('reads a public problem through the bounded gateway and keeps the cleaned source in session scope', async ({ page }) => {
+  await page.route('**/api/codexray/read-url', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toEqual({ version: 1, url: 'https://example.com/open-pair-sum' });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 1,
+        requestId: 'e2e-reader',
+        document: {
+          version: 1,
+          id: 'web-e2e',
+          requestedUrl: 'https://example.com/open-pair-sum',
+          finalUrl: 'https://example.com/open-pair-sum',
+          title: 'Open Pair Sum',
+          contentType: 'text/html',
+          provider: 'generic-html',
+          retrievedAt: '2026-08-01T00:00:00.000Z',
+          contentHash: 'e2e-source-hash',
+          truncated: false,
+          warnings: [],
+          segments: [
+            { id: 'body-1', kind: 'body', text: 'Given an integer array, return a pair whose sum matches the target. This fixture is original.' },
+          ],
+        },
+      }),
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('.local-status-dot')).toHaveCount(0);
+  await page.locator('.ai-chat input').fill('Read https://example.com/open-pair-sum');
+  await page.getByRole('button', { name: 'Send question' }).click();
+  const card = page.getByRole('region', { name: 'Bound web source' });
+  await expect(card).toContainText('Open Pair Sum');
+  await expect(card).toContainText('example.com');
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('codexray.web-source.v1'))).not.toBeNull();
+  await switchToTurkish(page);
+  await expect(page.getByRole('region', { name: 'Bağlı web kaynağı' })).toBeVisible();
+  await page.getByRole('button', { name: 'Web kaynağını temizle' }).click();
+  await expect(page.getByRole('region', { name: 'Bağlı web kaynağı' })).toHaveCount(0);
+});
+
 test('accepts custom array input for a sorting algorithm', async ({ page }) => {
   await page.goto('/');
   const select = page.getByLabel('Algorithm preset');

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { routeGodModeRequest } from './godModeRouting';
+import { routeGodModeRequest, routeWebSourceRequest } from './godModeRouting';
 
 describe('God Mode routing', () => {
+  it('routes web URLs before punctuation cleanup and binds follow-ups', () => {
+    expect(routeWebSourceRequest('Oku: https://leetcode.com/problems/two-sum/?envType=daily-question.', false)).toEqual({
+      type: 'read-web-source',
+      url: 'https://leetcode.com/problems/two-sum/?envType=daily-question',
+    });
+    expect(routeWebSourceRequest('https://example.com/problem bunu çöz ve kodla', false)).toEqual({ type: 'solve-web-problem', url: 'https://example.com/problem' });
+    expect(routeWebSourceRequest('şimdi çözümü anlat', true)).toEqual({ type: 'explain-bound-solution' });
+  });
   it.each([
     'dfs ile ilgili sayfayı aç',
     'DFS ile ilgili sayfayi ac',

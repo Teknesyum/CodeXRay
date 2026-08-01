@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Check, Copy, Crown, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2 } from 'lucide-react';
+import { Activity, Bot, Check, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion, generateSimulationSteps } from '../services/aiService';
 import { cancelLocalResponse, planLocalActions } from '../services/localAiService';
@@ -15,7 +15,7 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { routeGodModeRequest } from '../services/godModeRouting';
+import { routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
 import {
   startGodModeRun,
   type GodModeRunHandle,
@@ -23,6 +23,18 @@ import {
 import { dispatchGodModeUiAction } from '../services/godModeUiControl';
 import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { BoundWebSourceSessionV1, ManagerPlanV2, SolutionArtifactV1, WebProblemSpecV1 } from '../types/webSource';
+import {
+  clearBoundWebSource,
+  extractFirstPublicHttpsUrl,
+  loadBoundWebSource,
+  normalizeWebProblem,
+  readWebSource,
+  saveBoundWebSource,
+  buildWebProblemPrompt,
+  WebSourceError,
+} from '../services/webSource';
+import type { JavaFallbackRun } from '../services/webProblemOrchestrator';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { GodModeProgress } from './GodModeProgress';
 import { MarkdownPreview } from './MarkdownPreview';
@@ -30,6 +42,13 @@ import './AiAssistant.css';
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
 const MAX_STORED_MESSAGES = 24;
+
+const webSourceErrorKey = (error: WebSourceError): string => {
+  if (error.code === 'cancelled') return 'webReaderCancelled';
+  if (error.code === 'timeout' || error.code === 'rate_limited' || error.retryable) return 'webReaderRetry';
+  if (error.code === 'too_large' || error.code === 'unsupported_content_type' || error.code === 'dynamic_content_unsupported') return 'webReaderPaste';
+  return 'webReaderFailed';
+};
 
 const navigationExplanationPrompt = (
   originalQuestion: string,
@@ -112,6 +131,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     selectedExampleQuestion,
     setSelectedExampleQuestion,
     aiStatus,
+    aiModel,
     aiContextWindow,
     isAiMaximized,
     setIsAiMaximized,
@@ -153,12 +173,16 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     return latest.jobs.some((job) => job.status === 'failed') ? latest : null;
   });
   const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
+  const [webSourceSession, setWebSourceSession] = useState<BoundWebSourceSessionV1 | null>(loadBoundWebSource);
+  const [webPlan, setWebPlan] = useState<ManagerPlanV2 | null>(null);
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const copyResetTimerRef = useRef<number | null>(null);
   const godModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const godModeRunRef = useRef<GodModeRunHandle | null>(null);
+  const webRunRef = useRef<JavaFallbackRun | null>(null);
+  const webFetchRef = useRef<AbortController | null>(null);
   const dismissedGodModeRunsRef = useRef(new Set<string>());
   const sourcePreviewRunRef = useRef<string | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
@@ -197,6 +221,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       mountedRef.current = false;
       sourcePreviewRunRef.current = null;
       godModeRunRef.current?.cancel();
+      webRunRef.current?.cancel();
+      webFetchRef.current?.abort();
       if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
       if (godModeDismissTimerRef.current) window.clearTimeout(godModeDismissTimerRef.current);
     };
@@ -378,7 +404,112 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setIsTyping(true);
 
     try {
-      const godModeIntent = godModeEnabled
+      const webIntent = routeWebSourceRequest(userMessage, Boolean(webSourceSession));
+      let activeWebSession = webSourceSession;
+      let webProblemForSimulation: WebProblemSpecV1 | null = null;
+      let modelQuestion = userMessage;
+
+      if (webIntent?.type === 'read-web-source' || (webIntent?.type === 'solve-web-problem' && webIntent.url)) {
+        if (!webIntent.url) throw new Error('The web source URL is missing.');
+        const controller = new AbortController();
+        webFetchRef.current = controller;
+        const document = await readWebSource(webIntent.url, { signal: controller.signal });
+        webFetchRef.current = null;
+        const problem = normalizeWebProblem(document);
+        activeWebSession = { version: 1, document, problem, solution: null };
+        saveBoundWebSource(activeWebSession);
+        setWebSourceSession(activeWebSession);
+        if (webIntent.type === 'read-web-source') {
+          setChatHistory((previous) => [
+            ...previous,
+            { role: 'ai' as const, content: `${t('webSourceReady', locale)}\n\n**${problem.title}**` },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+      }
+
+      if (webIntent?.type === 'solve-web-problem') {
+        if (!activeWebSession) throw new Error('No bound web problem is available.');
+        const { isWebProblemSolveCapable, startJavaFallbackRun } = await import('../services/webProblemOrchestrator');
+        if (aiStatus !== 'ready' || !isWebProblemSolveCapable(aiModel)) {
+          setChatHistory((previous) => [
+            ...previous,
+            { role: 'system' as const, content: t('webSolveModelRequired', locale) },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+        if (!activeWebSession.problem.simulationCompatibility.compatible) {
+          const run = startJavaFallbackRun({
+            request: userMessage,
+            problem: activeWebSession.problem,
+            locale,
+            modelId: aiModel,
+            onPlan: (plan) => {
+              if (mountedRef.current) setWebPlan(plan);
+            },
+          });
+          webRunRef.current = run;
+          setWebPlan(run.plan);
+          const solution = await run.promise;
+          webRunRef.current = null;
+          if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
+          const nextSession = { ...activeWebSession, solution };
+          saveBoundWebSource(nextSession);
+          setWebSourceSession(nextSession);
+          if (solution.kind !== 'unexecuted-java17') throw new Error('Unexpected web solution branch.');
+          setChatHistory((previous) => [
+            ...previous,
+            {
+              role: 'ai' as const,
+              content: [
+                `**${t('webJavaUnexecuted', locale)}**`,
+                '',
+                `### ${solution.title}`,
+                '```java',
+                solution.code,
+                '```',
+                solution.explanation,
+                '',
+                `Time: ${solution.complexity.time} · Space: ${solution.complexity.space}`,
+              ].join('\n'),
+            },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+        webProblemForSimulation = activeWebSession.problem;
+        modelQuestion = buildWebProblemPrompt(
+          activeWebSession.problem,
+          'Create, validate, compile, test, and visualize this algorithm in CodeXRay. Apply it only after every verification gate and critic pass.',
+        );
+      } else if (webIntent?.type === 'explain-bound-solution') {
+        if (!activeWebSession?.solution) {
+          setChatHistory((previous) => [
+            ...previous,
+            { role: 'system' as const, content: t('webSourceReady', locale) },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+        if (aiStatus !== 'ready') {
+          setChatHistory((previous) => [
+            ...previous,
+            { role: 'system' as const, content: t('webSolveModelRequired', locale) },
+          ].slice(-MAX_STORED_MESSAGES));
+          return;
+        }
+        modelQuestion = buildWebProblemPrompt(
+          activeWebSession.problem,
+          `Explain only the solution bound to source hash ${activeWebSession.solution.sourceHash} and problem hash ${activeWebSession.solution.problemHash}: ${JSON.stringify(activeWebSession.solution).slice(0, 10_000)}`,
+        );
+      }
+
+      const godModeIntent = webProblemForSimulation
+        ? routeGodModeRequest(
+          modelQuestion,
+          stateRef.current.steps,
+          currentIndex,
+          stateRef.current.algorithmName,
+        )
+        : godModeEnabled
         ? routeGodModeRequest(
           userMessage,
           stateRef.current.steps,
@@ -392,7 +523,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           : routeDeterministicCommand(userMessage, stateRef.current.steps, currentIndex);
       let targetIndex = currentIndex;
       let workspaceIsPlaying = isPlaying;
-      let modelQuestion = userMessage;
 
       if (godModeIntent?.type === 'clarify-algorithm') {
         setChatHistory((previous) => [
@@ -525,6 +655,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             }
           },
           previewSource: async (draftCode, title, runId) => {
+            if (webProblemForSimulation) return;
             if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;
             dispatchGodModeUiAction({ type: 'set-workspace-layout', layout: 'focus-code' });
             pause();
@@ -595,9 +726,27 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         const content = result.tutorAnswer
           ? `${result.summary}\n\n${stripThinkBlock(result.tutorAnswer)}`
           : result.summary;
+        if (webProblemForSimulation && result.package && activeWebSession) {
+          const solution: SolutionArtifactV1 = {
+            version: 1,
+            kind: 'validated-simulation',
+            sourceHash: webProblemForSimulation.sourceHash,
+            problemHash: webProblemForSimulation.id,
+            packageId: result.package.id,
+            review: { passed: true, summary: result.summary, findings: [] },
+          };
+          const nextSession = { ...activeWebSession, solution };
+          saveBoundWebSource(nextSession);
+          setWebSourceSession(nextSession);
+        }
         setChatHistory((previous) => [
           ...previous,
-          { role: 'ai' as const, content },
+          {
+            role: 'ai' as const,
+            content: webProblemForSimulation
+              ? `**${t('webValidatedSimulation', locale)}**\n\n${content}`
+              : content,
+          },
         ].slice(-MAX_STORED_MESSAGES));
         if (result.package?.teachingPlan.autoStart) {
           setSpeed(result.package.teachingPlan.suggestedSpeed);
@@ -691,11 +840,15 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     } catch (error) {
       sourcePreviewRunRef.current = null;
       godModeRunRef.current = null;
+      webFetchRef.current = null;
+      webRunRef.current = null;
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
       setChatHistory((previous) =>
         [...previous, {
           role: 'system' as const,
-          content: translateRuntimeText(error instanceof Error ? error.message : 'The local model could not answer.', locale),
+          content: error instanceof WebSourceError
+            ? t(webSourceErrorKey(error), locale)
+            : translateRuntimeText(error instanceof Error ? error.message : 'The local model could not answer.', locale),
         }].slice(-MAX_STORED_MESSAGES),
       );
     } finally {
@@ -712,6 +865,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     isPlaying,
     pinnedVariables,
     aiStatus,
+    aiModel,
     aiContextWindow,
     locale,
     isExecutingQueue,
@@ -720,6 +874,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     applySimulationPackage,
     applyVisualPackageTransaction,
     godModeEnabled,
+    webSourceSession,
     pause,
     play,
     requestRadioOpen,
@@ -788,6 +943,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     : t('contextCodeOnly', locale);
   const isGodModeRunning = Boolean(godModePlan?.jobs.some((job) =>
     job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
+  const isWebRunning = Boolean(webPlan?.jobs.some((job) =>
+    job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
+  const canSubmitWithoutModel = Boolean(extractFirstPublicHttpsUrl(question) || webSourceSession);
 
   if (collapsed) {
     return (
@@ -804,6 +962,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           </button>
         </div>
       </div>
+
     );
   }
 
@@ -839,7 +998,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         >
           <MapPin size={10} />
         </button>
-        <span className={`local-status-dot ${aiStatus}`} title={`${t('localAi', locale)}: ${t(`status_${aiStatus}`, locale)}`} />
         <button
           type="button"
           className={`panel-action-btn maximize-btn neon-toggle ${isAiMaximized ? 'active' : ''}`}
@@ -868,6 +1026,46 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           −
         </button>
       </div>
+
+      {webSourceSession && (
+        <section className="web-source-card" aria-label={t('webSourceTitle', locale)}>
+          <Globe2 size={14} aria-hidden="true" />
+          <div className="web-source-content">
+            <strong>{webSourceSession.problem.title}</strong>
+            <span>{new URL(webSourceSession.document.finalUrl).hostname} · {webSourceSession.document.provider}</span>
+            <p>{webSourceSession.problem.description.slice(0, 260)}</p>
+            {webSourceSession.document.truncated && <em>{t('webSourceTruncated', locale)}</em>}
+            {webSourceSession.solution && (
+              <b className={`web-solution-badge ${webSourceSession.solution.kind}`}>
+                {t(webSourceSession.solution.kind === 'validated-simulation'
+                  ? 'webValidatedSimulation'
+                  : 'webJavaUnexecuted', locale)}
+              </b>
+            )}
+          </div>
+          <a
+            href={webSourceSession.document.finalUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('webSourceOriginal', locale)}
+            title={t('webSourceOriginal', locale)}
+          >
+            <ExternalLink size={13} />
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              clearBoundWebSource();
+              setWebSourceSession(null);
+              setWebPlan(null);
+            }}
+            aria-label={t('webSourceClear', locale)}
+            title={t('webSourceClear', locale)}
+          >
+            <X size={13} />
+          </button>
+        </section>
+      )}
 
       {/* Progress for validated deterministic actions */}
       {actionQueue.length > 0 && (
@@ -915,6 +1113,25 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           canRedo={canRedoWorkspace}
         />
       )}
+      {webPlan && (
+        <GodModeProgress
+          plan={webPlan}
+          locale={locale}
+          onCancel={() => {
+            webRunRef.current?.cancel();
+            webFetchRef.current?.abort();
+            setWebPlan(null);
+            setIsTyping(false);
+          }}
+          onUndo={undoWorkspaceTransaction}
+          onRedo={redoWorkspaceTransaction}
+          onRetry={() => {
+            if (!isWebRunning) void submitQuestion(lastGodModeRequest ?? (locale === 'tr' ? 'Bu problemi çöz' : 'Solve this problem'));
+          }}
+          canUndo={false}
+          canRedo={false}
+        />
+      )}
 
       <div className="ai-body" ref={chatBodyRef}>
         <div className="chat-message system-msg"><MarkdownPreview content={systemMessage} /></div>
@@ -960,7 +1177,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 type="button"
                 className={index === currentIndex ? 'active' : ''}
                 aria-label={t('goToKeyMoment', locale, { step: index + 1 })}
-                disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}
+                disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
                 onClick={() => void submitQuestion(
                   locale === 'tr'
                     ? `${index + 1}. adıma git ve bu önemli noktayı anlat`
@@ -982,11 +1199,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       >
         <input
           type="text"
-          maxLength={600}
+          maxLength={2048}
           placeholder={aiStatus === 'ready' || godModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}
+          disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
         />
         {isTyping ? (
           <button
@@ -996,6 +1213,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             onClick={() => {
               responseEpochRef.current += 1;
               cancelLocalResponse();
+              webFetchRef.current?.abort();
+              webRunRef.current?.cancel();
               sourcePreviewRunRef.current = null;
               godModeRunRef.current?.cancel();
               setTypingMessage(null);
@@ -1007,7 +1226,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             <Square size={13} fill="currentColor" />
           </button>
         ) : (
-          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}>
+          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}>
             <Send size={14} />
           </button>
         )}

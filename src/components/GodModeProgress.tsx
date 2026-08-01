@@ -12,12 +12,12 @@ import {
 import { useState, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { ManagerPlanV1 } from '../types/godMode';
+import type { ManagerPlanV2 } from '../types/webSource';
 import type { Locale } from '../i18n/translations';
 import { t } from '../i18n/translations';
-import { godModePlanProgress } from '../services/godModeOrchestrator';
 
 interface GodModeProgressProps {
-  plan: ManagerPlanV1;
+  plan: ManagerPlanV1 | ManagerPlanV2;
   locale: Locale;
   onCancel: () => void;
   onUndo: () => void;
@@ -28,6 +28,20 @@ interface GodModeProgressProps {
 }
 
 const agentKey = (role: string) => `godAgent_${role}`;
+
+const jobDetails = (job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number]): string | undefined => {
+  const elapsed = 'durationMs' in job && typeof job.durationMs === 'number'
+    ? job.durationMs
+    : job.startedAt
+      ? (job.finishedAt ?? Date.now()) - job.startedAt
+      : null;
+  const timing = elapsed === null
+    ? ''
+    : `Time: ${(elapsed / 1_000).toFixed(2)}s${'queueMs' in job && typeof job.queueMs === 'number'
+      ? ` · queue ${(job.queueMs / 1_000).toFixed(2)}s · inference ${((job.inferenceMs ?? 0) / 1_000).toFixed(2)}s`
+      : ''}`;
+  return [job.error ?? job.summary, timing].filter(Boolean).join(' · ') || undefined;
+};
 
 interface AgentTooltip {
   role: string;
@@ -48,7 +62,12 @@ export const GodModeProgress = ({
   canRedo,
 }: GodModeProgressProps) => {
   const [tooltip, setTooltip] = useState<AgentTooltip | null>(null);
-  const progress = godModePlanProgress(plan);
+  const totalWeight = plan.jobs.reduce((sum, job) => sum + ('weight' in job ? job.weight : 1), 0);
+  const completedWeight = plan.jobs.reduce((sum, job) =>
+    job.status === 'completed' || job.status === 'completed_with_fallback'
+      ? sum + ('weight' in job ? job.weight : 1)
+      : sum, 0);
+  const progress = totalWeight ? Math.round((completedWeight / totalWeight) * 100) : 0;
   const running = plan.jobs.find((job) => job.status === 'running');
   const failed = plan.jobs.some((job) => job.status === 'failed');
   const cancelled = plan.jobs.some((job) => job.status === 'cancelled');
@@ -156,19 +175,19 @@ export const GodModeProgress = ({
               event,
               t(agentKey(job.role), locale),
               t(`godStatus_${job.status}`, locale),
-              job.error ?? job.summary,
+              jobDetails(job),
             )}
             onMouseLeave={() => setTooltip(null)}
             onFocus={(event) => showAgentTooltip(
               event,
               t(agentKey(job.role), locale),
               t(`godStatus_${job.status}`, locale),
-              job.error ?? job.summary,
+              jobDetails(job),
             )}
             onBlur={() => setTooltip(null)}
           >
             <span className="agent-state-icon" aria-hidden="true">
-              {job.status === 'completed'
+              {job.status === 'completed' || job.status === 'completed_with_fallback'
                 ? <Check size={12} />
                 : job.status === 'running' || job.status === 'retrying'
                   ? <Cog size={12} />

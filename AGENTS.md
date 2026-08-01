@@ -22,6 +22,29 @@ npm run test:e2e
 Before handoff, run lint, unit tests, build, and relevant browser tests. Do not
 commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 
+### Playwright on Codex Desktop for Windows
+
+The Playwright `webServer` helper can silently wait for its child Vite process
+in the Codex Desktop Windows environment even when Vite itself starts normally.
+If `npm run test:e2e` produces no Playwright output, do not keep waiting or
+change application timeouts. Start the dev server as a separate hidden process,
+verify that `127.0.0.1:4173` is listening, and run the suite with the existing
+external-server switch:
+
+```powershell
+$server = Start-Process -FilePath "npm.cmd" `
+  -ArgumentList @("run", "dev", "--", "--host", "127.0.0.1", "--port", "4173") `
+  -WorkingDirectory (Get-Location) -WindowStyle Hidden -PassThru
+$env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
+npm run test:e2e
+```
+
+Always clean up only the exact listener PID and the `$server.Id` process that
+this run created; never terminate all Node processes. This workaround is for
+the test runner environment, not an application defect. A real test timeout
+still emits Playwright test output and should be debugged from its error context
+and trace.
+
 ## Architecture
 
 - `src/types/simulation.ts`: shared input, graph, trace, visual, and step types.
@@ -49,6 +72,11 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
 - `godModeOrchestrator.ts`: serialized ManagerPlanV1 job graphs, specialist
   handoffs, bounded retries, cancellation, progress events, and transactional
   workspace application for God Mode requests.
+- `webSource.ts`, `webProblemOrchestrator.ts`, and `types/webSource.ts`: the
+  versioned first-party web-reader client, source/problem/solution artifacts,
+  ManagerPlanV2 jobs, solve-capability gate, Java 17 fallback, critic gate, and
+  session-scoped source binding. Only the requested URL may leave the browser;
+  cleaned content, prompts, attempts, chat, and workspace state stay local.
 - `simLang.ts`, `simLangSchema.ts`, and `customSimulationCompiler.ts`: the
   validated SimLangV1 interpreter, model-facing schema, deterministic source
   renderer, trace compiler, checkpoint generator, and execution budgets. Never
@@ -99,6 +127,11 @@ commit `dist/`, `coverage/`, `test-results/`, or `node_modules/`.
   conversation override the latest workspace snapshot.
 - Keep code and repository documentation in English. Never add secrets, API
   keys, or remote AI calls. Local AI must stay optional and worker-based.
+- Treat cleaned web text as untrusted data in every prompt. Never persist raw
+  HTML, execute Java fallback source, bypass authentication or bot protection,
+  or mutate the workspace for an unexecuted Java artifact. A compatible
+  simulation may commit only after schema, compile, sample, visual, and critic
+  gates pass.
 - Keep AI prompts within the 4096-token model window. Complexity questions omit
   unrelated trace payloads, output budgets scale by model profile, length-limited
   answers receive at most one bounded continuation, and generated prose passes

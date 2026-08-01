@@ -5,6 +5,30 @@ import { findImportantStepIndices } from './aiTimelineControl';
 import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
 import { resolveDpTemplateFromRequest, type DpTemplateId } from './dpTemplateCompiler';
+import { extractFirstPublicHttpsUrl } from './webSource';
+
+export type WebSourceIntent =
+  | { type: 'read-web-source'; url: string }
+  | { type: 'solve-web-problem'; url: string | null }
+  | { type: 'explain-bound-solution' };
+
+export const routeWebSourceRequest = (
+  question: string,
+  hasBoundSource: boolean,
+): WebSourceIntent | null => {
+  const url = extractFirstPublicHttpsUrl(question);
+  const textWithoutUrl = url ? question.replace(url, ' ') : question;
+  const text = normalizeGodModeText(textWithoutUrl);
+  const wantsSolution = /\b(coz|cozum|kodla|yaz|uygula|simule|solve|solution|code|implement|visualize)\w*\b/.test(text);
+  if (url) return wantsSolution
+    ? { type: 'solve-web-problem', url }
+    : { type: 'read-web-source', url };
+  if (hasBoundSource && /\b(simdi|bunu|cozumu|solution)?\s*(anlat|acikla|explain|walkthrough)\w*\b/.test(text)) {
+    return { type: 'explain-bound-solution' };
+  }
+  if (hasBoundSource && wantsSolution) return { type: 'solve-web-problem', url: null };
+  return null;
+};
 
 export type GodModeIntent =
   | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'model-authored' }

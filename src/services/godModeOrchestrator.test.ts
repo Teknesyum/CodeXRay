@@ -169,6 +169,42 @@ describe('God Mode orchestrator', () => {
     expect(applyPackage).toHaveBeenCalledOnce();
   });
 
+  it('blocks the workspace commit when the mandatory critic rejects the package', async () => {
+    const runner = (request: LocalAgentRequest): LocalAgentHandle => {
+      const text = request.role === 'architect'
+        ? JSON.stringify({
+          version: 1,
+          title: 'Array Scan',
+          purpose: 'Visit the supplied array.',
+          inputKind: 'array',
+          dataStructures: ['array'],
+          invariants: ['The input is not mutated.'],
+          termination: 'The array is loaded once.',
+          complexity: { time: 'O(n)', space: 'O(n)' },
+        })
+        : request.role === 'code-author'
+          ? JSON.stringify(modelAuthoredProgram)
+          : request.role === 'critic'
+            ? JSON.stringify({ passed: false, issues: ['Sample output is not grounded.'], summary: 'Rejected.' })
+            : `${request.role} completed.`;
+      return { requestId: 20, promise: Promise.resolve(text), cancel: vi.fn() };
+    };
+    const applyPackage = vi.fn();
+    const run = startGodModeRun({
+      request: 'diziyi tarayan özel bir algoritma yaz',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'en',
+      workspace,
+      activePackage: null,
+      onPlan: vi.fn(),
+      applyPackage,
+      applyInput: vi.fn(),
+      agentRunner: runner,
+    });
+    await expect(run.promise).rejects.toThrow('Critic rejected the package');
+    expect(applyPackage).not.toHaveBeenCalled();
+  });
+
   it('cancels the active handoff and cleans every remaining queued job', async () => {
     let rejectActive: ((reason: Error) => void) | null = null;
     const blockingAgent = (): LocalAgentHandle => ({

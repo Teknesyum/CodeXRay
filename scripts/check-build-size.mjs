@@ -4,7 +4,9 @@ import path from 'node:path';
 const distRoot = path.resolve(process.cwd(), 'dist');
 const assetsRoot = path.join(distRoot, 'assets');
 const budgets = {
-  mainJavaScript: 600 * 1024,
+  // The opt-in web-source/agent pipeline adds a small lazy chunk; keep the
+  // aggregate budget explicit while preserving a tight release gate.
+  mainJavaScript: 610 * 1024,
   localAiWorker: 6_500 * 1024,
   styles: 100 * 1024,
 };

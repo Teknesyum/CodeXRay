@@ -8,6 +8,7 @@ import {
   LOCAL_AI_MODELS,
   resetLocalAi,
   runLocalAgent,
+  runLocalAgentDetailed,
   supportsLocalAi,
 } from './localAiService';
 
@@ -189,6 +190,32 @@ describe('local AI worker bridge', () => {
     expect(worker.terminated).toBe(true);
   });
 
+  it('returns structured local attempt diagnostics', async () => {
+    const { worker } = await initialize();
+    const handle = runLocalAgentDetailed({
+      role: 'critic',
+      instructions: 'Review the candidate.',
+      context: 'bounded source and candidate',
+      locale: 'en',
+      jsonMode: true,
+    });
+    const result = {
+      version: 2 as const,
+      text: '{"passed":true}',
+      finishReason: 'stop',
+      model: LOCAL_AI_MODELS[2].id,
+      contextWindow: 4096,
+      promptTokens: 120,
+      completionTokens: 12,
+      queueMs: 4,
+      inferenceMs: 18,
+      schemaMode: 'json-object' as const,
+    };
+    worker.emit({ id: handle.requestId, type: 'answer', text: result.text, result });
+    await expect(handle.promise).resolves.toEqual(result);
+    expect(worker.posted.at(-1)).toMatchObject({ type: 'agent-run', detailed: true });
+  });
+
   it('times out an agent whose WebGPU inference never settles', async () => {
     const { worker } = await initialize();
     vi.useFakeTimers();
@@ -199,11 +226,28 @@ describe('local AI worker bridge', () => {
       locale: 'en',
       maxTokens: 150,
     });
-    const timedOut = expect(handle.promise).rejects.toThrow('timed out after 30 seconds');
-    await vi.advanceTimersByTimeAsync(30_000);
+    const timedOut = expect(handle.promise).rejects.toThrow('timed out in the WebGPU queue after 120 seconds');
+    await vi.advanceTimersByTimeAsync(120_000);
     await timedOut;
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
     vi.useRealTimers();
+  });
+
+  it('starts a separate role-aware timeout when queued work begins inference', async () => {
+    const { worker } = await initialize();
+    vi.useFakeTimers();
+    const handle = runLocalAgent({
+      role: 'critic',
+      instructions: 'Review the artifact.',
+      context: 'bounded context',
+      locale: 'en',
+      maxTokens: 100,
+    });
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Running inference' });
+    const timedOut = expect(handle.promise).rejects.toThrow('timed out during inference after 60 seconds');
+    await vi.advanceTimersByTimeAsync(60_000);
+    await timedOut;
+    expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
   });
 
   it('deletes a ready model through a fresh worker after terminating active inference', async () => {

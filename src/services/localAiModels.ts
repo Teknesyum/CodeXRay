@@ -5,6 +5,10 @@ export interface LocalAiModelDefinition {
   contextWindow: number;
   maxContextWindow: number;
   maxOutputTokens: number;
+  capabilities: {
+    solveWebProblem: boolean;
+    strictJson: boolean;
+  };
 }
 
 export const LOCAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768] as const;
@@ -24,6 +28,7 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 520,
+    capabilities: { solveWebProblem: false, strictJson: false },
   },
   {
     id: 'Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC',
@@ -32,6 +37,7 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 640,
+    capabilities: { solveWebProblem: false, strictJson: true },
   },
   {
     id: 'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
@@ -40,6 +46,7 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 760,
+    capabilities: { solveWebProblem: true, strictJson: true },
   },
   {
     id: 'Qwen3.5-9B-q4f32_1-MLC',
@@ -48,6 +55,7 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 900,
+    capabilities: { solveWebProblem: true, strictJson: true },
   },
 ] as const satisfies readonly LocalAiModelDefinition[];
 

@@ -15,6 +15,7 @@ import type { AssistantMessage } from '../services/aiContext';
 import { buildPlannerCompletionOptions } from '../services/aiPlanner';
 import { getLocalAiModelDefinition } from '../services/localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
+import type { LocalAgentResultV2 } from '../types/webSource';
 
 interface InitializeMessage {
   id: number;
@@ -62,6 +63,7 @@ interface AgentRunMessage {
   jsonMode?: boolean;
   maxTokens?: number;
   temperature?: number;
+  detailed?: boolean;
 }
 
 interface AgentCancelMessage {
@@ -81,6 +83,7 @@ type WorkerRequest =
 let engine: MLCEngine | undefined;
 let maxOutputTokens = 520;
 let activeContextWindow = 4096;
+let activeModel = '';
 let inferenceQueue: Promise<void> = Promise.resolve();
 const cancelledRequests = new Set<number>();
 let activeInferenceId: number | null = null;
@@ -113,7 +116,8 @@ const postError = (id: number, error: unknown) => {
   });
 };
 
-const scheduleInference = (id: number, task: () => Promise<string>) => {
+const scheduleInference = (id: number, task: () => Promise<string | LocalAgentResultV2>) => {
+  const queuedAt = performance.now();
   self.postMessage({
     id,
     type: 'agent-event',
@@ -135,12 +139,26 @@ const scheduleInference = (id: number, task: () => Promise<string>) => {
       });
       try {
         activeInferenceId = id;
-        const text = await task();
+        const inferenceStartedAt = performance.now();
+        const output = await task();
         if (cancelledRequests.delete(id)) {
           postError(id, new Error('God Mode agent was cancelled.'));
           return;
         }
-        self.postMessage({ id, type: 'answer', text });
+        if (typeof output === 'string') {
+          self.postMessage({ id, type: 'answer', text: output });
+        } else {
+          self.postMessage({
+            id,
+            type: 'answer',
+            text: output.text,
+            result: {
+              ...output,
+              queueMs: Math.max(0, Math.round(inferenceStartedAt - queuedAt)),
+              inferenceMs: Math.max(0, Math.round(performance.now() - inferenceStartedAt)),
+            },
+          });
+        }
       } catch (error) {
         postError(id, error);
       } finally {
@@ -166,7 +184,7 @@ const runPlanner = async (message: PlanMessage): Promise<string> => {
   return completion.choices[0]?.message.content ?? '{}';
 };
 
-const runAgent = async (message: AgentRunMessage): Promise<string> => {
+const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentResultV2> => {
   const expectsJson = Boolean(message.responseSchema || message.jsonMode);
   const outputTokens = Math.min(message.maxTokens ?? maxOutputTokens, maxOutputTokens + 300);
   const systemContent = [
@@ -201,7 +219,20 @@ const runAgent = async (message: AgentRunMessage): Promise<string> => {
       },
     } : {}),
   });
-  return completion.choices[0]?.message.content ?? (expectsJson ? '{}' : '');
+  const text = completion.choices[0]?.message.content ?? (expectsJson ? '{}' : '');
+  if (!message.detailed) return text;
+  return {
+    version: 2,
+    text,
+    finishReason: completion.choices[0]?.finish_reason ?? 'unknown',
+    model: activeModel,
+    contextWindow: activeContextWindow,
+    promptTokens: completion.usage?.prompt_tokens ?? null,
+    completionTokens: completion.usage?.completion_tokens ?? null,
+    queueMs: 0,
+    inferenceMs: 0,
+    schemaMode: message.responseSchema ? 'json-schema' : message.jsonMode ? 'json-object' : 'none',
+  };
 };
 
 const runConversation = async (message: GenerateMessage): Promise<string> => {
@@ -278,6 +309,7 @@ const handleAdministrativeRequest = async (
     return;
   }
   const definition = getLocalAiModelDefinition(message.model);
+  activeModel = message.model;
   activeContextWindow = message.contextWindow;
   maxOutputTokens = (definition?.maxOutputTokens ?? 520)
     + (message.contextWindow >= 8192 ? 300 : 0);

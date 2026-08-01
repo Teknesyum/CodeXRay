@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { LocalAgentHandle, LocalAgentRequest } from './localAiService';
+import type { LocalAgentHandle, LocalAgentProgress, LocalAgentRequest } from './localAiService';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
 import { startGodModeRun, validateArchitectureContract } from './godModeOrchestrator';
 
@@ -202,6 +202,65 @@ describe('God Mode orchestrator', () => {
     expect(result.package?.program.id).toBe('scan_array');
     expect(result.package?.tests.passed).toBe(true);
     expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('retries one compact Architect contract after a length-truncated response', async () => {
+    const calls: LocalAgentRequest[] = [];
+    let architectCalls = 0;
+    const runner = (
+      request: LocalAgentRequest,
+      onProgress?: (progress: LocalAgentProgress) => void,
+    ): LocalAgentHandle => {
+      calls.push(request);
+      if (request.role === 'architect') {
+        architectCalls += 1;
+        const truncated = architectCalls === 1;
+        const text = truncated ? '{"version":1' : JSON.stringify({
+          version: 1,
+          title: 'Array Scan',
+          purpose: 'Visit the supplied array.',
+          inputKind: 'array',
+          dataStructures: ['array'],
+          invariants: ['The input is not mutated.'],
+          termination: 'The array is loaded once.',
+          complexity: { time: 'O(n)', space: 'O(n)' },
+        });
+        return {
+          requestId: calls.length,
+          promise: Promise.resolve().then(() => {
+            onProgress?.({
+              requestId: calls.length,
+              status: 'completed',
+              text: truncated ? 'truncated' : 'complete',
+              finishReason: truncated ? 'length' : 'stop',
+            });
+            return text;
+          }),
+          cancel: vi.fn(),
+        };
+      }
+      const text = request.role === 'code-author'
+        ? JSON.stringify(modelAuthoredProgram)
+        : request.role === 'critic'
+          ? JSON.stringify({ passed: true, issues: [], summary: 'Validated.' })
+          : `${request.role} completed.`;
+      return { requestId: calls.length, promise: Promise.resolve(text), cancel: vi.fn() };
+    };
+    const run = startGodModeRun({
+      request: 'diziyi tarayan özel bir algoritma yaz',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'tr',
+      workspace,
+      activePackage: null,
+      onPlan: vi.fn(),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      agentRunner: runner,
+    });
+
+    await expect(run.promise).resolves.toMatchObject({ package: { program: { id: 'scan_array' } } });
+    expect(calls.filter((request) => request.role === 'architect')).toHaveLength(2);
+    expect(calls.filter((request) => request.role === 'architect')[1]).toMatchObject({ maxTokens: 1400 });
   });
 
   it('blocks the workspace commit when the mandatory critic rejects the package', async () => {

@@ -2,7 +2,11 @@ import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
-import { getLocalAiModelDefinition, LOCAL_AI_MODELS } from './localAiModels';
+import {
+  getLocalAiModelDefinition,
+  LOCAL_AI_MODELS,
+  resolveLocalAgentOutputTokens,
+} from './localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
 import type { LocalAgentResultV2 } from '../types/webSource';
 
@@ -332,8 +336,14 @@ export const runLocalAgent = (
     ?? profile?.firstTokenMs ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
   const inactivityTimeoutMs = request.inactivityTimeoutMs ?? legacyInferenceTimeoutMs
     ?? profile?.inactivityMs ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
+  const effectiveOutputTokens = resolveLocalAgentOutputTokens(
+    definition,
+    request.maxTokens,
+    Boolean(request.responseSchema || request.jsonMode),
+    readyContextWindow,
+  );
   const absoluteTimeoutMs = request.absoluteTimeoutMs ?? legacyInferenceTimeoutMs
-    ?? ((request.maxTokens ?? definition?.maxOutputTokens ?? 520) <= 260
+    ?? (effectiveOutputTokens <= 260
       ? profile?.shortAbsoluteMs ?? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
       : profile?.longAbsoluteMs ?? DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
   let phase: 'queue' | 'first-token' | 'streaming' | 'validating' = 'queue';
@@ -425,8 +435,14 @@ export const runLocalAgentDetailed = (
     ?? profile?.firstTokenMs ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
   const inactivityTimeoutMs = request.inactivityTimeoutMs ?? legacyInferenceTimeoutMs
     ?? profile?.inactivityMs ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
+  const effectiveOutputTokens = resolveLocalAgentOutputTokens(
+    definition,
+    request.maxTokens,
+    Boolean(request.responseSchema || request.jsonMode),
+    readyContextWindow,
+  );
   const absoluteTimeoutMs = request.absoluteTimeoutMs ?? legacyInferenceTimeoutMs
-    ?? ((request.maxTokens ?? definition?.maxOutputTokens ?? 520) <= 260
+    ?? (effectiveOutputTokens <= 260
       ? profile?.shortAbsoluteMs ?? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
       : profile?.longAbsoluteMs ?? DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
   let phase: 'queue' | 'first-token' | 'streaming' | 'validating' = 'queue';

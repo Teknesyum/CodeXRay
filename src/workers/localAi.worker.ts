@@ -13,7 +13,7 @@ import type { Locale } from '../i18n/translations';
 import { buildPlannerInstructions, buildTutorInstructions } from '../services/aiContext';
 import type { AssistantMessage } from '../services/aiContext';
 import { buildPlannerCompletionOptions } from '../services/aiPlanner';
-import { getLocalAiModelDefinition } from '../services/localAiModels';
+import { getLocalAiModelDefinition, resolveLocalAgentOutputTokens } from '../services/localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
 import type { LocalAgentResultV2 } from '../types/webSource';
 
@@ -208,7 +208,12 @@ const runPlanner = async (message: PlanMessage): Promise<string> => {
 
 const runAgent = async (message: AgentRunMessage): Promise<LocalAgentResultV2> => {
   const expectsJson = Boolean(message.responseSchema || message.jsonMode);
-  const outputTokens = Math.min(message.maxTokens ?? maxOutputTokens, maxOutputTokens + 300);
+  const outputTokens = resolveLocalAgentOutputTokens(
+    getLocalAiModelDefinition(activeModel),
+    message.maxTokens,
+    expectsJson,
+    activeContextWindow,
+  );
   const systemContent = [
     `You are the isolated CodeXRay ${message.role} specialist.`,
     message.instructions,
@@ -300,8 +305,17 @@ export const mergeContinuationText = (answer: string, continuation: string): str
 };
 
 const runConversation = async (message: GenerateMessage): Promise<string> => {
+  const reasoningModel = Boolean(getLocalAiModelDefinition(activeModel)?.reasoningModel);
   const promptMessages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildTutorInstructions(message.locale) },
+    {
+      role: 'system',
+      content: [
+        buildTutorInstructions(message.locale),
+        reasoningModel
+          ? 'Answer directly with the final response. Do not emit private reasoning, analysis, or <think> blocks.'
+          : '',
+      ].filter(Boolean).join('\n'),
+    },
     ...message.history
       .filter((item) => item.role === 'user' || item.role === 'ai')
       .map((item) => ({
@@ -316,6 +330,7 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
     frequency_penalty: 0.35,
     presence_penalty: 0.05,
     repetition_penalty: 1.08,
+    ...({ enable_thinking: false }),
     max_tokens: maxOutputTokens,
   });
   let answer = first.choices[0]?.message.content ?? 'The local model returned no answer.';
@@ -338,6 +353,7 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
       frequency_penalty: 0.45,
       presence_penalty: 0,
       repetition_penalty: 1.1,
+      ...({ enable_thinking: false }),
       max_tokens: maxOutputTokens >= 800 ? 320 : 240,
     });
     const continuedText = continuation.choices[0]?.message.content?.trim();

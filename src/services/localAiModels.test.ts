@@ -20,7 +20,8 @@ describe('local AI model profiles', () => {
     expect(getLocalAiModelDefinition('DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC')).toMatchObject({
       contextWindow: 4096,
       maxContextWindow: 32768,
-      maxOutputTokens: 1100,
+      maxOutputTokens: 1400,
+      structuredOutputTokenFloor: 1100,
       vramMb: 5107,
       reasoningModel: true,
       fallbackEligible: false,

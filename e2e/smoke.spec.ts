@@ -421,7 +421,7 @@ test('offers experimental extended context profiles for every local model', asyn
       .toHaveText(/32K context.*experimental/);
   }
   await context.selectOption('32768');
-  await expect(page.getByText(/32768-token context.*1400 response tokens/))
+  await expect(page.getByText(/32768-token context.*1700 response tokens/))
     .toBeVisible();
 });
 

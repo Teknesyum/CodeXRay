@@ -934,7 +934,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       }
       let design = defaultBidirectionalDesign(options.locale);
       await runJob('architect-design-algorithm-contract', async () => {
-        const response = creationIntent.template === 'bidirectional-bfs'
+        let response = creationIntent.template === 'bidirectional-bfs'
           ? await callOptionalAgent(
             'architect',
             'Design the requested algorithm contract. For bidirectional BFS, require two FIFO frontiers, two visited sets, two parent maps, a first-intersection condition, and shortest-path reconstruction.',
@@ -953,8 +953,28 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             architectureSchema,
             520,
           );
-        const architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
-        const validation = validateArchitectureContract(response, architectJob?.finishReason);
+        let architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
+        let validation = validateArchitectureContract(response, architectJob?.finishReason);
+        if (creationIntent.template === 'model-authored' && !validation.ok && validation.stage === 'truncated') {
+          setJob('architect-design-algorithm-contract', {
+            status: 'retrying',
+            attempt: (architectJob?.attempt ?? 1) + 1,
+            summary: 'Retrying one compact Architect contract after token truncation.',
+          });
+          response = await callAgent(
+            'architect',
+            [
+              'The previous contract reached the output limit.',
+              'Return one compact JSON object only. Use short strings and no reasoning.',
+              'inputKind is the source input and must be array, string, tree, or graph; never matrix.',
+            ].join(' '),
+            JSON.stringify({ request: options.request, workspace: options.workspace }),
+            architectureSchema,
+            1_400,
+          );
+          architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
+          validation = validateArchitectureContract(response, architectJob?.finishReason);
+        }
         const parsed = validation.ok ? validation.value : null;
         if (parsed) design = parsed;
         else if (creationIntent.template === 'model-authored') {

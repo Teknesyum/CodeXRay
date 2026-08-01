@@ -5,6 +5,7 @@ export interface LocalAiModelDefinition {
   contextWindow: number;
   maxContextWindow: number;
   maxOutputTokens: number;
+  structuredOutputTokenFloor?: number;
   reasoningModel?: boolean;
   fallbackEligible?: boolean;
   recommendedGpuMb?: number;
@@ -81,7 +82,8 @@ export const LOCAL_AI_MODELS = [
     vramMb: 5107,
     contextWindow: 4096,
     maxContextWindow: 32768,
-    maxOutputTokens: 1100,
+    maxOutputTokens: 1400,
+    structuredOutputTokenFloor: 1100,
     reasoningModel: true,
     fallbackEligible: false,
     recommendedGpuMb: 8000,
@@ -100,6 +102,19 @@ export const getLocalAiModelDefinition = (
   id: string,
 ): LocalAiModelDefinition | undefined =>
   LOCAL_AI_MODELS.find((model) => model.id === id);
+
+export const resolveLocalAgentOutputTokens = (
+  definition: LocalAiModelDefinition | undefined,
+  requestedTokens: number | undefined,
+  expectsJson: boolean,
+  contextWindow = 4096,
+): number => {
+  const scaledMaximum = (definition?.maxOutputTokens ?? 520)
+    + (contextWindow >= 8192 ? 300 : 0);
+  const requested = requestedTokens ?? scaledMaximum;
+  const structuredFloor = expectsJson ? definition?.structuredOutputTokenFloor ?? 0 : 0;
+  return Math.min(Math.max(requested, structuredFloor), scaledMaximum + 300);
+};
 
 export const selectCachedModelForAutoLoad = (
   selectedModel: string,

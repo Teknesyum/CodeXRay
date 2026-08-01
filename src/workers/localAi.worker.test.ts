@@ -47,8 +47,12 @@ const waitForOutput = async (predicate: (message: WorkerOutput) => boolean) => {
   await vi.waitFor(() => expect(outputs().some(predicate)).toBe(true));
 };
 
-const initialize = async (id = 1, contextWindow = 4096) => {
-  send({ id, type: 'initialize', model: 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC', contextWindow });
+const initialize = async (
+  id = 1,
+  contextWindow = 4096,
+  model = 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
+) => {
+  send({ id, type: 'initialize', model, contextWindow });
   await waitForOutput((message) => message.id === id && message.type === 'ready');
 };
 
@@ -154,6 +158,38 @@ describe('local AI worker protocol', () => {
     expect(answer).toContain('reached the local generation limit');
     expect(webLlm.complete).toHaveBeenCalledTimes(2);
     expect(webLlm.complete.mock.calls[1]?.[0].messages.at(-1).content).toContain('Continue exactly where it stopped');
+  });
+
+  it('disables reasoning narration and expands strict JSON budgets for DeepSeek R1', async () => {
+    await initialize(21, 4096, 'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC');
+    webLlm.complete
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Doğrudan yanıt.' }, finish_reason: 'stop' }] })
+      .mockResolvedValueOnce(streamedCompletion('{"version":1}'));
+    send({
+      id: 22,
+      type: 'generate',
+      question: 'Kısa cevap ver.',
+      context: 'CURRENT SNAPSHOT',
+      history: [],
+      locale: 'tr',
+    });
+    send({
+      id: 23,
+      type: 'agent-run',
+      role: 'architect',
+      instructions: 'Return a contract.',
+      context: '{}',
+      locale: 'tr',
+      responseSchema: { type: 'object' },
+      maxTokens: 520,
+    });
+    await waitForOutput((message) => message.id === 23 && message.type === 'answer');
+
+    const conversationOptions = webLlm.complete.mock.calls[0]?.[0];
+    expect(conversationOptions).toMatchObject({ enable_thinking: false, max_tokens: 1400 });
+    expect(conversationOptions.messages[0].content).toContain('Do not emit private reasoning');
+    const architectOptions = webLlm.complete.mock.calls[1]?.[0];
+    expect(architectOptions).toMatchObject({ enable_thinking: false, max_tokens: 1100 });
   });
 
   it('shortens oversized specialist context before inference on the stable 4K profile', async () => {

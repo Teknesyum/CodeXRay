@@ -24,8 +24,8 @@ test('runs DFS and exposes the complete visited trace', async ({ page }) => {
   await expect(page.locator('.panel-left .graph-input-editor')).toHaveCount(0);
   await page.getByRole('button', { name: /Simulate/ }).click();
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
-  await page.getByRole('button', { name: 'Play' }).click();
-  await page.getByRole('button', { name: 'Pause' }).click();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.getByText(/tracked/)).toBeVisible();
 });
 

@@ -164,3 +164,53 @@
 :root[data-theme="light"] .pinned-watch-value {
   color: var(--text-main);
 }
+
+/* Syntax colors need their own light-surface palette. The neon values used on
+   dark panels are intentionally luminous and lose contrast against white. */
+:root[data-theme="light"] .code-highlight-overlay,
+:root[data-theme="light"] .code-line pre,
+:root[data-theme="light"] .god-mode-code-typing {
+  color: #172033;
+}
+
+:root[data-theme="light"] .code-token.keyword,
+:root[data-theme="light"] .code-token.literal {
+  color: #8b124f;
+  text-shadow: 0 0 6px rgba(139, 18, 79, 0.12);
+}
+
+:root[data-theme="light"] .code-token.type {
+  color: #07589c;
+  text-shadow: 0 0 6px rgba(7, 88, 156, 0.12);
+}
+
+:root[data-theme="light"] .code-token.function {
+  color: #17652c;
+  text-shadow: 0 0 6px rgba(23, 101, 44, 0.12);
+}
+
+:root[data-theme="light"] .code-token.number {
+  color: #824600;
+  text-shadow: none;
+}
+
+:root[data-theme="light"] .code-token.string {
+  color: #12602a;
+  text-shadow: none;
+}
+
+:root[data-theme="light"] .code-token.comment {
+  color: #4c5968;
+}
+
+:root[data-theme="light"] .code-token.operator {
+  color: #334155;
+}
+
+:root[data-theme="light"] .code-line.highlighted {
+  background: linear-gradient(90deg, transparent, rgba(7, 92, 168, 0.13) 50%, transparent);
+}
+
+:root[data-theme="light"] .code-line.highlighted .code-token {
+  filter: saturate(1.08);
+}

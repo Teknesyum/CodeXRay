@@ -31,7 +31,7 @@ const agentKey = (role: string) => `godAgent_${role}`;
 
 interface AgentTooltip {
   role: string;
-  status: string;
+  status?: string;
   details?: string;
   x: number;
   y: number;
@@ -54,13 +54,7 @@ export const GodModeProgress = ({
   const cancelled = plan.jobs.some((job) => job.status === 'cancelled');
   const completed = progress === 100;
 
-  const showAgentTooltip = (
-    event: MouseEvent<HTMLDivElement> | FocusEvent<HTMLDivElement>,
-    role: string,
-    status: string,
-    details?: string,
-  ) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
+  const positionTooltip = (bounds: DOMRect, role: string, status?: string, details?: string) => {
     const tooltipHalfWidth = 170;
     const x = Math.min(
       Math.max(bounds.left + bounds.width / 2, tooltipHalfWidth + 8),
@@ -68,6 +62,20 @@ export const GodModeProgress = ({
     );
     setTooltip({ role, status, details, x, y: bounds.bottom + 7 });
   };
+
+  const showAgentTooltip = (
+    event: MouseEvent<HTMLDivElement> | FocusEvent<HTMLDivElement>,
+    role: string,
+    status: string,
+    details?: string,
+  ) => {
+    positionTooltip(event.currentTarget.getBoundingClientRect(), role, status, details);
+  };
+
+  const showControlTooltip = (
+    event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
+    label: string,
+  ) => positionTooltip(event.currentTarget.getBoundingClientRect(), label);
 
   return (
     <section className={`god-mode-progress ${failed ? 'failed' : ''} ${completed ? 'completed' : ''}`}>
@@ -79,8 +87,11 @@ export const GodModeProgress = ({
           className="god-mode-mini-btn"
           onClick={onUndo}
           disabled={!canUndo || Boolean(running)}
-          title={t('godModeUndo', locale)}
           aria-label={t('godModeUndo', locale)}
+          onMouseEnter={(event) => showControlTooltip(event, t('godModeUndo', locale))}
+          onMouseLeave={() => setTooltip(null)}
+          onFocus={(event) => showControlTooltip(event, t('godModeUndo', locale))}
+          onBlur={() => setTooltip(null)}
         >
           <Undo2 size={13} />
         </button>
@@ -89,8 +100,11 @@ export const GodModeProgress = ({
           className="god-mode-mini-btn"
           onClick={onRedo}
           disabled={!canRedo || Boolean(running)}
-          title={t('godModeRedo', locale)}
           aria-label={t('godModeRedo', locale)}
+          onMouseEnter={(event) => showControlTooltip(event, t('godModeRedo', locale))}
+          onMouseLeave={() => setTooltip(null)}
+          onFocus={(event) => showControlTooltip(event, t('godModeRedo', locale))}
+          onBlur={() => setTooltip(null)}
         >
           <RotateCcw size={13} />
         </button>
@@ -98,9 +112,17 @@ export const GodModeProgress = ({
           <button
             type="button"
             className="god-mode-mini-btn danger"
-            onClick={onCancel}
-            title={t('godModeCancel', locale)}
+            onPointerDown={(event) => {
+              if (event.button === 0) onCancel();
+            }}
+            onClick={(event) => {
+              if (event.detail === 0) onCancel();
+            }}
             aria-label={t('godModeCancel', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('godModeCancel', locale))}
+            onMouseLeave={() => setTooltip(null)}
+            onFocus={(event) => showControlTooltip(event, t('godModeCancel', locale))}
+            onBlur={() => setTooltip(null)}
           >
             <X size={13} />
           </button>
@@ -110,8 +132,11 @@ export const GodModeProgress = ({
             type="button"
             className="god-mode-mini-btn"
             onClick={onRetry}
-            title={t('godModeRetry', locale)}
             aria-label={t('godModeRetry', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('godModeRetry', locale))}
+            onMouseLeave={() => setTooltip(null)}
+            onFocus={(event) => showControlTooltip(event, t('godModeRetry', locale))}
+            onBlur={() => setTooltip(null)}
           >
             <RefreshCw size={13} />
           </button>
@@ -169,7 +194,7 @@ export const GodModeProgress = ({
           <div className="agent-tooltip-heading">
             <Zap size={12} aria-hidden="true" />
             <strong>{tooltip.role}</strong>
-            <span>{tooltip.status}</span>
+            {tooltip.status && <span>{tooltip.status}</span>}
           </div>
           {tooltip.details && <div className="agent-tooltip-details">{tooltip.details}</div>}
         </div>,

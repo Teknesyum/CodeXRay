@@ -58,6 +58,7 @@ const findVisibleTextContrastFailures = async (page: Page): Promise<ContrastFail
       const rect = element.getBoundingClientRect();
       if (style.display === 'none' || style.visibility === 'hidden'
         || Number(style.opacity) === 0 || rect.width < 1 || rect.height < 1) continue;
+      if (style.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue;
       if (element.matches(':disabled, input[type="checkbox"], input[type="range"]')) continue;
       const ownsText = [...element.childNodes].some((node) =>
         node.nodeType === Node.TEXT_NODE && node.textContent?.trim());

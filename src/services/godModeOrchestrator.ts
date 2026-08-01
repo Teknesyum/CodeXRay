@@ -816,7 +816,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
                 attempt > 1,
               );
             } catch (error) {
-              lastErrors = [error instanceof Error ? error.message : 'Structured generation failed.'];
+              const message = error instanceof Error ? error.message : 'Structured generation failed.';
+              lastErrors = [message];
+              if (/timed out|cancelled|load a local ai model/i.test(message)) throw error;
               continue;
             }
             const parsed = safeJsonObject(response);
@@ -996,8 +998,16 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     runId,
     promise,
     cancel: () => {
+      if (cancelled) return;
       cancelled = true;
       activeAgent?.cancel();
+      plan.jobs
+        .filter((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')
+        .forEach((job) => setJob(job.id, {
+          status: 'cancelled',
+          error: undefined,
+          finishedAt: Date.now(),
+        }));
     },
   };
 };

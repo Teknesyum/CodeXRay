@@ -88,9 +88,12 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
 
   await expect(page.locator('.god-mode-progress')).toBeVisible();
   await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Cancel agent run' }).click();
+  const cancelRun = page.getByRole('button', { name: 'Cancel agent run' });
+  await cancelRun.hover();
+  await expect(page.getByRole('tooltip')).toContainText('Cancel agent run');
+  await cancelRun.click();
 
-  await expect(page.locator('.god-mode-agent.cancelled')).not.toHaveCount(0);
+  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
   await expect(question).toBeEnabled();
   await expect(source).toHaveValue(sourceBefore);
   await expect(input).toHaveValue(inputBefore);
@@ -105,6 +108,9 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
   await expect(source).toHaveValue(sourceBefore);
   await expect(input).toHaveValue(inputBefore);
   await expect(page.getByText('Late package that must be ignored')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
 });
 
 test('shows the failing specialist after bounded SimLang retries and preserves the committed workspace', async ({ page }) => {

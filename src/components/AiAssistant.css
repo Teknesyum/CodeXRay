@@ -563,11 +563,27 @@
   color: #ffafbd;
 }
 
+.agent-state-icon {
+  display: grid;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  place-items: center;
+  line-height: 0;
+}
+
 .god-mode-agent.running .agent-state-icon,
 .god-mode-agent.retrying .agent-state-icon {
   color: var(--neon-cyan);
   filter: drop-shadow(0 0 4px rgba(0, 243, 255, 0.9));
+}
+
+.god-mode-agent.running .agent-state-icon svg,
+.god-mode-agent.retrying .agent-state-icon svg {
+  display: block;
   animation: god-gear-spin 2.1s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 @keyframes god-gear-spin {

@@ -53,7 +53,7 @@ test('requires a missing target, then builds on the exact user graph without rep
   for (const label of ['Left', 'Upper', 'Lower', 'Meet', 'Right']) {
     await expect(page.locator('.graph-node').filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible();
   }
-  const pause = page.getByRole('button', { name: 'Pause' });
+  const pause = page.getByRole('button', { name: 'Pause', exact: true });
   if (await pause.count()) await pause.click();
   const next = page.getByRole('button', { name: 'Next step' });
   for (let guard = 0; guard < 100 && !await next.isDisabled(); guard += 1) await next.click();

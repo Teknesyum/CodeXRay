@@ -120,7 +120,7 @@ test('isolates corrupt layout, invalid input, AI, radio, and God Mode failures w
   await question.press('Enter');
   await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
   await page.getByRole('button', { name: 'Cancel agent run' }).click();
-  await expect(page.locator('.god-mode-agent.cancelled')).not.toHaveCount(0);
+  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
   await expect(page.getByLabel('Quick Sort execution')).toBeVisible();
   await expect(progress).toHaveText(/^3 \/ \d+$/);
   await expect(question).toBeEnabled();

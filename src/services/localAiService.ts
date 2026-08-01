@@ -233,16 +233,29 @@ export const runLocalAgent = (
     };
   }
   const id = ++requestId;
-  const promise = new Promise<string>((resolve, reject) => {
+  const timeoutMs = Math.min(
+    120_000,
+    Math.max(30_000, 20_000 + (request.maxTokens ?? 500) * 60),
+  );
+  const basePromise = new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject, onAgentEvent: onProgress });
     worker?.postMessage({ id, type: 'agent-run', ...request });
   });
+  const cancelRequest = (message: string) => {
+    const activeRequest = pending.get(id);
+    if (!activeRequest) return;
+    pending.delete(id);
+    activeRequest.reject(new Error(message));
+    worker?.postMessage({ id, type: 'agent-cancel' });
+  };
+  const timeout = globalThis.setTimeout(() => {
+    cancelRequest(`God Mode ${request.role} agent timed out after ${Math.round(timeoutMs / 1_000)} seconds.`);
+  }, timeoutMs);
+  const promise = basePromise.finally(() => globalThis.clearTimeout(timeout));
   return {
     requestId: id,
     promise,
-    cancel: () => {
-      if (pending.has(id)) worker?.postMessage({ id, type: 'agent-cancel' });
-    },
+    cancel: () => cancelRequest('God Mode agent was cancelled.'),
   };
 };
 

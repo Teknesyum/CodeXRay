@@ -149,9 +149,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [queueProgress, setQueueProgress] = useState(0);
   const [godModePlan, setGodModePlan] = useState<ManagerPlanV1 | null>(() => {
     const latest = loadLatestGodModePlan();
-    return latest?.jobs.length && latest.jobs.every((job) => job.status === 'completed')
-      ? null
-      : latest;
+    if (!latest?.jobs.length) return null;
+    return latest.jobs.some((job) => job.status === 'failed') ? latest : null;
   });
   const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
 
@@ -160,6 +159,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const godModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const godModeRunRef = useRef<GodModeRunHandle | null>(null);
+  const dismissedGodModeRunsRef = useRef(new Set<string>());
   const sourcePreviewRunRef = useRef<string | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
   const responseEpochRef = useRef(0);
@@ -513,7 +513,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackage: stateRef.current.activeSimulationPackage,
           onPlan: (plan) => {
             persistGodModePlan(plan);
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || dismissedGodModeRunsRef.current.has(plan.runId)) return;
             setGodModePlan(plan);
             const completed = plan.jobs.length > 0
               && plan.jobs.every((job) => job.status === 'completed');
@@ -886,8 +886,25 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           plan={godModePlan}
           locale={locale}
           onCancel={() => {
+            const dismissedPlan = godModePlan;
+            if (dismissedPlan) dismissedGodModeRunsRef.current.add(dismissedPlan.runId);
             sourcePreviewRunRef.current = null;
             godModeRunRef.current?.cancel();
+            godModeRunRef.current = null;
+            if (dismissedPlan) {
+              persistGodModePlan({
+                ...dismissedPlan,
+                jobs: dismissedPlan.jobs.map((job) =>
+                  job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'
+                    ? { ...job, status: 'cancelled', error: undefined, finishedAt: Date.now() }
+                    : job),
+              });
+            }
+            setGodModePlan(null);
+            setIsGodModeTypingSource(false);
+            setIsPlanningActions(false);
+            setIsExecutingQueue(false);
+            setIsTyping(false);
           }}
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}

@@ -164,7 +164,7 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
   await question.press('Enter');
   await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
   await page.getByRole('button', { name: 'Cancel agent run' }).click();
-  await expect(page.locator('.god-mode-agent.cancelled')).not.toHaveCount(0);
+  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
   await expect(page.getByLabel(/Bidirectional BFS.*Custom execution/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Open CodeXRay Radio' }).click();

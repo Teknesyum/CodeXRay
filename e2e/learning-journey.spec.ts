@@ -31,10 +31,10 @@ test('keeps source, visual data, variables, and pins synchronized while navigati
   const pinned = page.locator('.pinned-watch-item').filter({ hasText: 'array' });
   await expect(pinned).toContainText('[13,-2,13,0,5]');
 
-  await page.getByRole('button', { name: 'Play' }).click();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
   await expect.poll(async () => Number((await progress.textContent())?.split('/')[0].trim()))
     .toBeGreaterThan(2);
-  await page.getByRole('button', { name: 'Pause' }).click();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const pausedIndex = Number((await progress.textContent())?.split('/')[0].trim());
   await page.waitForTimeout(350);
   await expect(progress).toHaveText(new RegExp(`^${pausedIndex} \\/ \\d+$`));

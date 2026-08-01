@@ -92,6 +92,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   resetLocalAi();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -180,11 +181,29 @@ describe('local AI worker bridge', () => {
       status: 'running',
       text: 'Working',
     });
+    const cancelled = expect(handle.promise).rejects.toThrow('God Mode agent was cancelled.');
     handle.cancel();
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
+    await cancelled;
     worker.fail('GPU device lost');
-    await expect(handle.promise).rejects.toThrow('GPU device lost');
     expect(worker.terminated).toBe(true);
+  });
+
+  it('times out an agent whose WebGPU inference never settles', async () => {
+    const { worker } = await initialize();
+    vi.useFakeTimers();
+    const handle = runLocalAgent({
+      role: 'code-author',
+      instructions: 'Author the validated program.',
+      context: 'bounded context',
+      locale: 'en',
+      maxTokens: 150,
+    });
+    const timedOut = expect(handle.promise).rejects.toThrow('timed out after 30 seconds');
+    await vi.advanceTimersByTimeAsync(30_000);
+    await timedOut;
+    expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
+    vi.useRealTimers();
   });
 
   it('deletes a ready model through a fresh worker after terminating active inference', async () => {

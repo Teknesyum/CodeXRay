@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const pauseAndRewind = async (page: Page) => {
-  const pause = page.getByRole('button', { name: 'Pause' });
+  const pause = page.getByRole('button', { name: 'Pause', exact: true });
   if (await pause.isVisible().catch(() => false)) await pause.click();
   const previous = page.getByRole('button', { name: 'Previous step' });
   while (await previous.isEnabled()) await previous.click();

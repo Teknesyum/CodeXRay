@@ -198,13 +198,13 @@ test('builds and applies bidirectional BFS through the visible God Mode queue', 
   await expect(page.locator('.graph-node[data-semantic-roles~="target"]')).toHaveClass(/shape-diamond/);
   await expect(page.getByText('Start frontier', { exact: true })).toBeVisible();
   await expect(page.getByText('Target frontier', { exact: true })).toBeVisible();
-  await expect(page.getByText('Code Author', { exact: true })).toBeVisible();
+  await expect(page.getByText('Code', { exact: true })).toBeVisible();
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
   await expect(page.getByText(/code, input, and \d+-step simulation were applied/i)).toBeVisible();
   await expect(page.getByText(/Code: Two independent BFS frontiers/i)).toBeVisible();
   await expect(page.locator('.god-mode-progress')).toHaveCount(0, { timeout: 4_000 });
 
-  const pauseButton = page.getByRole('button', { name: 'Pause' });
+  const pauseButton = page.getByRole('button', { name: 'Pause', exact: true });
   if (await pauseButton.count()) await pauseButton.click();
   const previousStep = page.getByRole('button', { name: 'Previous step' });
   for (let index = 0; index < 60 && !await previousStep.isDisabled(); index += 1) {

@@ -30,6 +30,20 @@ test('authors and simulates LeetCode 486 as a dependency-grounded 2D interval-DP
   await expect(page.locator('.matrix-cell')).toHaveCount(16);
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
 
+  const messageLayout = await page.locator('.ai-body > .chat-message').evaluateAll((messages) =>
+    messages.map((message) => {
+      const bounds = message.getBoundingClientRect();
+      return { top: bounds.top, bottom: bounds.bottom };
+    }));
+  for (let index = 1; index < messageLayout.length; index += 1) {
+    expect(messageLayout[index].top).toBeGreaterThanOrEqual(messageLayout[index - 1].bottom - 1);
+  }
+  const assistantContainment = await page.locator('.ai-assistant').evaluate((assistant) => ({
+    clientWidth: assistant.clientWidth,
+    scrollWidth: assistant.scrollWidth,
+  }));
+  expect(assistantContainment.scrollWidth).toBeLessThanOrEqual(assistantContainment.clientWidth + 1);
+
   await pauseAndRewind(page);
   const next = page.getByRole('button', { name: 'Next step' });
   for (let index = 0; index < 5; index += 1) await next.click();

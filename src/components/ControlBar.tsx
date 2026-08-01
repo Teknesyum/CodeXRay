@@ -804,7 +804,7 @@ export const ControlBar = ({
               </div>
               <footer className="settings-version-footer" aria-label="CodeXRay version">
                 <span>CodeXRay</span>
-                <strong>v2.1.1</strong>
+                <strong>v2.1.2</strong>
               </footer>
             </div>
           )}

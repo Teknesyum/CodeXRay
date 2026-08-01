@@ -28,6 +28,22 @@ const inputHelpKeyForAlgorithm = (name: string, kind: InputKind): string => {
   return inputHelpKeys[kind];
 };
 
+const recentTypingStart = (source: string, visibleWords = 3): number => {
+  let wordCount = 0;
+  let insideWord = false;
+  for (let index = source.length - 1; index >= 0; index -= 1) {
+    if (/\s/.test(source[index])) {
+      if (!insideWord) continue;
+      insideWord = false;
+      wordCount += 1;
+      if (wordCount >= visibleWords) return index + 1;
+    } else {
+      insideWord = true;
+    }
+  }
+  return 0;
+};
+
 interface CodeEditorProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -51,11 +67,13 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
     pause,
     locale,
     setIsEditingInput,
+    isGodModeTypingSource,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const panelTitle = t('sourceCode', locale);
   const inputHelpKey = inputHelpKeyForAlgorithm(algorithmName, simulationInput.kind);
   const parameterDefinitions = getAlgorithmParameterDefinitions(algorithmName);
+  const neonTypingStart = recentTypingStart(code);
 
   if (collapsed) {
     return (
@@ -207,18 +225,32 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
 
       <div className="editor-content" tabIndex={0} aria-label={t('sourceCodeLabel', locale)}>
         {steps.length === 0 ? (
-          <textarea
-            aria-label={t('sourceCodeLabel', locale)}
-            className="code-textarea"
-            value={code}
-            onChange={(event) => {
-              setCode(event.target.value);
-              setAlgorithmName('Custom Code');
-              resetTimeline();
-            }}
-            placeholder={t('placeholderCode', locale)}
-            spellCheck="false"
-          />
+          isGodModeTypingSource ? (
+            <pre
+              className="god-mode-code-typing"
+              aria-label={t('sourceCodeLabel', locale)}
+              aria-live="polite"
+            >
+              <span>{code.slice(0, neonTypingStart)}</span>
+              <span key={code.length} className="god-mode-code-new-text">
+                {code.slice(neonTypingStart)}
+              </span>
+              <span className="god-mode-code-caret" aria-hidden="true" />
+            </pre>
+          ) : (
+            <textarea
+              aria-label={t('sourceCodeLabel', locale)}
+              className="code-textarea"
+              value={code}
+              onChange={(event) => {
+                setCode(event.target.value);
+                setAlgorithmName('Custom Code');
+                resetTimeline();
+              }}
+              placeholder={t('placeholderCode', locale)}
+              spellCheck="false"
+            />
+          )
         ) : (
           <div className="code-display" aria-label={`${localizeAlgorithmName(algorithmName, locale)} ${t('execution', locale)}`}>
             {code.split('\n').map((line, index) => (

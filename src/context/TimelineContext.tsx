@@ -15,6 +15,7 @@ import type { CustomSimulationPackageV1 } from '../types/godMode';
 import { compileCustomSimulationPackage } from '../services/customSimulationCompiler';
 import { classifyGraphChange, patchPackageGraphLayout } from '../services/graphTransactions';
 import { parseSimulationInput } from '../services/inputParsers';
+import { parseLocalAiContextWindow } from '../services/localAiModels';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type Theme = 'neon' | 'dark' | 'light';
@@ -81,6 +82,8 @@ interface TimelineContextType {
   setRadioAutoplay: (autoplay: boolean) => void;
   godModeEnabled: boolean;
   setGodModeEnabled: (enabled: boolean) => void;
+  isGodModeTypingSource: boolean;
+  setIsGodModeTypingSource: (typing: boolean) => void;
   activeSimulationPackage: CustomSimulationPackageV1 | null;
   packageOutOfSync: boolean;
   applySimulationPackage: (value: CustomSimulationPackageV1, runId: string) => void;
@@ -393,8 +396,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [speed, setSpeed] = useState(1000);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
   const [aiModel, setAiModel] = useState(loadAiModel);
-  const [aiContextWindow, setAiContextWindow] = useState(() =>
-    readStorage(AI_CONTEXT_WINDOW_KEY) === '8192' ? 8192 : 4096,
+  const [aiContextWindow, setAiContextWindow] = useState<number>(() =>
+    parseLocalAiContextWindow(readStorage(AI_CONTEXT_WINDOW_KEY) ?? 4096),
   );
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
@@ -432,6 +435,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [godModeEnabled, setGodModeEnabled] = useState(() =>
     readStorage('codexray.ai.godMode') !== 'false'
   );
+  const [isGodModeTypingSource, setIsGodModeTypingSource] = useState(false);
   const [guidedMode, setGuidedMode] = useState(() =>
     readStorage('codexray.ai.guidedMode') !== 'false'
   );
@@ -693,6 +697,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setRadioAutoplay,
       godModeEnabled,
       setGodModeEnabled,
+      isGodModeTypingSource,
+      setIsGodModeTypingSource,
       activeSimulationPackage: workspace.activePackage,
       packageOutOfSync: workspace.packageOutOfSync,
       applySimulationPackage,

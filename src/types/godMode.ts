@@ -214,7 +214,7 @@ export interface ProgramSpecV1 {
 
 export interface RenderedSourceV1 {
   version: 1;
-  language: 'cpp';
+  language: 'cpp' | 'java';
   code: string;
   lineMap: Record<string, number>;
 }

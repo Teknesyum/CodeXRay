@@ -64,7 +64,7 @@ describe('local AI worker protocol', () => {
     send({ id: 1, type: 'cache-status', model: 'cached-model' });
     send({ id: 2, type: 'cache-status', model: 'missing-model' });
     send({ id: 3, type: 'delete-model', model: 'cached-model' });
-    await initialize(4, 8192);
+    await initialize(4, 32768);
     await waitForOutput((message) => message.id === 1 && message.text === 'cached');
     await waitForOutput((message) => message.id === 2 && message.text === 'not-cached');
     await waitForOutput((message) => message.id === 3 && message.type === 'model-deleted');
@@ -78,7 +78,7 @@ describe('local AI worker protocol', () => {
         appConfig: expect.objectContaining({ cacheBackend: expect.any(String) }),
         initProgressCallback: expect.any(Function),
       }),
-      { context_window_size: 8192 },
+      { context_window_size: 32768 },
     );
   });
 

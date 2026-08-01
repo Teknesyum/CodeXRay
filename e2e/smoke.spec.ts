@@ -357,7 +357,7 @@ test('opens the playlist radio without loading it before user interaction', asyn
   await expect(volume).toHaveValue('30');
 });
 
-test('offers the 9B model and its experimental 8K context profile', async ({ page }) => {
+test('offers the 9B model and its experimental extended context profiles', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('combobox', { name: 'On-device model' })
@@ -365,8 +365,12 @@ test('offers the 9B model and its experimental 8K context profile', async ({ pag
   const context = page.getByRole('combobox', { name: 'Context window' });
   await expect(context.locator('option[value="8192"]'))
     .toHaveText(/8K context.*experimental/);
-  await context.selectOption('8192');
-  await expect(page.getByText(/8192-token context.*1200 response tokens/))
+  await expect(context.locator('option[value="16384"]'))
+    .toHaveText(/16K context.*experimental/);
+  await expect(context.locator('option[value="32768"]'))
+    .toHaveText(/32K context.*experimental/);
+  await context.selectOption('32768');
+  await expect(page.getByText(/32768-token context.*1200 response tokens/))
     .toBeVisible();
 });
 

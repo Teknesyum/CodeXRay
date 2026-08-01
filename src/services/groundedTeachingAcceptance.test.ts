@@ -22,6 +22,9 @@ const packages = (): CustomSimulationPackageV1[] => [
   ...([
     ['house-robber-1d-dp', 'House Robber [2,7,9,3,1]'],
     ['lcs-2d-dp', 'LCS ["abcde","ace"]'],
+    ['coin-change-1d-dp', 'Coin Change coins=[1,2,5] amount=11'],
+    ['edit-distance-2d-dp', 'Edit Distance ["horse","ros"]'],
+    ['knapsack-2d-dp', '0/1 Knapsack weight=[1,3,4,5] value=[1,4,5,7] W=7'],
     ['longest-palindrome-interval-dp', 'Longest Palindromic Subsequence "bbbab"'],
   ] as Array<[DpTemplateId, string]>).flatMap(([template, request]) => [
     compileDpTemplatePackage({ template, id: `${template}-en`, request, locale: 'en', workspace }),
@@ -59,6 +62,9 @@ describe('grounded teaching acceptance corpus', () => {
     const corpus = [
       ['leetcode 198 house robber kodunu yz ve simule et', 'house-robber-1d-dp'],
       ['LCS cozumunu write et ve tabloyu goster', 'lcs-2d-dp'],
+      ['Coin Change minimum coin kodunu yaz ve simulate', 'coin-change-1d-dp'],
+      ['Edit Distance 2D tabloyu yaz ve goster', 'edit-distance-2d-dp'],
+      ['0/1 Knapsack cozumunu write et ve simule et', 'knapsack-2d-dp'],
       ['516 en uzun palindromik alt dizi çöz ve simulate', 'longest-palindrome-interval-dp'],
       ['Predict the Winner çöz, dp tablosunu show', 'predict-winner-interval-dp'],
     ] as const;

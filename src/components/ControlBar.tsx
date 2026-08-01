@@ -464,6 +464,12 @@ export const ControlBar = ({
                     {selectedModel.maxContextWindow >= 8192 && (
                       <option value={8192}>{t('context8kExperimental', locale)}</option>
                     )}
+                    {selectedModel.maxContextWindow >= 16384 && (
+                      <option value={16384}>{t('context16kExperimental', locale)}</option>
+                    )}
+                    {selectedModel.maxContextWindow >= 32768 && (
+                      <option value={32768}>{t('context32kExperimental', locale)}</option>
+                    )}
                   </select>
                   <p className="model-requirement">
                     {t('modelRequirement', locale, {

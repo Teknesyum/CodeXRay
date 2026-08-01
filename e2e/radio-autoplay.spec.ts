@@ -131,7 +131,7 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
   ).__radioPlayAtIndices)).toEqual([0]);
   expect(await page.evaluate(() => (
     window as Window & { __radioSeekCalls: number[] }
-  ).__radioSeekCalls)).toEqual([]);
+  ).__radioSeekCalls)).toEqual([0]);
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
 
   await radio.getByRole('button', { name: /3 thumb Demons/ }).click();

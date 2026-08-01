@@ -68,8 +68,16 @@ describe('God Mode routing', () => {
     ['LeetCode 198 House Robber çöz ve simüle et', 'house-robber-1d-dp'],
     ['LCS kodunu yaz ve 2D tabloyu göster', 'lcs-2d-dp'],
     ['LeetCode 516 longest palindromic subsequence çöz', 'longest-palindrome-interval-dp'],
+    ['en uzun palindromik dizi sorusu yaz çöz simüle et', 'longest-palindrome-interval-dp'],
   ] as const)('routes representative DP families without model-format dependence: %s', (request, template) => {
     expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'create-algorithm', template });
+  });
+
+  it('never sends a concrete author-and-simulate request to ordinary chat', () => {
+    expect(routeGodModeRequest('asal çarpanlara ayırma sorusu yaz, çöz ve simüle et', [], 0)).toEqual({
+      type: 'create-algorithm',
+      template: 'model-authored',
+    });
   });
 
   it('navigates guided teaching checkpoints forward and backward', () => {

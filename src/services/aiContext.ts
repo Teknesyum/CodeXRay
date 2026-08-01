@@ -30,6 +30,13 @@ const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_CHARACTERS = 1_000;
 const RECENT_TRACE_STEPS = 3;
 
+const contextScaleFor = (contextWindow = 4096): number => {
+  if (contextWindow >= 32768) return 6;
+  if (contextWindow >= 16384) return 3.25;
+  if (contextWindow >= 8192) return 1.75;
+  return 1;
+};
+
 const serialize = (value: unknown): string => JSON.stringify(value);
 
 const shorten = (value: string, limit: number, note: string): string => {
@@ -90,7 +97,7 @@ const formatSourceCode = (
   ].join('\n');
 };
 
-const formatInput = (input: SimulationInput): string => {
+const formatInput = (input: SimulationInput, limit = MAX_INPUT_CHARACTERS): string => {
   if (input.kind === 'graph' || input.kind === 'tree') {
     const document = input.graph;
     const complete = serialize({
@@ -98,7 +105,7 @@ const formatInput = (input: SimulationInput): string => {
       parameters: input.parameters ?? {},
       document: document ?? null,
     });
-    if (complete.length <= MAX_INPUT_CHARACTERS) return complete;
+    if (complete.length <= limit) return complete;
     return shorten(serialize({
       kind: input.kind,
       parameters: input.parameters ?? {},
@@ -113,7 +120,7 @@ const formatInput = (input: SimulationInput): string => {
         edgeCount: document.edges.length,
       } : null,
       note: 'The complete graph is present in the app but was summarized for the local model context window.',
-    }), MAX_INPUT_CHARACTERS, 'Graph input summary shortened');
+    }), limit, 'Graph input summary shortened');
   }
   return serialize({
     kind: input.kind,
@@ -122,13 +129,16 @@ const formatInput = (input: SimulationInput): string => {
   });
 };
 
-const formatVisualState = (step: SimulationStep): string => {
+const formatVisualState = (
+  step: SimulationStep,
+  limit = MAX_VISUAL_STATE_CHARACTERS,
+): string => {
   const complete = serialize(step.visualData);
-  if (complete.length <= MAX_VISUAL_STATE_CHARACTERS) return complete;
+  if (complete.length <= limit) return complete;
   if (step.visualData.type !== 'graph') {
     return shorten(
       complete,
-      MAX_VISUAL_STATE_CHARACTERS,
+      limit,
       'Current state shortened for the local model context window',
     );
   }
@@ -146,15 +156,19 @@ const formatVisualState = (step: SimulationStep): string => {
     changedEdges: step.visualData.edges.filter((edge) => edge.state && edge.state !== 'idle'),
     vars: step.visualData.vars,
     note: 'Idle edge geometry was omitted; node states, changed edges, and variables describe the current execution state.',
-  }), MAX_VISUAL_STATE_CHARACTERS, 'Graph state summary shortened');
+  }), limit, 'Graph state summary shortened');
 };
 
-const formatTraceStep = (step: SimulationStep, index: number): string => [
+const formatTraceStep = (
+  step: SimulationStep,
+  index: number,
+  limit = MAX_TRACE_STEP_CHARACTERS,
+): string => [
   `Step ${index + 1}`,
   `Source line: ${step.lineNumber ?? 'none'}`,
   `Explanation: ${step.explanation}`,
   `Variables: ${serialize(step.visualData.vars)}`,
-].map((part) => shorten(part, MAX_TRACE_STEP_CHARACTERS, 'Trace detail shortened')).join('\n');
+].map((part) => shorten(part, limit, 'Trace detail shortened')).join('\n');
 
 const isComplexityQuestion = (question: string): boolean =>
   /(complexity|big\s*o|time\s+complex|space\s+complex|karmaşıkl|kompleks|o\([^)]+\))/i
@@ -175,9 +189,7 @@ export const buildAssistantContext = (
     pinnedVariables,
     locale,
   } = workspace;
-  const contextScale = workspace.contextWindow && workspace.contextWindow >= 8192
-    ? 1.75
-    : 1;
+  const contextScale = contextScaleFor(workspace.contextWindow);
   const contextCharacterLimit = Math.round(MAX_CONTEXT_CHARACTERS * contextScale);
   const safeIndex = steps.length
     ? Math.max(0, Math.min(workspace.currentIndex, steps.length - 1))
@@ -195,11 +207,20 @@ export const buildAssistantContext = (
       : isPlaying
         ? 'Playback is running.'
         : 'Playback is paused at the selected step.';
-  const recentStart = Math.max(0, safeIndex - (RECENT_TRACE_STEPS - 1));
+  const recentTraceStepCount = workspace.contextWindow && workspace.contextWindow >= 32768
+    ? 10
+    : workspace.contextWindow && workspace.contextWindow >= 16384
+      ? 6
+      : RECENT_TRACE_STEPS;
+  const recentStart = Math.max(0, safeIndex - (recentTraceStepCount - 1));
   const recentTrace = steps.length
     ? steps
       .slice(recentStart, safeIndex + 1)
-      .map((step, offset) => formatTraceStep(step, recentStart + offset))
+      .map((step, offset) => formatTraceStep(
+        step,
+        recentStart + offset,
+        Math.round(MAX_TRACE_STEP_CHARACTERS * Math.min(contextScale, 2)),
+      ))
       .join('\n\n')
     : '(no trace yet)';
   const nextStep = steps[safeIndex + 1];
@@ -226,8 +247,16 @@ export const buildAssistantContext = (
     `Analysis: ${analysis ?? 'not generated'}`,
   ];
   const executionContext = complexityFocus ? [] : [
-    `Simulation input:\n${formatInput(simulationInput)}`,
-    `Current visual and variable state:\n${currentStep ? formatVisualState(currentStep) : '(none)'}`,
+    `Simulation input:\n${formatInput(
+      simulationInput,
+      Math.round(MAX_INPUT_CHARACTERS * contextScale),
+    )}`,
+    `Current visual and variable state:\n${currentStep
+      ? formatVisualState(
+        currentStep,
+        Math.round(MAX_VISUAL_STATE_CHARACTERS * contextScale),
+      )
+      : '(none)'}`,
     `Recent executed trace, oldest to newest:\n${recentTrace}`,
     `Important deterministic trace checkpoints:\n${importantSteps || '(none)'}`,
     `Next deterministic step preview:\n${nextStep
@@ -253,6 +282,7 @@ export const buildAssistantContext = (
 export const selectAssistantHistory = (
   messages: AssistantMessage[],
   characterLimit = MAX_HISTORY_CHARACTERS,
+  messageLimit = MAX_HISTORY_MESSAGES,
 ): Array<Pick<AssistantMessage, 'role' | 'content'>> => {
   const selected: Array<Pick<AssistantMessage, 'role' | 'content'>> = [];
   let characterCount = 0;
@@ -260,7 +290,7 @@ export const selectAssistantHistory = (
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.role === 'system' || !message.content.trim()) continue;
-    if (selected.length >= MAX_HISTORY_MESSAGES) break;
+    if (selected.length >= messageLimit) break;
 
     const remaining = characterLimit - characterCount;
     if (remaining <= 0) break;

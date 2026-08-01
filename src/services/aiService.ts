@@ -100,26 +100,30 @@ export const askQuestion = async (
   workspace: AssistantWorkspace,
   chatHistory: AssistantMessage[] = [],
 ): Promise<string> => {
-  const wideContext = (workspace.contextWindow ?? 4096) >= 8192;
-  const questionLimit = wideContext ? 1_200 : 800;
+  const contextWindow = workspace.contextWindow ?? 4096;
+  const profile = contextWindow >= 32768
+    ? { question: 2_400, history: 9_600, total: 50_000, system: 3_200, messages: 24 }
+    : contextWindow >= 16384
+      ? { question: 1_800, history: 4_800, total: 26_000, system: 2_600, messages: 16 }
+      : contextWindow >= 8192
+        ? { question: 1_200, history: 2_400, total: 13_000, system: 2_200, messages: 8 }
+        : { question: 800, history: 1_000, total: 7_200, system: 1_800, messages: 8 };
+  const questionLimit = profile.question;
   const boundedQuestion = question.length > questionLimit
     ? `${question.slice(0, questionLimit - 40)}\n[Question shortened for the local model context window.]`
     : question;
   const context = buildAssistantContext(workspace, boundedQuestion);
-  const historyLimit = wideContext ? 2_400 : 1_000;
-  const totalCharacterBudget = wideContext ? 13_000 : 7_200;
-  const systemReserve = wideContext ? 2_200 : 1_800;
   const historyBudget = Math.max(
     0,
     Math.min(
-      historyLimit,
-      totalCharacterBudget - systemReserve - context.length - boundedQuestion.length,
+      profile.history,
+      profile.total - profile.system - context.length - boundedQuestion.length,
     ),
   );
   return askLocalModel(
     boundedQuestion,
     context,
-    selectAssistantHistory(chatHistory, historyBudget),
+    selectAssistantHistory(chatHistory, historyBudget, profile.messages),
     workspace.locale,
   );
 };

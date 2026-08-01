@@ -92,11 +92,17 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const {
     algorithmName,
     code,
+    setCode,
+    setAlgorithmName,
     steps,
+    setSteps,
     currentIndex,
+    setCurrentIndex,
     analysis,
+    setAnalysis,
     simulationInput,
     inputError,
+    setInputError,
     isPlaying,
     jumpTo,
     pause,
@@ -112,6 +118,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     locale,
     godModeEnabled,
     setGodModeEnabled,
+    setIsGodModeTypingSource,
     activeSimulationPackage,
     packageOutOfSync,
     applySimulationPackage,
@@ -153,6 +160,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const godModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const godModeRunRef = useRef<GodModeRunHandle | null>(null);
+  const sourcePreviewRunRef = useRef<string | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
   const responseEpochRef = useRef(0);
   const panelTitle = t('masterCoder', locale);
@@ -187,6 +195,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      sourcePreviewRunRef.current = null;
       godModeRunRef.current?.cancel();
       if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
       if (godModeDismissTimerRef.current) window.clearTimeout(godModeDismissTimerRef.current);
@@ -510,8 +519,33 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               }, 1_200);
             }
           },
+          previewSource: async (draftCode, title, runId) => {
+            if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;
+            dispatchGodModeUiAction({ type: 'set-workspace-layout', layout: 'focus-code' });
+            pause();
+            setAlgorithmName(title);
+            setSteps([]);
+            setCurrentIndex(0);
+            setAnalysis(null);
+            setInputError(null);
+            setCode('');
+            const chunkSize = Math.max(2, Math.ceil(draftCode.length / 180));
+            setIsGodModeTypingSource(true);
+            try {
+              for (let end = chunkSize; end < draftCode.length + chunkSize; end += chunkSize) {
+                if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;
+                setCode(draftCode.slice(0, Math.min(end, draftCode.length)));
+                await new Promise((resolve) => window.setTimeout(resolve, 12));
+              }
+            } finally {
+              if (mountedRef.current && sourcePreviewRunRef.current === runId) {
+                setIsGodModeTypingSource(false);
+              }
+            }
+          },
           applyPackage: (value, runId) => {
             applySimulationPackage(value, runId);
+            dispatchGodModeUiAction({ type: 'set-workspace-layout', layout: 'balanced' });
             setTourSteps(value.checkpoints.map((checkpoint) => checkpoint.stepIndex));
             stateRef.current = {
               ...stateRef.current,
@@ -547,8 +581,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           },
         });
         godModeRunRef.current = run;
+        sourcePreviewRunRef.current = run.runId;
         const result = await run.promise;
         godModeRunRef.current = null;
+        sourcePreviewRunRef.current = null;
+        setIsGodModeTypingSource(false);
         if (!mountedRef.current) return;
         const content = result.tutorAnswer
           ? `${result.summary}\n\n${stripThinkBlock(result.tutorAnswer)}`
@@ -647,6 +684,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           .slice(-MAX_STORED_MESSAGES),
       );
     } catch (error) {
+      sourcePreviewRunRef.current = null;
+      godModeRunRef.current = null;
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
       setChatHistory((previous) =>
         [...previous, {
@@ -656,6 +695,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       );
     } finally {
       if (mountedRef.current && responseEpoch === responseEpochRef.current) {
+        setIsGodModeTypingSource(false);
         setIsPlanningActions(false);
         setIsTyping(false);
         setIsExecutingQueue(false);
@@ -680,6 +720,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     requestRadioOpen,
     setTheme,
     setSpeed,
+    setCode,
+    setAlgorithmName,
+    setSteps,
+    setCurrentIndex,
+    setAnalysis,
+    setInputError,
+    setIsGodModeTypingSource,
   ]);
 
   useEffect(() => {
@@ -768,7 +815,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           aria-label={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
           title={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
           onClick={() => {
-            if (godModeEnabled) godModeRunRef.current?.cancel();
+            if (godModeEnabled) {
+              sourcePreviewRunRef.current = null;
+              godModeRunRef.current?.cancel();
+            }
             setGodModeEnabled(!godModeEnabled);
           }}
         >
@@ -830,7 +880,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <GodModeProgress
           plan={godModePlan}
           locale={locale}
-          onCancel={() => godModeRunRef.current?.cancel()}
+          onCancel={() => {
+            sourcePreviewRunRef.current = null;
+            godModeRunRef.current?.cancel();
+          }}
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}
           onRetry={() => {
@@ -921,6 +974,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             onClick={() => {
               responseEpochRef.current += 1;
               cancelLocalResponse();
+              sourcePreviewRunRef.current = null;
               godModeRunRef.current?.cancel();
               setTypingMessage(null);
               setIsPlanningActions(false);

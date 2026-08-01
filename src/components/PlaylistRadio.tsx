@@ -155,9 +155,25 @@ export const PlaylistRadio = () => {
   const loopRef = useRef(isLooping);
   const shuffleRef = useRef(isShuffled);
   const lastPlayingIndexRef = useRef(0);
+  const repeatTargetIndexRef = useRef<number | null>(null);
+  const repeatGuardUntilRef = useRef(0);
   volumeRef.current = volume;
   loopRef.current = isLooping;
   shuffleRef.current = isShuffled;
+
+  const restartCurrentTrack = useCallback((player: YouTubePlayer, force = false) => {
+    const now = Date.now();
+    if (!force && now < repeatGuardUntilRef.current) return;
+    const repeatIndex = repeatTargetIndexRef.current ?? lastPlayingIndexRef.current;
+    repeatTargetIndexRef.current = repeatIndex;
+    repeatGuardUntilRef.current = now + 1_500;
+    setCurrentIndex(repeatIndex);
+    setCurrentTime(0);
+    setPlayRequested(true);
+    player.playVideoAt(repeatIndex);
+    player.seekTo(0, true);
+    player.playVideo();
+  }, []);
 
   const syncPlaylist = useCallback((player: YouTubePlayer) => {
     const embeddedPlaylist = getEmbeddedRadioPlaylist(activePlaylistId.current);
@@ -254,16 +270,29 @@ export const PlaylistRadio = () => {
               const player = event.target as YouTubePlayer;
               player.setLoop(false);
               if (event.data === 0 && loopRef.current) {
-                setCurrentTime(0);
-                setPlayRequested(true);
                 // YouTube may advance the playlist index before emitting ENDED.
                 // Re-select the last playing item so single-track repeat never
                 // leaks into the following track.
-                player.playVideoAt(lastPlayingIndexRef.current);
+                repeatTargetIndexRef.current = lastPlayingIndexRef.current;
+                restartCurrentTrack(player, true);
+                return;
+              }
+              const repeatIndex = repeatTargetIndexRef.current;
+              if (loopRef.current && repeatIndex !== null && player.getPlaylistIndex() !== repeatIndex) {
+                // Some iframe builds queue a PLAYING event for the next playlist
+                // item after ENDED. Keep the repeat target latched until the
+                // listener explicitly changes tracks.
+                setCurrentIndex(repeatIndex);
+                player.playVideoAt(repeatIndex);
+                player.seekTo(0, true);
+                player.playVideo();
                 return;
               }
               setIsPlaying(event.data === 1);
               if (event.data === 1) {
+                if (repeatIndex !== null && player.getPlaylistIndex() === repeatIndex) {
+                  repeatGuardUntilRef.current = 0;
+                }
                 setPlayRequested(false);
                 setPlaybackNotice(null);
               }
@@ -317,7 +346,7 @@ export const PlaylistRadio = () => {
       playerRef.current = null;
       setPlayerReady(false);
     };
-  }, [hasStarted, syncPlaylist]);
+  }, [hasStarted, restartCurrentTrack, syncPlaylist]);
 
   useEffect(() => {
     if (!playerReady || !playRequested || isPlaying) return;
@@ -351,12 +380,21 @@ export const PlaylistRadio = () => {
   useEffect(() => {
     if (!isPlaying || !playerReady) return;
     const interval = window.setInterval(() => {
-      if (playerRef.current) {
-        setCurrentTime(playerRef.current.getCurrentTime());
+      const player = playerRef.current;
+      if (!player) return;
+      const time = player.getCurrentTime();
+      const total = player.getDuration();
+      setCurrentTime(time);
+      setDuration(total);
+      // Do not let the iframe reach its own playlist auto-advance boundary.
+      // ENDED remains a fallback, but this guard makes single-track repeat
+      // deterministic even when YouTube reorders or omits state events.
+      if (loopRef.current && total > 1 && time >= total - 0.75) {
+        restartCurrentTrack(player);
       }
-    }, 1000);
+    }, 250);
     return () => window.clearInterval(interval);
-  }, [isPlaying, playerReady]);
+  }, [isPlaying, playerReady, restartCurrentTrack]);
 
   useEffect(() => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -385,6 +423,8 @@ export const PlaylistRadio = () => {
       const nextPlaylistId = extractListId(radioPlaylistId);
       if (nextPlaylistId === activePlaylistId.current) return;
       activePlaylistId.current = nextPlaylistId;
+      repeatTargetIndexRef.current = null;
+      repeatGuardUntilRef.current = 0;
       const embeddedPlaylist = getEmbeddedRadioPlaylist(nextPlaylistId);
       setTrackData(createEmbeddedTrackData(nextPlaylistId));
       setPlaylist(embeddedPlaylist.map(({ id }) => id));
@@ -524,7 +564,11 @@ export const PlaylistRadio = () => {
               type="button"
               className="control-btn"
               title={t('previousTrack', locale)}
-              onClick={() => playerRef.current?.previousVideo()}
+              onClick={() => {
+                repeatTargetIndexRef.current = null;
+                repeatGuardUntilRef.current = 0;
+                playerRef.current?.previousVideo();
+              }}
             >
               <SkipBack size={16} />
             </button>
@@ -549,7 +593,11 @@ export const PlaylistRadio = () => {
               type="button"
               className="control-btn"
               title={t('nextTrack', locale)}
-              onClick={() => playerRef.current?.nextVideo()}
+              onClick={() => {
+                repeatTargetIndexRef.current = null;
+                repeatGuardUntilRef.current = 0;
+                playerRef.current?.nextVideo();
+              }}
             >
               <SkipForward size={16} />
             </button>
@@ -562,6 +610,10 @@ export const PlaylistRadio = () => {
                 if (!playerRef.current) return;
                 const newLoop = !isLooping;
                 loopRef.current = newLoop;
+                if (!newLoop) {
+                  repeatTargetIndexRef.current = null;
+                  repeatGuardUntilRef.current = 0;
+                }
                 playerRef.current.setLoop(false);
                 setIsLooping(newLoop);
               }}
@@ -648,6 +700,8 @@ export const PlaylistRadio = () => {
                   onClick={() => {
                     const player = playerRef.current;
                     if (!player) return;
+                    repeatTargetIndexRef.current = null;
+                    repeatGuardUntilRef.current = 0;
                     setPlaybackNotice(null);
                     // Do not leave the previous track looking active while
                     // YouTube is switching videos. Playback becomes true again

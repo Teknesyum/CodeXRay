@@ -16,7 +16,7 @@ import { compileCustomSimulationPackage } from './customSimulationCompiler';
 import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
 import { parseSimulationInput } from './inputParsers';
 import { runLocalAgent, type LocalAgentHandle, type LocalAgentRequest } from './localAiService';
-import { validateProgramSpec } from './simLang';
+import { renderProgramSource, validateProgramSpec } from './simLang';
 import { PROGRAM_SPEC_V1_SCHEMA, SIMLANG_AUTHOR_INSTRUCTIONS } from './simLangSchema';
 import {
   createBidirectionalBfsProgram,
@@ -55,6 +55,7 @@ export interface GodModeOrchestratorOptions {
   activePackage: CustomSimulationPackageV1 | null;
   onPlan: (plan: ManagerPlanV1) => void;
   onEvent?: (job: ManagerJobV1) => void;
+  previewSource?: (code: string, title: string, runId: string) => Promise<void> | void;
   applyPackage: (value: CustomSimulationPackageV1, runId: string) => Promise<void> | void;
   applyVisualPackage?: (value: CustomSimulationPackageV1, runId: string) => Promise<void> | void;
   applyInput: (
@@ -548,6 +549,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       }
       if (creationIntent.template === 'predict-winner-interval-dp') {
         const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
+        let preparedPackage: CustomSimulationPackageV1 | null = null;
         await runJob('architect-design-algorithm-contract', async () => {
           const summary = await callOptionalAgent(
             'architect',
@@ -570,6 +572,13 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             240,
           );
           setJob('code-author-author-executable-program', { summary: summary.slice(0, 260) });
+          preparedPackage = compilePredictWinnerPackage({
+            id: `predict-winner-${runId}`,
+            request: options.request,
+            locale: options.locale,
+            workspace: options.workspace,
+          });
+          await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
           return summary;
         });
         await runJob('input-engineer-build-original-teaching-input', async () => {
@@ -595,7 +604,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           return summary;
         });
         const packageValue = await runJob('compiler-compile-source-and-trace', () =>
-          compilePredictWinnerPackage({
+          preparedPackage ?? compilePredictWinnerPackage({
             id: `predict-winner-${runId}`,
             request: options.request,
             locale: options.locale,
@@ -645,16 +654,25 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           steps: packageValue.steps,
         };
       }
-      if (['house-robber-1d-dp', 'lcs-2d-dp', 'longest-palindrome-interval-dp'].includes(creationIntent.template)) {
+      if (['house-robber-1d-dp', 'lcs-2d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {
         const template = creationIntent.template as DpTemplateId;
+        let preparedPackage: CustomSimulationPackageV1 | null = null;
         await runJob('architect-design-algorithm-contract', () => {
           const summary = `Validated ${template} state definition, dependencies, fill order, and complexity.`;
           setJob('architect-design-algorithm-contract', { summary });
           return summary;
         });
-        await runJob('code-author-author-executable-program', () => {
+        await runJob('code-author-author-executable-program', async () => {
           const summary = `Selected the deterministic, source-mapped ${template} implementation.`;
           setJob('code-author-author-executable-program', { summary });
+          preparedPackage = compileDpTemplatePackage({
+            template,
+            id: runId,
+            request: options.request,
+            locale: options.locale,
+            workspace: options.workspace,
+          });
+          await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
           return summary;
         });
         await runJob('input-engineer-build-original-teaching-input', () => {
@@ -663,20 +681,20 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           return summary;
         });
         await runJob('visual-designer-design-semantic-visual-language', () => {
-          const summary = template === 'house-robber-1d-dp'
+          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp'
             ? '1D state cells expose active, take, skip, computed, and result semantics.'
             : 'DP matrix exposes base, active, dependency, computed, and result roles with coordinates.';
           setJob('visual-designer-design-semantic-visual-language', { summary });
           return summary;
         });
         await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
-          const summary = template === 'house-robber-1d-dp'
+          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp'
             ? 'Scroll-safe 1D state strip selected.'
             : 'Scroll-safe rectangular/diagonal matrix layout selected.';
           setJob('layout-engineer-resolve-responsive-graph-layout', { summary });
           return summary;
         });
-        const packageValue = await runJob('compiler-compile-source-and-trace', () => compileDpTemplatePackage({
+        const packageValue = await runJob('compiler-compile-source-and-trace', () => preparedPackage ?? compileDpTemplatePackage({
           template,
           id: runId,
           request: options.request,
@@ -770,7 +788,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             260,
           );
           setJob('code-author-author-executable-program', { summary: response.slice(0, 260) });
-          return createBidirectionalBfsProgram(options.locale);
+          const authoredProgram = createBidirectionalBfsProgram(options.locale);
+          await options.previewSource?.(renderProgramSource(authoredProgram).code, design.title, runId);
+          return authoredProgram;
         });
       } else {
         program = await runJob('code-author-author-executable-program', async () => {
@@ -805,6 +825,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
               setJob('code-author-author-executable-program', {
                 summary: `${validation.program.title}; ${validation.program.entry.length} top-level statements.`,
               });
+              await options.previewSource?.(renderProgramSource(validation.program).code, design.title, runId);
               return validation.program;
             }
             lastErrors = validation.errors.length

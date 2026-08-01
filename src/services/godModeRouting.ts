@@ -49,6 +49,12 @@ export const canonicalCustomTitle = (request: string, locale: Locale): string =>
     ? locale === 'tr' ? 'LeetCode 198 — Ev Soyguncusu' : 'LeetCode 198 — House Robber'
     : dpTemplate === 'lcs-2d-dp'
       ? locale === 'tr' ? 'LeetCode 1143 — En Uzun Ortak Alt Dizi' : 'LeetCode 1143 — Longest Common Subsequence'
+      : dpTemplate === 'coin-change-1d-dp'
+        ? locale === 'tr' ? 'LeetCode 322 — Bozuk Para Değişimi' : 'LeetCode 322 — Coin Change'
+      : dpTemplate === 'edit-distance-2d-dp'
+        ? locale === 'tr' ? 'LeetCode 72 — Düzenleme Mesafesi' : 'LeetCode 72 — Edit Distance'
+      : dpTemplate === 'knapsack-2d-dp'
+        ? locale === 'tr' ? '0/1 Sırt Çantası' : '0/1 Knapsack'
       : dpTemplate === 'longest-palindrome-interval-dp'
         ? locale === 'tr' ? 'LeetCode 516 — En Uzun Palindromik Alt Dizi' : 'LeetCode 516 — Longest Palindromic Subsequence'
         : /\b(?:leetcode\s*)?486\b|predict the winner|kazanan[ıi] tahmin/.test(normalized)
@@ -177,6 +183,19 @@ export const routeGodModeRequest = (
     ]).has(word));
     if (specificationWords.length === 0) return { type: 'clarify-algorithm' };
     return { type: 'create-algorithm', template: 'model-authored' };
+  }
+  const requestsAuthoredSolution = /\b(coz|cozum|yaz|olustur|kur|generate|create|write|build|solve)\w*\b/.test(text);
+  const requestsExecutableResult = /\b(simule|calistir|uygula|goster|simulate|run|execute|visualize|show)\w*\b/.test(text);
+  if (requestsAuthoredSolution && requestsExecutableResult) {
+    const specificationWords = text.split(' ').filter((word) => !new Set([
+      'bana', 'bir', 'benim', 'icin', 'lutfen', 'soru', 'sorusu', 'problem', 'algoritma', 'algorithm',
+      'kod', 'code', 'program', 'coz', 'cozum', 'yaz', 'olustur', 'kur', 'simule', 'calistir', 'uygula',
+      'goster', 'generate', 'create', 'write', 'build', 'solve', 'simulate', 'run', 'execute', 'visualize',
+      'show', 'an', 'a', 'me', 'please', 'et', 've', 'and',
+    ]).has(word));
+    return specificationWords.length > 0
+      ? { type: 'create-algorithm', template: 'model-authored' }
+      : { type: 'clarify-algorithm' };
   }
   void currentIndex;
   return null;

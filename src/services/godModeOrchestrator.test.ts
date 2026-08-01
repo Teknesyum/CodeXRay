@@ -52,6 +52,11 @@ const successfulAgent = (request: LocalAgentRequest): LocalAgentHandle => {
 describe('God Mode orchestrator', () => {
   it('runs specialist jobs, compiles bidirectional BFS, and applies one package transaction', async () => {
     const applyPackage = vi.fn();
+    const sourcePhases: string[] = [];
+    const previewSource = vi.fn((code: string) => {
+      expect(code).toContain('frontierStart');
+      sourcePhases.push('preview');
+    });
     let latestPlan: ManagerPlanV1 | null = null;
     const run = startGodModeRun({
       request: 'bana iki yönlü BFS yaz',
@@ -60,7 +65,11 @@ describe('God Mode orchestrator', () => {
       workspace,
       activePackage: null,
       onPlan: (plan) => { latestPlan = plan; },
-      applyPackage,
+      previewSource,
+      applyPackage: (...args) => {
+        sourcePhases.push('apply');
+        applyPackage(...args);
+      },
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
     });
@@ -71,6 +80,8 @@ describe('God Mode orchestrator', () => {
     expect(result.package?.teachingPlan.checkpoints.length).toBeGreaterThan(2);
     expect(result.package?.steps.length).toBeGreaterThan(3);
     expect(applyPackage).toHaveBeenCalledTimes(1);
+    expect(previewSource).toHaveBeenCalledTimes(1);
+    expect(sourcePhases).toEqual(['preview', 'apply']);
     expect(latestPlan).not.toBeNull();
     expect((latestPlan as ManagerPlanV1 | null)?.jobs.every((job) => job.status === 'completed')).toBe(true);
   });

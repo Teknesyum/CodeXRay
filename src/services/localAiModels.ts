@@ -7,6 +7,15 @@ export interface LocalAiModelDefinition {
   maxOutputTokens: number;
 }
 
+export const LOCAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768] as const;
+
+export type LocalAiContextWindow = typeof LOCAL_AI_CONTEXT_WINDOWS[number];
+
+export const parseLocalAiContextWindow = (value: string | number): LocalAiContextWindow => {
+  const parsed = Number(value);
+  return LOCAL_AI_CONTEXT_WINDOWS.find((contextWindow) => contextWindow === parsed) ?? 4096;
+};
+
 export const LOCAL_AI_MODELS = [
   {
     id: 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
@@ -37,7 +46,7 @@ export const LOCAL_AI_MODELS = [
     label: 'Qwen3.5 9B (16 GB class, smartest)',
     vramMb: 7545,
     contextWindow: 4096,
-    maxContextWindow: 8192,
+    maxContextWindow: 32768,
     maxOutputTokens: 900,
   },
 ] as const satisfies readonly LocalAiModelDefinition[];

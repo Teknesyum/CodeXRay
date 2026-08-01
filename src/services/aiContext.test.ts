@@ -126,7 +126,7 @@ describe('local assistant context', () => {
     expect(instructions).toContain('under 450 tokens');
   });
 
-  it('expands prompt capacity only when the 8K engine profile is selected', () => {
+  it('scales prompt capacity across the stable and experimental engine profiles', () => {
     const workspace = {
       algorithmName: 'Custom Code',
       code: `function demo() {\n${'process(value);'.repeat(500)}\n}`,
@@ -140,12 +140,18 @@ describe('local assistant context', () => {
       locale: 'en' as const,
     };
     const stable = buildAssistantContext({ ...workspace, contextWindow: 4096 });
-    const experimental = buildAssistantContext({ ...workspace, contextWindow: 8192 });
+    const context8k = buildAssistantContext({ ...workspace, contextWindow: 8192 });
+    const context16k = buildAssistantContext({ ...workspace, contextWindow: 16384 });
+    const context32k = buildAssistantContext({ ...workspace, contextWindow: 32768 });
 
     expect(stable).toContain('Local model context window: 4096 tokens');
-    expect(experimental).toContain('Local model context window: 8192 tokens');
-    expect(experimental.length).toBeGreaterThan(stable.length);
-    expect(experimental.length).toBeLessThanOrEqual(8_400);
+    expect(context8k).toContain('Local model context window: 8192 tokens');
+    expect(context16k).toContain('Local model context window: 16384 tokens');
+    expect(context32k).toContain('Local model context window: 32768 tokens');
+    expect(context8k.length).toBeGreaterThan(stable.length);
+    expect(context16k.length).toBeGreaterThan(context8k.length);
+    expect(context32k.length).toBeGreaterThanOrEqual(context16k.length);
+    expect(context32k.length).toBeLessThanOrEqual(28_800);
   });
 
   it('keeps oversized code and graph data within the local model context budget', () => {

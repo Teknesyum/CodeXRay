@@ -12,20 +12,25 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
       onAutoplayBlocked?: (event: { target: RadioPlayer }) => void;
     };
     const target = window as Window & {
-      __radioCalls: { play: number; at: number[]; shuffle: boolean[]; volume: number[]; load: string[]; mute: number; unmute: number };
+      __radioCalls: { play: number; at: number[]; seek: number[]; shuffle: boolean[]; volume: number[]; load: string[]; mute: number; unmute: number };
       __blockAutoplay: () => void;
       __confirmPlayback: () => void;
       __endTrack: () => void;
+      __endTrackWithAdvanceRace: () => void;
+      __approachTrackEndWithoutEnded: () => void;
       YT?: { Player: typeof RadioPlayer };
     };
-    target.__radioCalls = { play: 0, at: [], shuffle: [], volume: [], load: [], mute: 0, unmute: 0 };
+    target.__radioCalls = { play: 0, at: [], seek: [], shuffle: [], volume: [], load: [], mute: 0, unmute: 0 };
     target.__blockAutoplay = () => undefined;
     target.__confirmPlayback = () => undefined;
     target.__endTrack = () => undefined;
+    target.__endTrackWithAdvanceRace = () => undefined;
+    target.__approachTrackEndWithoutEnded = () => undefined;
 
     class RadioPlayer {
       private state = -1;
       private index = 0;
+      private currentTime = 0;
       private muted = false;
       private readonly events: Events;
       private readonly tracks = [
@@ -44,6 +49,20 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
           this.state = 0;
           this.index = (this.index + 1) % this.tracks.length;
           this.events.onStateChange?.({ data: 0, target: this });
+        };
+        target.__endTrackWithAdvanceRace = () => {
+          this.state = 0;
+          const automaticallyAdvancedIndex = (this.index + 1) % this.tracks.length;
+          this.index = automaticallyAdvancedIndex;
+          this.events.onStateChange?.({ data: 0, target: this });
+          queueMicrotask(() => {
+            this.index = automaticallyAdvancedIndex;
+            this.state = 1;
+            this.events.onStateChange?.({ data: 1, target: this });
+          });
+        };
+        target.__approachTrackEndWithoutEnded = () => {
+          this.currentTime = 190.5;
         };
         queueMicrotask(() => this.events.onReady({ target: this }));
       }
@@ -65,12 +84,16 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
       playVideoAt(index: number) {
         target.__radioCalls.at.push(index);
         this.index = index;
+        this.currentTime = 0;
         this.state = 1;
         this.events.onStateChange?.({ data: 1, target: this });
       }
-      getCurrentTime() { return 0; }
+      getCurrentTime() { return this.currentTime; }
       getDuration() { return 191; }
-      seekTo() {}
+      seekTo(seconds: number) {
+        this.currentTime = seconds;
+        target.__radioCalls.seek.push(seconds);
+      }
       loadPlaylist(options: { list: string }) { target.__radioCalls.load.push(options.list); }
     }
     Object.defineProperty(target, 'YT', { configurable: true, value: { Player: RadioPlayer } });
@@ -113,8 +136,18 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
 
   await loop.click();
   await page.evaluate(() => (window as Window & { __confirmPlayback: () => void }).__confirmPlayback());
-  await page.evaluate(() => (window as Window & { __endTrack: () => void }).__endTrack());
-  await expect.poll(() => page.evaluate(() => (window as Window & { __radioCalls: { at: number[] } }).__radioCalls.at)).toEqual([1]);
+  await page.evaluate(() => (
+    window as Window & { __approachTrackEndWithoutEnded: () => void }
+  ).__approachTrackEndWithoutEnded());
+  await expect.poll(() => page.evaluate(() => (
+    window as Window & { __radioCalls: { at: number[] } }
+  ).__radioCalls.at.at(-1))).toBe(1);
+  await expect.poll(() => page.evaluate(() => (
+    window as Window & { __radioCalls: { seek: number[] } }
+  ).__radioCalls.seek.at(-1))).toBe(0);
+  await expect(loop).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => (window as Window & { __endTrackWithAdvanceRace: () => void }).__endTrackWithAdvanceRace());
+  await expect.poll(() => page.evaluate(() => (window as Window & { __radioCalls: { at: number[] } }).__radioCalls.at.at(-1))).toBe(1);
   await expect(radio.getByText('Imitation', { exact: true }).first()).toBeVisible();
 
   await radio.dispatchEvent('mouseleave');

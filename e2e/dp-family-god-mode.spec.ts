@@ -43,6 +43,7 @@ test('authors a rectangular LCS table and exposes exact dependencies', async ({ 
   await chat.fill('Solve LCS for ["abcde","ace"] and show every 2D DP state.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('public int longestCommonSubsequence(String text1, String text2)');
   await expect(page.getByRole('grid', { name: 'DP table' })).toBeVisible();
   await expect(page.locator('.matrix-cell')).toHaveCount(24);
   await pauseAndRewind(page);
@@ -53,6 +54,48 @@ test('authors a rectangular LCS table and exposes exact dependencies', async ({ 
   await advanceToEnd(page);
   await expect(page.locator('.matrix-cell[data-role="result"]')).toHaveCount(1);
   await expect(page.locator('.step-explanation')).toContainText('LCS length is 3');
+});
+
+test('authors and simulates the exact Java Coin Change contract', async ({ page }) => {
+  await prepare(page);
+  const chat = page.getByPlaceholder('Type your question here...');
+  await chat.fill('Solve Coin Change in Java for coins=[1,2,5], amount=11 and simulate every DP state.');
+  await chat.press('Enter');
+  await expect(page.getByLabel('LeetCode 322 — Coin Change execution')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('public int coinChange(int[] coins, int amount)');
+  await pauseAndRewind(page);
+  await advanceToEnd(page);
+  await expect(page.locator('.step-explanation')).toContainText('minimum coin count is 3');
+  await expect(page.locator('.variables-content')).toContainText('result');
+  await expect(page.locator('.variables-content')).toContainText('3');
+});
+
+test('authors and simulates the exact Java Edit Distance contract as a 2D table', async ({ page }) => {
+  await prepare(page);
+  const chat = page.getByPlaceholder('Type your question here...');
+  await chat.fill('Solve Edit Distance in Java for ["horse","ros"] and simulate the 2D DP table.');
+  await chat.press('Enter');
+  await expect(page.getByLabel('LeetCode 72 — Edit Distance execution')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('public int minDistance(String word1, String word2)');
+  await expect(page.getByRole('grid', { name: 'DP table' })).toBeVisible();
+  await pauseAndRewind(page);
+  await advanceToEnd(page);
+  await expect(page.locator('.step-explanation')).toContainText('edit distance is 3');
+  await expect(page.locator('.matrix-cell[data-role="result"]')).toHaveCount(1);
+});
+
+test('authors and simulates the exact Java 0/1 Knapsack contract without item reuse', async ({ page }) => {
+  await prepare(page);
+  const chat = page.getByPlaceholder('Type your question here...');
+  await chat.fill('Solve 0/1 Knapsack in Java weight=[1,3,4,5], value=[1,4,5,7], W=7 and simulate every state.');
+  await chat.press('Enter');
+  await expect(page.getByLabel('0/1 Knapsack execution')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('public int knapsack(int[] weight, int[] value, int W)');
+  await expect(page.getByRole('grid', { name: 'DP table' })).toBeVisible();
+  await pauseAndRewind(page);
+  await advanceToEnd(page);
+  await expect(page.locator('.step-explanation')).toContainText('maximum knapsack value is 9');
+  await expect(page.locator('.matrix-cell[data-role="result"]')).toHaveCount(1);
 });
 
 test('authors an interval-palindrome table and preserves diagonal fill semantics', async ({ page }) => {
@@ -67,4 +110,31 @@ test('authors an interval-palindrome table and preserves diagonal fill semantics
   await advanceToEnd(page);
   await expect(page.locator('.step-explanation')).toContainText('length is 4');
   await expect(page.locator('.matrix-cell[data-role="result"]')).toHaveCount(1);
+});
+
+test('routes the exact Turkish palindrome request through agents, types source, then teaches the trace', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('codexray.locale', 'tr');
+    localStorage.setItem('codexray.ai.autoLoad', 'false');
+    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.radio.autoplay', 'false');
+  });
+  await page.goto('/');
+  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  await chat.fill('en uzun palindromik dizi sorusu yaz çöz simüle et');
+  await chat.press('Enter');
+
+  const liveSource = page.locator('.god-mode-code-typing');
+  await expect(liveSource).toBeVisible();
+  await expect.poll(async () => liveSource.textContent().then((value) => value?.length ?? 0))
+    .toBeGreaterThan(0);
+  await expect(page.locator('.god-mode-agent.running')).toContainText('Kod Yazarı');
+
+  await expect(page.getByLabel('LeetCode 516 — En Uzun Palindromik Alt Dizi çalışması')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('dp[i][j]');
+  await expect(page.getByRole('grid', { name: 'DP tablosu' })).toBeVisible();
+  await expect(page.locator('.matrix-fill-direction')).toContainText('artan aralık');
+  const groundedAnswer = page.locator('.ai-msg').filter({ hasText: 'Kod:' });
+  await expect(groundedAnswer).toHaveCount(1);
+  await expect(groundedAnswer).toContainText('Görsel:');
 });

@@ -121,6 +121,9 @@
 
 .control-btn.active {
   color: var(--neon-magenta);
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.16), rgba(0, 243, 255, 0.08));
+  border-color: var(--neon-magenta);
+  box-shadow: 0 0 7px rgba(255, 0, 255, 0.45), inset 0 0 8px rgba(255, 0, 255, 0.1);
 }
 
 .play-pause-btn {

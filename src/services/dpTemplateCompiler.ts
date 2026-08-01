@@ -17,7 +17,13 @@ import type {
 import { reviewTrace } from './customSimulationCompiler';
 import { createTeachingPlan } from './teachingPlan';
 
-export type DpTemplateId = 'house-robber-1d-dp' | 'lcs-2d-dp' | 'longest-palindrome-interval-dp';
+export type DpTemplateId =
+  | 'house-robber-1d-dp'
+  | 'lcs-2d-dp'
+  | 'longest-palindrome-interval-dp'
+  | 'coin-change-1d-dp'
+  | 'edit-distance-2d-dp'
+  | 'knapsack-2d-dp';
 
 interface DpArtifact {
   id: string;
@@ -46,7 +52,10 @@ export const resolveDpTemplateFromRequest = (request: string): DpTemplateId | nu
   const text = normalized(request);
   if (/\b(house robber|ev soyguncusu|leetcode 198|lc 198)\b/.test(text)) return 'house-robber-1d-dp';
   if (/\b(lcs|longest common subsequence|en uzun ortak alt dizi|leetcode 1143|lc 1143)\b/.test(text)) return 'lcs-2d-dp';
-  if (/\b(longest palindromic subsequence|en uzun palindromik alt dizi|leetcode 516|lc 516)\b/.test(text)) {
+  if (/\b(coin change|bozuk para degisimi|leetcode 322|lc 322)\b/.test(text)) return 'coin-change-1d-dp';
+  if (/\b(edit distance|duzenleme mesafesi|levenshtein|leetcode 72|lc 72)\b/.test(text)) return 'edit-distance-2d-dp';
+  if (/\b(0 1 knapsack|01 knapsack|knapsack|sirt cantasi)\b/.test(text)) return 'knapsack-2d-dp';
+  if (/\b(longest palindromic subsequence|longest palindrome sequence|en uzun palindromik (?:alt )?dizi|leetcode 516|lc 516)\b/.test(text)) {
     return 'longest-palindrome-interval-dp';
   }
   return null;
@@ -66,6 +75,45 @@ const requestArray = (request: string): number[] | null => {
   } catch {
     return null;
   }
+};
+
+const requestArrays = (request: string): number[][] => [...request.matchAll(/\[[^\]]*\]/g)]
+  .flatMap((match) => {
+    try {
+      const value = JSON.parse(match[0]) as unknown;
+      return Array.isArray(value)
+        && value.length > 0
+        && value.length <= MAX_ITEMS
+        && value.every((item) => Number.isSafeInteger(item) && Number(item) >= 0)
+        ? [value as number[]]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+
+const requestInteger = (request: string, labels: RegExp): number | null => {
+  const match = request.match(new RegExp(`(?:${labels.source})\\s*(?:=|:|is|olarak)?\\s*(\\d+)`, 'i'));
+  const value = Number(match?.[1]);
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+};
+
+const requestStringsAllowEmpty = (request: string): string[] => {
+  const bracket = request.match(/\[[^\]]*\]/)?.[0];
+  if (bracket) {
+    try {
+      const value = JSON.parse(bracket) as unknown;
+      if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+        return value.filter((item) => item.length <= MAX_ITEMS).slice(0, 2);
+      }
+    } catch {
+      // Fall through to quoted-string extraction.
+    }
+  }
+  return [...request.matchAll(/["']([^"']*)["']/g)]
+    .map((match) => match[1])
+    .filter((item) => item.length <= MAX_ITEMS)
+    .slice(0, 2);
 };
 
 const requestStrings = (request: string): string[] => {
@@ -121,9 +169,13 @@ const programShell = (id: string, title: string, inputKind: ProgramSpecV1['input
   }],
 });
 
-const source = (lines: string[], lineMap: Record<string, number>): RenderedSourceV1 => ({
+const source = (
+  lines: string[],
+  lineMap: Record<string, number>,
+  language: RenderedSourceV1['language'] = 'cpp',
+): RenderedSourceV1 => ({
   version: 1,
-  language: 'cpp',
+  language,
   code: lines.join('\n'),
   lineMap,
 });
@@ -222,18 +274,18 @@ const lcsArtifact = (request: string, locale: Locale, workspace: WorkspaceSnapsh
   const dp = Array.from({ length: rows }, () => Array<number | null>(columns).fill(null));
   const rowLabels = ['∅', ...first];
   const columnLabels = ['∅', ...second];
-  const steps: SimulationStep[] = [matrixStep(dp, rowLabels, columnLabels, [], 'row', { first, second, filledCells: 0 }, 5,
+  const steps: SimulationStep[] = [matrixStep(dp, rowLabels, columnLabels, [], 'row', { first, second, filledCells: 0 }, 4,
     locale === 'tr' ? 'dp[i][j], ilk i ve ilk j karakterin LCS uzunluğunu tutar. Sıfırıncı satır ve sütun taban durumdur.' : 'dp[i][j] stores the LCS length for the first i and j characters. Row zero and column zero are base cases.')];
   let filledCells = 0;
   for (let row = 0; row < rows; row += 1) {
     dp[row][0] = 0;
     filledCells += 1;
-    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row, column: 0, role: 'base', label: 'empty prefix = 0' }], 'row', { first, second, i: row, j: 0, value: 0, filledCells }, 7, `dp[${row}][0] = 0.`));
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row, column: 0, role: 'base', label: 'empty prefix = 0' }], 'row', { first, second, i: row, j: 0, value: 0, filledCells }, 4, `dp[${row}][0] = 0.`));
   }
   for (let column = 1; column < columns; column += 1) {
     dp[0][column] = 0;
     filledCells += 1;
-    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: 0, column, role: 'base', label: 'empty prefix = 0' }], 'row', { first, second, i: 0, j: column, value: 0, filledCells }, 7, `dp[0][${column}] = 0.`));
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: 0, column, role: 'base', label: 'empty prefix = 0' }], 'row', { first, second, i: 0, j: column, value: 0, filledCells }, 4, `dp[0][${column}] = 0.`));
   }
   for (let row = 1; row < rows; row += 1) {
     for (let column = 1; column < columns; column += 1) {
@@ -251,33 +303,298 @@ const lcsArtifact = (request: string, locale: Locale, workspace: WorkspaceSnapsh
         ];
       steps.push(matrixStep(dp, rowLabels, columnLabels, [
         { row, column, role: 'active', label: `dp[${row}][${column}]=${dp[row][column]}` }, ...dependencies,
-      ], 'row', { first, second, i: row, j: column, match, diagonal, up, left, value: dp[row][column] ?? 0, filledCells }, match ? 11 : 13,
+      ], 'row', { first, second, i: row, j: column, match, diagonal, up, left, value: dp[row][column] ?? 0, filledCells }, match ? 8 : 10,
       locale === 'tr'
         ? match ? `'${first[row - 1]}' eşleşir: dp[${row}][${column}] = 1 + dp[${row - 1}][${column - 1}] = ${dp[row][column]}.` : `Karakterler farklı: dp[${row}][${column}] = max(${up}, ${left}) = ${dp[row][column]}.`
         : match ? `'${first[row - 1]}' matches: dp[${row}][${column}] = 1 + dp[${row - 1}][${column - 1}] = ${dp[row][column]}.` : `Characters differ: dp[${row}][${column}] = max(${up}, ${left}) = ${dp[row][column]}.`));
     }
   }
   const result = dp.at(-1)?.at(-1) ?? 0;
-  steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: rows - 1, column: columns - 1, role: 'result', label: `LCS=${result}` }], 'row', { first, second, result, filledCells }, 16,
+  steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: rows - 1, column: columns - 1, role: 'result', label: `LCS=${result}` }], 'row', { first, second, result, filledCells }, 13,
     locale === 'tr' ? `LCS uzunluğu ${result}.` : `The LCS length is ${result}.`));
   const title = locale === 'tr' ? 'LeetCode 1143 — En Uzun Ortak Alt Dizi' : 'LeetCode 1143 — Longest Common Subsequence';
   return {
     id: 'lcs_2d_dp', title,
     input: { kind: 'string', text: first, parameters: { other: second }, origin: explicit.length ? 'user' : 'agent' },
     inputDescription: locale === 'tr' ? 'Karşılaştırılacak iki metin' : 'Two strings to compare',
-    constraints: [`1 <= text lengths <= ${MAX_ITEMS}`],
+    constraints: ['1 <= text1.length, text2.length <= 1000', `Interactive visualization uses at most ${MAX_ITEMS} characters per text.`],
     source: source([
-      'class Solution {', 'public:', '  int longestCommonSubsequence(string a, string b) {',
-      '    const int m = a.size(), n = b.size();', '    vector<vector<int>> dp(m + 1, vector<int>(n + 1, 0));',
-      '    for (int i = 1; i <= m; ++i) {', '      for (int j = 1; j <= n; ++j) {',
-      '        if (a[i - 1] == b[j - 1])', '          dp[i][j] = 1 + dp[i - 1][j - 1];',
-      '        else', '          dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);',
-      '      }', '    }', '    return dp[m][n];', '  }', '};',
-    ], { 'read-input': 4, base: 5, match: 9, mismatch: 11, result: 14 }),
+      'class Solution {',
+      '  public int longestCommonSubsequence(String text1, String text2) {',
+      '    int m = text1.length(), n = text2.length();',
+      '    int[][] dp = new int[m + 1][n + 1];',
+      '    for (int i = 1; i <= m; i++) {',
+      '      for (int j = 1; j <= n; j++) {',
+      '        if (text1.charAt(i - 1) == text2.charAt(j - 1))',
+      '          dp[i][j] = 1 + dp[i - 1][j - 1];',
+      '        else',
+      '          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);',
+      '      }',
+      '    }',
+      '    return dp[m][n];',
+      '  }',
+      '}',
+    ], { 'read-input': 3, base: 4, match: 8, mismatch: 10, result: 13 }, 'java'),
     steps,
     visualization: { version: 1, type: 'matrix', activeVariables: ['i', 'j'], queuedVariables: ['diagonal', 'up', 'left'], visitedVariables: ['filledCells'] },
     analysis: 'State: dp[i][j] is the LCS length of prefixes a[0..i) and b[0..j).\nTransition: matching characters use the diagonal + 1; otherwise use max(up, left).\nFill order: row by row after zero-prefix bases.\nTime Complexity: O(mn)\nSpace Complexity: O(mn)',
     invariants: ['Before dp[i][j] is computed, its diagonal, upper, and left dependencies are final.'],
+  };
+};
+
+const coinChangeArtifact = (request: string, locale: Locale): DpArtifact => {
+  const arrays = requestArrays(request);
+  const requestedCoins = arrays[0]?.filter((coin) => coin > 0);
+  const coins = requestedCoins?.length ? requestedCoins : [1, 2, 5];
+  const requestedAmount = requestInteger(request, /target\s+amount|amount|hedef\s+miktar|miktar/);
+  const amount = requestedAmount !== null && requestedAmount <= 80 ? requestedAmount : 11;
+  const dp = Array<number | null>(amount + 1).fill(null);
+  dp[0] = 0;
+  const steps: SimulationStep[] = [arrayStep([...dp], { base: 0 }, {
+    coins, amount, current: 0, value: 0, filledStates: 1,
+  }, 4, locale === 'tr'
+    ? 'dp[0] = 0 taban durumudur; sıfır miktar için bozuk para gerekmez.'
+    : 'dp[0] = 0 is the base case; zero coins are needed for amount zero.')];
+  for (let current = 1; current <= amount; current += 1) {
+    let best = Number.POSITIVE_INFINITY;
+    let chosenCoin: number | null = null;
+    const reachableDependencies: number[] = [];
+    for (const coin of coins) {
+      if (coin > current || dp[current - coin] === null) continue;
+      reachableDependencies.push(current - coin);
+      const candidate = (dp[current - coin] ?? 0) + 1;
+      if (candidate < best) {
+        best = candidate;
+        chosenCoin = coin;
+      }
+    }
+    dp[current] = Number.isFinite(best) ? best : null;
+    const pointers: Record<string, number> = { active: current };
+    reachableDependencies.forEach((dependency, index) => {
+      pointers[`dependency${index + 1}`] = dependency;
+    });
+    steps.push(arrayStep([...dp], pointers, {
+      coins,
+      amount,
+      current,
+      chosenCoin: chosenCoin ?? 'none',
+      value: dp[current] ?? -1,
+      reachableDependencies,
+      filledStates: current + 1,
+    }, 10, locale === 'tr'
+      ? `dp[${current}] = ${dp[current] ?? 'ulaşılamaz'}${chosenCoin === null ? '' : `; son seçilen bozuk para ${chosenCoin}`}.`
+      : `dp[${current}] = ${dp[current] ?? 'unreachable'}${chosenCoin === null ? '' : ` using coin ${chosenCoin} last`}.`));
+  }
+  const result = dp[amount] ?? -1;
+  steps.push(arrayStep([...dp], { result: amount }, {
+    coins, amount, result, possible: result >= 0, filledStates: amount + 1,
+  }, 13, locale === 'tr'
+    ? `Minimum bozuk para sayısı ${result}.`
+    : `The minimum coin count is ${result}.`));
+  const title = locale === 'tr' ? 'LeetCode 322 — Bozuk Para Değişimi' : 'LeetCode 322 — Coin Change';
+  return {
+    id: 'coin_change_1d_dp',
+    title,
+    input: { kind: 'array', text: JSON.stringify(coins), parameters: { amount: String(amount) }, origin: arrays.length || requestedAmount !== null ? 'user' : 'agent' },
+    inputDescription: locale === 'tr' ? 'Bozuk para değerleri ve hedef miktar' : 'Coin denominations and target amount',
+    constraints: ['1 <= coins.length <= 12', '1 <= coins[i] <= 2^31 - 1', '0 <= amount <= 10^4', 'Interactive visualization caps amount at 80.'],
+    source: source([
+      'import java.util.Arrays;',
+      'class Solution {',
+      '  public int coinChange(int[] coins, int amount) {',
+      '    int[] dp = new int[amount + 1];',
+      '    Arrays.fill(dp, amount + 1);',
+      '    dp[0] = 0;',
+      '    for (int current = 1; current <= amount; current++) {',
+      '      for (int coin : coins) {',
+      '        if (coin <= current)',
+      '          dp[current] = Math.min(dp[current], dp[current - coin] + 1);',
+      '      }',
+      '    }',
+      '    return dp[amount] > amount ? -1 : dp[amount];',
+      '  }',
+      '}',
+    ], { 'read-input': 4, base: 6, transition: 10, result: 13 }, 'java'),
+    steps,
+    visualization: { version: 1, type: 'array', activeVariables: ['current'], queuedVariables: ['reachableDependencies'], visitedVariables: ['filledStates'], pathVariable: 'chosenCoin' },
+    analysis: 'State: dp[x] is the minimum coins needed for amount x.\nTransition: dp[x] = min(dp[x], dp[x-coin] + 1).\nFill order: amounts 1 through target.\nTime Complexity: O(amount * coins.length)\nSpace Complexity: O(amount)',
+    invariants: ['Before dp[current] is computed, every smaller reachable amount is final.'],
+  };
+};
+
+const editDistanceArtifact = (request: string, locale: Locale, workspace: WorkspaceSnapshotV1): DpArtifact => {
+  const explicit = requestStringsAllowEmpty(request);
+  const first = explicit[0] ?? (wantsCurrentInput(request) && workspace.simulationInput.kind === 'string' ? workspace.simulationInput.text : 'horse');
+  const second = explicit[1] ?? (wantsCurrentInput(request) && workspace.simulationInput.kind === 'string' ? workspace.simulationInput.parameters?.other : undefined) ?? 'ros';
+  const rows = first.length + 1;
+  const columns = second.length + 1;
+  const dp = Array.from({ length: rows }, () => Array<number | null>(columns).fill(null));
+  const rowLabels = ['∅', ...first];
+  const columnLabels = ['∅', ...second];
+  const steps: SimulationStep[] = [matrixStep(dp, rowLabels, columnLabels, [], 'row', {
+    first, second, filledCells: 0,
+  }, 4, locale === 'tr'
+    ? 'dp[i][j], ilk i karakteri ilk j karaktere dönüştürmenin minimum maliyetidir.'
+    : 'dp[i][j] is the minimum cost to convert the first i characters into the first j characters.')];
+  let filledCells = 0;
+  for (let row = 0; row < rows; row += 1) {
+    dp[row][0] = row;
+    filledCells += 1;
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row, column: 0, role: 'base', label: `${row} deletes` }], 'row', {
+      first, second, i: row, j: 0, value: row, operation: 'delete', filledCells,
+    }, 5, `dp[${row}][0] = ${row}.`));
+  }
+  for (let column = 1; column < columns; column += 1) {
+    dp[0][column] = column;
+    filledCells += 1;
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: 0, column, role: 'base', label: `${column} inserts` }], 'row', {
+      first, second, i: 0, j: column, value: column, operation: 'insert', filledCells,
+    }, 6, `dp[0][${column}] = ${column}.`));
+  }
+  for (let row = 1; row < rows; row += 1) {
+    for (let column = 1; column < columns; column += 1) {
+      const match = first[row - 1] === second[column - 1];
+      const deletion = dp[row - 1][column] ?? 0;
+      const insertion = dp[row][column - 1] ?? 0;
+      const replacement = dp[row - 1][column - 1] ?? 0;
+      const minimum = Math.min(deletion, insertion, replacement);
+      dp[row][column] = match ? replacement : 1 + minimum;
+      const operation = match ? 'match' : minimum === replacement ? 'replace' : minimum === deletion ? 'delete' : 'insert';
+      filledCells += 1;
+      steps.push(matrixStep(dp, rowLabels, columnLabels, [
+        { row, column, role: 'active', label: `dp[${row}][${column}]=${dp[row][column]}` },
+        { row: row - 1, column, role: 'dependency', label: `delete=${deletion}` },
+        { row, column: column - 1, role: 'dependency', label: `insert=${insertion}` },
+        { row: row - 1, column: column - 1, role: 'dependency', label: `${match ? 'match' : 'replace'}=${replacement}` },
+      ], 'row', {
+        first, second, i: row, j: column, match, deletion, insertion, replacement, operation, value: dp[row][column] ?? 0, filledCells,
+      }, match ? 10 : 12, locale === 'tr'
+        ? `dp[${row}][${column}] = ${dp[row][column]}; işlem: ${operation}.`
+        : `dp[${row}][${column}] = ${dp[row][column]}; operation: ${operation}.`));
+    }
+  }
+  const result = dp[rows - 1][columns - 1] ?? 0;
+  steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: rows - 1, column: columns - 1, role: 'result', label: `distance=${result}` }], 'row', {
+    first, second, result, filledCells,
+  }, 15, locale === 'tr' ? `Düzenleme mesafesi ${result}.` : `The edit distance is ${result}.`));
+  const title = locale === 'tr' ? 'LeetCode 72 — Düzenleme Mesafesi' : 'LeetCode 72 — Edit Distance';
+  return {
+    id: 'edit_distance_2d_dp', title,
+    input: { kind: 'string', text: first, parameters: { other: second }, origin: explicit.length ? 'user' : 'agent' },
+    inputDescription: locale === 'tr' ? 'Dönüştürülecek iki metin' : 'The two strings to transform',
+    constraints: ['0 <= word1.length, word2.length <= 500', 'Lowercase English letters.', `Interactive visualization uses at most ${MAX_ITEMS} characters per word.`],
+    source: source([
+      'class Solution {',
+      '  public int minDistance(String word1, String word2) {',
+      '    int m = word1.length(), n = word2.length();',
+      '    int[][] dp = new int[m + 1][n + 1];',
+      '    for (int i = 0; i <= m; i++) dp[i][0] = i;',
+      '    for (int j = 0; j <= n; j++) dp[0][j] = j;',
+      '    for (int i = 1; i <= m; i++) {',
+      '      for (int j = 1; j <= n; j++) {',
+      '        if (word1.charAt(i - 1) == word2.charAt(j - 1))',
+      '          dp[i][j] = dp[i - 1][j - 1];',
+      '        else',
+      '          dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], Math.min(dp[i - 1][j], dp[i][j - 1]));',
+      '      }',
+      '    }',
+      '    return dp[m][n];',
+      '  }',
+      '}',
+    ], { 'read-input': 3, base: 5, transition: 12, result: 15 }, 'java'),
+    steps,
+    visualization: { version: 1, type: 'matrix', activeVariables: ['i', 'j'], queuedVariables: ['deletion', 'insertion', 'replacement'], visitedVariables: ['filledCells'], pathVariable: 'operation' },
+    analysis: 'State: dp[i][j] is the minimum edits between prefixes word1[0..i) and word2[0..j).\nTransition: equal characters use the diagonal; otherwise add one to min(replace, delete, insert).\nFill order: base row/column, then row by row.\nTime Complexity: O(mn)\nSpace Complexity: O(mn)',
+    invariants: ['Before dp[i][j] is computed, its upper, left, and diagonal dependencies are final.'],
+  };
+};
+
+const knapsackArtifact = (request: string, locale: Locale): DpArtifact => {
+  const arrays = requestArrays(request);
+  const validPair = arrays.length >= 2 && arrays[0].length === arrays[1].length;
+  const weights = validPair ? arrays[0] : [1, 3, 4, 5];
+  const values = validPair ? arrays[1] : [1, 4, 5, 7];
+  const requestedCapacity = requestInteger(request, /capacity|\bW\b|kapasite/);
+  const capacity = requestedCapacity !== null && requestedCapacity <= 40 ? requestedCapacity : 7;
+  const rows = weights.length + 1;
+  const columns = capacity + 1;
+  const dp = Array.from({ length: rows }, () => Array<number | null>(columns).fill(null));
+  const rowLabels = ['∅', ...weights.map((weight, index) => `${index}:w${weight}/v${values[index]}`)];
+  const columnLabels = Array.from({ length: columns }, (_, index) => String(index));
+  const steps: SimulationStep[] = [matrixStep(dp, rowLabels, columnLabels, [], 'row', {
+    weights, values, capacity, filledCells: 0,
+  }, 4, locale === 'tr'
+    ? 'dp[i][w], ilk i öğeyle w kapasitesinde elde edilen maksimum değerdir.'
+    : 'dp[i][w] is the maximum value using the first i items with capacity w.')];
+  let filledCells = 0;
+  for (let row = 0; row < rows; row += 1) {
+    dp[row][0] = 0;
+    filledCells += 1;
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row, column: 0, role: 'base', label: 'capacity 0' }], 'row', {
+      weights, values, capacity, item: row - 1, currentCapacity: 0, value: 0, filledCells,
+    }, 4, `dp[${row}][0] = 0.`));
+  }
+  for (let column = 1; column < columns; column += 1) {
+    dp[0][column] = 0;
+    filledCells += 1;
+    steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: 0, column, role: 'base', label: 'no items' }], 'row', {
+      weights, values, capacity, item: -1, currentCapacity: column, value: 0, filledCells,
+    }, 4, `dp[0][${column}] = 0.`));
+  }
+  for (let row = 1; row < rows; row += 1) {
+    const item = row - 1;
+    for (let currentCapacity = 1; currentCapacity < columns; currentCapacity += 1) {
+      const skip = dp[row - 1][currentCapacity] ?? 0;
+      const canTake = weights[item] <= currentCapacity;
+      const takeDependency = canTake ? dp[row - 1][currentCapacity - weights[item]] ?? 0 : 0;
+      const take = canTake ? values[item] + takeDependency : Number.NEGATIVE_INFINITY;
+      dp[row][currentCapacity] = Math.max(skip, take);
+      const choice = canTake && take > skip ? 'take' : 'skip';
+      filledCells += 1;
+      const dependencies: MatrixCellHighlight[] = [{ row: row - 1, column: currentCapacity, role: 'dependency', label: `skip=${skip}` }];
+      if (canTake) dependencies.push({ row: row - 1, column: currentCapacity - weights[item], role: 'dependency', label: `take base=${takeDependency}` });
+      steps.push(matrixStep(dp, rowLabels, columnLabels, [
+        { row, column: currentCapacity, role: 'active', label: `dp[${row}][${currentCapacity}]=${dp[row][currentCapacity]}` },
+        ...dependencies,
+      ], 'row', {
+        weights, values, capacity, item, currentCapacity, canTake, take: canTake ? take : 'not-fit', skip, choice, value: dp[row][currentCapacity] ?? 0, filledCells,
+      }, canTake ? 10 : 8, locale === 'tr'
+        ? `dp[${row}][${currentCapacity}] = ${dp[row][currentCapacity]}; seçim: ${choice}.`
+        : `dp[${row}][${currentCapacity}] = ${dp[row][currentCapacity]}; choice: ${choice}.`));
+    }
+  }
+  const result = dp[rows - 1][capacity] ?? 0;
+  steps.push(matrixStep(dp, rowLabels, columnLabels, [{ row: rows - 1, column: capacity, role: 'result', label: `maxValue=${result}` }], 'row', {
+    weights, values, capacity, result, filledCells,
+  }, 13, locale === 'tr' ? `Maksimum sırt çantası değeri ${result}.` : `The maximum knapsack value is ${result}.`));
+  const title = locale === 'tr' ? '0/1 Sırt Çantası' : '0/1 Knapsack';
+  return {
+    id: 'knapsack_2d_dp', title,
+    input: { kind: 'array', text: JSON.stringify(weights), parameters: { values: JSON.stringify(values), capacity: String(capacity) }, origin: validPair || requestedCapacity !== null ? 'user' : 'agent' },
+    inputDescription: locale === 'tr' ? 'Ağırlıklar, değerler ve kapasite' : 'Weights, values, and capacity',
+    constraints: ['1 <= n <= 1000', '1 <= W <= 1000', '1 <= weight[i], value[i] <= 1000', `Interactive visualization uses at most ${MAX_ITEMS} items and capacity 40.`],
+    source: source([
+      'class Solution {',
+      '  public int knapsack(int[] weight, int[] value, int W) {',
+      '    int n = weight.length;',
+      '    int[][] dp = new int[n + 1][W + 1];',
+      '    for (int i = 1; i <= n; i++) {',
+      '      for (int w = 0; w <= W; w++) {',
+      '        dp[i][w] = dp[i - 1][w];',
+      '        if (weight[i - 1] <= w) {',
+      '          int take = value[i - 1] + dp[i - 1][w - weight[i - 1]];',
+      '          dp[i][w] = Math.max(dp[i][w], take);',
+      '        }',
+      '      }',
+      '    }',
+      '    return dp[n][W];',
+      '  }',
+      '}',
+    ], { 'read-input': 3, base: 4, transition: 10, result: 14 }, 'java'),
+    steps,
+    visualization: { version: 1, type: 'matrix', activeVariables: ['item', 'currentCapacity'], queuedVariables: ['take', 'skip'], visitedVariables: ['filledCells'], pathVariable: 'choice' },
+    analysis: 'State: dp[i][w] is the best value from the first i items within capacity w.\nTransition: skip the item or take it once from the previous row.\nFill order: item rows from top to bottom.\nTime Complexity: O(nW)\nSpace Complexity: O(nW)',
+    invariants: ['Every transition reads only the previous item row, so each item is used at most once.'],
   };
 };
 
@@ -354,7 +671,13 @@ export const compileDpTemplatePackage = (options: {
     ? houseRobberArtifact(options.request, options.locale, options.workspace)
     : options.template === 'lcs-2d-dp'
       ? lcsArtifact(options.request, options.locale, options.workspace)
-      : palindromeArtifact(options.request, options.locale, options.workspace);
+      : options.template === 'coin-change-1d-dp'
+        ? coinChangeArtifact(options.request, options.locale)
+        : options.template === 'edit-distance-2d-dp'
+          ? editDistanceArtifact(options.request, options.locale, options.workspace)
+          : options.template === 'knapsack-2d-dp'
+            ? knapsackArtifact(options.request, options.locale)
+            : palindromeArtifact(options.request, options.locale, options.workspace);
   const input: InputContractV1 = {
     version: 1,
     kind: artifact.input.kind,

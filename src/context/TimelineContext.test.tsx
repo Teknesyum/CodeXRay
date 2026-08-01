@@ -19,6 +19,7 @@ const Probe = () => {
       <output aria-label="theme">{timeline.theme}</output>
       <output aria-label="locale">{timeline.locale}</output>
       <output aria-label="radio-minimize">{timeline.radioMinimizeSeconds}</output>
+      <output aria-label="radio-autoplay">{String(timeline.radioAutoplay)}</output>
       <output aria-label="pins">{timeline.pinnedVariables.join(',')}</output>
       <output aria-label="algorithm">{timeline.algorithmName}</output>
       <output aria-label="undo">{String(timeline.canUndoWorkspace)}</output>
@@ -105,6 +106,7 @@ describe('TimelineProvider integration', () => {
     expect(screen.getByLabelText('theme')).toHaveTextContent('neon');
     expect(screen.getByLabelText('locale')).toHaveTextContent('tr');
     expect(screen.getByLabelText('radio-minimize')).toHaveTextContent('2');
+    expect(screen.getByLabelText('radio-autoplay')).toHaveTextContent('false');
     expect(document.documentElement.dataset.theme).toBe('neon');
   });
 
@@ -122,6 +124,12 @@ describe('TimelineProvider integration', () => {
     expect(() => renderTimeline()).not.toThrow();
     expect(localStorage.getItem('codexray.workspace.v1')).toContain('simulationInput');
     expect(localStorage.getItem('codexray.workspace.v1')).toContain('array');
+  });
+
+  it('enables radio autoplay only when the saved preference explicitly opts in', () => {
+    localStorage.setItem('codexray.radio.autoplay', 'true');
+    renderTimeline();
+    expect(screen.getByLabelText('radio-autoplay')).toHaveTextContent('true');
   });
 
   it('still mounts when browser storage reads are unavailable', () => {

@@ -13,6 +13,7 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
     };
     const radioWindow = window as Window & {
       __radioPlayCalls: number;
+      __radioPlayerCreations: number;
       __confirmRadioPlay: () => void;
       __endRadioTrack: () => void;
       __radioPlayAtIndices: number[];
@@ -21,6 +22,7 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
       YT?: { Player: typeof MockPlayer };
     };
     radioWindow.__radioPlayCalls = 0;
+    radioWindow.__radioPlayerCreations = 0;
     radioWindow.__confirmRadioPlay = () => undefined;
     radioWindow.__endRadioTrack = () => undefined;
     radioWindow.__radioPlayAtIndices = [];
@@ -34,6 +36,7 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
       private readonly events: PlayerEvents;
 
       constructor(_element: HTMLIFrameElement, options: { events: PlayerEvents }) {
+        radioWindow.__radioPlayerCreations += 1;
         this.events = options.events;
         radioWindow.__confirmRadioPlay = () => {
           this.state = 1;
@@ -122,6 +125,21 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
     window as Window & { __confirmRadioPlay: () => void }
   ).__confirmRadioPlay());
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
+
+  const playerSrc = await page.getByTitle('CodeXRay YouTube playlist player').getAttribute('src');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /UI Settings/ }).click();
+  await page.getByRole('button', { name: 'Türkçe (TR)' }).click();
+  const turkishRadio = page.getByRole('complementary', { name: 'Radyo' });
+  await expect(turkishRadio.locator('button[title="Duraklat"]')).toBeVisible();
+  await expect(page.getByTitle('CodeXRay YouTube oynatma listesi')).toHaveAttribute(
+    'src',
+    playerSrc || '',
+  );
+  expect(await page.evaluate(() => (
+    window as Window & { __radioPlayerCreations: number }
+  ).__radioPlayerCreations)).toBe(1);
+  await page.getByRole('button', { name: 'English (EN)' }).click();
 
   await page.evaluate(() => (
     window as Window & { __endRadioTrack: () => void }

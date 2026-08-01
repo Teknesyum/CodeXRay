@@ -123,7 +123,6 @@ describe('application workspace', () => {
   });
 
   it('opens the requested YouTube Music playlist in a compact radio player', async () => {
-    localStorage.setItem('codexray.radio.autoplay', 'false');
     const user = userEvent.setup();
     render(<App />);
 
@@ -135,10 +134,30 @@ describe('application workspace', () => {
     const player = screen.getByTitle('CodeXRay YouTube playlist player');
     expect(player.getAttribute('src')).toContain('playlist=');
     expect(player.getAttribute('src')).toContain('/embed/8zj8h15VmQw');
+    expect(player.getAttribute('src')).toContain('autoplay=0');
     expect(screen.getByRole('link', { name: 'Open playlist in YouTube Music' }).getAttribute('href'))
       .toContain('music.youtube.com/playlist');
     await user.click(screen.getByRole('button', { name: 'Close CodeXRay Radio' }));
     expect(screen.getByRole('button', { name: 'Open CodeXRay Radio' })).toBeInTheDocument();
     expect(screen.getByLabelText('Radio')).toHaveStyle({ display: 'none' });
+  });
+
+  it('keeps the active radio iframe stable when the interface language changes', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Open CodeXRay Radio' }));
+    const player = screen.getByTitle('CodeXRay YouTube playlist player');
+    const initialSrc = player.getAttribute('src');
+    expect(initialSrc).toContain('autoplay=0');
+    expect(initialSrc).not.toContain('hl=');
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: /UI Settings/ }));
+    await user.click(screen.getByRole('button', { name: 'Türkçe (TR)' }));
+
+    const translatedPlayer = screen.getByTitle('CodeXRay YouTube oynatma listesi');
+    expect(translatedPlayer).toBe(player);
+    expect(translatedPlayer.getAttribute('src')).toBe(initialSrc);
   });
 });

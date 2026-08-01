@@ -447,7 +447,10 @@ export const PlaylistRadio = () => {
   const embedUrl = [
     `https://www.youtube.com/embed/${embeddedOpeningId}`,
     playlistQuery,
-    `&hl=${locale}&playsinline=1&loop=0&rel=0&controls=0&enablejsapi=1&autoplay=${radioAutoplay ? 1 : 0}`,
+    // Keep the iframe URL stable while UI preferences change. Re-navigating
+    // the iframe disconnects the YouTube player from its JavaScript API object,
+    // leaving the visible play/pause state out of sync with real playback.
+    '&playsinline=1&loop=0&rel=0&controls=0&enablejsapi=1&autoplay=0',
     `&origin=${encodeURIComponent(window.location.origin)}`,
   ].join('');
 

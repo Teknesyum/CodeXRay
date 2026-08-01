@@ -430,7 +430,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   );
   const [radioOpenRequest, setRadioOpenRequest] = useState(0);
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
-    readStorage('codexray.radio.autoplay') !== 'false'
+    readStorage('codexray.radio.autoplay') === 'true'
   );
   const [godModeEnabled, setGodModeEnabled] = useState(() =>
     readStorage('codexray.ai.godMode') !== 'false'

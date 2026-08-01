@@ -379,7 +379,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
     try {
       const godModeIntent = godModeEnabled
-        ? routeGodModeRequest(userMessage, stateRef.current.steps, currentIndex)
+        ? routeGodModeRequest(
+          userMessage,
+          stateRef.current.steps,
+          currentIndex,
+          stateRef.current.algorithmName,
+        )
         : null;
       let actionsToExecute: DeterministicWorkspaceCommand[] | null =
         godModeIntent?.type === 'deterministic'

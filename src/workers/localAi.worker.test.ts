@@ -130,6 +130,27 @@ describe('local AI worker protocol', () => {
     expect(webLlm.complete.mock.calls[1]?.[0].messages.at(-1).content).toContain('Continue exactly where it stopped');
   });
 
+  it('shortens oversized specialist context before inference on the stable 4K profile', async () => {
+    await initialize();
+    webLlm.complete.mockResolvedValueOnce({ choices: [{ message: { content: 'bounded' }, finish_reason: 'stop' }] });
+    send({
+      id: 25,
+      type: 'agent-run',
+      role: 'architect',
+      instructions: 'Review the current algorithm.',
+      context: `REQUEST:first\n${'workspace-trace '.repeat(2_000)}\nFINAL:result`,
+      locale: 'en',
+      maxTokens: 520,
+    });
+    await waitForOutput((message) => message.id === 25 && message.type === 'answer');
+    const options = webLlm.complete.mock.calls.at(-1)?.[0];
+    const boundedContext = options.messages[1].content as string;
+    expect(boundedContext).toContain('REQUEST:first');
+    expect(boundedContext).toContain('FINAL:result');
+    expect(boundedContext).toContain('context shortened');
+    expect(boundedContext.length).toBeLessThan(7_000);
+  });
+
   it('interrupts an active request and rejects its late answer', async () => {
     await initialize();
     let resolveCompletion!: (value: unknown) => void;

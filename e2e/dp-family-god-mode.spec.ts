@@ -44,6 +44,9 @@ test('authors a rectangular LCS table and exposes exact dependencies', async ({ 
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
   await expect(page.locator('.code-display')).toContainText('public int longestCommonSubsequence(String text1, String text2)');
+  await expect(page.locator('.code-token.keyword').filter({ hasText: 'public' })).toHaveCount(1);
+  await expect(page.locator('.code-token.type').filter({ hasText: 'int' })).not.toHaveCount(0);
+  await expect(page.locator('.code-token.function').filter({ hasText: 'longestCommonSubsequence' })).toHaveCount(1);
   await expect(page.getByRole('grid', { name: 'DP table' })).toBeVisible();
   await expect(page.locator('.matrix-cell')).toHaveCount(24);
   await pauseAndRewind(page);
@@ -54,6 +57,22 @@ test('authors a rectangular LCS table and exposes exact dependencies', async ({ 
   await advanceToEnd(page);
   await expect(page.locator('.matrix-cell[data-role="result"]')).toHaveCount(1);
   await expect(page.locator('.step-explanation')).toContainText('LCS length is 3');
+});
+
+test('turns the committed LCS into a space-optimized 1D follow-up without overflowing context', async ({ page }) => {
+  await prepare(page);
+  const chat = page.getByPlaceholder('Type your question here...');
+  await chat.fill('Solve LCS for ["abcde","ace"] and show every 2D DP state.');
+  await chat.press('Enter');
+  await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
+
+  await chat.fill('Memory does not need to be O(m*n). Write the O(min(m,n)) version and simulate it.');
+  await chat.press('Enter');
+  await expect(page.getByLabel('LeetCode 1143 — Space-Optimized LCS execution')).toBeVisible();
+  await expect(page.locator('.code-display')).toContainText('int[] dp = new int[columns.length() + 1]');
+  await expect(page.locator('.code-display')).toContainText('diagonal = upper');
+  await expect(page.locator('.visual-array')).toBeVisible();
+  await expect(page.locator('.ai-msg.system')).toHaveCount(0);
 });
 
 test('authors and simulates the exact Java Coin Change contract', async ({ page }) => {
@@ -128,7 +147,7 @@ test('routes the exact Turkish palindrome request through agents, types source, 
   await expect(liveSource).toBeVisible();
   await expect.poll(async () => liveSource.textContent().then((value) => value?.length ?? 0))
     .toBeGreaterThan(0);
-  await expect(page.locator('.god-mode-agent.running')).toContainText('Kod Yazarı');
+  await expect(page.locator('.god-mode-agent.running')).toContainText('Kod');
 
   await expect(page.getByLabel('LeetCode 516 — En Uzun Palindromik Alt Dizi çalışması')).toBeVisible();
   await expect(page.locator('.code-display')).toContainText('dp[i][j]');

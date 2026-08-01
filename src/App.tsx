@@ -40,8 +40,8 @@ const createDefaultLayout = (): LayoutState => {
   const right = createDefaultRightPanelSizes(window.innerHeight);
   return {
     version: 6,
-    leftWidth: 440,
-    leftTopHeight: Math.max(320, Math.round(window.innerHeight * 0.56)),
+    leftWidth: 460,
+    leftTopHeight: Math.max(340, Math.round(window.innerHeight * 0.60)),
     visualizerHeight: right.visualizerHeight,
     assistantHeight: right.assistantHeight,
     controlHeight: right.controlHeight,

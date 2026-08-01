@@ -183,4 +183,14 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
   await expect(radio).toBeVisible();
   await expect(radio).toBeHidden({ timeout: 2_000 });
   await expect(page.getByRole('button', { name: 'Open CodeXRay Radio' })).toBeVisible();
+  const quickPause = page.getByRole('button', { name: 'Pause radio without opening' });
+  await expect(quickPause).toBeVisible();
+  await quickPause.click();
+  const quickPlay = page.getByRole('button', { name: 'Play radio without opening' });
+  await expect(quickPlay).toBeVisible();
+  await expect(radio).toBeHidden();
+  await quickPlay.click();
+  await page.evaluate(() => (window as Window & { __confirmPlayback: () => void }).__confirmPlayback());
+  await expect(page.getByRole('button', { name: 'Pause radio without opening' })).toBeVisible();
+  await expect(radio).toBeHidden();
 });

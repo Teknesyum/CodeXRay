@@ -36,6 +36,12 @@ describe('application workspace', () => {
     expect(within(rightPanel as HTMLElement).getByText('Input Builder')).toBeInTheDocument();
     expect(rightPanel?.querySelector('.graph-input-editor')).not.toBeNull();
     expect(leftPanel?.querySelector('.graph-input-editor')).toBeNull();
+    expect(container.querySelector('.code-highlight-overlay .code-token.type')).toHaveTextContent('void');
+    expect(container.querySelector('.code-highlight-overlay .code-token.function')).toHaveTextContent('DFS');
+    await user.click(within(rightPanel as HTMLElement).getByRole('button', { name: 'Show simulation' }));
+    expect(within(rightPanel as HTMLElement).getByRole('button', { name: 'Edit input' })).toBeInTheDocument();
+    await user.click(within(rightPanel as HTMLElement).getByRole('button', { name: 'Collapse Simulation View' }));
+    expect(within(rightPanel as HTMLElement).getByRole('button', { name: 'Edit input' })).toBeInTheDocument();
   });
 
   it('collapses and expands every panel through accessible controls', async () => {
@@ -59,7 +65,7 @@ describe('application workspace', () => {
     const { container } = render(<App />);
     const splitter = screen.getByRole('separator', { name: 'Resize left and right panels' });
     fireEvent.keyDown(splitter, { key: 'ArrowRight' });
-    expect(container.querySelector('.panel-left')).toHaveStyle({ width: '460px' });
+    expect(container.querySelector('.panel-left')).toHaveStyle({ width: '480px' });
   });
 
   it('restores and clears local assistant conversation memory', async () => {
@@ -121,6 +127,10 @@ describe('application workspace', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    expect(screen.queryByTitle('CodeXRay YouTube playlist player')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Play radio without opening' }));
+    expect(screen.getByRole('button', { name: 'Open CodeXRay Radio' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Radio')).toHaveStyle({ display: 'none' });
     await user.click(screen.getByRole('button', { name: 'Open CodeXRay Radio' }));
     const player = screen.getByTitle('CodeXRay YouTube playlist player');
     expect(player.getAttribute('src')).toContain('playlist=');

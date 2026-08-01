@@ -104,7 +104,7 @@ describe('TimelineProvider integration', () => {
     renderTimeline();
     expect(screen.getByLabelText('theme')).toHaveTextContent('neon');
     expect(screen.getByLabelText('locale')).toHaveTextContent('tr');
-    expect(screen.getByLabelText('radio-minimize')).toHaveTextContent('4');
+    expect(screen.getByLabelText('radio-minimize')).toHaveTextContent('2');
     expect(document.documentElement.dataset.theme).toBe('neon');
   });
 

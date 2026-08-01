@@ -34,6 +34,7 @@ describe('deterministic DP template compiler', () => {
   it.each([
     ['LeetCode 198 House Robber çöz ve simüle et', 'house-robber-1d-dp'],
     ['LCS tablosunu yaz ve göster', 'lcs-2d-dp'],
+    ['LCS memory optimize O(min(m,n)) kodunu yaz', 'lcs-space-optimized-1d-dp'],
     ['Coin Change Java çözümünü yaz ve simüle et', 'coin-change-1d-dp'],
     ['LeetCode 72 Edit Distance 2D tabloyla çöz', 'edit-distance-2d-dp'],
     ['0/1 Knapsack Java kodunu yaz ve simüle et', 'knapsack-2d-dp'],
@@ -72,6 +73,26 @@ describe('deterministic DP template compiler', () => {
     expect(final.vars.result).toBe(3);
     expect(packageValue.steps.some((step) => step.visualData.type === 'matrix'
       && step.visualData.highlights.some((cell) => cell.role === 'dependency'))).toBe(true);
+  });
+
+  it('compiles LCS into one DP row with O(min(m,n)) memory', () => {
+    const packageValue = compileDpTemplatePackage({
+      template: 'lcs-space-optimized-1d-dp',
+      id: 'optimized-lcs',
+      request: 'LCS ["ace","abcde"] bellek optimize kodunu yaz ve simüle et',
+      locale: 'en',
+      workspace,
+    });
+    const final = packageValue.steps.at(-1)?.visualData;
+    expect(packageValue.source).toMatchObject({ language: 'java' });
+    expect(packageValue.source.code).toContain('int[] dp = new int[columns.length() + 1]');
+    expect(packageValue.source.code).toContain('diagonal = upper');
+    expect(packageValue.analysis).toContain('Space Complexity: O(min(m,n))');
+    expect(final?.type).toBe('array');
+    if (final?.type !== 'array') return;
+    expect(final.values).toHaveLength(4);
+    expect(final.vars).toMatchObject({ result: 3, memoryCells: 4 });
+    expect(packageValue.steps.some((step) => step.visualData.vars.diagonal !== undefined)).toBe(true);
   });
 
   it('fills an interval-palindrome table diagonally and records grounded cell diffs', () => {

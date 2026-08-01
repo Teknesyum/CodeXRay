@@ -654,7 +654,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           steps: packageValue.steps,
         };
       }
-      if (['house-robber-1d-dp', 'lcs-2d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {
+      if (['house-robber-1d-dp', 'lcs-2d-dp', 'lcs-space-optimized-1d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {
         const template = creationIntent.template as DpTemplateId;
         let preparedPackage: CustomSimulationPackageV1 | null = null;
         await runJob('architect-design-algorithm-contract', () => {
@@ -681,14 +681,14 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           return summary;
         });
         await runJob('visual-designer-design-semantic-visual-language', () => {
-          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp'
+          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp' || template === 'lcs-space-optimized-1d-dp'
             ? '1D state cells expose active, take, skip, computed, and result semantics.'
             : 'DP matrix exposes base, active, dependency, computed, and result roles with coordinates.';
           setJob('visual-designer-design-semantic-visual-language', { summary });
           return summary;
         });
         await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
-          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp'
+          const summary = template === 'house-robber-1d-dp' || template === 'coin-change-1d-dp' || template === 'lcs-space-optimized-1d-dp'
             ? 'Scroll-safe 1D state strip selected.'
             : 'Scroll-safe rectangular/diagonal matrix layout selected.';
           setJob('layout-engineer-resolve-responsive-graph-layout', { summary });

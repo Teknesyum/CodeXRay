@@ -451,21 +451,44 @@ export const PlaylistRadio = () => {
     `&origin=${encodeURIComponent(window.location.origin)}`,
   ].join('');
 
+  const togglePlayback = () => {
+    const player = playerRef.current;
+    if (isPlaying) {
+      setPlayRequested(false);
+      player?.pauseVideo();
+      return;
+    }
+    setHasStarted(true);
+    setPlayRequested(true);
+    player?.playVideo();
+  };
+
   return (
     <>
       {minimized && (
-        <button
-          type="button"
-          className="radio-launcher"
-          aria-label={t('openRadio', locale)}
-          onClick={() => {
-            setMinimized(false);
-            setHasStarted(true);
-          }}
-        >
-          <Radio size={16} />
-          <span>{t('radio', locale)}</span>
-        </button>
+        <div className="radio-launcher">
+          <button
+            type="button"
+            className="radio-launcher-open"
+            aria-label={t('openRadio', locale)}
+            onClick={() => {
+              setMinimized(false);
+              setHasStarted(true);
+            }}
+          >
+            <Radio size={16} />
+            <span>{t('radio', locale)}</span>
+          </button>
+          <button
+            type="button"
+            className={`radio-launcher-playback ${isPlaying ? 'playing' : ''}`}
+            aria-label={isPlaying ? t('radioQuickPause', locale) : t('radioQuickPlay', locale)}
+            title={isPlaying ? t('radioQuickPause', locale) : t('radioQuickPlay', locale)}
+            onClick={togglePlayback}
+          >
+            {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+          </button>
+        </div>
       )}
 
       {hasStarted && (
@@ -576,16 +599,7 @@ export const PlaylistRadio = () => {
               type="button"
               className="control-btn play-pause-btn"
               title={isPlaying ? t('pause', locale) : t('play', locale)}
-              onClick={() => {
-                const player = playerRef.current;
-                if (isPlaying) {
-                  setPlayRequested(false);
-                  player?.pauseVideo();
-                } else {
-                  setPlayRequested(true);
-                  player?.playVideo();
-                }
-              }}
+              onClick={togglePlayback}
             >
               {isPlaying ? <Pause size={18} /> : <Play size={18} />}
             </button>

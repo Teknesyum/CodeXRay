@@ -80,6 +80,7 @@ type WorkerRequest =
 
 let engine: MLCEngine | undefined;
 let maxOutputTokens = 520;
+let activeContextWindow = 4096;
 let inferenceQueue: Promise<void> = Promise.resolve();
 const cancelledRequests = new Set<number>();
 let activeInferenceId: number | null = null;
@@ -94,6 +95,14 @@ const localAiAppConfig = {
 const loadedEngine = (): MLCEngine => {
   if (!engine) throw new Error('The local model has not been loaded.');
   return engine;
+};
+
+const boundedPromptText = (value: string, maximumCharacters: number): string => {
+  if (value.length <= maximumCharacters) return value;
+  const marker = '\n[Lower-priority agent context shortened to fit the selected local-model window.]\n';
+  const available = Math.max(0, maximumCharacters - marker.length);
+  const headLength = Math.ceil(available * 0.72);
+  return `${value.slice(0, headLength)}${marker}${value.slice(value.length - (available - headLength))}`;
 };
 
 const postError = (id: number, error: unknown) => {
@@ -159,28 +168,36 @@ const runPlanner = async (message: PlanMessage): Promise<string> => {
 
 const runAgent = async (message: AgentRunMessage): Promise<string> => {
   const expectsJson = Boolean(message.responseSchema || message.jsonMode);
+  const outputTokens = Math.min(message.maxTokens ?? maxOutputTokens, maxOutputTokens + 300);
+  const systemContent = [
+    `You are the isolated CodeXRay ${message.role} specialist.`,
+    message.instructions,
+    'Use only supplied workspace state and artifacts. Never claim that application state changed.',
+    expectsJson
+      ? 'Return exactly one JSON object matching the required schema. Do not use markdown.'
+      : `Respond concisely in ${message.locale === 'tr' ? 'Turkish' : 'English'}.`,
+  ].join('\n');
+  const schemaText = message.responseSchema ? JSON.stringify(message.responseSchema) : '';
+  const includeSchema = Boolean(message.responseSchema)
+    && schemaText.length <= activeContextWindow;
+  const promptCharacterBudget = Math.max(
+    900,
+    (activeContextWindow - outputTokens - 420) * 2
+      - systemContent.length
+      - (includeSchema ? schemaText.length : 0),
+  );
   const completion = await loadedEngine().chat.completions.create({
     messages: [
-      {
-        role: 'system',
-        content: [
-          `You are the isolated CodeXRay ${message.role} specialist.`,
-          message.instructions,
-          'Use only supplied workspace state and artifacts. Never claim that application state changed.',
-          expectsJson
-            ? 'Return exactly one JSON object matching the required schema. Do not use markdown.'
-            : `Respond concisely in ${message.locale === 'tr' ? 'Turkish' : 'English'}.`,
-        ].join('\n'),
-      },
-      { role: 'user', content: message.context },
+      { role: 'system', content: systemContent },
+      { role: 'user', content: boundedPromptText(message.context, promptCharacterBudget) },
     ],
     temperature: message.temperature ?? (expectsJson ? 0 : 0.12),
     ...({ enable_thinking: false }),
-    max_tokens: Math.min(message.maxTokens ?? maxOutputTokens, maxOutputTokens + 300),
+    max_tokens: outputTokens,
     ...(expectsJson ? {
       response_format: {
         type: 'json_object' as const,
-        ...(message.responseSchema ? { schema: JSON.stringify(message.responseSchema) } : {}),
+        ...(includeSchema ? { schema: schemaText } : {}),
       },
     } : {}),
   });
@@ -261,6 +278,7 @@ const handleAdministrativeRequest = async (
     return;
   }
   const definition = getLocalAiModelDefinition(message.model);
+  activeContextWindow = message.contextWindow;
   maxOutputTokens = (definition?.maxOutputTokens ?? 520)
     + (message.contextWindow >= 8192 ? 300 : 0);
   engine = await CreateMLCEngine(message.model, {

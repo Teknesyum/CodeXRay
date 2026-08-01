@@ -151,18 +151,59 @@
   overflow: auto;
 }
 
+.code-edit-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(0, 243, 255, 0.045), transparent 38%),
+    linear-gradient(135deg, rgba(255, 0, 255, 0.018), transparent 46%);
+}
+
+.code-highlight-overlay,
 .code-textarea {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.5;
   padding: 20px;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.code-highlight-overlay {
+  z-index: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--text-main) 88%, var(--neon-cyan));
+}
+
+.code-textarea {
+  z-index: 1;
+  overflow: auto;
+  background: transparent;
+  border: none;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--neon-magenta);
+  text-shadow: none;
   resize: none;
   outline: none;
+}
+
+.code-textarea::placeholder {
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+  text-shadow: none;
+}
+
+.code-textarea::selection {
+  background: color-mix(in srgb, var(--neon-magenta) 28%, transparent);
 }
 
 .god-mode-code-typing {
@@ -173,7 +214,7 @@
   padding: 20px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  color: var(--text-main);
+  color: color-mix(in srgb, var(--text-main) 84%, var(--neon-cyan));
   font: 14px/1.5 var(--font-mono);
   background:
     radial-gradient(circle at 90% 8%, rgba(0, 243, 255, 0.08), transparent 34%),
@@ -257,5 +298,51 @@
 
 .code-line pre {
   margin: 0;
-  color: var(--text-main);
+  color: color-mix(in srgb, var(--text-main) 88%, var(--neon-cyan));
+}
+
+.code-token {
+  transition: color 160ms ease, text-shadow 160ms ease, filter 160ms ease;
+}
+
+.code-token.keyword,
+.code-token.literal {
+  color: var(--neon-magenta);
+  font-weight: 700;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-magenta) 48%, transparent);
+}
+
+.code-token.type {
+  color: var(--neon-cyan);
+  font-weight: 650;
+  text-shadow: 0 0 7px color-mix(in srgb, var(--neon-cyan) 42%, transparent);
+}
+
+.code-token.function {
+  color: var(--neon-lime);
+  font-weight: 650;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-lime) 38%, transparent);
+}
+
+.code-token.number {
+  color: #ffd166;
+  text-shadow: 0 0 7px rgba(255, 209, 102, 0.3);
+}
+
+.code-token.string {
+  color: #8dff9f;
+  text-shadow: 0 0 7px rgba(141, 255, 159, 0.28);
+}
+
+.code-token.comment {
+  color: color-mix(in srgb, var(--text-muted) 72%, var(--neon-cyan));
+  font-style: italic;
+}
+
+.code-token.operator {
+  color: color-mix(in srgb, var(--neon-cyan) 72%, var(--text-main));
+}
+
+.code-line.highlighted .code-token {
+  filter: brightness(1.2) saturate(1.15);
 }

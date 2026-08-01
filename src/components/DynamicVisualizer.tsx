@@ -297,8 +297,19 @@ export const DynamicVisualizer = ({
   const previousStep = currentIndex > 0 ? steps[currentIndex - 1] : undefined;
   const supportsBuilder = (simulationInput.kind === 'graph' || simulationInput.kind === 'tree')
     && Boolean(simulationInput.graph);
-  const showBuilder = supportsBuilder && (isEditingInput || !currentStep);
+  const showBuilder = supportsBuilder && isEditingInput;
   const panelTitle = showBuilder ? t('inputBuilder', locale) : t('simulationView', locale);
+  const modeToggle = supportsBuilder ? (
+    <div className="visualizer-mode-toggle">
+      <button
+        type="button"
+        aria-pressed={showBuilder}
+        onClick={() => setIsEditingInput(!showBuilder)}
+      >
+        {showBuilder ? t('showSimulation', locale) : t('editInput', locale)}
+      </button>
+    </div>
+  ) : null;
   const currentVariables = currentStep?.visualData.vars ?? {};
   const previousVariables = previousStep?.visualData.vars ?? {};
   const pinnedEntries = pinnedVariables.map((name) => {
@@ -317,6 +328,7 @@ export const DynamicVisualizer = ({
       <div className="dynamic-visualizer">
         <div className="collapsed-panel-header">
           <span>{panelTitle}</span>
+          {modeToggle}
           <button
             type="button"
             className="panel-toggle"
@@ -373,20 +385,7 @@ export const DynamicVisualizer = ({
       <div className="visualizer-header">
         <h2>{panelTitle}</h2>
         <div className="visualizer-header-actions">
-          {supportsBuilder && (
-            <div className="visualizer-mode-toggle">
-              {!showBuilder && (
-                <button type="button" onClick={() => setIsEditingInput(true)}>
-                  {t('editInput', locale)}
-                </button>
-              )}
-              {showBuilder && currentStep && (
-                <button type="button" onClick={() => setIsEditingInput(false)}>
-                  {t('showSimulation', locale)}
-                </button>
-              )}
-            </div>
-          )}
+          {modeToggle}
           {!showBuilder && currentStep && <span>{currentIndex + 1} / {steps.length}</span>}
           <button
             type="button"

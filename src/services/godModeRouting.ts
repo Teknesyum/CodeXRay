@@ -49,7 +49,9 @@ export const canonicalCustomTitle = (request: string, locale: Locale): string =>
     ? locale === 'tr' ? 'LeetCode 198 — Ev Soyguncusu' : 'LeetCode 198 — House Robber'
     : dpTemplate === 'lcs-2d-dp'
       ? locale === 'tr' ? 'LeetCode 1143 — En Uzun Ortak Alt Dizi' : 'LeetCode 1143 — Longest Common Subsequence'
-      : dpTemplate === 'coin-change-1d-dp'
+    : dpTemplate === 'lcs-space-optimized-1d-dp'
+      ? locale === 'tr' ? 'LeetCode 1143 — Bellek Optimize LCS' : 'LeetCode 1143 — Space-Optimized LCS'
+    : dpTemplate === 'coin-change-1d-dp'
         ? locale === 'tr' ? 'LeetCode 322 — Bozuk Para Değişimi' : 'LeetCode 322 — Coin Change'
       : dpTemplate === 'edit-distance-2d-dp'
         ? locale === 'tr' ? 'LeetCode 72 — Düzenleme Mesafesi' : 'LeetCode 72 — Edit Distance'
@@ -80,6 +82,7 @@ export const routeGodModeRequest = (
   question: string,
   steps: SimulationStep[],
   currentIndex: number,
+  algorithmName = '',
 ): GodModeIntent | null => {
   const text = normalizeGodModeText(question);
   if (/\b(radyo|radio)\b.*\b(ac|goster|open|show)\b/.test(text)) {
@@ -117,6 +120,12 @@ export const routeGodModeRequest = (
   const dpTemplate = resolveDpTemplateFromRequest(question);
   if (dpTemplate && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
     return { type: 'create-algorithm', template: dpTemplate };
+  }
+  const requestsMemoryOptimization = /\b(bellek|memory|space)\b.*\b(optimi|min|azalt|dusur)|\bo min m n\b/.test(text);
+  const currentAlgorithmIsLcs = /\b(lcs|longest common subsequence|en uzun ortak alt dizi)\b/i.test(algorithmName);
+  if (requestsMemoryOptimization && currentAlgorithmIsLcs
+    && /\b(yaz|olustur|kur|simule|goster|uygula|write|create|simulate|show|apply)\w*\b/.test(text)) {
+    return { type: 'create-algorithm', template: 'lcs-space-optimized-1d-dp' };
   }
   if (/\b(iki yonlu|cift yonlu|bidirectional)\b/.test(text) && /\bbfs\b/.test(text)
     && /\b(yaz|olustur|kur|ekle|generate|create|write|build)\b/.test(text)) {

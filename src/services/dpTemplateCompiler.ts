@@ -20,6 +20,7 @@ import { createTeachingPlan } from './teachingPlan';
 export type DpTemplateId =
   | 'house-robber-1d-dp'
   | 'lcs-2d-dp'
+  | 'lcs-space-optimized-1d-dp'
   | 'longest-palindrome-interval-dp'
   | 'coin-change-1d-dp'
   | 'edit-distance-2d-dp'
@@ -51,6 +52,10 @@ const normalized = (value: string) => value
 export const resolveDpTemplateFromRequest = (request: string): DpTemplateId | null => {
   const text = normalized(request);
   if (/\b(house robber|ev soyguncusu|leetcode 198|lc 198)\b/.test(text)) return 'house-robber-1d-dp';
+  if (/\b(lcs|longest common subsequence|en uzun ortak alt dizi|leetcode 1143|lc 1143)\b/.test(text)
+    && /\b(space|memory|bellek)\b.*\b(optimi|min)|\bo min m n\b/.test(text)) {
+    return 'lcs-space-optimized-1d-dp';
+  }
   if (/\b(lcs|longest common subsequence|en uzun ortak alt dizi|leetcode 1143|lc 1143)\b/.test(text)) return 'lcs-2d-dp';
   if (/\b(coin change|bozuk para degisimi|leetcode 322|lc 322)\b/.test(text)) return 'coin-change-1d-dp';
   if (/\b(edit distance|duzenleme mesafesi|levenshtein|leetcode 72|lc 72)\b/.test(text)) return 'edit-distance-2d-dp';
@@ -339,6 +344,130 @@ const lcsArtifact = (request: string, locale: Locale, workspace: WorkspaceSnapsh
     visualization: { version: 1, type: 'matrix', activeVariables: ['i', 'j'], queuedVariables: ['diagonal', 'up', 'left'], visitedVariables: ['filledCells'] },
     analysis: 'State: dp[i][j] is the LCS length of prefixes a[0..i) and b[0..j).\nTransition: matching characters use the diagonal + 1; otherwise use max(up, left).\nFill order: row by row after zero-prefix bases.\nTime Complexity: O(mn)\nSpace Complexity: O(mn)',
     invariants: ['Before dp[i][j] is computed, its diagonal, upper, and left dependencies are final.'],
+  };
+};
+
+const optimizedLcsArtifact = (request: string, locale: Locale, workspace: WorkspaceSnapshotV1): DpArtifact => {
+  const explicit = requestStrings(request);
+  const workspaceFirst = workspace.simulationInput.kind === 'string'
+    ? workspace.simulationInput.text
+    : undefined;
+  const workspaceSecond = workspace.simulationInput.kind === 'string'
+    ? workspace.simulationInput.parameters?.other
+    : undefined;
+  const first = explicit[0] ?? workspaceFirst ?? 'abcde';
+  const second = explicit[1] ?? workspaceSecond ?? 'ace';
+  const rows = first.length >= second.length ? first : second;
+  const columns = first.length >= second.length ? second : first;
+  const dp = Array<number>(columns.length + 1).fill(0);
+  const steps: SimulationStep[] = [arrayStep([...dp], { base: 0 }, {
+    text1: first,
+    text2: second,
+    rows,
+    columns,
+    row: 0,
+    filledStates: 1,
+  }, 7, locale === 'tr'
+    ? `Kısa metin sütun seçildi; ${columns.length + 1} hücrelik tek DP satırı O(min(m,n)) bellek kullanır.`
+    : `The shorter text is used for columns; one ${columns.length + 1}-cell DP row uses O(min(m,n)) memory.`)];
+
+  let filledStates = 1;
+  for (let row = 1; row <= rows.length; row += 1) {
+    let diagonal = 0;
+    for (let column = 1; column <= columns.length; column += 1) {
+      const upper = dp[column];
+      const left = dp[column - 1];
+      const match = rows[row - 1] === columns[column - 1];
+      dp[column] = match ? diagonal + 1 : Math.max(upper, left);
+      filledStates += 1;
+      steps.push(arrayStep([...dp], {
+        active: column,
+        left: column - 1,
+        upper: column,
+      }, {
+        text1: first,
+        text2: second,
+        rows,
+        columns,
+        i: row,
+        j: column,
+        rowCharacter: rows[row - 1],
+        columnCharacter: columns[column - 1],
+        match,
+        diagonal,
+        upper,
+        left,
+        value: dp[column],
+        filledStates,
+      }, match ? 11 : 13, locale === 'tr'
+        ? match
+          ? `'${rows[row - 1]}' eşleşir: dp[${column}] = önceki diagonal ${diagonal} + 1 = ${dp[column]}.`
+          : `Karakterler farklı: dp[${column}] = max(üst=${upper}, sol=${left}) = ${dp[column]}.`
+        : match
+          ? `'${rows[row - 1]}' matches: dp[${column}] = previous diagonal ${diagonal} + 1 = ${dp[column]}.`
+          : `Characters differ: dp[${column}] = max(upper=${upper}, left=${left}) = ${dp[column]}.`));
+      diagonal = upper;
+    }
+  }
+
+  const result = dp[columns.length] ?? 0;
+  steps.push(arrayStep([...dp], { result: columns.length }, {
+    text1: first,
+    text2: second,
+    rows,
+    columns,
+    result,
+    memoryCells: columns.length + 1,
+    filledStates,
+  }, 17, locale === 'tr'
+    ? `LCS uzunluğu ${result}; yalnızca ${columns.length + 1} DP hücresi tutuldu.`
+    : `The LCS length is ${result}; only ${columns.length + 1} DP cells were retained.`));
+
+  const title = locale === 'tr'
+    ? 'LeetCode 1143 — Bellek Optimize LCS'
+    : 'LeetCode 1143 — Space-Optimized LCS';
+  return {
+    id: 'lcs_space_optimized_1d_dp',
+    title,
+    input: {
+      kind: 'string',
+      text: first,
+      parameters: { other: second },
+      origin: explicit.length ? 'user' : workspaceFirst && workspaceSecond ? 'user' : 'agent',
+    },
+    inputDescription: locale === 'tr' ? 'Karşılaştırılacak iki metin' : 'Two strings to compare',
+    constraints: ['1 <= text1.length, text2.length <= 1000', `Interactive visualization uses at most ${MAX_ITEMS} characters per text.`],
+    source: source([
+      'class Solution {',
+      '  public int longestCommonSubsequence(String text1, String text2) {',
+      '    String rows = text1.length() >= text2.length() ? text1 : text2;',
+      '    String columns = text1.length() >= text2.length() ? text2 : text1;',
+      '    int[] dp = new int[columns.length() + 1];',
+      '    for (int i = 1; i <= rows.length(); i++) {',
+      '      int diagonal = 0;',
+      '      for (int j = 1; j <= columns.length(); j++) {',
+      '        int upper = dp[j];',
+      '        if (rows.charAt(i - 1) == columns.charAt(j - 1))',
+      '          dp[j] = diagonal + 1;',
+      '        else',
+      '          dp[j] = Math.max(dp[j], dp[j - 1]);',
+      '        diagonal = upper;',
+      '      }',
+      '    }',
+      '    return dp[columns.length()];',
+      '  }',
+      '}',
+    ], { 'read-input': 3, base: 5, match: 11, mismatch: 13, result: 17 }, 'java'),
+    steps,
+    visualization: {
+      version: 1,
+      type: 'array',
+      activeVariables: ['i', 'j'],
+      queuedVariables: ['diagonal', 'upper', 'left'],
+      visitedVariables: ['filledStates'],
+    },
+    analysis: 'State: dp[j] is the LCS length for the processed row prefix and columns[0..j).\nTransition: a match uses the saved previous-row diagonal + 1; otherwise use max(previous-row upper, current-row left).\nFill order: left to right for every row while preserving upper before overwrite.\nTime Complexity: O(mn)\nSpace Complexity: O(min(m,n))',
+    invariants: ['Before dp[j] is overwritten, diagonal stores the old dp[j-1], upper stores the old dp[j], and dp[j-1] is final for the current row.'],
   };
 };
 
@@ -671,6 +800,8 @@ export const compileDpTemplatePackage = (options: {
     ? houseRobberArtifact(options.request, options.locale, options.workspace)
     : options.template === 'lcs-2d-dp'
       ? lcsArtifact(options.request, options.locale, options.workspace)
+      : options.template === 'lcs-space-optimized-1d-dp'
+        ? optimizedLcsArtifact(options.request, options.locale, options.workspace)
       : options.template === 'coin-change-1d-dp'
         ? coinChangeArtifact(options.request, options.locale)
         : options.template === 'edit-distance-2d-dp'

@@ -54,6 +54,15 @@ describe('God Mode routing', () => {
     expect(routeGodModeRequest('Nodeları daha geniş yay, iki cepheyi farklı şekillerle göster', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
+  it('resolves a follow-up memory optimization against the committed LCS workspace', () => {
+    expect(routeGodModeRequest(
+      'bellek O(m*n) olmasına gerek yok O(min(m,n)) yap; kodu yaz ve simüle et',
+      [],
+      0,
+      'LeetCode 1143 — Longest Common Subsequence',
+    )).toEqual({ type: 'create-algorithm', template: 'lcs-space-optimized-1d-dp' });
+  });
+
   it.each([
     'LeetCode 486 Predict the Winner sorusunu çöz ve simüle et',
     'Predict the Winner çözümünü 2D DP ile göster',

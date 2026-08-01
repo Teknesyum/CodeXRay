@@ -413,7 +413,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   );
   const [radioMinimizeSeconds, setRadioMinimizeSeconds] = useState(() => {
     const parsed = Number(readStorage('codexray.radio.minimizeSeconds'));
-    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 16 ? parsed : 4;
+    return Number.isInteger(parsed) && parsed >= 1 && parsed <= 16 ? parsed : 2;
   });
   const [isAiMaximized, setIsAiMaximized] = useState(false);
   const [locale, setLocale] = useState<Locale>(() =>

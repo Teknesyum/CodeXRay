@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import { algorithmRegistry } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
@@ -44,12 +45,61 @@ const recentTypingStart = (source: string, visibleWords = 3): number => {
   return 0;
 };
 
+const codeKeywords = new Set([
+  'abstract', 'break', 'case', 'catch', 'class', 'const', 'continue', 'default',
+  'do', 'else', 'enum', 'extends', 'final', 'finally', 'for', 'if', 'implements',
+  'import', 'namespace', 'new', 'package', 'private', 'protected', 'public',
+  'return', 'static', 'struct', 'super', 'switch', 'template', 'this', 'throw',
+  'throws', 'try', 'typename', 'using', 'virtual', 'while',
+]);
+
+const codeTypes = new Set([
+  'ArrayList', 'Arrays', 'boolean', 'bool', 'char', 'Deque', 'double', 'float',
+  'HashMap', 'HashSet', 'int', 'Integer', 'List', 'long', 'Map', 'Math', 'Queue',
+  'Set', 'String', 'StringBuilder', 'void', 'vector',
+]);
+
+const codeLiterals = new Set(['false', 'null', 'nullptr', 'true']);
+const codeTokenPattern = /\/\/.*|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b|==|!=|<=|>=|&&|\|\||\+\+|--|->|::|[{}()[\];,.<>+\-*/%=!&|?:]/g;
+
+const tokenClassName = (token: string, restOfLine: string): string | null => {
+  if (token.startsWith('//') || token.startsWith('/*')) return 'comment';
+  if (token.startsWith('"') || token.startsWith("'")) return 'string';
+  if (/^\d/.test(token)) return 'number';
+  if (codeKeywords.has(token)) return 'keyword';
+  if (codeTypes.has(token)) return 'type';
+  if (codeLiterals.has(token)) return 'literal';
+  if (/^[A-Za-z_]\w*$/.test(token) && /^\s*\(/.test(restOfLine)) return 'function';
+  if (/^[^A-Za-z0-9_'"/]+$/.test(token)) return 'operator';
+  return null;
+};
+
+const renderHighlightedCodeLine = (line: string) => {
+  const output = [];
+  let cursor = 0;
+
+  for (const match of line.matchAll(codeTokenPattern)) {
+    const index = match.index;
+    if (index > cursor) output.push(line.slice(cursor, index));
+    const token = match[0];
+    const tokenClass = tokenClassName(token, line.slice(index + token.length));
+    output.push(tokenClass ? (
+      <span className={`code-token ${tokenClass}`} key={`${index}-${token}`}>{token}</span>
+    ) : token);
+    cursor = index + token.length;
+  }
+
+  if (cursor < line.length) output.push(line.slice(cursor));
+  return output;
+};
+
 interface CodeEditorProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
 
 export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => {
+  const editableHighlightRef = useRef<HTMLPreElement>(null);
   const {
     code,
     setCode,
@@ -74,6 +124,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
   const inputHelpKey = inputHelpKeyForAlgorithm(algorithmName, simulationInput.kind);
   const parameterDefinitions = getAlgorithmParameterDefinitions(algorithmName);
   const neonTypingStart = recentTypingStart(code);
+  const editableCodeLines = code.split('\n');
 
   if (collapsed) {
     return (
@@ -238,18 +289,37 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
               <span className="god-mode-code-caret" aria-hidden="true" />
             </pre>
           ) : (
-            <textarea
-              aria-label={t('sourceCodeLabel', locale)}
-              className="code-textarea"
-              value={code}
-              onChange={(event) => {
-                setCode(event.target.value);
-                setAlgorithmName('Custom Code');
-                resetTimeline();
-              }}
-              placeholder={t('placeholderCode', locale)}
-              spellCheck="false"
-            />
+            <div className="code-edit-layer">
+              <pre
+                ref={editableHighlightRef}
+                className="code-highlight-overlay"
+                aria-hidden="true"
+              >
+                {editableCodeLines.map((line, index) => (
+                  <span key={`${index}-${line}`}>
+                    {renderHighlightedCodeLine(line)}
+                    {index < editableCodeLines.length - 1 ? '\n' : null}
+                  </span>
+                ))}
+              </pre>
+              <textarea
+                aria-label={t('sourceCodeLabel', locale)}
+                className="code-textarea"
+                value={code}
+                onScroll={(event) => {
+                  if (!editableHighlightRef.current) return;
+                  editableHighlightRef.current.scrollTop = event.currentTarget.scrollTop;
+                  editableHighlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                }}
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setAlgorithmName('Custom Code');
+                  resetTimeline();
+                }}
+                placeholder={t('placeholderCode', locale)}
+                spellCheck="false"
+              />
+            </div>
           )
         ) : (
           <div className="code-display" aria-label={`${localizeAlgorithmName(algorithmName, locale)} ${t('execution', locale)}`}>
@@ -259,7 +329,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
                 className={`code-line ${currentStep?.lineNumber === index + 1 ? 'highlighted' : ''}`}
               >
                 <span className="line-number">{index + 1}</span>
-                <pre>{line}</pre>
+                <pre>{renderHighlightedCodeLine(line)}</pre>
               </div>
             ))}
           </div>

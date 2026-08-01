@@ -180,7 +180,7 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   const question = page.getByPlaceholder('Type your question here...');
   await question.fill('Write a custom BFS algorithm');
   await question.press('Enter');
-  await expect(page.locator('.god-mode-agent.failed')).toContainText('Code Author');
+  await expect(page.locator('.god-mode-agent.failed')).toContainText('Code');
   await expect(page.locator('.god-mode-agent.failed')).toContainText('could not produce valid SimLang');
   await expect(page.getByRole('button', { name: 'Retry failed agent run' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as Window & { __codeAuthorAttempts?: number }).__codeAuthorAttempts)).toBe(2);

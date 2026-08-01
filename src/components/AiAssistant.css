@@ -152,7 +152,7 @@
 }
 
 .spin-icon {
-  animation: spin 1s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 @keyframes spin {
@@ -405,10 +405,12 @@
 .god-mode-progress {
   position: relative;
   z-index: 3;
-  display: grid;
-  gap: 4px;
-  max-height: 112px;
-  padding: 5px 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 4px 8px 5px;
   overflow: hidden;
   border-bottom: 1px solid rgba(0, 243, 255, 0.35);
   background:
@@ -440,6 +442,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex: 0 0 auto;
 }
 
 .god-mode-title {
@@ -455,7 +458,7 @@
 }
 
 .god-mode-percent {
-  margin-left: auto;
+  margin-left: 3px;
   color: var(--neon-lime);
   font: 700 0.62rem var(--font-mono);
 }
@@ -493,7 +496,11 @@
 }
 
 .god-mode-real-progress {
-  height: 3px;
+  position: absolute;
+  right: 8px;
+  bottom: 1px;
+  left: 8px;
+  height: 2px;
   overflow: hidden;
   border: 1px solid rgba(0, 243, 255, 0.16);
   border-radius: 999px;
@@ -510,20 +517,26 @@
 }
 
 .god-mode-agent-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 3px 5px;
-  max-height: 72px;
-  overflow-y: auto;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.god-mode-agent-list::-webkit-scrollbar {
+  display: none;
 }
 
 .god-mode-agent {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto;
+  display: inline-flex;
   align-items: center;
   gap: 3px;
-  min-width: 0;
-  padding: 2px 4px;
+  flex: 0 0 auto;
+  max-width: 94px;
+  padding: 2px 5px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 6px;
   color: var(--text-muted);
@@ -553,11 +566,22 @@
 .god-mode-agent.running .agent-state-icon,
 .god-mode-agent.retrying .agent-state-icon {
   color: var(--neon-cyan);
-  animation: spin 1.4s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(0, 243, 255, 0.9));
+  animation: god-gear-spin 2.1s linear infinite;
+}
+
+@keyframes god-gear-spin {
+  to { transform: rotate(360deg); }
 }
 
 .god-mode-agent.completed .agent-state-icon {
   color: var(--neon-lime);
+}
+
+.god-mode-agent:focus-visible {
+  outline: 1px solid var(--neon-cyan);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.34);
 }
 
 .agent-role,
@@ -567,12 +591,81 @@
   white-space: nowrap;
 }
 
-.agent-status {
-  opacity: 0.64;
-}
-
 .agent-summary {
   display: none;
+}
+
+.god-mode-agent-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  padding: 7px 9px;
+  border: 1px solid rgba(0, 243, 255, 0.58);
+  border-radius: 8px;
+  color: #eaffff;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(0, 243, 255, 0.18), transparent 48%),
+    linear-gradient(135deg, rgba(3, 17, 25, 0.97), rgba(23, 2, 27, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(255, 0, 255, 0.12),
+    0 0 16px rgba(0, 243, 255, 0.2),
+    0 10px 28px rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(16px) saturate(150%);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: god-tooltip-in 130ms ease-out both;
+}
+
+.god-mode-agent-tooltip::before {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid rgba(0, 243, 255, 0.58);
+  border-left: 1px solid rgba(0, 243, 255, 0.58);
+  content: '';
+  background: rgba(4, 17, 25, 0.98);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.agent-tooltip-heading {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--neon-cyan);
+  font: 700 0.62rem var(--font-mono);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+}
+
+.agent-tooltip-heading span {
+  margin-left: auto;
+  color: var(--neon-lime);
+  font-size: 0.56rem;
+  opacity: 0.82;
+}
+
+.agent-tooltip-details {
+  display: -webkit-box;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: 0.6rem/1.35 var(--font-mono);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+@keyframes god-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
 .god-mode-toggle {

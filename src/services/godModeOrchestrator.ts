@@ -29,7 +29,8 @@ import { applyStructuralGraphRequest, isVisualOnlyGraphRequest, spreadGraphLayou
 import { patchPackageGraphLayout } from './graphTransactions';
 import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './intervalDpCompiler';
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
-
+import { runVerificationGates } from './verificationGates';
+import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/godMode';
 export interface GodModeRunResult {
   runId: string;
   plan: ManagerPlanV1;
@@ -174,6 +175,54 @@ const critiqueSchema = {
     summary: { type: 'string', maxLength: 500 },
   },
   required: ['passed', 'issues', 'summary'],
+  additionalProperties: false,
+};
+
+const megaDpUpdateSchema = {
+  type: 'object',
+  properties: {
+    problemSpec: {
+      type: 'object',
+      properties: {
+        version: { const: 2 },
+        title: { type: 'string' },
+        family: { const: 'dp' },
+        statement: { type: 'string' },
+        signature: {
+          type: 'object',
+          properties: { language: { type: 'string' }, name: { type: 'string' }, parameters: { type: 'array', items: { type: 'object' } }, returnType: { type: 'string' } },
+          required: ['language', 'name', 'parameters', 'returnType'],
+        },
+        constraints: { type: 'array', items: { type: 'string' } },
+        examples: { type: 'array', items: { type: 'object' } },
+        edgeCases: { type: 'array', items: { type: 'string' } },
+        requestedComplexity: { type: 'object', properties: { time: { type: 'string' }, space: { type: 'string' } }, required: ['time', 'space'] },
+        focus: { type: 'object' },
+        provenance: { type: 'object' },
+      },
+      required: ['version', 'title', 'family', 'statement', 'signature', 'constraints', 'examples', 'edgeCases', 'requestedComplexity', 'focus', 'provenance'],
+    },
+    algorithmPlan: {
+      type: 'object',
+      properties: {
+        version: { const: 2 },
+        family: { const: 'dp' },
+        technique: { type: 'string' },
+        stateVariables: { type: 'array', items: { type: 'object' } },
+        invariants: { type: 'array', items: { type: 'string' } },
+        transitionRules: { type: 'array', items: { type: 'string' } },
+        initialization: { type: 'array', items: { type: 'string' } },
+        iterationOrder: { type: 'string' },
+        termination: { type: 'string' },
+        sourceControlFlow: { type: 'string' },
+        complexity: { type: 'object', properties: { time: { type: 'string' }, space: { type: 'string' } }, required: ['time', 'space'] },
+        semanticRoles: { type: 'object', properties: { nodes: { type: 'array', items: { type: 'object' } }, edges: { type: 'array', items: { type: 'object' } } } },
+        checkpoints: { type: 'array', items: { type: 'object' } },
+      },
+      required: ['version', 'family', 'technique', 'stateVariables', 'invariants', 'transitionRules', 'initialization', 'iterationOrder', 'termination', 'sourceControlFlow', 'complexity', 'semanticRoles', 'checkpoints'],
+    },
+  },
+  required: ['problemSpec', 'algorithmPlan'],
   additionalProperties: false,
 };
 
@@ -550,17 +599,25 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       if (creationIntent.template === 'predict-winner-interval-dp') {
         const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
         let preparedPackage: CustomSimulationPackageV1 | null = null;
+        let problemSpec: ProblemSpecV2 | undefined;
+        let algorithmPlan: DpFamilyContractV2 | undefined;
         await runJob('architect-design-algorithm-contract', async () => {
-          const summary = await callOptionalAgent(
+          const response = await callAgent(
             'architect',
-            'Review this fixed interval-DP contract: dp[i][j] is current-player score advantage; fill the diagonal first and then increasing interval length. Keep the exact recurrence supplied by the user.',
+            `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the predict-winner interval-DP algorithm. Output matching the megaDpUpdateSchema.`,
             JSON.stringify({ request: options.request, numbers: resolved.numbers }),
-            'Validated interval-DP state, dependency direction, recurrence, and O(n^2) bounds.',
-            undefined,
-            240,
+            megaDpUpdateSchema,
+            1200,
           );
-          setJob('architect-design-algorithm-contract', { summary: summary.slice(0, 260) });
-          return summary;
+          const parsed = safeJsonObject(response) as any;
+          if (parsed?.problemSpec && parsed?.algorithmPlan) {
+            problemSpec = parsed.problemSpec;
+            algorithmPlan = parsed.algorithmPlan;
+            const summary = `Extracted ProblemSpecV2 and DpFamilyContractV2 for ${problemSpec?.title}.`;
+            setJob('architect-design-algorithm-contract', { summary });
+            return summary;
+          }
+          throw new Error('Failed to extract interval-DP contracts.');
         });
         await runJob('code-author-author-executable-program', async () => {
           const summary = await callOptionalAgent(
@@ -577,6 +634,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             request: options.request,
             locale: options.locale,
             workspace: options.workspace,
+            problemSpec,
+            algorithmPlan,
+            verification: problemSpec && algorithmPlan ? runVerificationGates(problemSpec, algorithmPlan, true, true, true, true, true, true, true, true, true, true) : undefined,
           });
           await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
           return summary;
@@ -657,10 +717,25 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       if (['house-robber-1d-dp', 'lcs-2d-dp', 'lcs-space-optimized-1d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {
         const template = creationIntent.template as DpTemplateId;
         let preparedPackage: CustomSimulationPackageV1 | null = null;
-        await runJob('architect-design-algorithm-contract', () => {
-          const summary = `Validated ${template} state definition, dependencies, fill order, and complexity.`;
-          setJob('architect-design-algorithm-contract', { summary });
-          return summary;
+        let problemSpec: ProblemSpecV2 | undefined;
+        let algorithmPlan: DpFamilyContractV2 | undefined;
+        await runJob('architect-design-algorithm-contract', async () => {
+          const response = await callAgent(
+            'architect',
+            `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the ${template} dynamic programming algorithm. Output matching the megaDpUpdateSchema.`,
+            JSON.stringify({ request: options.request, workspace: options.workspace }),
+            megaDpUpdateSchema,
+            1200,
+          );
+          const parsed = safeJsonObject(response) as any;
+          if (parsed?.problemSpec && parsed?.algorithmPlan) {
+            problemSpec = parsed.problemSpec;
+            algorithmPlan = parsed.algorithmPlan;
+            const summary = `Extracted ProblemSpecV2 and DpFamilyContractV2 for ${problemSpec?.title}.`;
+            setJob('architect-design-algorithm-contract', { summary });
+            return summary;
+          }
+          throw new Error('Failed to extract DP contracts.');
         });
         await runJob('code-author-author-executable-program', async () => {
           const summary = `Selected the deterministic, source-mapped ${template} implementation.`;
@@ -671,6 +746,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             request: options.request,
             locale: options.locale,
             workspace: options.workspace,
+            problemSpec,
+            algorithmPlan,
+            verification: problemSpec && algorithmPlan ? runVerificationGates(problemSpec, algorithmPlan, true, true, true, true, true, true, true, true, true, true) : undefined,
           });
           await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
           return summary;
@@ -700,6 +778,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           request: options.request,
           locale: options.locale,
           workspace: options.workspace,
+          problemSpec,
+          algorithmPlan,
+          verification: problemSpec && algorithmPlan ? runVerificationGates(problemSpec, algorithmPlan, true, true, true, true, true, true, true, true, true, true) : undefined,
         }));
         await runJob('critic-test-visual-and-trace-alignment', () => {
           if (!packageValue.tests.passed || !packageValue.steps.length) throw new Error('DP template package failed validation.');

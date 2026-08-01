@@ -235,6 +235,9 @@ export const compilePredictWinnerPackage = (options: {
   request: string;
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
+  problemSpec?: import('../types/godMode').ProblemSpecV2;
+  algorithmPlan?: import('../types/godMode').AlgorithmPlanV2;
+  verification?: import('../types/godMode').VerificationGatesV1;
 }): CustomSimulationPackageV1 => {
   const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
   const inputValue: SimulationInput = {
@@ -295,5 +298,8 @@ export const compilePredictWinnerPackage = (options: {
         message: `${steps.length} deterministic interval-DP steps; result=${String(steps.at(-1)?.visualData.vars.winner)}.`,
       }],
     },
+    problemSpec: options.problemSpec,
+    algorithmPlan: options.algorithmPlan,
+    verification: options.verification,
   };
 };

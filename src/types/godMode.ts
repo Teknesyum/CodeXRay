@@ -402,6 +402,9 @@ export interface CustomSimulationPackageV1 {
   checkpoints: DiscussionCheckpointV1[];
   teachingPlan: TeachingPlanV1;
   tests: PackageTestReportV1;
+  problemSpec?: ProblemSpecV2;
+  algorithmPlan?: AlgorithmPlanV2;
+  verification?: VerificationGatesV1;
 }
 
 export interface AlgorithmDesignV1 {
@@ -428,3 +431,66 @@ export type UiActionV1 =
   | { type: 'set-theme'; theme: 'neon' | 'dark' | 'light' }
   | { type: 'set-radio-state'; state: 'open' | 'play' | 'pause' }
   | { type: 'set-workspace-layout'; layout: 'focus-code' | 'focus-simulation' | 'focus-assistant' | 'balanced' };
+
+export interface ProblemSpecV2 {
+  version: 2;
+  platform?: string;
+  problemId?: string;
+  title: string;
+  family: 'dp' | 'array' | 'graph' | 'tree' | 'math' | 'string' | 'greedy' | 'backtracking' | 'other';
+  statement: string;
+  signature: {
+    language: 'cpp' | 'java' | 'python' | 'javascript';
+    name: string;
+    parameters: Array<{ name: string; type: string }>;
+    returnType: string;
+  };
+  constraints: string[];
+  allowedMutations?: string[];
+  examples: Array<{ input: string; output: string; explanation?: string }>;
+  edgeCases: string[];
+  requestedComplexity: { time: string; space: string };
+  focus: {
+    visualization?: string;
+    teaching?: string;
+  };
+  provenance: Record<string, 'user' | 'inferred' | 'registry'>;
+}
+
+export interface DpFamilyContractV2 {
+  version: 2;
+  family: 'dp';
+  technique: '1d' | '2d' | 'interval' | 'grid' | 'bitmask' | 'compressed';
+  stateVariables: Array<{ name: string; meaning: string }>;
+  invariants: string[];
+  transitionRules: string[];
+  initialization: string[];
+  iterationOrder: string;
+  termination: string;
+  sourceControlFlow: string;
+  complexity: { time: string; space: string };
+  semanticRoles: {
+    nodes: Array<{ id: string; role: string }>;
+    edges: Array<{ id: string; role: string }>;
+  };
+  checkpoints: Array<{ name: string; condition: string; focus: string }>;
+  verificationOracle?: string;
+}
+
+export type AlgorithmPlanV2 = DpFamilyContractV2;
+
+export interface VerificationGatesV1 {
+  version: 1;
+  schemaValid: boolean;
+  budgetValid: boolean;
+  lineMappingValid: boolean;
+  examplesPassed: boolean;
+  edgeCasesPassed: boolean;
+  oraclePassed?: boolean;
+  propertyTestsPassed: boolean;
+  finalResultValid: boolean;
+  traceDeterministic: boolean;
+  visualCompleteness: boolean;
+  complexityConsistent: boolean;
+  transactionSafe: boolean;
+}

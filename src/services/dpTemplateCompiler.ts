@@ -795,6 +795,9 @@ export const compileDpTemplatePackage = (options: {
   request: string;
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
+  problemSpec?: import('../types/godMode').ProblemSpecV2;
+  algorithmPlan?: import('../types/godMode').AlgorithmPlanV2;
+  verification?: import('../types/godMode').VerificationGatesV1;
 }): CustomSimulationPackageV1 => {
   const artifact = options.template === 'house-robber-1d-dp'
     ? houseRobberArtifact(options.request, options.locale, options.workspace)
@@ -837,5 +840,8 @@ export const compileDpTemplatePackage = (options: {
       passed: true,
       results: [{ id: 'active-input', passed: true, message: `${artifact.steps.length} deterministic DP states generated.` }],
     },
+    problemSpec: options.problemSpec,
+    algorithmPlan: options.algorithmPlan,
+    verification: options.verification,
   };
 };

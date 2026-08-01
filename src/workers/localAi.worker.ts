@@ -90,9 +90,21 @@ let activeInferenceId: number | null = null;
 const supportsOpfs = typeof navigator !== 'undefined'
   && Boolean(navigator.storage)
   && 'getDirectory' in navigator.storage;
+export const selectLocalAiCacheBackend = (
+  hostname: string,
+  opfsAvailable: boolean,
+): 'opfs' | 'cache' => {
+  const normalizedHost = hostname.toLowerCase();
+  const isLocalDevelopment = normalizedHost === 'localhost'
+    || normalizedHost === '127.0.0.1'
+    || normalizedHost === '::1'
+    || normalizedHost === '[::1]';
+  return opfsAvailable && !isLocalDevelopment ? 'opfs' : 'cache';
+};
+const workerHostname = typeof self !== 'undefined' ? self.location?.hostname ?? '' : '';
 const localAiAppConfig = {
   ...prebuiltAppConfig,
-  cacheBackend: supportsOpfs ? 'opfs' as const : 'cache' as const,
+  cacheBackend: selectLocalAiCacheBackend(workerHostname, supportsOpfs),
 };
 
 const loadedEngine = (): MLCEngine => {
@@ -192,7 +204,7 @@ const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentRe
     message.instructions,
     'Use only supplied workspace state and artifacts. Never claim that application state changed.',
     expectsJson
-      ? 'Return exactly one JSON object matching the required schema. Do not use markdown.'
+      ? `Return exactly one JSON object matching the required schema. Do not use markdown. Write every human-readable string field in ${message.locale === 'tr' ? 'Turkish' : 'English'}; keep source code and complexity notation unchanged.`
       : `Respond concisely in ${message.locale === 'tr' ? 'Turkish' : 'English'}.`,
   ].join('\n');
   const schemaText = message.responseSchema ? JSON.stringify(message.responseSchema) : '';
@@ -233,6 +245,18 @@ const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentRe
     inferenceMs: 0,
     schemaMode: message.responseSchema ? 'json-schema' : message.jsonMode ? 'json-object' : 'none',
   };
+};
+
+export const mergeContinuationText = (answer: string, continuation: string): string => {
+  const left = answer.trimEnd();
+  const right = continuation.trimStart();
+  const maximumOverlap = Math.min(left.length, right.length, 2_000);
+  for (let overlap = maximumOverlap; overlap >= 16; overlap -= 1) {
+    if (left.slice(-overlap) === right.slice(0, overlap)) {
+      return `${left}${right.slice(overlap)}`;
+    }
+  }
+  return `${left}\n\n${right}`;
 };
 
 const runConversation = async (message: GenerateMessage): Promise<string> => {
@@ -277,7 +301,7 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
       max_tokens: maxOutputTokens >= 800 ? 320 : 240,
     });
     const continuedText = continuation.choices[0]?.message.content?.trim();
-    if (continuedText) answer = `${answer.trimEnd()} ${continuedText}`;
+    if (continuedText) answer = mergeContinuationText(answer, continuedText);
     finishReason = continuation.choices[0]?.finish_reason;
   }
   if (finishReason === 'length') {
@@ -366,5 +390,3 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   }
   void handleAdministrativeRequest(message).catch((error) => postError(message.id, error));
 };
-
-export {};

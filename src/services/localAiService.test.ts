@@ -4,9 +4,13 @@ import {
   deleteLocalModel,
   getCachedLocalModels,
   initializeLocalAi,
+  isDisposedLocalModelError,
+  isLocalModelBusyError,
+  isRecoverableLocalModelCacheError,
   isLocalModelCached,
   LOCAL_AI_MODELS,
   resetLocalAi,
+  repairLocalModel,
   runLocalAgent,
   runLocalAgentDetailed,
   supportsLocalAi,
@@ -63,7 +67,7 @@ class FakeWorker {
   }
 }
 
-const setNavigatorFeature = (key: 'gpu' | 'storage', value: unknown) => {
+const setNavigatorFeature = (key: 'gpu' | 'storage' | 'locks', value: unknown) => {
   Object.defineProperty(navigator, key, { configurable: true, value });
 };
 
@@ -99,6 +103,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   setNavigatorFeature('gpu', undefined);
   setNavigatorFeature('storage', undefined);
+  setNavigatorFeature('locks', undefined);
 });
 
 describe('local AI worker bridge', () => {
@@ -190,6 +195,39 @@ describe('local AI worker bridge', () => {
     expect(worker.terminated).toBe(true);
   });
 
+  it('refuses a repair while another tab holds the model operation lock', async () => {
+    const request = vi.fn(async (
+      _name: string,
+      _options: unknown,
+      callback: (lock: unknown | null) => Promise<unknown>,
+    ) => callback(null));
+    setNavigatorFeature('locks', { request });
+
+    const repair = repairLocalModel(LOCAL_AI_MODELS[2].id);
+    await expect(repair).rejects.toThrow('busy in another tab');
+    expect(isLocalModelBusyError(new Error('Local model files are busy in another tab.'))).toBe(true);
+    expect(request).toHaveBeenCalledWith(
+      `codexray.local-model:${LOCAL_AI_MODELS[2].id}`,
+      { mode: 'exclusive', ifAvailable: true },
+      expect.any(Function),
+    );
+    expect(FakeWorker.instances).toHaveLength(0);
+  });
+
+  it('drops a stale ready worker after WebLLM reports a disposed engine', async () => {
+    const { worker } = await initialize();
+    const answer = askLocalModel('Explain', 'context', [], 'en');
+    const request = worker.posted.at(-1)!;
+    worker.emit({ id: request.id, type: 'error', text: 'The current Object has already been disposed' });
+
+    await expect(answer).rejects.toThrow('already been disposed');
+    expect(isDisposedLocalModelError(new Error('The current Object has already been disposed'))).toBe(true);
+    expect(worker.terminated).toBe(true);
+    await expect(askLocalModel('Retry', 'context', [], 'en')).rejects.toThrow(
+      'Load a local AI model',
+    );
+  });
+
   it('returns structured local attempt diagnostics', async () => {
     const { worker } = await initialize();
     const handle = runLocalAgentDetailed({
@@ -226,8 +264,8 @@ describe('local AI worker bridge', () => {
       locale: 'en',
       maxTokens: 150,
     });
-    const timedOut = expect(handle.promise).rejects.toThrow('timed out in the WebGPU queue after 120 seconds');
-    await vi.advanceTimersByTimeAsync(120_000);
+    const timedOut = expect(handle.promise).rejects.toThrow('timed out in the WebGPU queue after 20 seconds');
+    await vi.advanceTimersByTimeAsync(20_000);
     await timedOut;
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
     vi.useRealTimers();
@@ -244,8 +282,8 @@ describe('local AI worker bridge', () => {
       maxTokens: 100,
     });
     worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Running inference' });
-    const timedOut = expect(handle.promise).rejects.toThrow('timed out during inference after 60 seconds');
-    await vi.advanceTimersByTimeAsync(60_000);
+    const timedOut = expect(handle.promise).rejects.toThrow('timed out during inference after 20 seconds');
+    await vi.advanceTimersByTimeAsync(20_000);
     await timedOut;
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
   });
@@ -259,5 +297,24 @@ describe('local AI worker bridge', () => {
     const request = deletionWorker.posted.find((message) => message.type === 'delete-model')!;
     deletionWorker.emit({ id: request.id, type: 'model-deleted', text: request.model });
     await expect(deletion).resolves.toBeUndefined();
+  });
+
+  it('recreates the worker after an initialization failure and identifies damaged cache metadata', async () => {
+    const first = initializeLocalAi(LOCAL_AI_MODELS[2].id, 4096, vi.fn());
+    const failedWorker = await waitForWorker();
+    const failedRequest = failedWorker.posted.find((message) => message.type === 'initialize')!;
+    failedWorker.emit({ id: failedRequest.id, type: 'error', text: 'Unexpected end of JSON input' });
+    await expect(first).rejects.toThrow('Unexpected end of JSON input');
+    expect(failedWorker.terminated).toBe(true);
+    expect(isRecoverableLocalModelCacheError(new Error('Unexpected end of JSON input'))).toBe(true);
+    expect(isRecoverableLocalModelCacheError(new Error('GPU device lost'))).toBe(false);
+
+    const second = initializeLocalAi(LOCAL_AI_MODELS[2].id, 4096, vi.fn());
+    await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(2));
+    const freshWorker = FakeWorker.instances[1];
+    expect(freshWorker).not.toBe(failedWorker);
+    const nextRequest = freshWorker.posted.find((message) => message.type === 'initialize')!;
+    freshWorker.emit({ id: nextRequest.id, type: 'ready', text: nextRequest.model });
+    await expect(second).resolves.toBeUndefined();
   });
 });

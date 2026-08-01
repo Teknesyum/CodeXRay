@@ -129,7 +129,7 @@ export const createJavaFallbackPlan = (request: string): ManagerPlanV2 => {
     createdAt: now,
     jobs: [
       newJob({ id: 'capability-gate', role: 'manager', label: 'Select safe solution branch', dependsOn: [], consumes: ['problem-spec'], produces: [], resourceLocks: [], maxAttempts: 1 }),
-      newJob({ id: 'java-author', role: 'code-author', label: 'Draft Java 17 Solution', dependsOn: ['capability-gate'], consumes: ['problem-spec'], produces: ['java-solution'], resourceLocks: ['webgpu'], maxAttempts: 3 }),
+      newJob({ id: 'java-author', role: 'code-author', label: 'Draft Java 17 Solution', dependsOn: ['capability-gate'], consumes: ['problem-spec'], produces: ['java-solution'], resourceLocks: ['webgpu'], maxAttempts: 2 }),
       newJob({ id: 'critic', role: 'critic', label: 'Review against source and examples', dependsOn: ['java-author'], consumes: ['problem-spec', 'java-solution'], produces: ['critic-review'], resourceLocks: ['webgpu'], maxAttempts: 1 }),
       newJob({ id: 'publish', role: 'manager', label: 'Publish unexecuted artifact', dependsOn: ['critic'], consumes: ['java-solution', 'critic-review'], produces: ['java-solution'], resourceLocks: [], maxAttempts: 1 }),
     ],
@@ -212,7 +212,7 @@ export const startJavaFallbackRun = (options: {
   const promise = (async (): Promise<SolutionArtifactV1> => {
     let candidate: JavaCandidate | null = null;
     let previousFailure = '';
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
       if (cancelled) throw new Error('Web problem run was cancelled.');
       updateJob('java-author', { status: attempt === 1 ? 'running' : 'retrying', attempt, error: undefined });
       const repair = previousFailure
@@ -221,11 +221,15 @@ export const startJavaFallbackRun = (options: {
       active = runLocalAgentDetailed({
         role: 'code-author',
         locale: options.locale,
-        instructions: 'Produce a Java 17 algorithm draft only. Use class Solution and the supplied signature. Do not use filesystem, network, processes, reflection, or package declarations.',
-        context: buildWebProblemPrompt(options.problem, `Return the required Java solution JSON.${repair}`),
+        instructions: options.locale === 'tr'
+          ? 'Yalnızca kısa bir Java 17 algoritma taslağı üret. class Solution ve verilen imzayı kullan. Başlık Türkçe ve kısa olsun. Açıklama tam iki kısa Türkçe cümle içersin: önce yaklaşım, sonra neden doğru olduğu. Dosya sistemi, ağ, süreçler, reflection veya package bildirimi kullanma.'
+          : 'Produce a compact Java 17 algorithm draft only. Use class Solution and the supplied signature. Keep the title short. The explanation must contain exactly two short English sentences: first the approach, then why it is correct. Do not use filesystem, network, processes, reflection, or package declarations.',
+        context: buildWebProblemPrompt(options.problem, `Return the required compact Java solution JSON.${repair}`),
         responseSchema: JAVA_SCHEMA as unknown as Record<string, unknown>,
         jsonMode: true,
-        maxTokens: 1_100,
+        maxTokens: 520,
+        queueTimeoutMs: 20_000,
+        inferenceTimeoutMs: 20_000,
         temperature: 0,
       });
       const result = await active.promise;
@@ -242,8 +246,8 @@ export const startJavaFallbackRun = (options: {
         break;
       } catch (error) {
         const failure = error instanceof Error ? error.message : 'Invalid Java artifact.';
-        attempts.push(diagnostic(result, plan, 'java-author', attempt, attempt < 3 ? 'retry' : 'failed', [failure], failure));
-        if (failure === previousFailure || attempt === 3) {
+        attempts.push(diagnostic(result, plan, 'java-author', attempt, attempt < 2 ? 'retry' : 'failed', [failure], failure));
+        if (failure === previousFailure || attempt === 2) {
           updateJob('java-author', { status: 'failed', error: failure });
           throw new Error(`Java author validation failed: ${failure}`);
         }
@@ -256,11 +260,15 @@ export const startJavaFallbackRun = (options: {
     active = runLocalAgentDetailed({
       role: 'critic',
       locale: options.locale,
-      instructions: 'Review the candidate only against the supplied source problem, signature, constraints, and examples. Set passed=false for any correctness, signature, complexity, or source-grounding defect.',
+      instructions: options.locale === 'tr'
+        ? 'Adayı yalnızca verilen kaynak problem, imza, kısıtlar ve örneklere göre incele. Doğruluk, imza, karmaşıklık veya kaynağa bağlılık kusurunda passed=false yap. summary alanını kısa bir Türkçe doğruluk gerekçesi olarak yaz.'
+        : 'Review the candidate only against the supplied source problem, signature, constraints, and examples. Set passed=false for any correctness, signature, complexity, or source-grounding defect. Write summary as one short English correctness justification.',
       context: buildWebProblemPrompt(options.problem, `Review this Java 17 candidate:\n${candidate.code}\nExplanation: ${candidate.explanation}`),
       responseSchema: CRITIC_SCHEMA as unknown as Record<string, unknown>,
       jsonMode: true,
-      maxTokens: 520,
+      maxTokens: 260,
+      queueTimeoutMs: 20_000,
+      inferenceTimeoutMs: 20_000,
       temperature: 0,
     });
     const criticResult = await active.promise;

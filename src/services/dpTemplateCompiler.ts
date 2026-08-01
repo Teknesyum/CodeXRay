@@ -230,8 +230,12 @@ const houseRobberArtifact = (request: string, locale: Locale, workspace: Workspa
   const explicit = requestArray(request);
   const nums = explicit ?? (wantsCurrentInput(request) ? workspaceArray(workspace) : null) ?? [2, 7, 9, 3, 1];
   const origin = explicit || (wantsCurrentInput(request) && workspaceArray(workspace)) ? 'user' : 'agent';
+  const useJava = /\bjava(?:\s*17)?\b/i.test(request);
+  const readLine = useJava ? 4 : 5;
+  const transitionLine = useJava ? 8 : 9;
+  const resultLine = useJava ? 10 : 11;
   const dp = Array<number | null>(nums.length).fill(null);
-  const steps: SimulationStep[] = [arrayStep(dp, {}, { nums, filledStates: 0 }, 5,
+  const steps: SimulationStep[] = [arrayStep(dp, {}, { nums, filledStates: 0 }, readLine,
     locale === 'tr' ? '1D DP dizisi soldan sağa doldurulur; dp[i], 0..i evlerinden alınabilen en yüksek miktardır.' : 'Fill the 1D DP array left to right; dp[i] is the best total available from houses 0..i.')];
   for (let index = 0; index < nums.length; index += 1) {
     const take = nums[index] + (index >= 2 ? dp[index - 2] ?? 0 : 0);
@@ -242,12 +246,12 @@ const houseRobberArtifact = (request: string, locale: Locale, workspace: Workspa
     if (index >= 2) pointers.takeDependency = index - 2;
     steps.push(arrayStep([...dp], pointers, {
       nums, dp: [...dp], i: index, take, skip, choice: take >= skip ? 'take' : 'skip', filledStates: index + 1,
-    }, 10, locale === 'tr'
+    }, transitionLine, locale === 'tr'
       ? `dp[${index}] = max(al=${nums[index]} + ${index >= 2 ? `dp[${index - 2}]=${dp[index - 2]}` : '0'}, atla=${skip}) = ${dp[index]}.`
       : `dp[${index}] = max(take=${nums[index]} + ${index >= 2 ? `dp[${index - 2}]=${dp[index - 2]}` : '0'}, skip=${skip}) = ${dp[index]}.`));
   }
   const result = dp.at(-1) ?? 0;
-  steps.push(arrayStep([...dp], { result: nums.length - 1 }, { nums, dp: [...dp], result }, 12,
+  steps.push(arrayStep([...dp], { result: nums.length - 1 }, { nums, dp: [...dp], result }, resultLine,
     locale === 'tr' ? `Nihai 1D DP sonucu ${result}.` : `The final 1D DP result is ${result}.`));
   const title = locale === 'tr' ? 'LeetCode 198 — Ev Soyguncusu' : 'LeetCode 198 — House Robber';
   return {
@@ -255,14 +259,29 @@ const houseRobberArtifact = (request: string, locale: Locale, workspace: Workspa
     input: { kind: 'array', text: JSON.stringify(nums), origin },
     inputDescription: locale === 'tr' ? 'Yan yana evlerdeki para miktarları' : 'Money in adjacent houses',
     constraints: [`1 <= nums.length <= ${MAX_ITEMS}`, 'nums[i] is a non-negative safe integer.'],
-    source: source([
-      'class Solution {', 'public:', '  int rob(vector<int>& nums) {',
-      '    const int n = nums.size();', '    vector<int> dp(n, 0);',
-      '    for (int i = 0; i < n; ++i) {',
-      '      const int take = nums[i] + (i >= 2 ? dp[i - 2] : 0);',
-      '      const int skip = i >= 1 ? dp[i - 1] : 0;',
-      '      dp[i] = max(take, skip);', '    }', '    return dp[n - 1];', '  }', '};',
-    ], { 'read-input': 4, transition: 9, result: 11 }),
+    source: useJava
+      ? source([
+          'class Solution {',
+          '  public int rob(int[] nums) {',
+          '    int n = nums.length;',
+          '    int[] dp = new int[n];',
+          '    for (int i = 0; i < n; i++) {',
+          '      int take = nums[i] + (i >= 2 ? dp[i - 2] : 0);',
+          '      int skip = i >= 1 ? dp[i - 1] : 0;',
+          '      dp[i] = Math.max(take, skip);',
+          '    }',
+          '    return dp[n - 1];',
+          '  }',
+          '}',
+        ], { 'read-input': readLine, transition: transitionLine, result: resultLine }, 'java')
+      : source([
+          'class Solution {', 'public:', '  int rob(vector<int>& nums) {',
+          '    const int n = nums.size();', '    vector<int> dp(n, 0);',
+          '    for (int i = 0; i < n; ++i) {',
+          '      const int take = nums[i] + (i >= 2 ? dp[i - 2] : 0);',
+          '      const int skip = i >= 1 ? dp[i - 1] : 0;',
+          '      dp[i] = max(take, skip);', '    }', '    return dp[n - 1];', '  }', '};',
+        ], { 'read-input': readLine, transition: transitionLine, result: resultLine }),
     steps,
     visualization: { version: 1, type: 'array', activeVariables: ['i'], queuedVariables: ['takeDependency', 'skipDependency'], visitedVariables: ['filledStates'], pathVariable: 'choice' },
     analysis: 'State: dp[i] is the best amount from houses 0..i.\nTransition: dp[i] = max(nums[i] + dp[i-2], dp[i-1]).\nFill order: left to right.\nTime Complexity: O(n)\nSpace Complexity: O(n)',

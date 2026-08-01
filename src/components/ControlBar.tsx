@@ -16,7 +16,10 @@ import {
   getCachedLocalModels,
   getPersistentStorageStatus,
   initializeLocalAi,
+  isLocalModelBusyError,
+  isRecoverableLocalModelCacheError,
   LOCAL_AI_MODELS,
+  repairLocalModel,
   requestPersistentLocalAiStorage,
   resetLocalAi,
   supportsLocalAi,
@@ -109,6 +112,7 @@ export const ControlBar = ({
   const [cachedModels, setCachedModels] = useState<string[]>([]);
   const [cacheChecked, setCacheChecked] = useState(false);
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
+  const [repairableModel, setRepairableModel] = useState(false);
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const startupCacheFallback = useRef(true);
   const autoLoadAttempts = useRef(new Set<string>());
@@ -132,6 +136,7 @@ export const ControlBar = ({
       return;
     }
     aiProgressHighWaterRef.current = 0;
+    setRepairableModel(false);
     setAiStatus('loading');
     setAiProgressPercent(0);
     try {
@@ -152,9 +157,16 @@ export const ControlBar = ({
       setAiProgressPercent(100);
       setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {
+      const busy = isLocalModelBusyError(error);
+      const repairable = !busy && isRecoverableLocalModelCacheError(error);
+      setRepairableModel(repairable);
       setAiStatus('error');
       setAiProgressPercent(null);
-      setAiProgress(translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
+      setAiProgress(busy
+        ? t('modelBusyAnotherTab', locale)
+        : repairable
+          ? t('modelCacheCorrupt', locale)
+          : translateRuntimeText(error instanceof Error ? error.message : 'Local model failed to load.', locale));
     }
   }, [locale, setAiProgress, setAiProgressPercent, setAiStatus]);
 
@@ -274,6 +286,32 @@ export const ControlBar = ({
       setAiStatus('error');
       setAiProgressPercent(null);
       setAiProgress(error instanceof Error ? error.message : t('modelDeleteFailed', locale));
+    } finally {
+      setDeletingModel(null);
+    }
+  };
+
+  const repairSelectedModel = async () => {
+    if (!window.confirm(t('confirmRepairModel', locale, {
+      name: translateRuntimeText(selectedModel.label, locale),
+    }))) return;
+    setDeletingModel(aiModel);
+    setRepairableModel(false);
+    try {
+      await repairLocalModel(aiModel);
+      setCachedModels((current) => current.filter((id) => id !== aiModel));
+      autoLoadAttempts.current.delete(`${aiModel}:${aiContextWindow}`);
+      setAiStatus('idle');
+      setAiProgressPercent(null);
+      setAiProgress(t('modelCacheRepaired', locale));
+      await activateModel(aiModel, aiContextWindow);
+    } catch (error) {
+      setRepairableModel(true);
+      setAiStatus('error');
+      setAiProgressPercent(null);
+      setAiProgress(isLocalModelBusyError(error)
+        ? t('modelBusyAnotherTab', locale)
+        : error instanceof Error ? error.message : t('modelRepairFailed', locale));
     } finally {
       setDeletingModel(null);
     }
@@ -435,6 +473,7 @@ export const ControlBar = ({
                       setAiModel(nextModel.id);
                       setAiContextWindow(nextModel.contextWindow);
                       setCacheChecked(false);
+                      setRepairableModel(false);
                       setAiStatus('idle');
                       setAiProgressPercent(null);
                       setAiProgress('');
@@ -455,6 +494,7 @@ export const ControlBar = ({
                       autoLoadAttempts.current.delete(`${aiModel}:${contextWindow}`);
                       resetLocalAi();
                       setAiContextWindow(contextWindow);
+                      setRepairableModel(false);
                       setAiStatus('idle');
                       setAiProgressPercent(null);
                       setAiProgress('');
@@ -527,19 +567,31 @@ export const ControlBar = ({
                     );
                   })}
                 </div>
-                <button
-                  className="neon-button ai-load-button"
-                  onClick={() => void activateModel(aiModel, aiContextWindow)}
-                  disabled={aiStatus === 'loading' || aiStatus === 'ready'}
-                >
-                  {aiStatus === 'loading'
-                    ? t('loading', locale)
-                    : aiStatus === 'ready'
-                      ? t('modelReady', locale)
-                      : modelCached
-                        ? t('initializeStoredModel', locale)
-                        : t('loadLocalModel', locale)}
-                </button>
+                <div className="ai-load-actions">
+                  <button
+                    className="neon-button ai-load-button"
+                    onClick={() => void activateModel(aiModel, aiContextWindow)}
+                    disabled={aiStatus === 'loading' || aiStatus === 'ready'}
+                  >
+                    {aiStatus === 'loading'
+                      ? t('loading', locale)
+                      : aiStatus === 'ready'
+                        ? t('modelReady', locale)
+                        : modelCached
+                          ? t('initializeStoredModel', locale)
+                          : t('loadLocalModel', locale)}
+                  </button>
+                  {repairableModel && (
+                    <button
+                      type="button"
+                      className="neon-button ai-load-button danger"
+                      disabled={deletingModel !== null || aiStatus === 'loading'}
+                      onClick={() => void repairSelectedModel()}
+                    >
+                      {t('repairModelDownload', locale)}
+                    </button>
+                  )}
+                </div>
                 <div className="settings-section ai-load-preferences">
                   <div className="settings-title">{t('aiLoadPreferences', locale)}</div>
                   <label className="neon-checkbox-label" style={{ marginBottom: '10px' }}>

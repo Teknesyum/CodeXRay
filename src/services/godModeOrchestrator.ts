@@ -884,7 +884,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           let lastErrors: string[] = [];
           let lastCandidateExcerpt = '';
           let previousFailureKey = '';
-          for (let attempt = 1; attempt <= 3; attempt += 1) {
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
             if (attempt > 1) setJob('code-author-author-executable-program', {
               status: 'retrying',
               attempt,

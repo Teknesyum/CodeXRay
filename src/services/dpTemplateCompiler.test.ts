@@ -57,6 +57,23 @@ describe('deterministic DP template compiler', () => {
     expect(packageValue.steps[3].visualData.vars).toMatchObject({ i: 2, take: 11, skip: 7, choice: 'take' });
   });
 
+  it('preserves an explicit Java request in the simulatable House Robber source', () => {
+    const packageValue = compileDpTemplatePackage({
+      template: 'house-robber-1d-dp',
+      id: 'java-house-robber',
+      request: 'House Robber Java 17 çözümünü [2,7,9,3,1] ile simüle et',
+      locale: 'tr',
+      workspace,
+    });
+
+    expect(packageValue.source).toMatchObject({ language: 'java' });
+    expect(packageValue.source.code).toContain('public int rob(int[] nums)');
+    expect(packageValue.source.code).toContain('dp[i] = Math.max(take, skip);');
+    expect(packageValue.source.code).not.toContain('vector<int>');
+    expect(packageValue.steps.at(-1)?.lineNumber).toBe(packageValue.source.lineMap.result);
+    expect(packageValue.steps.at(-1)?.visualData.vars.result).toBe(12);
+  });
+
   it('fills a rectangular LCS table row-by-row from exact user strings', () => {
     const packageValue = compileDpTemplatePackage({
       template: 'lcs-2d-dp',

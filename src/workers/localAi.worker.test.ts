@@ -75,11 +75,23 @@ describe('local AI worker protocol', () => {
     expect(webLlm.createEngine).toHaveBeenCalledWith(
       'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
       expect.objectContaining({
-        appConfig: expect.objectContaining({ cacheBackend: expect.any(String) }),
+        appConfig: expect.objectContaining({ cacheBackend: 'cache' }),
         initProgressCallback: expect.any(Function),
       }),
       { context_window_size: 32768 },
     );
+  });
+
+  it('uses Cache API for local development and keeps OPFS for production origins', async () => {
+    const { mergeContinuationText, selectLocalAiCacheBackend } = await import('./localAi.worker');
+    expect(selectLocalAiCacheBackend('localhost', true)).toBe('cache');
+    expect(selectLocalAiCacheBackend('127.0.0.1', true)).toBe('cache');
+    expect(selectLocalAiCacheBackend('serkanozel.me', true)).toBe('opfs');
+    expect(selectLocalAiCacheBackend('serkanozel.me', false)).toBe('cache');
+    expect(mergeContinuationText(
+      'Özet. Bu yöntem her adayı bir kez ziyaret eder ve tüm komşuları işaretler',
+      'Bu yöntem her adayı bir kez ziyaret eder ve tüm komşuları işaretler. Sonuç doğrudur.',
+    )).toBe('Özet. Bu yöntem her adayı bir kez ziyaret eder ve tüm komşuları işaretler. Sonuç doğrudur.');
   });
 
   it('serializes planner and schema-constrained specialist requests with bounded options', async () => {
@@ -94,7 +106,7 @@ describe('local AI worker protocol', () => {
       role: 'critic',
       instructions: 'Validate the supplied report.',
       context: '{"report":true}',
-      locale: 'en',
+      locale: 'tr',
       responseSchema: { type: 'object', properties: { passed: { type: 'boolean' } }, required: ['passed'] },
       maxTokens: 300,
     });
@@ -107,6 +119,7 @@ describe('local AI worker protocol', () => {
     const agentOptions = webLlm.complete.mock.calls[1]?.[0];
     expect(agentOptions).toMatchObject({ temperature: 0, enable_thinking: false, max_tokens: 300 });
     expect(agentOptions.response_format.type).toBe('json_object');
+    expect(agentOptions.messages[0].content).toContain('human-readable string field in Turkish');
   });
 
   it('performs one bounded continuation and marks a still-truncated conversation honestly', async () => {
@@ -124,7 +137,7 @@ describe('local AI worker protocol', () => {
     });
     await waitForOutput((message) => message.id === 20 && message.type === 'answer');
     const answer = outputs().find((message) => message.id === 20 && message.type === 'answer')?.text;
-    expect(answer).toContain('First half. Second half.');
+    expect(answer).toContain('First half.\n\nSecond half.');
     expect(answer).toContain('reached the local generation limit');
     expect(webLlm.complete).toHaveBeenCalledTimes(2);
     expect(webLlm.complete.mock.calls[1]?.[0].messages.at(-1).content).toContain('Continue exactly where it stopped');

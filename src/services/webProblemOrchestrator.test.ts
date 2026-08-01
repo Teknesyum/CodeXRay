@@ -11,7 +11,7 @@ describe('web problem orchestration', () => {
     const plan = createJavaFallbackPlan('solve');
     expect(() => validateManagerPlanV2(plan)).not.toThrow();
     expect(plan.jobs.filter((job) => job.resourceLocks.includes('webgpu')).map((job) => job.id)).toEqual(['java-author', 'critic']);
-    expect(plan.jobs.find((job) => job.id === 'java-author')?.maxAttempts).toBe(3);
+    expect(plan.jobs.find((job) => job.id === 'java-author')?.maxAttempts).toBe(2);
   });
 
   it('rejects cycles and missing dependencies', () => {

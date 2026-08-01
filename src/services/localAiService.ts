@@ -38,6 +38,8 @@ export interface LocalAgentRequest {
   jsonMode?: boolean;
   maxTokens?: number;
   temperature?: number;
+  queueTimeoutMs?: number;
+  inferenceTimeoutMs?: number;
 }
 
 export interface LocalAgentHandle {
@@ -59,6 +61,48 @@ let readyModel: string | undefined;
 let readyContextWindow: number | undefined;
 let activeInteractiveRequestId: number | null = null;
 
+export const DEFAULT_AGENT_QUEUE_TIMEOUT_MS = 20_000;
+export const DEFAULT_AGENT_INFERENCE_TIMEOUT_MS = 20_000;
+const LOCAL_MODEL_BUSY_ERROR = 'Local model files are busy in another tab.';
+
+interface LocalModelLockManager {
+  request<T>(
+    name: string,
+    options: { mode: 'exclusive'; ifAvailable: true },
+    callback: (lock: unknown | null) => Promise<T>,
+  ): Promise<T>;
+}
+
+const withExclusiveModelLock = async <T>(model: string, operation: () => Promise<T>): Promise<T> => {
+  const locks = typeof navigator === 'undefined'
+    ? undefined
+    : (navigator as Navigator & { locks?: LocalModelLockManager }).locks;
+  if (!locks?.request) return operation();
+  return locks.request(
+    `codexray.local-model:${model}`,
+    { mode: 'exclusive', ifAvailable: true },
+    async (lock) => {
+      if (!lock) throw new Error(LOCAL_MODEL_BUSY_ERROR);
+      return operation();
+    },
+  );
+};
+
+export const isLocalModelBusyError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes(LOCAL_MODEL_BUSY_ERROR);
+};
+
+export const isDisposedLocalModelError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /object has already been disposed|GPU device (?:was )?lost|device lost/i.test(message);
+};
+
+export const isRecoverableLocalModelCacheError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Unexpected end of JSON input|OPFSStore|invalid metadata|metadata URL does not match/i.test(message);
+};
+
 const getWorker = () => {
   if (worker) return worker;
   worker = new Worker(new URL('../workers/localAi.worker.ts', import.meta.url), { type: 'module' });
@@ -76,8 +120,11 @@ const getWorker = () => {
       return;
     }
     pending.delete(response.id);
-    if (response.type === 'error') request.reject(new Error(response.text ?? 'Local model failed.'));
-    else request.resolve((response.result ?? response.text ?? '') as never);
+    if (response.type === 'error') {
+      const error = new Error(response.text ?? 'Local model failed.');
+      request.reject(error);
+      if (isDisposedLocalModelError(error)) resetLocalAi();
+    } else request.resolve((response.result ?? response.text ?? '') as never);
   };
   worker.onerror = (event) => {
     for (const request of pending.values()) request.reject(new Error(event.message));
@@ -150,27 +197,40 @@ export const initializeLocalAi = async (
     throw new Error('WebGPU is not available in this browser.');
   }
   await requestPersistentLocalAiStorage();
-  if (readyModel === model && readyContextWindow === contextWindow) return Promise.resolve();
-  const currentWorker = getWorker();
-  const id = ++requestId;
-  const progressHandler = (event: MessageEvent<WorkerResponse>) => {
-    if (event.data.id === id && event.data.type === 'progress') {
-      onProgress(event.data.progress ?? {
-        progress: 0,
-        timeElapsed: 0,
-        text: 'Loading local model…',
-      });
-    }
-  };
-  currentWorker.addEventListener('message', progressHandler);
-  return new Promise<string>((resolve, reject) => {
-    pending.set(id, { resolve, reject });
-    currentWorker.postMessage({ id, type: 'initialize', model, contextWindow });
-  }).then(() => {
-    readyModel = model;
-    readyContextWindow = contextWindow;
-  }).finally(() => {
-    currentWorker.removeEventListener('message', progressHandler);
+  return withExclusiveModelLock(model, async () => {
+    if (readyModel === model && readyContextWindow === contextWindow) return;
+    const currentWorker = getWorker();
+    const id = ++requestId;
+    const progressHandler = (event: MessageEvent<WorkerResponse>) => {
+      if (event.data.id === id && event.data.type === 'progress') {
+        onProgress(event.data.progress ?? {
+          progress: 0,
+          timeElapsed: 0,
+          text: 'Loading local model…',
+        });
+      }
+    };
+    currentWorker.addEventListener('message', progressHandler);
+    return new Promise<string>((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      currentWorker.postMessage({ id, type: 'initialize', model, contextWindow });
+    }).then(() => {
+      readyModel = model;
+      readyContextWindow = contextWindow;
+    }).catch((error) => {
+      // A failed WebLLM initialization can leave its worker-level loader in a
+      // poisoned state. Preserve downloaded artifacts, but always recreate the
+      // worker before the next attempt.
+      if (worker === currentWorker) {
+        currentWorker.terminate();
+        worker = undefined;
+        readyModel = undefined;
+        readyContextWindow = undefined;
+      }
+      throw error;
+    }).finally(() => {
+      currentWorker.removeEventListener('message', progressHandler);
+    });
   });
 };
 
@@ -241,11 +301,8 @@ export const runLocalAgent = (
     };
   }
   const id = ++requestId;
-  const queueTimeoutMs = 120_000;
-  const inferenceTimeoutMs = Math.min(
-    300_000,
-    Math.max(60_000, 45_000 + (request.maxTokens ?? 500) * 140),
-  );
+  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const inferenceTimeoutMs = request.inferenceTimeoutMs ?? DEFAULT_AGENT_INFERENCE_TIMEOUT_MS;
   let phase: 'queue' | 'inference' = 'queue';
   let timeout: ReturnType<typeof globalThis.setTimeout>;
   const basePromise = new Promise<string>((resolve, reject) => {
@@ -295,8 +352,8 @@ export const runLocalAgentDetailed = (
     };
   }
   const id = ++requestId;
-  const queueTimeoutMs = 120_000;
-  const inferenceTimeoutMs = Math.min(300_000, Math.max(60_000, 45_000 + (request.maxTokens ?? 500) * 140));
+  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const inferenceTimeoutMs = request.inferenceTimeoutMs ?? DEFAULT_AGENT_INFERENCE_TIMEOUT_MS;
   let phase: 'queue' | 'inference' = 'queue';
   let timeout: ReturnType<typeof globalThis.setTimeout>;
   const basePromise = new Promise<LocalAgentResultV2>((resolve, reject) => {
@@ -333,7 +390,7 @@ export const runLocalAgentDetailed = (
   };
 };
 
-export const deleteLocalModel = async (model: string): Promise<void> => {
+const deleteLocalModelUnlocked = async (model: string): Promise<void> => {
   if (readyModel === model) resetLocalAi();
   if (typeof Worker === 'undefined') return;
   const currentWorker = getWorker();
@@ -343,6 +400,15 @@ export const deleteLocalModel = async (model: string): Promise<void> => {
     currentWorker.postMessage({ id, type: 'delete-model', model });
   });
 };
+
+export const deleteLocalModel = (model: string): Promise<void> =>
+  withExclusiveModelLock(model, () => deleteLocalModelUnlocked(model));
+
+export const repairLocalModel = (model: string): Promise<void> =>
+  withExclusiveModelLock(model, async () => {
+    resetLocalAi();
+    await deleteLocalModelUnlocked(model);
+  });
 
 export const resetLocalAi = () => {
   worker?.terminate();

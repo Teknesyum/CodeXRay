@@ -9,6 +9,33 @@ const startsWithInternalNarration = (value: string): boolean =>
   /^(?:reasoning|analysis|system prompt|system instructions?|developer instructions?|snapshot metadata|workspace snapshot|my task is|wait(?:\b|[,:])|let(?:'|’)s check(?:\b|[,:]))/i
     .test(value.trim());
 
+const normalizeProseLayout = (value: string): string => {
+  let formatted = value.replace(
+    /[ \t]*(?:\d{1,2}\.[ \t]*)?\*{0,4}(Çözüm|Solution|Doğruluk|Correctness|Karmaşıklık|Complexity|Zaman Karmaşıklığı|Alan Karmaşıklığı):\*{0,4}[ \t]*/gi,
+    (_match, label: string, offset: number) => {
+      const precedingText = value.slice(0, offset).trimEnd();
+      const separator = precedingText && !precedingText.endsWith('\n') ? '\n\n' : '';
+      return `${separator}**${label}:** `;
+    },
+  );
+  const numberedMarkers = formatted.match(/(?:^|\s)\d{1,2}\.\s+/g) ?? [];
+  if (numberedMarkers.length >= 2) {
+    formatted = formatted
+      .replace(/(\*\*(?:Çözüm|Solution):\*\*)[ \t]*(?=\d{1,2}\.[ \t]+)/gi, '$1\n\n')
+      .replace(/([^\n])[ \t]+(?=\d{1,2}\.[ \t]+)/g, '$1\n');
+  }
+  const inlineBulletMarkers = formatted.match(
+    /[ \t]+-[ \t]+(?=(?:\*\*)?[A-ZÇĞİÖŞÜ])/gu,
+  ) ?? [];
+  if (inlineBulletMarkers.length >= 2) {
+    formatted = formatted.replace(
+      /([^\n])[ \t]+(?=-[ \t]+(?=(?:\*\*)?[A-ZÇĞİÖŞÜ]))/gu,
+      '$1\n   ',
+    );
+  }
+  return formatted;
+};
+
 const cleanProse = (value: string): string => {
   const seenSentences = new Set<string>();
   const cleanedParagraphs: string[] = [];
@@ -41,7 +68,7 @@ const cleanProse = (value: string): string => {
 export const sanitizeLocalModelAnswer = (answer: string): string => {
   const segments = answer.split(/(```[\s\S]*?```)/g);
   const cleaned = segments
-    .map((segment) => segment.startsWith('```') ? segment : cleanProse(segment))
+    .map((segment) => segment.startsWith('```') ? segment : normalizeProseLayout(cleanProse(segment)))
     .filter(Boolean)
     .join('\n\n')
     .trim();

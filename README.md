@@ -139,12 +139,13 @@ Open Settings and load one of:
 - `Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC` — ultra option, approximately 5.1 GB
   of GPU memory and significantly heavier initialization.
 
-Model weights prefer the browser’s private OPFS storage with Cache API fallback,
-and CodeXRay requests persistent origin storage. A cached model does not need to
-be downloaded again, although every page visit must still initialize it into GPU
-memory. Browser security intentionally prevents the site from retaining an
-arbitrary Windows folder path. The visualizer remains fully functional when
-WebGPU is unavailable.
+Production model weights prefer the browser’s private OPFS storage with Cache
+API fallback. Local development uses Cache API storage so Vite hot reloads do
+not retain stale OPFS metadata. CodeXRay requests persistent origin storage. A
+cached model does not need to be downloaded again, although every page visit
+must still initialize it into GPU memory. Browser security intentionally
+prevents the site from retaining an arbitrary Windows folder path. The
+visualizer remains fully functional when WebGPU is unavailable.
 
 Short questions such as complexity queries receive focused source-code context
 instead of the complete execution trace. Decoding penalties and deterministic
@@ -171,6 +172,18 @@ The selected cached model is detected and initialized automatically after a
 return visit. Settings lists every model stored in this origin’s OPFS/cache and
 offers an explicit delete action. Deleting a model removes its browser-managed
 files; using it again requires a fresh download.
+
+Browser model caches are origin-scoped, so `localhost`, `127.0.0.1`, and the
+deployed site do not share downloaded weights. If a download is interrupted,
+Settings identifies the damaged selected-model cache and offers **Repair model
+download**. That action removes only the selected model's incomplete artifacts
+and starts a clean download. Load, delete, and repair actions are locked across
+tabs so one tab cannot delete another tab's active model download.
+
+During local development, Vite proxies `/api/codexray/read-url` to the deployed
+first-party reader. `CODEXRAY_WEB_READER_ORIGIN` can point dev/preview at a
+different trusted CodeXRay reader; production continues to use its same-origin
+endpoint.
 
 Settings also provides a scoped site reset. It removes only `codexray.*`
 local/session storage state—workspace input, chat, pins, locale, layout, and AI

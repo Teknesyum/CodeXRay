@@ -403,7 +403,7 @@
   .ai-settings-layout .local-storage-status { grid-area: storage-status; }
   .ai-settings-layout .ai-storage-note { grid-area: storage-note; }
   .ai-settings-layout .stored-models { grid-area: models; }
-  .ai-settings-layout .ai-load-button { grid-area: action; }
+  .ai-settings-layout .ai-load-actions { grid-area: action; }
   .ai-settings-layout .ai-load-preferences { grid-area: preferences; }
   .ai-settings-layout .model-download-progress { grid-area: progress; }
   .ai-settings-layout .ai-status { grid-area: status; }
@@ -455,6 +455,16 @@
   .ai-settings-layout .neon-checkbox-label {
     gap: 9px;
   }
+}
+
+.ai-load-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.ai-load-button.danger {
+  border-color: rgba(255, 73, 108, 0.62);
+  color: #ffafbd;
 }
 
 .settings-section {

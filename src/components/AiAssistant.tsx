@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, Bot, Check, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion, generateSimulationSteps } from '../services/aiService';
-import { cancelLocalResponse, planLocalActions } from '../services/localAiService';
+import { cancelLocalResponse, isDisposedLocalModelError, planLocalActions } from '../services/localAiService';
 import type { AssistantMessage } from '../services/aiContext';
 import {
   routeDeterministicCommand,
@@ -131,6 +131,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     selectedExampleQuestion,
     setSelectedExampleQuestion,
     aiStatus,
+    setAiStatus,
+    setAiProgress,
+    setAiProgressPercent,
     aiModel,
     aiContextWindow,
     isAiMaximized,
@@ -158,9 +161,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<AssistantMessage[]>(loadChatHistory);
   const [isTyping, setIsTyping] = useState(false);
-  const [typingMessage, setTypingMessage] = useState<string | null>(null);
   const [tourSteps, setTourSteps] = useState<number[]>([]);
-  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [copyStatus, setCopyStatus] = useState<{
+    index: number;
+    state: 'copied' | 'error';
+  } | null>(null);
 
   const [actionQueue, setActionQueue] = useState<DeterministicWorkspaceCommand[]>([]);
   const [isExecutingQueue, setIsExecutingQueue] = useState(false);
@@ -191,27 +196,39 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   const copyAiResponse = async (content: string, index: number) => {
     try {
+      let copied = false;
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(content);
-      } else {
+        try {
+          await navigator.clipboard.writeText(content);
+          copied = true;
+        } catch {
+          // Some embedded browsers expose Clipboard API but deny its permission.
+        }
+      }
+      if (!copied) {
         const textarea = document.createElement('textarea');
         textarea.value = content;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.append(textarea);
         textarea.select();
-        const copied = document.execCommand('copy');
+        copied = document.execCommand?.('copy') ?? false;
         textarea.remove();
         if (!copied) throw new Error('Clipboard copy was rejected.');
       }
-      setCopiedMessageIndex(index);
+      setCopyStatus({ index, state: 'copied' });
       if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
       copyResetTimerRef.current = window.setTimeout(() => {
-        setCopiedMessageIndex(null);
+        setCopyStatus(null);
         copyResetTimerRef.current = null;
       }, 1800);
     } catch {
-      // Clipboard access can be denied by browser permissions; keep the answer intact.
+      setCopyStatus({ index, state: 'error' });
+      if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
+      copyResetTimerRef.current = window.setTimeout(() => {
+        setCopyStatus(null);
+        copyResetTimerRef.current = null;
+      }, 2400);
     }
   };
 
@@ -262,7 +279,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   useEffect(() => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-  }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText, typingMessage]);
+  }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText]);
 
   useEffect(() => {
     try {
@@ -408,6 +425,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       let activeWebSession = webSourceSession;
       let webProblemForSimulation: WebProblemSpecV1 | null = null;
       let modelQuestion = userMessage;
+      let historyForModel = history;
 
       if (webIntent?.type === 'read-web-source' || (webIntent?.type === 'solve-web-problem' && webIntent.url)) {
         if (!webIntent.url) throw new Error('The web source URL is missing.');
@@ -470,7 +488,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 '```',
                 solution.explanation,
                 '',
-                `Time: ${solution.complexity.time} · Space: ${solution.complexity.space}`,
+                `**${t('webCriticReview', locale)}:** ${solution.review.summary}`,
+                '',
+                `Time: \`${solution.complexity.time}\` · Space: \`${solution.complexity.space}\``,
               ].join('\n'),
             },
           ].slice(-MAX_STORED_MESSAGES));
@@ -496,10 +516,26 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           ].slice(-MAX_STORED_MESSAGES));
           return;
         }
-        modelQuestion = buildWebProblemPrompt(
-          activeWebSession.problem,
-          `Explain only the solution bound to source hash ${activeWebSession.solution.sourceHash} and problem hash ${activeWebSession.solution.problemHash}: ${JSON.stringify(activeWebSession.solution).slice(0, 10_000)}`,
-        );
+        const boundSolutionSummary = activeWebSession.solution.kind === 'unexecuted-java17'
+          ? [
+              `Source title: ${activeWebSession.problem.title}`,
+              'Validated Java 17 candidate:',
+              activeWebSession.solution.code.slice(0, 8_000),
+              `Complexity: time ${activeWebSession.solution.complexity.time}; space ${activeWebSession.solution.complexity.space}`,
+              `Correctness review: ${activeWebSession.solution.review.summary}`,
+            ]
+          : [
+              `Validated simulation package: ${activeWebSession.solution.packageId}`,
+              `Correctness review: ${activeWebSession.solution.review.summary}`,
+            ];
+        modelQuestion = [
+          locale === 'tr'
+            ? 'Yalnız bağlı çözümü doğal Türkçe ile anlat. Problem metnini, örnekleri veya kodu tekrar etme. Problemden bağımsız genel talimatlara uy; özel terim veya sonuç uydurma. Yanıt yalnız şu yapıda olsun: en fazla dört numaralı kısa adım, “Doğruluk:” ile başlayan bir cümle ve “Karmaşıklık:” ile başlayan bir cümle.'
+            : 'Explain only the bound solution in clear English. Do not repeat the problem statement, examples, or code. Follow problem-independent instructions and do not invent terminology or results. Output only: at most four short numbered steps, one sentence starting “Correctness:”, and one sentence starting “Complexity:”.',
+          `User follow-up: ${userMessage.slice(0, 1_500)}`,
+          ...boundSolutionSummary,
+        ].join('\n');
+        historyForModel = [];
       }
 
       const godModeIntent = webProblemForSimulation
@@ -817,22 +853,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         locale,
       };
 
-      setTypingMessage('');
-      const answer = await askQuestion(modelQuestion, workspace, history);
+      const answer = await askQuestion(modelQuestion, workspace, historyForModel);
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
 
       const cleanedAnswer = stripThinkBlock(answer);
 
-      let i = 0;
-      while (i < cleanedAnswer.length) {
-        if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
-        const chunkLength = Math.max(2, Math.floor(Math.random() * 8));
-        const currentChunk = cleanedAnswer.slice(0, i + chunkLength);
-        setTypingMessage(currentChunk);
-        i += chunkLength;
-        await new Promise((resolve) => setTimeout(resolve, 8));
-      }
-      setTypingMessage(null);
       setChatHistory((previous) =>
         [...previous, { role: 'ai' as const, content: cleanedAnswer }]
           .slice(-MAX_STORED_MESSAGES),
@@ -843,10 +868,18 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       webFetchRef.current = null;
       webRunRef.current = null;
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
+      const disposedModel = isDisposedLocalModelError(error);
+      if (disposedModel) {
+        setAiStatus('idle');
+        setAiProgressPercent(null);
+        setAiProgress(t('modelSessionExpired', locale));
+      }
       setChatHistory((previous) =>
         [...previous, {
           role: 'system' as const,
-          content: error instanceof WebSourceError
+          content: disposedModel
+            ? t('modelSessionExpired', locale)
+            : error instanceof WebSourceError
             ? t(webSourceErrorKey(error), locale)
             : translateRuntimeText(error instanceof Error ? error.message : 'The local model could not answer.', locale),
         }].slice(-MAX_STORED_MESSAGES),
@@ -879,6 +912,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     play,
     requestRadioOpen,
     setTheme,
+    setAiProgress,
+    setAiProgressPercent,
+    setAiStatus,
     setSpeed,
     setCode,
     setAlgorithmName,
@@ -1144,23 +1180,28 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             {message.role === 'ai' && (
               <button
                 type="button"
-                className={`copy-response-btn ${copiedMessageIndex === index ? 'copied' : ''}`}
-                aria-label={t(copiedMessageIndex === index ? 'aiResponseCopied' : 'copyAiResponse', locale)}
-                title={t(copiedMessageIndex === index ? 'aiResponseCopied' : 'copyAiResponse', locale)}
+                className={`copy-response-btn ${copyStatus?.index === index ? copyStatus.state : ''}`}
+                aria-label={t(copyStatus?.index === index
+                  ? copyStatus.state === 'copied' ? 'aiResponseCopied' : 'aiResponseCopyFailed'
+                  : 'copyAiResponse', locale)}
+                title={t(copyStatus?.index === index
+                  ? copyStatus.state === 'copied' ? 'aiResponseCopied' : 'aiResponseCopyFailed'
+                  : 'copyAiResponse', locale)}
                 onClick={() => void copyAiResponse(message.content, index)}
               >
-                {copiedMessageIndex === index ? <Check size={13} /> : <Copy size={13} />}
+                {copyStatus?.index === index && copyStatus.state === 'copied'
+                  ? <Check size={13} />
+                  : <Copy size={13} />}
               </button>
+            )}
+            {message.role === 'ai' && copyStatus?.index === index && (
+              <span className={`copy-response-feedback ${copyStatus.state}`} role="status">
+                {t(copyStatus.state === 'copied' ? 'aiResponseCopied' : 'aiResponseCopyFailed', locale)}
+              </span>
             )}
           </div>
         ))}
-        {typingMessage !== null && (
-          <div className="chat-message ai-msg">
-            <Bot size={14} className="msg-icon" />
-            <MarkdownPreview content={typingMessage} />
-          </div>
-        )}
-        {isTyping && actionQueue.length === 0 && typingMessage === null && (
+        {isTyping && actionQueue.length === 0 && (
           <div className="chat-message ai-msg typing">
             <Loader size={14} className="spin-icon" />
             <p>{t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
@@ -1217,7 +1258,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               webRunRef.current?.cancel();
               sourcePreviewRunRef.current = null;
               godModeRunRef.current?.cancel();
-              setTypingMessage(null);
               setIsPlanningActions(false);
               setIsExecutingQueue(false);
               setIsTyping(false);

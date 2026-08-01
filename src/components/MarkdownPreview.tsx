@@ -184,15 +184,37 @@ export const MarkdownPreview = ({ content, className = '' }: MarkdownPreviewProp
           ? lines[index].match(/^\s{0,3}\d+[.)]\s+(.+)$/)
           : lines[index].match(/^\s{0,3}[-+*]\s+(.+)$/);
         if (!item) break;
+        const itemIndex = index;
         const itemContent = item[item.length - 1];
         const task = itemContent.match(/^\[([ xX])]\s+(.+)$/);
+        index += 1;
+
+        const nestedItems: ReactNode[] = [];
+        if (orderedList) {
+          let nestedIndex = index;
+          while (nestedIndex < lines.length && !lines[nestedIndex].trim()) nestedIndex += 1;
+          while (nestedIndex < lines.length) {
+            const nested = lines[nestedIndex].match(/^\s{2,3}[-+*]\s+(.+)$/);
+            if (!nested) break;
+            const nestedTask = nested[1].match(/^\[([ xX])]\s+(.+)$/);
+            nestedItems.push(
+              <li key={`nested-item-${nestedIndex}`} className={nestedTask ? 'markdown-task-item' : undefined}>
+                {nestedTask && <input type="checkbox" checked={nestedTask[1].toLowerCase() === 'x'} readOnly tabIndex={-1} />}
+                {renderInline(nestedTask ? nestedTask[2] : nested[1], `nested-item-${nestedIndex}`)}
+              </li>,
+            );
+            nestedIndex += 1;
+          }
+          if (nestedItems.length) index = nestedIndex;
+        }
+
         items.push(
-          <li key={`item-${index}`} className={task ? 'markdown-task-item' : undefined}>
+          <li key={`item-${itemIndex}`} className={task ? 'markdown-task-item' : undefined}>
             {task && <input type="checkbox" checked={task[1].toLowerCase() === 'x'} readOnly tabIndex={-1} />}
-            {renderInline(task ? task[2] : itemContent, `item-${index}`)}
+            {renderInline(task ? task[2] : itemContent, `item-${itemIndex}`)}
+            {nestedItems.length > 0 && <ul>{nestedItems}</ul>}
           </li>,
         );
-        index += 1;
       }
 
       blocks.push(orderedList

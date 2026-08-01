@@ -30,6 +30,27 @@ const answer = 42;
     expect(within(screen.getByRole('table')).getByText('ready')).toBeInTheDocument();
   });
 
+  it('keeps indented bullets nested under their numbered step', () => {
+    render(<MarkdownPreview content={`1. Read the input
+2. Traverse the grid
+3. Count components
+4. Apply the checks
+
+   - Outer loop
+   - Inner loop
+   - Cell condition`} />);
+
+    const ordered = screen.getAllByRole('list')[0];
+    const orderedItems = within(ordered).getAllByRole('listitem', { hidden: false });
+    const fourthItem = screen.getByText('Apply the checks').closest('li');
+    const nestedList = fourthItem?.querySelector(':scope > ul');
+
+    expect(ordered.tagName).toBe('OL');
+    expect(orderedItems).toHaveLength(7);
+    expect(nestedList).not.toBeNull();
+    expect(nestedList?.querySelectorAll(':scope > li')).toHaveLength(3);
+  });
+
   it('allows safe links without interpreting raw HTML', () => {
     const { container } = render(<MarkdownPreview content={`[Docs](https://example.com) and [unsafe](javascript:alert(1))
 

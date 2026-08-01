@@ -9,7 +9,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useState, type FocusEvent, type MouseEvent } from 'react';
+import { useEffect, useState, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { ManagerPlanV1 } from '../types/godMode';
 import type { ManagerPlanV2 } from '../types/webSource';
@@ -29,12 +29,23 @@ interface GodModeProgressProps {
 
 const agentKey = (role: string) => `godAgent_${role}`;
 
-const jobDetails = (job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number]): string | undefined => {
+const jobElapsed = (
+  job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number],
+  now: number,
+): number | null => {
   const elapsed = 'durationMs' in job && typeof job.durationMs === 'number'
     ? job.durationMs
     : job.startedAt
-      ? (job.finishedAt ?? Date.now()) - job.startedAt
+      ? (job.finishedAt ?? now) - job.startedAt
       : null;
+  return elapsed === null ? null : Math.max(0, elapsed);
+};
+
+const jobDetails = (
+  job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number],
+  now: number,
+): string | undefined => {
+  const elapsed = jobElapsed(job, now);
   const timing = elapsed === null
     ? ''
     : `Time: ${(elapsed / 1_000).toFixed(2)}s${'queueMs' in job && typeof job.queueMs === 'number'
@@ -62,16 +73,23 @@ export const GodModeProgress = ({
   canRedo,
 }: GodModeProgressProps) => {
   const [tooltip, setTooltip] = useState<AgentTooltip | null>(null);
+  const [now, setNow] = useState(Date.now());
   const totalWeight = plan.jobs.reduce((sum, job) => sum + ('weight' in job ? job.weight : 1), 0);
   const completedWeight = plan.jobs.reduce((sum, job) =>
     job.status === 'completed' || job.status === 'completed_with_fallback'
       ? sum + ('weight' in job ? job.weight : 1)
       : sum, 0);
   const progress = totalWeight ? Math.round((completedWeight / totalWeight) * 100) : 0;
-  const running = plan.jobs.find((job) => job.status === 'running');
+  const running = plan.jobs.find((job) => job.status === 'running' || job.status === 'retrying');
   const failed = plan.jobs.some((job) => job.status === 'failed');
   const cancelled = plan.jobs.some((job) => job.status === 'cancelled');
   const completed = progress === 100;
+
+  useEffect(() => {
+    if (!running) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [running]);
 
   const positionTooltip = (bounds: DOMRect, role: string, status?: string, details?: string) => {
     const tooltipHalfWidth = 170;
@@ -175,14 +193,14 @@ export const GodModeProgress = ({
               event,
               t(agentKey(job.role), locale),
               t(`godStatus_${job.status}`, locale),
-              jobDetails(job),
+              jobDetails(job, now),
             )}
             onMouseLeave={() => setTooltip(null)}
             onFocus={(event) => showAgentTooltip(
               event,
               t(agentKey(job.role), locale),
               t(`godStatus_${job.status}`, locale),
-              jobDetails(job),
+              jobDetails(job, now),
             )}
             onBlur={() => setTooltip(null)}
           >
@@ -196,6 +214,11 @@ export const GodModeProgress = ({
                     : <Circle size={9} />}
             </span>
             <span className="agent-role">{t(agentKey(job.role), locale)}</span>
+            {jobElapsed(job, now) !== null && (
+              <span className="agent-duration">
+                {(jobElapsed(job, now)! / 1_000).toFixed(1)}s
+              </span>
+            )}
             {(job.summary || job.error) && (
               <span className="agent-summary" title={job.error ?? job.summary}>
                 {job.error ?? job.summary}

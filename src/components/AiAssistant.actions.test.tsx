@@ -58,7 +58,10 @@ beforeEach(() => {
   mocks.planLocalActions.mockReset().mockResolvedValue('{"actions":[]}');
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  Object.defineProperty(document, 'execCommand', { configurable: true, value: undefined });
+});
 
 describe('AiAssistant safe action pipeline', () => {
   it('loads an explicit DFS command by canonical preset ID before explaining it', async () => {
@@ -105,5 +108,69 @@ describe('AiAssistant safe action pipeline', () => {
     await waitFor(() => expect(mocks.askQuestion).toHaveBeenCalled());
     expect(screen.getByTestId('algorithm-name')).toHaveTextContent('Custom Code');
     expect(screen.getByTestId('source-code')).toBeEmptyDOMElement();
+  });
+
+  it('renders the completed Markdown answer atomically without a duplicate partial message', async () => {
+    let releaseAnswer: ((value: string) => void) | undefined;
+    mocks.askQuestion.mockImplementation(() => new Promise<string>((resolve) => {
+      releaseAnswer = resolve;
+    }));
+    const user = userEvent.setup();
+    const { container } = renderReadyAssistant();
+
+    const input = await screen.findByRole('textbox');
+    await user.type(input, 'Çözümü anlat{Enter}');
+    expect(await screen.findByText('Yerel olarak düşünüyor…')).toBeVisible();
+    expect(container.querySelectorAll('.chat-message.ai-msg')).toHaveLength(1);
+
+    releaseAnswer?.('**Türkçe yanıt**\n\nİki kısa adım.');
+    expect(await screen.findByText('Türkçe yanıt')).toBeVisible();
+    await waitFor(() => expect(container.querySelectorAll('.chat-message.ai-msg.typing')).toHaveLength(0));
+    expect(container.querySelectorAll('.chat-message.ai-msg')).toHaveLength(1);
+  });
+
+  it('reports clipboard permission failures instead of failing silently', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('Clipboard permission denied'));
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    mocks.askQuestion.mockResolvedValue('Kopyalanacak Türkçe yanıt.');
+    renderReadyAssistant();
+
+    const input = await screen.findByRole('textbox');
+    await user.type(input, 'Yanıt ver{Enter}');
+    await screen.findByText('Kopyalanacak Türkçe yanıt.');
+    await user.click(screen.getByRole('button', { name: 'AI cevabını kopyala' }));
+
+    expect(writeText).toHaveBeenCalledWith('Kopyalanacak Türkçe yanıt.');
+    expect(await screen.findByText('Kopyalanamadı. Pano izni verip yeniden deneyin.'))
+      .toHaveClass('copy-response-feedback', 'error');
+  });
+
+  it('falls back to the legacy copy command when Clipboard API permission is denied', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('Clipboard permission denied'));
+    const execCommand = vi.fn().mockReturnValue(true);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand,
+    });
+    mocks.askQuestion.mockResolvedValue('Fallback ile kopyalanacak yanıt.');
+    renderReadyAssistant();
+
+    const input = await screen.findByRole('textbox');
+    await user.type(input, 'Yanıt ver{Enter}');
+    await screen.findByText('Fallback ile kopyalanacak yanıt.');
+    await user.click(screen.getByRole('button', { name: 'AI cevabını kopyala' }));
+
+    expect(writeText).toHaveBeenCalled();
+    expect(execCommand).toHaveBeenCalledWith('copy');
+    expect(await screen.findByText('AI cevabı kopyalandı')).toHaveClass('copy-response-feedback');
   });
 });

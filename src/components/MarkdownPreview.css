@@ -46,6 +46,12 @@
   margin-top: 0.22em;
 }
 
+.markdown-preview li > ul,
+.markdown-preview li > ol {
+  margin: 0.3em 0 0.15em;
+  padding-left: 1.15em;
+}
+
 .markdown-preview .markdown-task-item {
   list-style: none;
   margin-left: -1.25em;

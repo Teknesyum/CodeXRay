@@ -48,4 +48,53 @@ describe('local model answer cleanup', () => {
   it('returns an empty result when the model emitted only hidden reasoning', () => {
     expect(sanitizeLocalModelAnswer('<think>no visible answer</think>')).toBe('');
   });
+
+  it('separates collapsed numbered steps and summary labels without changing code', () => {
+    const answer = [
+      'Çözüm: 1. İlk adımı uygula. 2. İkinci adımı uygula. 3. Sonucu döndür.',
+      'Doğruluk: Her öğe bir kez işlenir. Karmaşıklık: O(n).',
+      '',
+      '```java',
+      'double value = 2. 0;',
+      '```',
+    ].join('\n');
+    const cleaned = sanitizeLocalModelAnswer(answer);
+
+    expect(cleaned).toContain('**Çözüm:**\n\n1. İlk adımı uygula.\n2. İkinci adımı uygula.\n3. Sonucu döndür.');
+    expect(cleaned).toContain('**Doğruluk:** Her öğe bir kez işlenir.');
+    expect(cleaned).toContain('**Karmaşıklık:** O(n).');
+    expect(cleaned).toContain('double value = 2. 0;');
+  });
+
+  it('repairs malformed emphasis around structural labels', () => {
+    expect(sanitizeLocalModelAnswer(
+      '****Doğruluk: Her düğüm işlenir.**Karmaşıklık: O(n).',
+    )).toBe('**Doğruluk:** Her düğüm işlenir.\n\n**Karmaşıklık:** O(n).');
+  });
+
+  it('separates collapsed inline substeps into distinct bullet items', () => {
+    const cleaned = sanitizeLocalModelAnswer(
+      '4. **Uygulama:** - **Dış döngü:** Satırları gezer. - **İç döngü:** Sütunları gezer. - **Koşul:** Hücreyi işler.',
+    );
+
+    expect(cleaned).toContain([
+      '4. **Uygulama:**',
+      '   - **Dış döngü:** Satırları gezer.',
+      '   - **İç döngü:** Sütunları gezer.',
+      '   - **Koşul:** Hücreyi işler.',
+    ].join('\n'));
+  });
+
+  it('removes accidental numbering before correctness and complexity labels', () => {
+    expect(sanitizeLocalModelAnswer(
+      '1. İlk adım. 2. İkinci adım. 5.Doğruluk: Sonuç geçerlidir. 6.Karmaşıklık: O(n).',
+    )).toBe([
+      '1. İlk adım.',
+      '2. İkinci adım.',
+      '',
+      '**Doğruluk:** Sonuç geçerlidir.',
+      '',
+      '**Karmaşıklık:** O(n).',
+    ].join('\n'));
+  });
 });

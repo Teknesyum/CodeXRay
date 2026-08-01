@@ -124,6 +124,7 @@ test('keeps hostile model Markdown inert, contained, copyable, and allows the ne
   );
 
   await hostileMessage.getByRole('button', { name: 'Copy AI response' }).click();
+  await expect(hostileMessage.getByRole('status')).toHaveText('AI response copied');
   await expect.poll(() => page.evaluate(() => (window as Window & { __copied?: string }).__copied))
     .not.toContain('private chain of thought');
   await expect.poll(() => page.evaluate(() => (window as Window & { __copied?: string }).__copied))

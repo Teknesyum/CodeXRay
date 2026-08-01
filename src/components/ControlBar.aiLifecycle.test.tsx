@@ -6,6 +6,7 @@ import {
   deleteLocalModel,
   getCachedLocalModels,
   initializeLocalAi,
+  repairLocalModel,
   LOCAL_AI_MODELS,
   supportsLocalAi,
 } from '../services/localAiService';
@@ -21,6 +22,7 @@ vi.mock('../services/localAiService', async (importOriginal) => {
     supportsLocalAi: vi.fn().mockResolvedValue(true),
     initializeLocalAi: vi.fn(),
     deleteLocalModel: vi.fn(),
+    repairLocalModel: vi.fn(),
   };
 });
 
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.mocked(getCachedLocalModels).mockResolvedValue([]);
   vi.mocked(initializeLocalAi).mockReset();
   vi.mocked(deleteLocalModel).mockReset();
+  vi.mocked(repairLocalModel).mockReset();
 });
 
 afterEach(() => {
@@ -86,6 +89,25 @@ describe('ControlBar local model lifecycle integration', () => {
     expect(await screen.findByText('GPU device lost')).toHaveClass('ai-status', 'error');
     expect(screen.queryByRole('button', { name: 'Model ready' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Load local model' })).toBeEnabled();
+  });
+
+  it('offers a selected-model repair after damaged OPFS metadata and retries cleanly', async () => {
+    vi.mocked(initializeLocalAi)
+      .mockRejectedValueOnce(new Error('Unexpected end of JSON input'))
+      .mockResolvedValueOnce();
+    vi.mocked(repairLocalModel).mockResolvedValue();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: 'Load local model' }));
+
+    expect(await screen.findByText(/download is incomplete/i)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Repair model download' }));
+
+    await waitFor(() => expect(repairLocalModel).toHaveBeenCalledWith(LOCAL_AI_MODELS[0].id));
+    await waitFor(() => expect(initializeLocalAi).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole('button', { name: 'Model ready' })).toBeVisible();
   });
 
   it('deletes only the selected cached model and returns the UI to an idle load state', async () => {

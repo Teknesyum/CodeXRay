@@ -25,10 +25,12 @@ const advanceToEnd = async (page: Page) => {
 test('authors, visualizes, and teaches a 1D House Robber DP recurrence', async ({ page }) => {
   await prepare(page);
   const chat = page.getByPlaceholder('Type your question here...');
-  await chat.fill('Solve and simulate LeetCode 198 House Robber with [2,7,9,3,1]. Show every 1D DP state.');
+  await chat.fill('Solve and simulate LeetCode 198 House Robber in Java with [2,7,9,3,1]. Show every 1D DP state.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 198 — House Robber execution')).toBeVisible();
-  await expect(page.locator('.code-display')).toContainText('dp[i] = max(take, skip);');
+  await expect(page.locator('.code-display')).toContainText('int[] dp = new int[n]');
+  await expect(page.locator('.code-display')).toContainText('dp[i] = Math.max(take, skip);');
+  await expect(page.locator('.code-display')).not.toContainText('vector<int>');
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
   await pauseAndRewind(page);
   await advanceToEnd(page);

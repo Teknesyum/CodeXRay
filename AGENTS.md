@@ -45,6 +45,27 @@ the test runner environment, not an application defect. A real test timeout
 still emits Playwright test output and should be debugged from its error context
 and trace.
 
+### Local web reader and model cache
+
+The Vite dev and preview servers proxy `/api/codexray/read-url` to the deployed
+first-party reader. Override the target only when testing another trusted
+CodeXRay gateway:
+
+```powershell
+$env:CODEXRAY_WEB_READER_ORIGIN = "https://serkanozel.me"
+npm run dev
+```
+
+`localhost`, `127.0.0.1`, and `https://serkanozel.me` are different browser
+origins and therefore have separate WebLLM OPFS/cache stores. Do not expect a
+model downloaded on one origin to appear on another. Development origins use
+the Cache API backend because Vite hot reload and interrupted localhost OPFS
+metadata can otherwise leave stale model state; production prefers OPFS and
+falls back to Cache API. If an interrupted download leaves invalid metadata,
+use the selected model's **Repair model download** action; do not clear the
+whole origin or unrelated models. Model load, delete, and repair operations are
+cross-tab locked, so finish the active tab's operation before using another tab.
+
 ## Architecture
 
 - `src/types/simulation.ts`: shared input, graph, trace, visual, and step types.

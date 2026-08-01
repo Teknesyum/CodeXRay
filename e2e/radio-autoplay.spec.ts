@@ -30,7 +30,7 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
     class MockPlayer {
       private state = -1;
       private index = 0;
-      private playlist = ['YHH7NKb8m5c', 'gNp624IXWI4'];
+      private playlist = ['8zj8h15VmQw', 'YHH7NKb8m5c', 'gNp624IXWI4'];
       private readonly events: PlayerEvents;
 
       constructor(_element: HTMLIFrameElement, options: { events: PlayerEvents }) {
@@ -70,7 +70,14 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
       previousVideo() {}
       getPlaylist() { return this.playlist; }
       getPlaylistIndex() { return this.index; }
-      getVideoData() { return { title: this.index === 0 ? 'Imitation' : 'Demons', video_id: this.index === 0 ? 'YHH7NKb8m5c' : 'gNp624IXWI4' }; }
+      getVideoData() {
+        const tracks = [
+          { title: 'Up', video_id: '8zj8h15VmQw' },
+          { title: 'Imitation', video_id: 'YHH7NKb8m5c' },
+          { title: 'Demons', video_id: 'gNp624IXWI4' },
+        ];
+        return tracks[this.index] || tracks[0];
+      }
       playVideoAt(index: number) {
         radioWindow.__radioPlayAtIndices.push(index);
         this.index = index;
@@ -127,13 +134,10 @@ test('confirms autoplay, routes Demons to its embeddable upload, and surfaces pl
   ).__radioSeekCalls)).toEqual([]);
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
 
-  await radio.getByRole('button', { name: /2 thumb Demons/ }).click();
+  await radio.getByRole('button', { name: /3 thumb Demons/ }).click();
   await expect.poll(() => page.evaluate(() => (
     window as Window & { __radioPlayAtIndices: number[] }
-  ).__radioPlayAtIndices)).toEqual([0, 1]);
-  expect(await page.evaluate(() => (
-    window as Window & { __radioPlayAtIndices: number[] }
-  ).__radioPlayAtIndices)).not.toContain(2);
+  ).__radioPlayAtIndices)).toEqual([0, 2]);
   await expect(radio.getByText('Demons', { exact: true }).first()).toBeVisible();
   await expect(radio.locator('button[title="Pause"]')).toBeVisible();
 

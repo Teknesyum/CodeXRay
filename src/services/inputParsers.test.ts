@@ -43,6 +43,41 @@ describe('input parsers', () => {
     expect(tree.rootId).toBe('n0');
   });
 
+  it('replays seeded sparse level-order trees without losing nodes or parent edges', () => {
+    const seededValues = (seed: number) => {
+      let state = seed >>> 0;
+      const values: Array<number | null> = [seed];
+      for (let index = 1; index < 63; index += 1) {
+        state = (state * 1664525 + 1013904223) >>> 0;
+        const parentIndex = Math.floor((index - 1) / 2);
+        values.push(values[parentIndex] === null || state % 5 === 0 ? null : seed * 100 + index);
+      }
+      while (values.at(-1) === null) values.pop();
+      return values;
+    };
+
+    for (let seed = 1; seed <= 32; seed += 1) {
+      const values = seededValues(seed);
+      const serialized = JSON.stringify(values);
+      const first = parseBinaryTree(serialized);
+      const replay = parseBinaryTree(serialized);
+      const expectedIndexes = values
+        .map((value, index) => value === null ? null : index)
+        .filter((index): index is number => index !== null);
+      const expectedEdges = expectedIndexes
+        .filter((index) => index > 0)
+        .map((index) => ({ from: `n${Math.floor((index - 1) / 2)}`, to: `n${index}` }));
+
+      expect(first).toEqual(replay);
+      expect(first.nodes.map((node) => node.id)).toEqual(expectedIndexes.map((index) => `n${index}`));
+      expect(first.nodes.map((node) => node.label)).toEqual(
+        expectedIndexes.map((index) => String(values[index])),
+      );
+      expect(first.edges.map(({ from, to }) => ({ from, to }))).toEqual(expectedEdges);
+      expect(() => validateGraphDocument(first)).not.toThrow();
+    }
+  });
+
   it('validates references and tree parent constraints', () => {
     expect(() => validateGraphDocument({
       version: 1,

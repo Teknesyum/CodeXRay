@@ -10,10 +10,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
-        'src/services/inputParsers.ts',
-        'src/services/simulators.ts',
-        'src/services/extended*Simulators.ts',
-        'src/services/compoundSimulators.ts',
+        'src/**/*.{ts,tsx}',
+      ],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
       ],
       thresholds: {
         lines: 60,

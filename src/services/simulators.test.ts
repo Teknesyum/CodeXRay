@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { algorithmRegistry } from './codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
 import { simulateAlgorithm } from './simulators';
-import type { GraphVisualData } from '../types/simulation';
+import type { GraphDocumentV1, GraphVisualData } from '../types/simulation';
 import { translateRuntimeText } from '../i18n/translations';
 
 const supported = algorithmRegistry.filter((algorithm) => algorithm.isSupported);
@@ -65,6 +65,60 @@ describe('deterministic simulators', () => {
     expect(visited).toBeInstanceOf(Array);
     expect(visited).toHaveLength(15);
     expect(JSON.stringify(visited)).not.toContain('...');
+  });
+
+  it('keeps large array, string, tree, and graph trace collections structured and complete', () => {
+    const quick = supported.find((candidate) => candidate.name === 'Quick Sort')!;
+    const array = Array.from({ length: 80 }, (_, index) => ((index * 37) % 101) - 50);
+    const sorted = simulateAlgorithm(quick.name, quick.code, {
+      kind: 'array', text: JSON.stringify(array), origin: 'user',
+    }).at(-1)?.visualData;
+    expect(sorted?.type === 'array' ? sorted.values : []).toEqual([...array].sort((left, right) => left - right));
+
+    const kmp = supported.find((candidate) => candidate.name.includes('Knuth-Morris'))!;
+    const text = `${'abç😀'.repeat(20)}needle${'ğü'.repeat(40)}`;
+    const stringFinal = simulateAlgorithm(kmp.name, kmp.code, {
+      kind: 'string', text, parameters: { pattern: 'needle' }, origin: 'user',
+    }).at(-1)?.visualData.vars;
+    expect(stringFinal?.text).toBe(text);
+    expect(stringFinal?.matches).toEqual([text.indexOf('needle')]);
+
+    const graphNodes = Array.from({ length: 75 }, (_, index) => ({
+      id: `large-${index}`, label: `N${index}`, x: 5 + (index % 10) * 9, y: 8 + Math.floor(index / 10) * 11,
+    }));
+    const graph: GraphDocumentV1 = {
+      version: 1, mode: 'graph', directed: false, weighted: false,
+      nodes: graphNodes,
+      edges: graphNodes.slice(1).map((node, index) => ({
+        id: `large-edge-${index}`, from: graphNodes[index].id, to: node.id,
+      })),
+      startId: graphNodes[0].id,
+      targetId: graphNodes.at(-1)?.id,
+    };
+    const dfs = supported.find((candidate) => candidate.name.includes('Depth First'))!;
+    const graphFinal = simulateAlgorithm(dfs.name, dfs.code, {
+      kind: 'graph', text: '', graph, origin: 'user',
+    }).at(-1)?.visualData.vars;
+    expect(graphFinal?.visited).toEqual(graphNodes.map((node) => node.id));
+
+    const treeNodes = Array.from({ length: 63 }, (_, index) => ({
+      id: `tree-${index}`, label: `T${index}`, x: 5 + (index % 16) * 6, y: 6 + Math.floor(Math.log2(index + 1)) * 17,
+    }));
+    const tree: GraphDocumentV1 = {
+      version: 1, mode: 'tree', directed: true, weighted: false,
+      nodes: treeNodes,
+      edges: treeNodes.slice(1).map((node, index) => ({
+        id: `tree-edge-${index}`, from: treeNodes[Math.floor(index / 2)].id, to: node.id,
+      })),
+      rootId: treeNodes[0].id,
+      startId: treeNodes[0].id,
+    };
+    const preorder = supported.find((candidate) => candidate.name.includes('Preorder'))!;
+    const treeFinal = simulateAlgorithm(preorder.name, preorder.code, {
+      kind: 'tree', text: '', graph: tree, origin: 'user',
+    }).at(-1)?.visualData.vars;
+    expect(treeFinal?.traversal).toHaveLength(63);
+    expect(JSON.stringify({ stringFinal, graphFinal, treeFinal })).not.toContain('...');
   });
 
   it('finds and marks the shortest A* path to the configured target', () => {

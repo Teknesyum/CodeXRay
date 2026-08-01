@@ -59,4 +59,28 @@ describe('natural-language graph edits', () => {
     expect(applyStructuralGraphRequest(source, 'target node 1 set').targetId).toBe('1');
     expect(applyStructuralGraphRequest(source, 'target node missing set').targetId).toBe('named');
   });
+
+  it('adds a requested named node and connects it to real user nodes and the target', () => {
+    const graph: GraphDocumentV1 = {
+      ...source,
+      nodes: [
+        { id: 'A', label: 'A', x: 10, y: 40 },
+        { id: 'B', label: 'B', x: 45, y: 40 },
+        { id: 'T', label: 'Target', x: 90, y: 40 },
+      ],
+      edges: [{ id: 'ab', from: 'A', to: 'B', weight: 2 }],
+      startId: 'A',
+      targetId: 'T',
+    };
+    const edited = applyStructuralGraphRequest(
+      graph,
+      "X node'unu ekle, B ile X ve X ile hedef arasında bağlantı kur",
+    );
+    expect(edited.nodes.map((node) => node.id)).toContain('X');
+    expect(edited.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: 'B', to: 'X', weight: 1 }),
+      expect.objectContaining({ from: 'X', to: 'T', weight: 1 }),
+    ]));
+    expect(graph.nodes).toHaveLength(3);
+  });
 });

@@ -27,6 +27,8 @@ import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './g
 import { createVisualizationContractV2 } from './visualizationDesigner';
 import { applyStructuralGraphRequest, isVisualOnlyGraphRequest, spreadGraphLayout } from './graphRequestEdits';
 import { patchPackageGraphLayout } from './graphTransactions';
+import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './intervalDpCompiler';
+import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 
 export interface GodModeRunResult {
   runId: string;
@@ -44,7 +46,10 @@ interface AgentRunner {
 
 export interface GodModeOrchestratorOptions {
   request: string;
-  intent: Exclude<GodModeIntent, { type: 'deterministic' } | { type: 'ui-control' }>;
+  intent: Exclude<
+    GodModeIntent,
+    { type: 'deterministic' } | { type: 'ui-control' } | { type: 'clarify-algorithm' }
+  >;
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
   activePackage: CustomSimulationPackageV1 | null;
@@ -434,6 +439,14 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             ).input
             : undefined;
           let generated = current ?? createInputPreset(kind, 2, options.workspace.algorithmName);
+          if (options.activePackage?.program.id === 'predict_winner_interval_dp') {
+            const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
+            generated = {
+              kind: 'array',
+              text: JSON.stringify(resolved.numbers),
+              origin: resolved.origin === 'user' ? 'user' : 'agent',
+            };
+          }
           if (generated.graph && visualOnly) {
             generated = { ...generated, text: '', graph: spreadGraphLayout(generated.graph) };
           } else if (generated.graph && options.activePackage) {
@@ -463,7 +476,14 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           const parsed = parseSimulationInput(input.kind, input.text, input.graph, input.parameters);
           if (!parsed.input) throw new Error(parsed.error ?? 'Generated input is invalid.');
           if (options.activePackage) {
-            if (visualOnly && parsed.input.graph) {
+            if (options.activePackage.program.id === 'predict_winner_interval_dp') {
+              updatedPackage = compilePredictWinnerPackage({
+                id: `${options.activePackage.id}-input-${Date.now().toString(36)}`,
+                request: parsed.input.text,
+                locale: options.locale,
+                workspace: { ...options.workspace, simulationInput: parsed.input },
+              });
+            } else if (visualOnly && parsed.input.graph) {
               updatedPackage = patchPackageGraphLayout(options.activePackage, parsed.input.graph);
             } else {
               const patched = parsed.input.graph
@@ -526,6 +546,185 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       if (creationIntent.type !== 'create-algorithm') {
         throw new Error(`Unsupported God Mode intent: ${creationIntent.type}`);
       }
+      if (creationIntent.template === 'predict-winner-interval-dp') {
+        const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
+        await runJob('architect-design-algorithm-contract', async () => {
+          const summary = await callOptionalAgent(
+            'architect',
+            'Review this fixed interval-DP contract: dp[i][j] is current-player score advantage; fill the diagonal first and then increasing interval length. Keep the exact recurrence supplied by the user.',
+            JSON.stringify({ request: options.request, numbers: resolved.numbers }),
+            'Validated interval-DP state, dependency direction, recurrence, and O(n^2) bounds.',
+            undefined,
+            240,
+          );
+          setJob('architect-design-algorithm-contract', { summary: summary.slice(0, 260) });
+          return summary;
+        });
+        await runJob('code-author-author-executable-program', async () => {
+          const summary = await callOptionalAgent(
+            'code-author',
+            'Review the deterministic C++ Predict the Winner implementation. It must use a 2D interval-DP table and dp[i][j] = max(nums[i] - dp[i+1][j], nums[j] - dp[i][j-1]).',
+            JSON.stringify({ request: options.request }),
+            'C++ source preserves the requested recurrence and diagonal-to-interval fill order.',
+            undefined,
+            240,
+          );
+          setJob('code-author-author-executable-program', { summary: summary.slice(0, 260) });
+          return summary;
+        });
+        await runJob('input-engineer-build-original-teaching-input', async () => {
+          const summary = `${resolved.origin === 'user' ? 'User' : 'Canonical'} input: [${resolved.numbers.join(', ')}].`;
+          setJob('input-engineer-build-original-teaching-input', { summary });
+          return resolved;
+        });
+        await runJob('visual-designer-design-semantic-visual-language', async () => {
+          const summary = await callOptionalAgent(
+            'visual-designer',
+            'Review a matrix visual with distinct base, dependency, active, computed, and final-result cell roles. The two recurrence dependencies must remain visible at every transition.',
+            JSON.stringify({ dimensions: [resolved.numbers.length, resolved.numbers.length] }),
+            'Matrix roles distinguish the active cell, both dependencies, base diagonal, and final result without color alone.',
+            undefined,
+            220,
+          );
+          setJob('visual-designer-design-semantic-visual-language', { summary: summary.slice(0, 260) });
+          return summary;
+        });
+        await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
+          const summary = 'Responsive matrix grid uses a scroll-safe diagonal fill layout.';
+          setJob('layout-engineer-resolve-responsive-graph-layout', { summary });
+          return summary;
+        });
+        const packageValue = await runJob('compiler-compile-source-and-trace', () =>
+          compilePredictWinnerPackage({
+            id: `predict-winner-${runId}`,
+            request: options.request,
+            locale: options.locale,
+            workspace: options.workspace,
+          }));
+        await runJob('critic-test-visual-and-trace-alignment', async () => {
+          const matrixSteps = packageValue.steps.filter((step) => step.visualData.type === 'matrix');
+          if (matrixSteps.length !== packageValue.steps.length) throw new Error('Interval-DP trace contains a non-matrix step.');
+          const final = matrixSteps.at(-1)?.visualData;
+          if (!final || final.type !== 'matrix' || typeof final.vars.winner !== 'boolean') {
+            throw new Error('Predict the Winner trace has no grounded boolean result.');
+          }
+          const summary = `${matrixSteps.length} matrix snapshots align with source and recurrence dependencies.`;
+          setJob('critic-test-visual-and-trace-alignment', { summary });
+          return summary;
+        });
+        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('trace-director-direct-live-teaching-checkpoints', () => {
+          const summary = `${packageValue.checkpoints.length} checkpoints cover diagonal initialization, interval growth, decisions, and result.`;
+          setJob('trace-director-direct-live-teaching-checkpoints', { summary });
+          return summary;
+        });
+        await runJob('result-analyst-ground-final-result-analysis', () => {
+          const summary = packageValue.teachingPlan.finalResult.summary;
+          setJob('result-analyst-ground-final-result-analysis', { summary: summary.slice(0, 260) });
+          return summary;
+        });
+        const groundedTour = deterministicPackageTour(options.locale, packageValue);
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () =>
+          callOptionalAgent(
+            'tutor',
+            'Introduce the committed interval-DP simulation under Code, Data, Visual, Reasoning, and Time labels. Explain that playback follows increasing interval length and that each active cell highlights dp[i+1][j] and dp[i][j-1].',
+            fiveLensContext(options.workspace, options.request, packageValue),
+            groundedTour,
+            undefined,
+            700,
+          ));
+        return {
+          runId,
+          plan,
+          summary: options.locale === 'tr'
+            ? 'LeetCode 486 interval DP kodu, 2D tablo trace’i ve öğretim turu uygulandı.'
+            : 'LeetCode 486 interval-DP source, 2D table trace, and teaching tour applied.',
+          tutorAnswer,
+          package: packageValue,
+          input: packageValue.input.value,
+          steps: packageValue.steps,
+        };
+      }
+      if (['house-robber-1d-dp', 'lcs-2d-dp', 'longest-palindrome-interval-dp'].includes(creationIntent.template)) {
+        const template = creationIntent.template as DpTemplateId;
+        await runJob('architect-design-algorithm-contract', () => {
+          const summary = `Validated ${template} state definition, dependencies, fill order, and complexity.`;
+          setJob('architect-design-algorithm-contract', { summary });
+          return summary;
+        });
+        await runJob('code-author-author-executable-program', () => {
+          const summary = `Selected the deterministic, source-mapped ${template} implementation.`;
+          setJob('code-author-author-executable-program', { summary });
+          return summary;
+        });
+        await runJob('input-engineer-build-original-teaching-input', () => {
+          const summary = 'Resolved explicit user input when present; otherwise selected a branch-rich bounded teaching input.';
+          setJob('input-engineer-build-original-teaching-input', { summary });
+          return summary;
+        });
+        await runJob('visual-designer-design-semantic-visual-language', () => {
+          const summary = template === 'house-robber-1d-dp'
+            ? '1D state cells expose active, take, skip, computed, and result semantics.'
+            : 'DP matrix exposes base, active, dependency, computed, and result roles with coordinates.';
+          setJob('visual-designer-design-semantic-visual-language', { summary });
+          return summary;
+        });
+        await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
+          const summary = template === 'house-robber-1d-dp'
+            ? 'Scroll-safe 1D state strip selected.'
+            : 'Scroll-safe rectangular/diagonal matrix layout selected.';
+          setJob('layout-engineer-resolve-responsive-graph-layout', { summary });
+          return summary;
+        });
+        const packageValue = await runJob('compiler-compile-source-and-trace', () => compileDpTemplatePackage({
+          template,
+          id: runId,
+          request: options.request,
+          locale: options.locale,
+          workspace: options.workspace,
+        }));
+        await runJob('critic-test-visual-and-trace-alignment', () => {
+          if (!packageValue.tests.passed || !packageValue.steps.length) throw new Error('DP template package failed validation.');
+          const resultStep = packageValue.steps.at(-1);
+          if (!resultStep || !Object.prototype.hasOwnProperty.call(resultStep.visualData.vars, 'result')) {
+            throw new Error('DP template has no grounded final result.');
+          }
+          const summary = `${packageValue.steps.length} source-mapped DP states and dependency roles passed.`;
+          setJob('critic-test-visual-and-trace-alignment', { summary });
+          return summary;
+        });
+        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('trace-director-direct-live-teaching-checkpoints', () => {
+          const summary = `${packageValue.teachingPlan.checkpoints.length} grounded checkpoints include per-state visual differences.`;
+          setJob('trace-director-direct-live-teaching-checkpoints', { summary });
+          return summary;
+        });
+        await runJob('result-analyst-ground-final-result-analysis', () => {
+          const summary = packageValue.teachingPlan.finalResult.summary;
+          setJob('result-analyst-ground-final-result-analysis', { summary });
+          return summary;
+        });
+        const groundedTour = deterministicPackageTour(options.locale, packageValue);
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () => callOptionalAgent(
+          'tutor',
+          'Explain this committed DP package through Code, Data, Visual, Reasoning, and Time. Mention exact active/dependency states and never invent a table value.',
+          fiveLensContext(options.workspace, options.request, packageValue),
+          groundedTour,
+          undefined,
+          700,
+        ));
+        return {
+          runId,
+          plan,
+          summary: options.locale === 'tr'
+            ? `${packageValue.title} kodu, inputu, DP state görünümü ve öğretim turu uygulandı.`
+            : `${packageValue.title} code, input, DP state view, and teaching tour were applied.`,
+          tutorAnswer,
+          package: packageValue,
+          input: packageValue.input.value,
+          steps: packageValue.steps,
+        };
+      }
       let design = defaultBidirectionalDesign(options.locale);
       await runJob('architect-design-algorithm-contract', async () => {
         const response = creationIntent.template === 'bidirectional-bfs'
@@ -549,7 +748,10 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         else if (creationIntent.template === 'model-authored') {
           throw new Error('The Algorithm Architect returned an invalid contract.');
         }
-        design = { ...design, title: canonicalCustomTitle(options.request, options.locale) };
+        const authoredTitle = creationIntent.template === 'model-authored' && parsed
+          ? `${parsed.title.trim()} — ${options.locale === 'tr' ? 'Özel' : 'Custom'}`
+          : canonicalCustomTitle(options.request, options.locale);
+        design = { ...design, title: authoredTitle };
         setJob('architect-design-algorithm-contract', {
           summary: parsed ? `${parsed.title}: ${parsed.complexity.time}` : 'Validated deterministic architecture fallback selected.',
         });
@@ -758,10 +960,13 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         package: packageValue,
       };
     } catch (error) {
-      if (cancelled) {
-        plan.jobs.filter((value) => value.status === 'waiting' || value.status === 'running')
-          .forEach((value) => setJob(value.id, { status: 'cancelled', finishedAt: Date.now() }));
-      }
+      plan.jobs
+        .filter((value) => value.status === 'waiting' || value.status === 'running' || value.status === 'retrying')
+        .forEach((value) => setJob(value.id, {
+          status: 'cancelled',
+          error: cancelled ? undefined : 'Blocked by an earlier failed job.',
+          finishedAt: Date.now(),
+        }));
       throw error;
     }
   })();

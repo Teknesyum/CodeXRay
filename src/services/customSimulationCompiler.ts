@@ -18,7 +18,7 @@ import {
 } from './simLang';
 import { inspectGraphLayout } from './graphLayout';
 import { createTeachingPlan } from './teachingPlan';
-import { isVisualizationV2 } from './visualizationDesigner';
+import { isVisualizationV2, validateVisualizationContractV2 } from './visualizationDesigner';
 
 const checkpointCategory = (explanation: string, index: number, total: number): DiscussionCheckpointCategory => {
   const normalized = explanation.toLocaleLowerCase('tr-TR');
@@ -132,11 +132,8 @@ export const compileCustomSimulationPackage = (
   );
   if (!inputValidation.input) throw new SimLangError(inputValidation.error ?? 'Invalid package input.');
   if (isVisualizationV2(options.visualization)) {
-    const roleIds = [
-      ...options.visualization.nodeRoles.map((role) => `node:${role.id}`),
-      ...options.visualization.edgeRoles.map((role) => `edge:${role.id}`),
-    ];
-    if (new Set(roleIds).size !== roleIds.length) throw new SimLangError('Visualization role IDs must be unique.');
+    const visualizationIssues = validateVisualizationContractV2(options.visualization);
+    if (visualizationIssues.length) throw new SimLangError(visualizationIssues.join(' '));
     if (inputValidation.input.graph) {
       const quality = inspectGraphLayout(
         inputValidation.input.graph,

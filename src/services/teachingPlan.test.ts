@@ -67,6 +67,38 @@ describe('teaching plans', () => {
     expect(narration.lenses.visual).toContain('A→B');
   });
 
+  it('grounds matrix narration in changed cells and semantic dependency roles', () => {
+    const steps: SimulationStep[] = [
+      {
+        lineNumber: 4,
+        explanation: 'Empty table.',
+        visualData: {
+          type: 'matrix', values: [[0, null], [null, null]], rowLabels: ['0', '1'], columnLabels: ['0', '1'],
+          highlights: [{ row: 0, column: 0, role: 'base' }], fillDirection: 'row', vars: { filledCells: 1 },
+        },
+      },
+      {
+        lineNumber: 9,
+        explanation: 'Use the upper and left dependencies.',
+        visualData: {
+          type: 'matrix', values: [[0, 0], [null, 1]], rowLabels: ['0', '1'], columnLabels: ['0', '1'],
+          highlights: [
+            { row: 1, column: 1, role: 'active', label: 'dp[1][1]=1' },
+            { row: 0, column: 1, role: 'dependency', label: 'up=0' },
+          ], fillDirection: 'row', vars: { i: 1, j: 1, filledCells: 3 },
+        },
+      },
+    ];
+    const narration = createStepNarration(steps, checkpoint(1), 'en', 'Dependencies are final.');
+    expect(narration.cellDiffs).toEqual(expect.arrayContaining([
+      'dp[0][1]: null → 0',
+      'dp[1][1]: null → 1',
+      'dp[1][1] [active] dp[1][1]=1',
+      'dp[0][1] [dependency] up=0',
+    ]));
+    expect(narration.lenses.visual).toContain('dp[1][1]');
+  });
+
   it('rejects a checkpoint that has no real trace step', () => {
     expect(() => createStepNarration(
       [variableStep(1, 'Only step.', {})],

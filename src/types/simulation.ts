@@ -92,9 +92,29 @@ export interface VariablesVisualData {
   vars: Record<string, TraceValue>;
 }
 
+export type MatrixCellRole = 'empty' | 'base' | 'dependency' | 'active' | 'computed' | 'result';
+
+export interface MatrixCellHighlight {
+  row: number;
+  column: number;
+  role: MatrixCellRole;
+  label?: string;
+}
+
+export interface MatrixVisualData {
+  type: 'matrix';
+  values: Array<Array<TracePrimitive>>;
+  rowLabels: string[];
+  columnLabels: string[];
+  highlights: MatrixCellHighlight[];
+  fillDirection: 'row' | 'column' | 'diagonal';
+  vars: Record<string, TraceValue>;
+}
+
 export type VisualData =
   | ArrayVisualData
   | GraphVisualData
+  | MatrixVisualData
   | VariablesVisualData;
 
 export interface SimulationStep {

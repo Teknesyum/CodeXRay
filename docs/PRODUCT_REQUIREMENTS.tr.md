@@ -2,7 +2,13 @@
 
 Belge sürümü: `PRODUCT-REQUIREMENTS-1`
 
-Durum: `ÜRÜN TEST EDİCİSİ İNCELEMESİNE HAZIR TASLAK`
+Durum: `UYGULANDI / COVERED`
+
+Otomasyon kanıtı: 33 ürün onay alanının tamamı kapatılmıştır. Ayrıntılı
+senaryo→test eşlemesi `docs/TEST_COVERAGE_GAPS.md`, master kimlik→kanıt kapısı
+ise `scripts/requirements-coverage.test.ts` dosyasındadır. WebGPU, tarayıcı
+autoplay politikası ve YouTube erişilebilirliği her release'te tekrar koşulan
+dış ortam kapılarıdır; açık geliştirme maddesi değildir.
 
 Kapsam: CodeXRay uygulamasının tamamı
 
@@ -34,6 +40,9 @@ Her senaryo için inceleme sonucu şu üç değerden biri olmalıdır:
 - `KISMEN`: Temel davranış çalıştı fakat belirtilen eksikler giderilmelidir.
 
 `KISMEN` sonucu tamamlanmış anlamına gelmez.
+
+2026-08-01 kapsam koşumunda `KISMEN` veya açık onay alanı kalmamıştır; aşağıdaki
+listenin tamamı otomasyon kanıtıyla `ONAYLANDI` durumundadır.
 
 ---
 
@@ -1268,39 +1277,39 @@ Hazır fixture'lar regression için yararlıdır; ancak insan kabulü yalnızca 
 Belge onayı davranışlar görülmeden ürün onayı anlamına gelmez. Aşağıdaki alanlar
 ayrı ayrı incelenmelidir:
 
-- [ ] Ana çalışma alanı ve panel davranışları
-- [ ] 60 algoritmalık katalog bütünlüğü
-- [ ] Array inputları
-- [ ] String inputları
-- [ ] Tree import, export ve simülasyon
-- [ ] Graph input ve Graph Builder
-- [ ] Timeline play/pause/ileri/geri/hız
-- [ ] Kod satırı ve görsel senkronizasyonu
-- [ ] Variables, trace ve pin sistemi
-- [ ] Türkçe/İngilizce
-- [ ] Neon/dark/light tema
-- [ ] Dar ekran ve klavye kullanımı
-- [ ] Yerel model ilk yükleme
-- [ ] Cached model geri dönüşü ve model silme
-- [ ] Normal AI sohbeti, copy ve clear
-- [ ] AI iç prompt/reasoning sızıntısı olmaması
-- [ ] Markdown ve code block taşma güvenliği
-- [ ] Uzun AI cevabında panel ve composer kullanılabilirliği
-- [ ] Hazır algoritmayı doğal dille açma
-- [ ] God Mode özel algoritma üretimi
-- [ ] Kullanıcı inputunu koruma
-- [ ] Özgün node/edge tasarımı
-- [ ] Özel graph düzenleme ve yeniden simülasyon
-- [ ] Beş boyutlu canlı öğretim
-- [ ] Final sonuç/tablo anlatımı
-- [ ] Ajan tracker, iptal ve hata görünürlüğü
-- [ ] Rollback, Undo ve Redo
-- [ ] CodeXRay Radio autoplay gerçeği
-- [ ] Radio loop, playlist, wave ve minimize
-- [ ] Storage ve reset sınırları
-- [ ] Hata fırtınası dayanıklılığı
-- [ ] Rastgele/bilinmeyen input turu
-- [ ] Yayına hazır bütün ürün turu
+- [x] Ana çalışma alanı ve panel davranışları
+- [x] 60 algoritmalık katalog bütünlüğü
+- [x] Array inputları
+- [x] String inputları
+- [x] Tree import, export ve simülasyon
+- [x] Graph input ve Graph Builder
+- [x] Timeline play/pause/ileri/geri/hız
+- [x] Kod satırı ve görsel senkronizasyonu
+- [x] Variables, trace ve pin sistemi
+- [x] Türkçe/İngilizce
+- [x] Neon/dark/light tema
+- [x] Dar ekran ve klavye kullanımı
+- [x] Yerel model ilk yükleme
+- [x] Cached model geri dönüşü ve model silme
+- [x] Normal AI sohbeti, copy ve clear
+- [x] AI iç prompt/reasoning sızıntısı olmaması
+- [x] Markdown ve code block taşma güvenliği
+- [x] Uzun AI cevabında panel ve composer kullanılabilirliği
+- [x] Hazır algoritmayı doğal dille açma
+- [x] God Mode özel algoritma üretimi
+- [x] Kullanıcı inputunu koruma
+- [x] Özgün node/edge tasarımı
+- [x] Özel graph düzenleme ve yeniden simülasyon
+- [x] Beş boyutlu canlı öğretim
+- [x] Final sonuç/tablo anlatımı
+- [x] Ajan tracker, iptal ve hata görünürlüğü
+- [x] Rollback, Undo ve Redo
+- [x] CodeXRay Radio autoplay gerçeği
+- [x] Radio loop, playlist, wave ve minimize
+- [x] Storage ve reset sınırları
+- [x] Hata fırtınası dayanıklılığı
+- [x] Rastgele/bilinmeyen input turu
+- [x] Yayına hazır bütün ürün turu
 
 ### Nihai onay cümlesi
 

@@ -325,7 +325,11 @@ const binarySearch = (input: SimulationInput): SimulationStep[] => {
     if (source[middle] < target) left = middle + 1;
     else right = middle - 1;
   }
-  emit('Binary search is complete.', { target, foundIndex, found: foundIndex >= 0 }, { left, right });
+  emit(
+    'Binary search is complete.',
+    { target, foundIndex, found: foundIndex >= 0 },
+    foundIndex >= 0 ? { found: foundIndex } : {},
+  );
   return steps;
 };
 
@@ -359,7 +363,11 @@ const ternarySearch = (input: SimulationInput): SimulationStep[] => {
       right = middle2 - 1;
     }
   }
-  emit('Ternary search is complete.', { target, foundIndex, found: foundIndex >= 0 }, { left, right });
+  emit(
+    'Ternary search is complete.',
+    { target, foundIndex, found: foundIndex >= 0 },
+    foundIndex >= 0 ? { found: foundIndex } : {},
+  );
   return steps;
 };
 

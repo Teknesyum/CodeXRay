@@ -143,4 +143,274 @@ describe('seeded unknown-input regression', () => {
         .toBe(expected[ids.at(-1)!]);
     }
   });
+
+  it('rejects every seeded negative-edge graph before producing a partial shortest-path trace', () => {
+    const random = createRandom(0xBAD_ED9E);
+    for (let caseIndex = 0; caseIndex < 24; caseIndex += 1) {
+      const ids = Array.from({ length: 3 + (caseIndex % 6) }, (_, index) => `n${index}`);
+      const negativeIndex = 1 + Math.floor(random() * (ids.length - 1));
+      const graph: GraphDocumentV1 = {
+        version: 1,
+        mode: 'graph',
+        directed: caseIndex % 2 === 0,
+        weighted: true,
+        nodes: ids.map((id, index) => ({ id, label: id, x: 8 + index * 12, y: 50 })),
+        edges: ids.slice(1).map((id, index) => ({
+          id: `e${index}`,
+          from: ids[index],
+          to: id,
+          weight: index + 1 === negativeIndex ? -(1 + caseIndex) : 1 + Math.floor(random() * 9),
+        })),
+        startId: ids[0],
+        targetId: ids.at(-1),
+      };
+
+      for (const name of ["Dijkstra's Shortest Path", 'A* Search Algorithm']) {
+        const preset = algorithm(name);
+        expect(() => simulateAlgorithm(preset.name, preset.code, {
+          kind: 'graph', text: '', graph, origin: 'user',
+        }), `${name}, seeded case ${caseIndex}`).toThrow('Negative edge weights');
+      }
+    }
+  });
+
+  it('matches independent shortest paths and keeps the derived A* heuristic admissible on diverse graphs', () => {
+    const random = createRandom(0xA57A_2026);
+    const shortestDistances = (graph: GraphDocumentV1, start: string) => {
+      const distances = Object.fromEntries(graph.nodes.map((node) => [node.id, Number.POSITIVE_INFINITY]));
+      distances[start] = 0;
+      for (let pass = 1; pass < graph.nodes.length; pass += 1) {
+        let changed = false;
+        for (const edge of graph.edges) {
+          const weight = edge.weight ?? 1;
+          if (distances[edge.from] + weight < distances[edge.to]) {
+            distances[edge.to] = distances[edge.from] + weight;
+            changed = true;
+          }
+          if (!graph.directed && distances[edge.to] + weight < distances[edge.from]) {
+            distances[edge.from] = distances[edge.to] + weight;
+            changed = true;
+          }
+        }
+        if (!changed) break;
+      }
+      return distances;
+    };
+
+    for (let caseIndex = 0; caseIndex < 30; caseIndex += 1) {
+      const ids = ['baş', 'node 2', 'x/y', 'δ', 'equal!', 'goal', 'isolated'];
+      const nodes = ids.map((id, index) => ({
+        id,
+        label: id,
+        x: 8 + (index % 4) * 27,
+        y: 18 + Math.floor(index / 4) * 58,
+      }));
+      const directed = caseIndex % 2 === 0;
+      const edges: GraphDocumentV1['edges'] = [
+        { id: 'a', from: ids[0], to: ids[1], weight: 2 },
+        { id: 'b', from: ids[0], to: ids[2], weight: 2 },
+        { id: 'c', from: ids[1], to: ids[3], weight: 2 },
+        { id: 'd', from: ids[2], to: ids[3], weight: 2 },
+        { id: 'e', from: ids[3], to: ids[5], weight: 3 },
+        { id: 'cycle-out', from: ids[1], to: ids[4], weight: 1 },
+        { id: 'cycle-back', from: ids[4], to: ids[1], weight: 1 },
+      ];
+      if (caseIndex % 3 === 0) edges.splice(4, 1);
+      if (caseIndex % 5 !== 0) edges.push({ id: 'alternate-goal', from: ids[4], to: ids[5], weight: 4 });
+      if (random() > 0.5) edges.push({ id: 'cross', from: ids[2], to: ids[4], weight: 1 + Math.floor(random() * 4) });
+      const graph: GraphDocumentV1 = {
+        version: 1,
+        mode: 'graph',
+        directed,
+        weighted: true,
+        nodes,
+        edges,
+        startId: ids[0],
+        targetId: ids[5],
+      };
+      const expected = shortestDistances(graph, graph.startId);
+      const reverse: GraphDocumentV1 = {
+        ...graph,
+        directed: true,
+        edges: graph.edges.flatMap((edge) => graph.directed
+          ? [{ ...edge, from: edge.to, to: edge.from }]
+          : [
+              { ...edge, id: `${edge.id}-r1`, from: edge.to, to: edge.from },
+              { ...edge, id: `${edge.id}-r2` },
+            ]),
+      };
+      const remaining = shortestDistances(reverse, graph.targetId!);
+      const ratios = graph.edges.map((edge) => {
+        const from = graph.nodes.find((node) => node.id === edge.from)!;
+        const to = graph.nodes.find((node) => node.id === edge.to)!;
+        return (edge.weight ?? 1) / Math.hypot(from.x - to.x, from.y - to.y);
+      });
+      const scale = ratios.length ? Math.min(...ratios) : 0;
+      for (const node of graph.nodes) {
+        const goal = graph.nodes.find((candidate) => candidate.id === graph.targetId)!;
+        const heuristic = Math.hypot(node.x - goal.x, node.y - goal.y) * scale;
+        expect(heuristic, `case=${caseIndex} node=${node.id}`).toBeLessThanOrEqual(remaining[node.id] + 1e-9);
+      }
+
+      for (const name of ["Dijkstra's Shortest Path", 'A* Search Algorithm']) {
+        const preset = algorithm(name);
+        const steps = simulateAlgorithm(preset.name, preset.code, { kind: 'graph', text: '', graph, origin: 'user' });
+        const actual = steps.at(-1)?.visualData.vars.distances as Record<string, number | string>;
+        const expectedTarget = expected[graph.targetId!];
+        expect(actual[graph.targetId!], `${name} case=${caseIndex} graph=${JSON.stringify(graph)}`)
+          .toEqual(Number.isFinite(expectedTarget) ? expectedTarget : '∞');
+        expect(actual[ids[6]]).toBe('∞');
+        expect(steps.length).toBeLessThanOrEqual(graph.nodes.length + graph.edges.length + 1);
+      }
+    }
+  });
+
+  it('matches independent MST, SCC, and max-flow oracles on seeded graph families', () => {
+    const random = createRandom(0xF10A_2026);
+    const normalizeComponents = (value: unknown): string[] =>
+      (value as string[][]).map((component) => [...component].sort().join('|')).sort();
+
+    for (let caseIndex = 0; caseIndex < 18; caseIndex += 1) {
+      const ids = Array.from({ length: 5 + (caseIndex % 3) }, (_, index) => `g${caseIndex}-${index}`);
+      const mstEdges: GraphDocumentV1['edges'] = ids.slice(1).map((id, index) => ({
+        id: `tree-${index}`,
+        from: ids[index],
+        to: id,
+        weight: 1 + Math.floor(random() * 12),
+      }));
+      for (let left = 0; left < ids.length; left += 1) {
+        for (let right = left + 2; right < ids.length; right += 1) {
+          if (random() < 0.42) mstEdges.push({
+            id: `extra-${left}-${right}`,
+            from: ids[left],
+            to: ids[right],
+            weight: 1 + Math.floor(random() * 12),
+          });
+        }
+      }
+      const mstGraph: GraphDocumentV1 = {
+        version: 1, mode: 'graph', directed: false, weighted: true,
+        nodes: ids.map((id, index) => ({ id, label: id, x: 8 + index * 12, y: 50 })),
+        edges: mstEdges, startId: ids[0], targetId: ids.at(-1),
+      };
+      const parent = new Map(ids.map((id) => [id, id]));
+      const find = (id: string): string => {
+        const value = parent.get(id)!;
+        if (value === id) return id;
+        const root = find(value);
+        parent.set(id, root);
+        return root;
+      };
+      let expectedWeight = 0;
+      for (const edge of [...mstEdges].sort((left, right) => (left.weight ?? 1) - (right.weight ?? 1))) {
+        const from = find(edge.from);
+        const to = find(edge.to);
+        if (from === to) continue;
+        parent.set(from, to);
+        expectedWeight += edge.weight ?? 1;
+      }
+      for (const name of ["Kruskal's MST", "Prim's MST"]) {
+        const preset = algorithm(name);
+        const final = simulateAlgorithm(preset.name, preset.code, {
+          kind: 'graph', text: '', graph: mstGraph, origin: 'user',
+        }).at(-1)?.visualData.vars;
+        expect(final?.totalWeight, `${name} seeded MST case ${caseIndex}`).toBe(expectedWeight);
+      }
+
+      const sccEdges: GraphDocumentV1['edges'] = [];
+      for (let from = 0; from < ids.length; from += 1) {
+        for (let to = 0; to < ids.length; to += 1) {
+          if (from !== to && random() < 0.28) sccEdges.push({
+            id: `scc-${from}-${to}`, from: ids[from], to: ids[to],
+          });
+        }
+      }
+      const sccGraph: GraphDocumentV1 = {
+        ...mstGraph, directed: true, weighted: false, edges: sccEdges,
+      };
+      const reachable = (start: string, target: string) => {
+        const seen = new Set([start]);
+        const queue = [start];
+        while (queue.length) {
+          const current = queue.shift()!;
+          for (const edge of sccEdges.filter((candidate) => candidate.from === current)) {
+            if (edge.to === target) return true;
+            if (!seen.has(edge.to)) { seen.add(edge.to); queue.push(edge.to); }
+          }
+        }
+        return start === target;
+      };
+      const remaining = new Set(ids);
+      const expectedComponents: string[][] = [];
+      while (remaining.size) {
+        const first = remaining.values().next().value as string;
+        const component = ids.filter((id) => reachable(first, id) && reachable(id, first));
+        component.forEach((id) => remaining.delete(id));
+        expectedComponents.push(component);
+      }
+      for (const name of ["Kosaraju's SCC", "Tarjan's SCC"]) {
+        const preset = algorithm(name);
+        const final = simulateAlgorithm(preset.name, preset.code, {
+          kind: 'graph', text: '', graph: sccGraph, origin: 'user',
+        }).at(-1)?.visualData.vars;
+        expect(normalizeComponents(final?.components), `${name} seeded SCC case ${caseIndex}`)
+          .toEqual(normalizeComponents(expectedComponents));
+      }
+
+      const flowIds = ['source', 'a', 'b', 'c', 'sink'];
+      const flowEdges: GraphDocumentV1['edges'] = [
+        { id: 'sa', from: 'source', to: 'a', weight: 1 + Math.floor(random() * 8) },
+        { id: 'sb', from: 'source', to: 'b', weight: 1 + Math.floor(random() * 8) },
+        { id: 'ac', from: 'a', to: 'c', weight: 1 + Math.floor(random() * 8) },
+        { id: 'bc', from: 'b', to: 'c', weight: 1 + Math.floor(random() * 8) },
+        { id: 'at', from: 'a', to: 'sink', weight: 1 + Math.floor(random() * 5) },
+        { id: 'bt', from: 'b', to: 'sink', weight: 1 + Math.floor(random() * 5) },
+        { id: 'ct', from: 'c', to: 'sink', weight: 1 + Math.floor(random() * 8) },
+      ];
+      const flowGraph: GraphDocumentV1 = {
+        version: 1, mode: 'graph', directed: true, weighted: true,
+        nodes: flowIds.map((id, index) => ({ id, label: id, x: 10 + index * 20, y: 50 })),
+        edges: flowEdges, startId: 'source', targetId: 'sink',
+      };
+      const capacity = new Map<string, number>();
+      for (const edge of flowEdges) {
+        capacity.set(`${edge.from}|${edge.to}`, edge.weight ?? 1);
+        capacity.set(`${edge.to}|${edge.from}`, 0);
+      }
+      let expectedFlow = 0;
+      while (true) {
+        const predecessor = new Map<string, string>();
+        const queue = ['source'];
+        const seen = new Set(queue);
+        while (queue.length && !seen.has('sink')) {
+          const current = queue.shift()!;
+          for (const candidate of flowIds) {
+            if (seen.has(candidate) || (capacity.get(`${current}|${candidate}`) ?? 0) <= 0) continue;
+            seen.add(candidate);
+            predecessor.set(candidate, current);
+            queue.push(candidate);
+          }
+        }
+        if (!seen.has('sink')) break;
+        let increment = Number.POSITIVE_INFINITY;
+        for (let node = 'sink'; node !== 'source'; node = predecessor.get(node)!) {
+          const previous = predecessor.get(node)!;
+          increment = Math.min(increment, capacity.get(`${previous}|${node}`) ?? 0);
+        }
+        for (let node = 'sink'; node !== 'source'; node = predecessor.get(node)!) {
+          const previous = predecessor.get(node)!;
+          capacity.set(`${previous}|${node}`, (capacity.get(`${previous}|${node}`) ?? 0) - increment);
+          capacity.set(`${node}|${previous}`, (capacity.get(`${node}|${previous}`) ?? 0) + increment);
+        }
+        expectedFlow += increment;
+      }
+      for (const name of ['Edmonds-Karp Max Flow', "Dinic's Max Flow"]) {
+        const preset = algorithm(name);
+        const final = simulateAlgorithm(preset.name, preset.code, {
+          kind: 'graph', text: '', graph: flowGraph, origin: 'user',
+        }).at(-1)?.visualData.vars;
+        expect(final?.maxFlow, `${name} seeded flow case ${caseIndex}`).toBe(expectedFlow);
+      }
+    }
+  });
 });

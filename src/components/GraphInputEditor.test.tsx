@@ -158,4 +158,48 @@ describe('GraphInputEditor', () => {
     ) as GraphDocumentV1;
     expect(currentDocument.edges).toHaveLength(0);
   });
+
+  it('imports a sparse tree and preserves it when a cyclic replacement is rejected', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(screen.getByText('Import / export'));
+    const editor = screen.getByRole('textbox');
+    fireEvent.change(editor, { target: { value: '[1,2,3,null,4]' } });
+    await user.click(screen.getByRole('button', { name: 'Import level-order tree' }));
+
+    const imported = JSON.parse(
+      screen.getByTestId('graph-document').textContent ?? '{}',
+    ) as GraphDocumentV1;
+    expect(imported.mode).toBe('tree');
+    expect(imported.nodes.map((node) => node.label)).toEqual(['1', '2', '3', '4']);
+    expect(imported.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: 'n1', to: 'n4' }),
+    ]));
+
+    const cyclic = {
+      version: 1,
+      mode: 'tree',
+      directed: true,
+      weighted: false,
+      nodes: [
+        { id: 'root', label: 'Root', x: 10, y: 10 },
+        { id: 'leaf', label: 'Leaf', x: 30, y: 30 },
+        { id: 'a', label: 'A', x: 60, y: 30 },
+        { id: 'b', label: 'B', x: 80, y: 60 },
+      ],
+      edges: [
+        { id: 'root-leaf', from: 'root', to: 'leaf' },
+        { id: 'a-b', from: 'a', to: 'b' },
+        { id: 'b-a', from: 'b', to: 'a' },
+      ],
+      rootId: 'root',
+      startId: 'root',
+    };
+    fireEvent.change(editor, { target: { value: JSON.stringify(cyclic) } });
+    await user.click(screen.getByRole('button', { name: 'Import JSON' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/reachable|cycle/i);
+    expect(JSON.parse(screen.getByTestId('graph-document').textContent ?? '{}')).toEqual(imported);
+  });
 });

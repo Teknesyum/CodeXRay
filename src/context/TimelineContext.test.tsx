@@ -108,6 +108,22 @@ describe('TimelineProvider integration', () => {
     expect(document.documentElement.dataset.theme).toBe('neon');
   });
 
+  it('migrates the legacy input field and rejects corrupt persisted workspace input', () => {
+    localStorage.setItem('codexray.workspace.v1', JSON.stringify({
+      input: { kind: 'array', text: '[9, 4, 1]', origin: 'user' },
+    }));
+    const first = renderTimeline();
+    expect(localStorage.getItem('codexray.workspace.v1')).toContain('[9, 4, 1]');
+    first.unmount();
+
+    localStorage.setItem('codexray.workspace.v1', JSON.stringify({
+      simulationInput: { kind: 'graph', text: '', graph: { version: 1, nodes: 'broken' } },
+    }));
+    expect(() => renderTimeline()).not.toThrow();
+    expect(localStorage.getItem('codexray.workspace.v1')).toContain('simulationInput');
+    expect(localStorage.getItem('codexray.workspace.v1')).toContain('array');
+  });
+
   it('still mounts when browser storage reads are unavailable', () => {
     vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
       throw new Error('storage denied');

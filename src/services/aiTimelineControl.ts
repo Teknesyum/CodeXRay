@@ -10,6 +10,7 @@ export type TimelineAction =
   | { type: 'next' }
   | { type: 'previous' }
   | { type: 'next-important' }
+  | { type: 'previous-important' }
   | { type: 'tour'; checkpoints: number[] };
 
 export type DeterministicWorkspaceCommand =
@@ -139,6 +140,12 @@ export const routeDeterministicCommand = (
   ) {
     return [{ type: 'next-important' }];
   }
+  if (
+    /(önceki|geri|previous).*(önemli|eşleş|match|key)|(?:önemli|key).*(önceki|geri|previous)/i
+      .test(normalized)
+  ) {
+    return [{ type: 'previous-important' }];
+  }
   if (/(önceki adım|geri git|previous step|step back)/i.test(normalized)) {
     return [{ type: 'previous' }];
   }
@@ -198,6 +205,7 @@ export const validateActionPlan = (
       || value.type === 'next'
       || value.type === 'previous'
       || value.type === 'next-important'
+      || value.type === 'previous-important'
     ) {
       if (!hasExactKeys(value, ['type']) || !steps.length) return null;
       actions.push({ type: value.type });
@@ -224,6 +232,10 @@ export const resolveTimelineTarget = (
   if (action.type === 'next-important') {
     return findImportantStepIndices(steps).find((index) => index > currentIndex)
       ?? lastIndex;
+  }
+  if (action.type === 'previous-important') {
+    return [...findImportantStepIndices(steps)].reverse().find((index) => index < currentIndex)
+      ?? 0;
   }
   return currentIndex;
 };

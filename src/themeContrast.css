@@ -144,8 +144,8 @@
 }
 
 :root[data-theme="light"] .banner-actions .load-btn {
-  color: var(--neon-cyan);
-  border-color: var(--neon-cyan);
+  color: #003f50;
+  border-color: #003f50;
 }
 
 :root[data-theme="light"] .canvas-hint {

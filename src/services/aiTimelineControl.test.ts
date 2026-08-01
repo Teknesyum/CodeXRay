@@ -47,6 +47,8 @@ describe('AI timeline control', () => {
     expect(important.length).toBeLessThanOrEqual(8);
     expect(resolveTimelineTarget({ type: 'next-important' }, steps, 20))
       .toBe(important.find((index) => index > 20));
+    expect(resolveTimelineTarget({ type: 'previous-important' }, steps, 20))
+      .toBe([...important].reverse().find((index) => index < 20));
   });
 
   it('accepts only bounded model directives via JSON plan', () => {

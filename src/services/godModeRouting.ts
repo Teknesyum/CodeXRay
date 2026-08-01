@@ -4,9 +4,11 @@ import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
 import { findImportantStepIndices } from './aiTimelineControl';
 import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
+import { resolveDpTemplateFromRequest, type DpTemplateId } from './dpTemplateCompiler';
 
 export type GodModeIntent =
-  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'model-authored' }
+  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'model-authored' }
+  | { type: 'clarify-algorithm' }
   | { type: 'adapt-input' }
   | { type: 'discuss-current-step' }
   | {
@@ -42,7 +44,16 @@ export const normalizeGodModeText = (value: string): string => value
 
 export const canonicalCustomTitle = (request: string, locale: Locale): string => {
   const normalized = normalizeGodModeText(request);
-  const base = /\b(iki yonlu|cift yonlu|bidirectional)\b/.test(normalized) && /\bbfs\b/.test(normalized)
+  const dpTemplate = resolveDpTemplateFromRequest(request);
+  const base = dpTemplate === 'house-robber-1d-dp'
+    ? locale === 'tr' ? 'LeetCode 198 — Ev Soyguncusu' : 'LeetCode 198 — House Robber'
+    : dpTemplate === 'lcs-2d-dp'
+      ? locale === 'tr' ? 'LeetCode 1143 — En Uzun Ortak Alt Dizi' : 'LeetCode 1143 — Longest Common Subsequence'
+      : dpTemplate === 'longest-palindrome-interval-dp'
+        ? locale === 'tr' ? 'LeetCode 516 — En Uzun Palindromik Alt Dizi' : 'LeetCode 516 — Longest Palindromic Subsequence'
+        : /\b(?:leetcode\s*)?486\b|predict the winner|kazanan[ıi] tahmin/.test(normalized)
+    ? locale === 'tr' ? 'LeetCode 486 — Kazananı Tahmin Et' : 'LeetCode 486 — Predict the Winner'
+    : /\b(iki yonlu|cift yonlu|bidirectional)\b/.test(normalized) && /\bbfs\b/.test(normalized)
     ? locale === 'tr' ? 'İki Yönlü BFS' : 'Bidirectional BFS'
     : resolveAlgorithmPresetFromCommand(request)?.name
       ? localizeAlgorithmName(resolveAlgorithmPresetFromCommand(request)?.name ?? '', locale)
@@ -84,11 +95,25 @@ export const routeGodModeRequest = (
   if (/\b(durdur|duraklat|bekle|pause|stop)\b/.test(text) && steps.length) {
     return { type: 'deterministic', actions: [{ type: 'pause' }] };
   }
+  if (/^(?:devam|continue)$/.test(text) && steps.length) {
+    return { type: 'deterministic', actions: [{ type: 'next-important' }] };
+  }
+  if (/\b(?:onceki|geri|previous)\b.*\b(?:onemli|key|checkpoint)\b/.test(text) && steps.length) {
+    return { type: 'deterministic', actions: [{ type: 'previous-important' }] };
+  }
   if (/\b(oynat|baslat|devam|play|resume)\b/.test(text) && steps.length) {
     return { type: 'deterministic', actions: [{ type: 'play' }] };
   }
+  if (/\b(?:leetcode\s*)?486\b|predict the winner|kazanan[ıi] tahmin/.test(text)
+    && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
+    return { type: 'create-algorithm', template: 'predict-winner-interval-dp' };
+  }
+  const dpTemplate = resolveDpTemplateFromRequest(question);
+  if (dpTemplate && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
+    return { type: 'create-algorithm', template: dpTemplate };
+  }
   if (/\b(iki yonlu|cift yonlu|bidirectional)\b/.test(text) && /\bbfs\b/.test(text)
-    && /\b(yaz|olustur|kur|ekle|generate|create|write)\b/.test(text)) {
+    && /\b(yaz|olustur|kur|ekle|generate|create|write|build)\b/.test(text)) {
     return { type: 'create-algorithm', template: 'bidirectional-bfs' };
   }
   if (/\b(input\w*|girdi\w*|veri\w*)\b/.test(text)
@@ -124,7 +149,7 @@ export const routeGodModeRequest = (
   if (/\b(acik|light)\b.*\b(tema|theme|yap|gec|sec)\b|\b(tema|theme)\b.*\b(acik|light)\b/.test(text)) {
     return { type: 'ui-control', command: 'theme-light' };
   }
-  if (/\b(yaz|olustur|kur|ekle|generate|create|write)\b/.test(text)) {
+  if (/\b(yaz|olustur|kur|ekle|generate|create|write|build)\b/.test(text)) {
     const existingPreset = resolveAlgorithmPresetFromCommand(text);
     if (existingPreset && /\b(kod\w*|algoritma\w*|program\w*|mevcut|elimdeki|current|custom)\b/.test(text)) {
       return { type: 'create-algorithm', template: 'model-authored' };
@@ -144,8 +169,13 @@ export const routeGodModeRequest = (
       actions: [{ type: 'tour', checkpoints: findImportantStepIndices(steps) }],
     };
   }
-  if (/\b(algoritma|kod|program)\b/.test(text)
-    && /\b(yaz|olustur|kur|generate|create|write)\b/.test(text)) {
+  if (/\b(algoritma|algorithm|kod|code|program)\b/.test(text)
+    && /\b(yaz|olustur|kur|generate|create|write|build)\b/.test(text)) {
+    const specificationWords = text.split(' ').filter((word) => !new Set([
+      'bana', 'bir', 'benim', 'icin', 'lutfen', 'algoritma', 'algorithm', 'kod', 'code', 'program',
+      'yaz', 'olustur', 'kur', 'generate', 'create', 'write', 'build', 'an', 'a', 'me', 'please',
+    ]).has(word));
+    if (specificationWords.length === 0) return { type: 'clarify-algorithm' };
     return { type: 'create-algorithm', template: 'model-authored' };
   }
   void currentIndex;

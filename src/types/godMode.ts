@@ -231,7 +231,7 @@ export interface InputContractV1 {
 
 export interface VisualizationContractV1 {
   version: 1;
-  type: 'array' | 'graph' | 'variables';
+  type: 'array' | 'graph' | 'matrix' | 'variables';
   activeVariables: string[];
   queuedVariables: string[];
   visitedVariables: string[];
@@ -330,6 +330,7 @@ export interface StepNarrationV1 {
   changedVariables: Record<string, { before: TraceValue | null; after: TraceValue | null }>;
   nodeDiffs: string[];
   edgeDiffs: string[];
+  cellDiffs: string[];
   decisionReason: string;
   invariant: string;
   nextMove: string;

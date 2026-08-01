@@ -205,7 +205,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
       </div>
       {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}
 
-      <div className="editor-content">
+      <div className="editor-content" tabIndex={0} aria-label={t('sourceCodeLabel', locale)}>
         {steps.length === 0 ? (
           <textarea
             aria-label={t('sourceCodeLabel', locale)}

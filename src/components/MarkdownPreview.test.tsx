@@ -42,4 +42,47 @@ const answer = 42;
     expect(container.querySelector('script')).toBeNull();
     expect(screen.getByText("<script>alert('no')</script>")).toBeInTheDocument();
   });
+
+  it('contains malformed fences, event-handler HTML, and unsafe URL protocols as inert text', () => {
+    const { container } = render(<MarkdownPreview content={`# Partial response
+
+<img src=x onerror="window.__markdownExecuted=true">
+
+[data payload](data:text/html,<script>alert(1)</script>)
+
+\`\`\`ts
+const unfinished = "${'x'.repeat(512)}";`} />);
+
+    expect(screen.getByRole('heading', { name: 'Partial response' })).toBeInTheDocument();
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('script')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'data payload' })).not.toBeInTheDocument();
+    expect(screen.getByText(/data payload \(data:text\/html/)).toBeInTheDocument();
+    const code = container.querySelector('.markdown-code-block code');
+    expect(code).toHaveTextContent('const unfinished');
+    expect(code?.textContent).toContain('x'.repeat(512));
+  });
+
+  it('keeps a deterministic hostile Markdown matrix inert and renderable', () => {
+    const fixtures = [
+      '<svg onload="window.__xss=true"><script>window.__xss=true</script></svg>',
+      '[js](javascript:window.__xss=true) [vb](vbscript:msgbox(1))',
+      '[data](data:text/html;base64,PHNjcmlwdD4=) [file](file:///etc/passwd)',
+      '<iframe srcdoc="<script>window.__xss=true</script>"></iframe>',
+      `| ${'wide'.repeat(300)} | value |\n| --- | --- |\n| cell | ${'x'.repeat(2_048)} |`,
+      `${'> '.repeat(12)}nested quote\n\n${'  '.repeat(12)}- deeply nested item`,
+      `\`\`\`tsx\nconst unicode = "ÄŸÃ¼ÅŸiÃ¶Ã§ ðŸ§  ðŸš€";\n${'const n = 1;\n'.repeat(100)}`,
+      '[unterminated](https://example.com/' + 'segment/'.repeat(200),
+    ];
+
+    fixtures.forEach((content) => {
+      const { container, unmount } = render(<MarkdownPreview content={content} />);
+      expect(container.textContent?.length).toBeGreaterThan(0);
+      expect(container.querySelector('script, iframe, svg, object, embed, style')).toBeNull();
+      expect([...container.querySelectorAll('a')].every((link) =>
+        /^(?:https?:|mailto:)/i.test(link.getAttribute('href') ?? ''))).toBe(true);
+      unmount();
+    });
+    expect((window as Window & { __xss?: boolean }).__xss).not.toBe(true);
+  });
 });

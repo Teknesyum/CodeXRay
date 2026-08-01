@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AlgorithmDesignV1, GraphLayoutSpecV1 } from '../types/godMode';
 import type { SimulationInput } from '../types/simulation';
-import { createVisualizationContractV2, isVisualizationV2 } from './visualizationDesigner';
+import { createVisualizationContractV2, isVisualizationV2, validateVisualizationContractV2 } from './visualizationDesigner';
 
 const layout: GraphLayoutSpecV1 = {
   version: 1,
@@ -88,5 +88,29 @@ describe('visualization contracts', () => {
     };
     expect(createVisualizationContractV2(design('Custom', 'array'), input, layout).type)
       .toBe('graph');
+  });
+
+  it.each([
+    ['Custom shortest path', ['candidate', 'settled'], ['relax', 'shortest-tree']],
+    ['Custom minimum spanning tree', ['component'], ['candidate-edge', 'tree-edge']],
+    ['Custom maximum flow residual network', ['augment-frontier'], ['residual-edge', 'augmenting-path']],
+    ['Custom topological dependency order', ['ready', 'ordered'], []],
+  ])('creates task-specific visual grammar for %s', (title, expectedNodes, expectedEdges) => {
+    const contract = createVisualizationContractV2(design(title, 'graph'), { kind: 'graph', text: '' }, layout);
+    expect(contract.nodeRoles.map((role) => role.id)).toEqual(expect.arrayContaining(expectedNodes));
+    expect(contract.edgeRoles.map((role) => role.id)).toEqual(expect.arrayContaining(expectedEdges));
+    expect(contract.legend.map((item) => item.role)).toEqual(expect.arrayContaining(expectedNodes));
+    expect(validateVisualizationContractV2(contract)).toEqual([]);
+  });
+
+  it('rejects duplicate roles and unsafe visual bounds before package commit', () => {
+    const contract = createVisualizationContractV2(design('Graph scan', 'graph'), { kind: 'graph', text: '' }, layout);
+    contract.nodeRoles.push({ ...contract.nodeRoles[0], style: { ...contract.nodeRoles[0].style, size: 12 } });
+    contract.edgeRoles[0].style.opacity = 0;
+    expect(validateVisualizationContractV2(contract)).toEqual(expect.arrayContaining([
+      'Semantic node role IDs must be unique.',
+      'Node role start has an unsafe size.',
+      'Edge role path has unsafe visual bounds.',
+    ]));
   });
 });

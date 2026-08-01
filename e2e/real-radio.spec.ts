@@ -31,7 +31,10 @@ test.describe('real YouTube radio playlist', () => {
     await expect(radio.locator('.mute-btn')).toBeEnabled({ timeout: 20_000 });
 
     const items = radio.locator('.playlist-item');
-    await expect(items).toHaveCount(46);
+    // The curated queue intentionally excludes Push because both known
+    // official uploads reject iframe playback. Keep this assertion explicit so
+    // a metadata regression cannot silently shrink the audited queue.
+    await expect(items).toHaveCount(45);
     const labels = await items.allTextContents();
     const results: TrackAuditResult[] = [];
     const startIndex = Math.max(0, Number(process.env.CODEXRAY_RADIO_START || 0));
@@ -46,13 +49,22 @@ test.describe('real YouTube radio playlist', () => {
       await items.nth(index).click();
       const deadline = Date.now() + TRACK_TIMEOUT_MS;
       let result: TrackAuditResult | undefined;
+      let autoplayRetried = false;
 
       while (Date.now() < deadline) {
         const notice = await readNotice();
         const activeIndex = await items.evaluateAll((buttons) =>
           buttons.findIndex((button) => button.classList.contains('active')));
         const isPlaying = await radio.locator('button[title="Pause"]').isVisible();
+        const currentTitle = (await radio.locator('.track-info').textContent())?.trim() || '';
 
+        if (/blocked by the browser/i.test(notice) && !autoplayRetried) {
+          autoplayRetried = true;
+          const play = radio.locator('button[title="Play"]');
+          if (await play.isVisible()) await play.click();
+          await page.waitForTimeout(150);
+          continue;
+        }
         if (notice) {
           result = {
             index: index + 1,
@@ -63,13 +75,16 @@ test.describe('real YouTube radio playlist', () => {
           };
           break;
         }
+        // PlaylistRadio clears isPlaying before playVideoAt. Seeing Pause here
+        // therefore proves that YouTube emitted a fresh PLAYING event for this
+        // selection; it cannot be inherited from the previous track.
         if (activeIndex === index && isPlaying) {
           await page.waitForTimeout(300);
           const lateNotice = await readNotice();
           result = {
             index: index + 1,
             label: labels[index].trim(),
-            title: (await radio.locator('.track-info').textContent())?.trim() || '',
+            title: currentTitle,
             status: lateNotice ? 'error' : 'playing',
             notice: lateNotice,
           };

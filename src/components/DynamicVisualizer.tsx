@@ -5,6 +5,7 @@ import { useTimeline } from '../context/TimelineContext';
 import type {
   ArrayVisualData,
   GraphVisualData,
+  MatrixVisualData,
   TraceValue,
   VisualData,
 } from '../types/simulation';
@@ -83,6 +84,8 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
               key={edge.id}
               className={`graph-edge ${state}`}
               data-semantic-roles={edge.semanticRoles?.join(' ') ?? ''}
+              role="img"
+              aria-label={`${t('edge', locale)} ${start.label} → ${end.label}: ${t(state, locale)}${edge.semanticRoles?.length ? ` — ${edge.semanticRoles.join(', ')}` : ''}`}
             >
               <line
                 x1={`${start.x}%`}
@@ -110,6 +113,8 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
           key={node.id}
           className={`graph-node node-${node.state ?? 'idle'} shape-${node.semanticStyle?.shape ?? 'circle'} ${node.semanticStyle?.pulse ? `pulse-${node.semanticStyle.pulse}` : ''}`}
           data-semantic-roles={node.semanticRoles?.join(' ') ?? ''}
+          role="img"
+          aria-label={`${t('node', locale)} ${node.label}: ${t(node.state ?? 'idle', locale)}${node.semanticRoles?.length ? ` — ${node.semanticRoles.join(', ')}` : ''}`}
           style={{
             left: `${node.x}%`,
             top: `${node.y}%`,
@@ -147,9 +152,66 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
   );
 };
 
+const MatrixView = ({ data }: { data: MatrixVisualData }) => {
+  const { locale } = useTimeline();
+  const roleAt = (row: number, column: number) =>
+    data.highlights.find((cell) => cell.row === row && cell.column === column);
+  return (
+    <div className="visual-matrix-shell">
+      <div className="matrix-fill-direction">
+        {locale === 'tr' ? 'Dolum yönü' : 'Fill direction'}: {data.fillDirection === 'diagonal'
+          ? locale === 'tr' ? 'köşegen / artan aralık' : 'diagonal / increasing interval'
+          : data.fillDirection}
+      </div>
+      <div
+        className="visual-matrix"
+        role="grid"
+        aria-label={locale === 'tr' ? 'DP tablosu' : 'DP table'}
+        style={{ '--matrix-columns': data.columnLabels.length } as CSSProperties}
+      >
+        <div className="matrix-corner" aria-hidden="true">i\j</div>
+        {data.columnLabels.map((label, column) => (
+          <div className="matrix-axis-label column" role="columnheader" key={`column-${column}`}>{label}</div>
+        ))}
+        {data.values.map((row, rowIndex) => (
+          <div className="matrix-row" role="row" key={`row-${rowIndex}`}>
+            <div className="matrix-axis-label row" role="rowheader">{data.rowLabels[rowIndex]}</div>
+            {row.map((value, columnIndex) => {
+              const highlight = roleAt(rowIndex, columnIndex);
+              const role = highlight?.role ?? (value === null ? 'empty' : 'computed');
+              return (
+                <div
+                  key={`${rowIndex}-${columnIndex}`}
+                  role="gridcell"
+                  className={`matrix-cell matrix-${role}`}
+                  data-row={rowIndex}
+                  data-column={columnIndex}
+                  data-role={role}
+                  aria-label={`dp[${rowIndex}][${columnIndex}]: ${value ?? (locale === 'tr' ? 'boş' : 'empty')}; ${highlight?.label ?? role}`}
+                  title={highlight?.label ?? `dp[${rowIndex}][${columnIndex}]`}
+                >
+                  <span className="matrix-coordinate">{rowIndex},{columnIndex}</span>
+                  <strong>{value ?? '·'}</strong>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="matrix-legend" aria-label={locale === 'tr' ? 'DP tablo açıklaması' : 'DP table legend'}>
+        <span className="legend-base">{locale === 'tr' ? 'Taban durum' : 'Base case'}</span>
+        <span className="legend-dependency">{locale === 'tr' ? 'Bağımlılık' : 'Dependency'}</span>
+        <span className="legend-active">{locale === 'tr' ? 'Hesaplanan hücre' : 'Active cell'}</span>
+        <span className="legend-result">{locale === 'tr' ? 'Nihai sonuç' : 'Final result'}</span>
+      </div>
+    </div>
+  );
+};
+
 const VisualDataView = ({ visualData }: { visualData: VisualData }) => {
   if (visualData.type === 'array') return <ArrayView data={visualData} />;
   if (visualData.type === 'graph') return <GraphView data={visualData} />;
+  if (visualData.type === 'matrix') return <MatrixView data={visualData} />;
   return (
     <div className="visual-variables">
       {Object.entries(visualData.vars).map(([key, value]) => (

@@ -49,6 +49,7 @@ let requestId = 0;
 const pending = new Map<number, PendingRequest>();
 let readyModel: string | undefined;
 let readyContextWindow: number | undefined;
+let activeInteractiveRequestId: number | null = null;
 
 const getWorker = () => {
   if (worker) return worker;
@@ -175,6 +176,7 @@ export const askLocalModel = (
     return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
   }
   const id = ++requestId;
+  activeInteractiveRequestId = id;
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
@@ -186,6 +188,8 @@ export const askLocalModel = (
         : 'The local model did not produce a safe visible answer. Please try again.');
     }
     return cleaned;
+  }).finally(() => {
+    if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
   });
 };
 
@@ -197,10 +201,24 @@ export const planLocalActions = (
     return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
   }
   const id = ++requestId;
+  activeInteractiveRequestId = id;
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'plan', question, context });
+  }).finally(() => {
+    if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
   });
+};
+
+export const cancelLocalResponse = (): boolean => {
+  const id = activeInteractiveRequestId;
+  if (id === null || !worker) return false;
+  activeInteractiveRequestId = null;
+  const request = pending.get(id);
+  pending.delete(id);
+  request?.reject(new Error('Local AI response was interrupted.'));
+  worker.postMessage({ id, type: 'agent-cancel' });
+  return true;
 };
 
 export const runLocalAgent = (
@@ -244,6 +262,7 @@ export const resetLocalAi = () => {
   worker = undefined;
   readyModel = undefined;
   readyContextWindow = undefined;
+  activeInteractiveRequestId = null;
   for (const request of pending.values()) request.reject(new Error('Local model was reset.'));
   pending.clear();
 };

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Check, Copy, Crown, Loader, MapPin, Maximize2, Minimize2, Send, Trash2 } from 'lucide-react';
+import { Activity, Bot, Check, Copy, Crown, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2 } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestion, generateSimulationSteps } from '../services/aiService';
-import { planLocalActions } from '../services/localAiService';
+import { cancelLocalResponse, planLocalActions } from '../services/localAiService';
 import type { AssistantMessage } from '../services/aiContext';
 import {
   routeDeterministicCommand,
@@ -15,7 +15,7 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { canonicalCustomTitle, routeGodModeRequest } from '../services/godModeRouting';
+import { routeGodModeRequest } from '../services/godModeRouting';
 import {
   startGodModeRun,
   type GodModeRunHandle,
@@ -91,7 +91,6 @@ interface AiAssistantProps {
 export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) => {
   const {
     algorithmName,
-    setAlgorithmName,
     code,
     steps,
     currentIndex,
@@ -155,6 +154,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const mountedRef = useRef(true);
   const godModeRunRef = useRef<GodModeRunHandle | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
+  const responseEpochRef = useRef(0);
   const panelTitle = t('masterCoder', locale);
 
   const copyAiResponse = async (content: string, index: number) => {
@@ -278,6 +278,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           case 'next':
           case 'previous':
           case 'next-important':
+          case 'previous-important':
             targetIndex = resolveTimelineTarget(
               action,
               stateRef.current.steps,
@@ -358,6 +359,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   const submitQuestion = useCallback(async (userMessage: string) => {
     if (isExecutingQueue) return;
+    const responseEpoch = ++responseEpochRef.current;
     const history = [...chatHistory];
     setQuestion('');
     setChatHistory((previous) =>
@@ -377,6 +379,28 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       let targetIndex = currentIndex;
       let workspaceIsPlaying = isPlaying;
       let modelQuestion = userMessage;
+
+      if (godModeIntent?.type === 'clarify-algorithm') {
+        setChatHistory((previous) => [
+          ...previous,
+          { role: 'ai' as const, content: t('godModeClarifyAlgorithm', locale) },
+        ].slice(-MAX_STORED_MESSAGES));
+        return;
+      }
+
+      if (
+        godModeIntent?.type === 'create-algorithm'
+        && godModeIntent.template === 'bidirectional-bfs'
+        && /(?:benim|bu|mevcut|current|my)\s+(?:graph|graf)/i.test(userMessage)
+        && stateRef.current.simulationInput.graph
+        && !stateRef.current.simulationInput.graph.targetId
+      ) {
+        setChatHistory((previous) => [
+          ...previous,
+          { role: 'ai' as const, content: t('godModeMissingGraphEndpoints', locale) },
+        ].slice(-MAX_STORED_MESSAGES));
+        return;
+      }
 
       if (godModeIntent?.type === 'ui-control') {
         const now = Date.now();
@@ -455,11 +479,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         }
         setLastGodModeRequest(userMessage);
         if (godModeIntent.type === 'discuss-current-step') pause();
-        if (godModeIntent.type === 'create-algorithm') {
-          const pendingTitle = canonicalCustomTitle(userMessage, locale);
-          setAlgorithmName(pendingTitle);
-          stateRef.current = { ...stateRef.current, algorithmName: pendingTitle };
-        }
         const workspaceSnapshot: WorkspaceSnapshotV1 = {
           version: 1,
           algorithmName: stateRef.current.algorithmName,
@@ -609,13 +628,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
       setTypingMessage('');
       const answer = await askQuestion(modelQuestion, workspace, history);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
 
       const cleanedAnswer = stripThinkBlock(answer);
 
       let i = 0;
       while (i < cleanedAnswer.length) {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
         const chunkLength = Math.max(2, Math.floor(Math.random() * 8));
         const currentChunk = cleanedAnswer.slice(0, i + chunkLength);
         setTypingMessage(currentChunk);
@@ -628,7 +647,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           .slice(-MAX_STORED_MESSAGES),
       );
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
       setChatHistory((previous) =>
         [...previous, {
           role: 'system' as const,
@@ -636,7 +655,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         }].slice(-MAX_STORED_MESSAGES),
       );
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && responseEpoch === responseEpochRef.current) {
         setIsPlanningActions(false);
         setIsTyping(false);
         setIsExecutingQueue(false);
@@ -660,7 +679,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     play,
     requestRadioOpen,
     setTheme,
-    setAlgorithmName,
     setSpeed,
   ]);
 
@@ -895,9 +913,28 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           onChange={(event) => setQuestion(event.target.value)}
           disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}
         />
-        <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}>
-          <Send size={14} />
-        </button>
+        {isTyping ? (
+          <button
+            aria-label={t('stopAiResponse', locale)}
+            type="button"
+            className="send-btn stop-response-btn"
+            onClick={() => {
+              responseEpochRef.current += 1;
+              cancelLocalResponse();
+              godModeRunRef.current?.cancel();
+              setTypingMessage(null);
+              setIsPlanningActions(false);
+              setIsExecutingQueue(false);
+              setIsTyping(false);
+            }}
+          >
+            <Square size={13} fill="currentColor" />
+          </button>
+        ) : (
+          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!godModeEnabled && aiStatus !== 'ready') || actionQueue.length > 0 || isGodModeRunning}>
+            <Send size={14} />
+          </button>
+        )}
       </form>
     </div>
   );

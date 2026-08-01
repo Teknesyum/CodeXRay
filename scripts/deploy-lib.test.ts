@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ensureContained,
   parseDeployArgs,
+  requireCleanStatus,
+  requireSynchronizedMain,
   stagePublishedDirectory,
+  validateStagedScope,
+  validateTarget,
   verifyViteBase,
 } from './deploy-lib.mjs';
 
@@ -69,5 +73,30 @@ describe('deployment helpers', () => {
     expect(await readFile(path.join(publicDirectory, 'keep.txt'), 'utf8')).toBe('keep');
     await transaction.rollback();
     expect(await readFile(path.join(publicDirectory, 'codexray', 'index.html'), 'utf8')).toBe('old');
+  });
+
+  it('rejects dirty repositories, non-main or unsynchronized targets, and files outside the publish subtree', () => {
+    expect(() => requireCleanStatus(' M src/App.tsx', 'CodeXRay')).toThrow('uncommitted changes');
+    expect(() => requireCleanStatus('', 'CodeXRay')).not.toThrow();
+    expect(() => requireSynchronizedMain({ branch: 'feature', head: 'a', originMain: 'a' })).toThrow('main');
+    expect(() => requireSynchronizedMain({ branch: 'main', head: 'a', originMain: 'b' })).toThrow('exactly match');
+    expect(() => requireSynchronizedMain({ branch: 'main', head: 'a', originMain: 'a' })).not.toThrow();
+    expect(() => validateStagedScope('blog/public/codexray/index.html\nREADME.md')).toThrow('outside');
+    expect(validateStagedScope('blog/public/codexray/index.html\n')).toEqual([
+      'blog/public/codexray/index.html',
+    ]);
+  });
+
+  it('validates the complete target repository shape and build script', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'codexray-target-'));
+    temporaryDirectories.push(root);
+    await mkdir(path.join(root, '.git'));
+    await mkdir(path.join(root, 'blog'), { recursive: true });
+    await writeFile(path.join(root, 'blog', 'package.json'), JSON.stringify({ scripts: { build: 'astro build' } }));
+    await writeFile(path.join(root, 'blog', 'astro.config.mjs'), 'export default {};');
+    await writeFile(path.join(root, 'blog', 'wrangler.jsonc'), '{}');
+    await expect(validateTarget(root)).resolves.toBeUndefined();
+    await writeFile(path.join(root, 'blog', 'package.json'), JSON.stringify({ scripts: {} }));
+    await expect(validateTarget(root)).rejects.toThrow('no build script');
   });
 });

@@ -348,7 +348,7 @@ const CodeRayApp = () => {
     }));
 
   return (
-    <div className="app-container">
+    <main className="app-container" aria-label={locale === 'tr' ? 'CodeXRay çalışma alanı' : 'CodeXRay workspace'}>
       <div className="split-layout">
         <div className="panel-left" style={{ width: layout.leftWidth }}>
           <section
@@ -522,7 +522,7 @@ const CodeRayApp = () => {
         </div>
       </div>
       <PlaylistRadio />
-    </div>
+    </main>
   );
 };
 

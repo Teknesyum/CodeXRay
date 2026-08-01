@@ -17,7 +17,7 @@ describe('local timeline planner configuration', () => {
     expect(schema.additionalProperties).toBe(false);
     expect(schema.properties.actions.maxItems).toBe(3);
     const variants = schema.properties.actions.items.oneOf;
-    expect(variants).toHaveLength(7);
+    expect(variants).toHaveLength(8);
     expect(variants.every((variant) => variant.additionalProperties === false)).toBe(true);
     const jumpProperties = variants[0].properties;
     expect('step' in jumpProperties).toBe(true);

@@ -111,8 +111,7 @@ describe('application workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open CodeXRay Radio' }));
     const player = screen.getByTitle('CodeXRay YouTube playlist player');
-    expect(player.getAttribute('src'))
-      .toContain('list=OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0');
+    expect(player.getAttribute('src')).toContain('playlist=');
     expect(player.getAttribute('src')).toContain('/embed/8zj8h15VmQw');
     expect(screen.getByRole('link', { name: 'Open playlist in YouTube Music' }).getAttribute('href'))
       .toContain('music.youtube.com/playlist');

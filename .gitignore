@@ -15,6 +15,14 @@ playwright-report
 test-results
 *.local
 
+# Local debugging and research artifacts
+.agents/
+scratch/
+page.html
+tracks.json
+ytInitialData.json
+vite-debug*.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

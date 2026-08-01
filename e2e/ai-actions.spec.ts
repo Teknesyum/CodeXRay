@@ -14,9 +14,10 @@ test('loads DFS in God Mode without waiting for a local model', async ({ page })
   await chatInput.press('Enter');
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
   await expect(page.getByText('The requested workspace action was applied.')).toBeVisible();
-  await chatInput.fill('write bidirectional BFS for me');
+  await chatInput.fill('Write bidirectional BFS. Create an original graph with 10 nodes and two alternative paths. Design both frontiers differently, simulate it, and teach it step by step.');
   await chatInput.press('Enter');
   await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
+  await expect(page.locator('.graph-node')).toHaveCount(10);
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
 });
 
@@ -222,9 +223,58 @@ test('builds and applies bidirectional BFS through the visible God Mode queue', 
   expect(inspectedEdgeFound).toBe(true);
   await expect(page.locator('.graph-edge[data-semantic-roles~="tree-start"], .graph-edge[data-semantic-roles~="tree-target"]').first()).toBeVisible();
 
-  await chatInput.fill('bu kod için inputları düzenle');
+  const sourceBeforeVisualEdit = await page.getByLabel('Bidirectional BFS — Custom execution').textContent();
+  const edgeCountBeforeVisualEdit = await page.locator('.graph-edge').count();
+  const totalBeforeVisualEdit = Number((await page.locator('.visualizer-header-actions > span').textContent())?.split('/')[1].trim());
+  const positionsBeforeVisualEdit = await page.locator('.graph-node').evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLElement).style.cssText));
+
+  await chatInput.fill('Nodeları daha geniş yay. Başlangıç ve hedef tarafını farklı şekillerle göster.');
   await chatInput.press('Enter');
   await expect(page.getByText(/Compatible input and trace applied/i)).toBeVisible();
   await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
   await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toHaveText(sourceBeforeVisualEdit ?? '');
+  await expect(page.locator('.graph-edge')).toHaveCount(edgeCountBeforeVisualEdit);
+  expect(Number((await page.locator('.visualizer-header-actions > span').textContent())?.split('/')[1].trim()))
+    .toBe(totalBeforeVisualEdit);
+  expect(await page.locator('.graph-node').evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLElement).style.cssText))).not.toEqual(positionsBeforeVisualEdit);
+  await expect(page.locator('.graph-node[data-semantic-roles~="start"]')).toHaveClass(/shape-circle/);
+  await expect(page.locator('.graph-node[data-semantic-roles~="target"]')).toHaveClass(/shape-diamond/);
+
+  const connector = (await page.locator('.graph-node').nth(1).textContent())?.trim() ?? 'A1';
+  await chatInput.fill(`X node'unu ekle, ${connector} ile X ve X ile hedef arasında bağlantı kur ve tekrar çalıştır`);
+  await chatInput.press('Enter');
+  await expect(page.getByText(/Compatible input and trace applied/i).last()).toBeVisible();
+  await expect(page.locator('.graph-node')).toHaveCount(11);
+  await expect(page.locator('.graph-node').filter({ hasText: /^X$/ })).toBeVisible();
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toHaveText(sourceBeforeVisualEdit ?? '');
+
+  const finalNext = page.getByRole('button', { name: 'Next step' });
+  for (let index = 0; index < 100 && !await finalNext.isDisabled(); index += 1) await finalNext.click();
+  await expect(finalNext).toBeDisabled();
+  await expect(page.getByTestId('variable-meeting')).not.toContainText('null');
+  await expect(page.getByTestId('variable-path')).toContainText('X');
+  await expect(page.getByText(/Final result:/i).last()).toBeVisible();
+
+  const progress = page.locator('.visualizer-header-actions > span');
+  const finalIndex = Number((await progress.textContent())?.split('/')[0].trim());
+  await chatInput.fill('önceki önemli adıma dön');
+  await chatInput.press('Enter');
+  await expect.poll(async () => Number((await progress.textContent())?.split('/')[0].trim()))
+    .toBeLessThan(finalIndex);
+  const previousCheckpoint = Number((await progress.textContent())?.split('/')[0].trim());
+  await expect(page.locator('.chat-message.ai-msg').filter({ hasText: /Code:/ }).last()).toContainText('Data:');
+  await expect(page.locator('.chat-message.ai-msg').filter({ hasText: /Code:/ }).last()).toContainText('Visual:');
+  await expect(page.locator('.chat-message.ai-msg').filter({ hasText: /Code:/ }).last()).toContainText('Reasoning:');
+  await expect(page.locator('.chat-message.ai-msg').filter({ hasText: /Code:/ }).last()).toContainText('Time:');
+
+  await chatInput.fill('bu adımı tekrar anlat');
+  await chatInput.press('Enter');
+  await expect(progress).toHaveText(new RegExp(`^${previousCheckpoint} \\/`));
+  await chatInput.fill('devam');
+  await chatInput.press('Enter');
+  await expect.poll(async () => Number((await progress.textContent())?.split('/')[0].trim()))
+    .toBeGreaterThan(previousCheckpoint);
 });

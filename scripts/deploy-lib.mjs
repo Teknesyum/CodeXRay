@@ -39,6 +39,37 @@ export const pathExists = async (candidate) => {
   }
 };
 
+export const validateTarget = async (targetRoot) => {
+  const required = ['.git', 'blog/package.json', 'blog/astro.config.mjs', 'blog/wrangler.jsonc'];
+  for (const relativePath of required) {
+    if (!await pathExists(path.join(targetRoot, relativePath))) {
+      throw new Error(`Target is missing ${relativePath}.`);
+    }
+  }
+  const packageJson = JSON.parse(await readFile(path.join(targetRoot, 'blog/package.json'), 'utf8'));
+  if (!packageJson.scripts?.build) throw new Error('Target blog has no build script.');
+};
+
+export const requireCleanStatus = (status, label) => {
+  if (status.trim()) throw new Error(`${label} has uncommitted changes:\n${status}`);
+};
+
+export const requireSynchronizedMain = ({ branch, head, originMain }) => {
+  if (branch !== 'main') throw new Error(`Target must be on main, currently ${branch || 'detached'}.`);
+  if (head !== originMain) throw new Error('Target main must exactly match origin/main before deployment.');
+};
+
+export const validateStagedScope = (stagedFiles) => {
+  const unexpected = stagedFiles
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((file) => !file.startsWith('blog/public/codexray/'));
+  if (unexpected.length > 0) {
+    throw new Error(`Refusing to commit files outside the deployment subtree: ${unexpected.join(', ')}`);
+  }
+  return stagedFiles.split(/\r?\n/).filter(Boolean);
+};
+
 export const verifyViteBase = async (distDirectory, expectedBase = '/codexray/') => {
   const indexPath = path.join(distDirectory, 'index.html');
   const html = await readFile(indexPath, 'utf8');

@@ -44,6 +44,22 @@ const graphDiffs = (
   return { nodeDiffs, edgeDiffs };
 };
 
+const matrixDiffs = (
+  previous: SimulationStep | undefined,
+  current: SimulationStep,
+): string[] => {
+  if (current.visualData.type !== 'matrix') return [];
+  const previousMatrix = previous?.visualData.type === 'matrix' ? previous.visualData : undefined;
+  const changed = current.visualData.values.flatMap((row, rowIndex) => row.flatMap((value, columnIndex) => {
+    const before = previousMatrix?.values[rowIndex]?.[columnIndex] ?? null;
+    if (same(before, value)) return [];
+    return [`dp[${rowIndex}][${columnIndex}]: ${String(before)} → ${String(value)}`];
+  }));
+  const roles = current.visualData.highlights.map((cell) =>
+    `dp[${cell.row}][${cell.column}] [${cell.role}]${cell.label ? ` ${cell.label}` : ''}`);
+  return [...changed, ...roles].slice(0, 8);
+};
+
 const describeChanges = (
   changes: StepNarrationV1['changedVariables'],
   locale: Locale,
@@ -67,7 +83,8 @@ export const createStepNarration = (
   const next = steps[checkpoint.stepIndex + 1];
   const changes = changedVariables(previous, current);
   const { nodeDiffs, edgeDiffs } = graphDiffs(previous, current);
-  const visualSummary = [...nodeDiffs, ...edgeDiffs].slice(0, 6).join('; ')
+  const cellDiffs = matrixDiffs(previous, current);
+  const visualSummary = [...nodeDiffs, ...edgeDiffs, ...cellDiffs].slice(0, 8).join('; ')
     || (locale === 'tr' ? 'Görsel durum bu checkpointte sabit.' : 'The visual state is stable at this checkpoint.');
   const stepLabel = `${checkpoint.stepIndex + 1}/${steps.length}`;
   return {
@@ -77,6 +94,7 @@ export const createStepNarration = (
     changedVariables: changes,
     nodeDiffs,
     edgeDiffs,
+    cellDiffs,
     decisionReason: current.explanation,
     invariant,
     nextMove: next?.explanation ?? (locale === 'tr' ? 'Simülasyon tamamlandı.' : 'The simulation is complete.'),

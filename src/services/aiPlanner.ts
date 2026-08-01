@@ -28,6 +28,7 @@ export const buildActionPlanSchema = (maximumStep: number) => ({
           actionWithoutStep('next'),
           actionWithoutStep('previous'),
           actionWithoutStep('next-important'),
+          actionWithoutStep('previous-important'),
           actionWithoutStep('tour'),
         ],
       },

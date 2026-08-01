@@ -346,7 +346,7 @@ test('opens the playlist radio without loading it before user interaction', asyn
   await page.getByRole('button', { name: 'Open CodeXRay Radio' }).click();
   await expect(page.getByTitle('CodeXRay YouTube playlist player')).toHaveAttribute(
     'src',
-    /OLAK5uy_kojiLJf49fStilkx_cFUhxqoDXzcSyfg0/,
+    /\/embed\/8zj8h15VmQw\?playlist=/,
   );
   const radioBox = await page.getByRole('complementary', { name: 'Radio' }).boundingBox();
   expect(radioBox?.width).toBeLessThanOrEqual(360);

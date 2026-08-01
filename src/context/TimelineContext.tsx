@@ -14,6 +14,7 @@ import type { Locale } from '../i18n/translations';
 import type { CustomSimulationPackageV1 } from '../types/godMode';
 import { compileCustomSimulationPackage } from '../services/customSimulationCompiler';
 import { classifyGraphChange, patchPackageGraphLayout } from '../services/graphTransactions';
+import { parseSimulationInput } from '../services/inputParsers';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type Theme = 'neon' | 'dark' | 'light';
@@ -311,8 +312,17 @@ const loadInput = (): SimulationInput => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as { simulationInput?: SimulationInput };
-      if (parsed.simulationInput) return parsed.simulationInput;
+      const parsed = JSON.parse(raw) as { simulationInput?: unknown; input?: unknown };
+      const candidate = (parsed.simulationInput ?? parsed.input) as Partial<SimulationInput> | undefined;
+      if (candidate && ['array', 'string', 'tree', 'graph'].includes(candidate.kind ?? '')) {
+        const validated = parseSimulationInput(
+          candidate.kind as SimulationInput['kind'],
+          typeof candidate.text === 'string' ? candidate.text : '',
+          candidate.graph,
+          candidate.parameters,
+        );
+        if (validated.input) return { ...validated.input, origin: candidate.origin };
+      }
     }
   } catch {
     // Ignore invalid or unavailable browser storage.

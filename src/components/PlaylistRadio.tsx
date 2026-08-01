@@ -578,6 +578,7 @@ export const PlaylistRadio = () => {
               max={duration || 100}
               value={currentTime}
               className="progress-slider neon-slider"
+              aria-label={t('radioSeek', locale)}
               onChange={(e) => {
                 const time = Number(e.target.value);
                 setCurrentTime(time);
@@ -648,9 +649,15 @@ export const PlaylistRadio = () => {
                     const player = playerRef.current;
                     if (!player) return;
                     setPlaybackNotice(null);
+                    // Do not leave the previous track looking active while
+                    // YouTube is switching videos. Playback becomes true again
+                    // only after the player confirms a PLAYING state.
+                    setIsPlaying(false);
                     setCurrentTime(0);
                     setDuration(0);
                     setCurrentIndex(index);
+                    const selectedTrack = trackData[index];
+                    if (selectedTrack) setCurrentTrack(selectedTrack);
                     setPlayRequested(true);
                     player.playVideoAt(index);
                   }}

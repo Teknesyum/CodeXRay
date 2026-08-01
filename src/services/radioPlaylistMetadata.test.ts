@@ -12,8 +12,8 @@ describe('radioPlaylistMetadata', () => {
     const playlist = getEmbeddedRadioPlaylist(DEFAULT_PLAYLIST_ID);
 
     expect(playlist).toHaveLength(45);
-    expect(playlist[0]).toEqual({ id: 'YHH7NKb8m5c', title: 'Imitation' });
-    expect(playlist).toContainEqual({ id: '8zj8h15VmQw', title: 'Up' });
+    expect(playlist[0]).toEqual({ id: '8zj8h15VmQw', title: 'Up' });
+    expect(playlist).toContainEqual({ id: 'YHH7NKb8m5c', title: 'Imitation' });
     expect(playlist).not.toContainEqual({ id: '-Yk1p0OevRw', title: 'Push' });
   });
 

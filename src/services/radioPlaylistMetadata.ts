@@ -57,17 +57,23 @@ const DEFAULT_RADIO_PLAYBACK_OVERRIDES: Record<string, string> = {
 };
 
 const DEFAULT_RADIO_UNPLAYABLE_TRACK_IDS = new Set(['-Yk1p0OevRw']);
+const DEFAULT_RADIO_OPENING_TRACK_ID = '8zj8h15VmQw';
 
 export interface EmbeddedRadioTrack {
   id: string;
   title: string;
 }
 
-const DEFAULT_RADIO_TRACKS: readonly EmbeddedRadioTrack[] = Object.entries(
-  DEFAULT_RADIO_TRACK_TITLES,
-)
-  .filter(([id]) => !DEFAULT_RADIO_UNPLAYABLE_TRACK_IDS.has(id))
-  .map(([id, title]) => ({ id, title }));
+const DEFAULT_RADIO_TRACKS: readonly EmbeddedRadioTrack[] = [
+  {
+    id: DEFAULT_RADIO_OPENING_TRACK_ID,
+    title: DEFAULT_RADIO_TRACK_TITLES[DEFAULT_RADIO_OPENING_TRACK_ID],
+  },
+  ...Object.entries(DEFAULT_RADIO_TRACK_TITLES)
+    .filter(([id]) => id !== DEFAULT_RADIO_OPENING_TRACK_ID
+      && !DEFAULT_RADIO_UNPLAYABLE_TRACK_IDS.has(id))
+    .map(([id, title]) => ({ id, title })),
+];
 
 export const getEmbeddedRadioPlaylist = (
   playlistId: string,

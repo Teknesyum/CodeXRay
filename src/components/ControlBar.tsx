@@ -23,6 +23,7 @@ import {
 } from '../services/localAiService';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { selectCachedModelForAutoLoad } from '../services/localAiModels';
+import { normalizeLocalAiProgress } from '../services/localAiProgress';
 import {
   resetCodeXRayInterfaceState,
   resetCodeXRaySiteState,
@@ -111,6 +112,7 @@ export const ControlBar = ({
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const startupCacheFallback = useRef(true);
   const autoLoadAttempts = useRef(new Set<string>());
+  const aiProgressHighWaterRef = useRef(0);
   const panelTitle = t('controls', locale);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
     ?? LOCAL_AI_MODELS[0];
@@ -129,18 +131,24 @@ export const ControlBar = ({
       setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
       return;
     }
+    aiProgressHighWaterRef.current = 0;
     setAiStatus('loading');
     setAiProgressPercent(0);
     try {
       setStoragePersistent(await requestPersistentLocalAiStorage());
       await initializeLocalAi(model, contextWindow, (progress) => {
-        const percentage = Math.round(Math.max(0, Math.min(1, progress.progress)) * 100);
-        setAiProgressPercent(percentage);
+        const displayedPercentage = normalizeLocalAiProgress(
+          progress,
+          aiProgressHighWaterRef.current,
+        );
+        aiProgressHighWaterRef.current = displayedPercentage;
+        setAiProgressPercent(displayedPercentage);
         setAiProgress(locale === 'tr' ? t('downloadingModel', locale) : progress.text);
       });
       setCachedModels((current) => [...new Set([...current, model])]);
       setCacheChecked(true);
       setAiStatus('ready');
+      aiProgressHighWaterRef.current = 100;
       setAiProgressPercent(100);
       setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {

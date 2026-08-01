@@ -82,6 +82,7 @@ let engine: MLCEngine | undefined;
 let maxOutputTokens = 520;
 let inferenceQueue: Promise<void> = Promise.resolve();
 const cancelledRequests = new Set<number>();
+let activeInferenceId: number | null = null;
 const supportsOpfs = typeof navigator !== 'undefined'
   && Boolean(navigator.storage)
   && 'getDirectory' in navigator.storage;
@@ -124,6 +125,7 @@ const scheduleInference = (id: number, task: () => Promise<string>) => {
         text: 'Running inference on WebGPU.',
       });
       try {
+        activeInferenceId = id;
         const text = await task();
         if (cancelledRequests.delete(id)) {
           postError(id, new Error('God Mode agent was cancelled.'));
@@ -132,6 +134,8 @@ const scheduleInference = (id: number, task: () => Promise<string>) => {
         self.postMessage({ id, type: 'answer', text });
       } catch (error) {
         postError(id, error);
+      } finally {
+        if (activeInferenceId === id) activeInferenceId = null;
       }
     });
 };
@@ -274,6 +278,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const message = event.data;
   if (message.type === 'agent-cancel') {
     cancelledRequests.add(message.id);
+    if (activeInferenceId === message.id) void engine?.interruptGenerate();
     self.postMessage({
       id: message.id,
       type: 'agent-event',

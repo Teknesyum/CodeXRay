@@ -1,11 +1,14 @@
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import {
   parseDeployArgs,
   pathExists,
+  requireCleanStatus,
+  requireSynchronizedMain,
   stagePublishedDirectory,
+  validateStagedScope,
+  validateTarget,
   verifyViteBase,
 } from './deploy-lib.mjs';
 
@@ -38,23 +41,7 @@ const git = (repository, args, capture = true) =>
 
 const requireCleanRepository = (repository, label) => {
   const status = git(repository, ['status', '--porcelain']);
-  if (status) throw new Error(`${label} has uncommitted changes:\n${status}`);
-};
-
-const validateTarget = async (targetRoot) => {
-  const required = [
-    '.git',
-    'blog/package.json',
-    'blog/astro.config.mjs',
-    'blog/wrangler.jsonc',
-  ];
-  for (const relativePath of required) {
-    if (!await pathExists(path.join(targetRoot, relativePath))) {
-      throw new Error(`Target is missing ${relativePath}.`);
-    }
-  }
-  const packageJson = JSON.parse(await readFile(path.join(targetRoot, 'blog/package.json'), 'utf8'));
-  if (!packageJson.scripts?.build) throw new Error('Target blog has no build script.');
+  requireCleanStatus(status, label);
 };
 
 const ensureSynchronizedMain = (targetRoot) => {
@@ -63,9 +50,7 @@ const ensureSynchronizedMain = (targetRoot) => {
   git(targetRoot, ['fetch', 'origin', 'main'], false);
   const head = git(targetRoot, ['rev-parse', 'HEAD']);
   const originMain = git(targetRoot, ['rev-parse', 'origin/main']);
-  if (head !== originMain) {
-    throw new Error('Target main must exactly match origin/main before deployment.');
-  }
+  requireSynchronizedMain({ branch, head, originMain });
 };
 
 const pollDeployment = async (sourceCommit, timeoutMs = 180_000) => {
@@ -142,12 +127,7 @@ const main = async () => {
       console.log('The published output is unchanged; nothing to commit.');
       return;
     }
-    const unexpected = stagedFiles
-      .split(/\r?\n/)
-      .filter((file) => !file.startsWith('blog/public/codexray/'));
-    if (unexpected.length > 0) {
-      throw new Error(`Refusing to commit files outside the deployment subtree: ${unexpected.join(', ')}`);
-    }
+    validateStagedScope(stagedFiles);
     const message = options.message || `Deploy CodeXRay ${sourceCommit.slice(0, 8)}`;
     git(targetRoot, ['commit', '-m', message], false);
     await staged.finalize();

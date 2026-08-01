@@ -16,12 +16,14 @@ import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import { routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
-import {
-  startGodModeRun,
-  type GodModeRunHandle,
-} from '../services/godModeOrchestrator';
+import type { GodModeRunHandle } from '../services/godModeOrchestrator';
 import { dispatchGodModeUiAction } from '../services/godModeUiControl';
-import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
+import {
+  clearGodModePlans,
+  loadLatestGodModePlan,
+  persistGodModePlan,
+  removeGodModePlan,
+} from '../services/godModeRunStore';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
 import type { BoundWebSourceSessionV1, ManagerPlanV2, SolutionArtifactV1, WebProblemSpecV1 } from '../types/webSource';
 import {
@@ -671,6 +673,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
           packageOutOfSync: stateRef.current.packageOutOfSync,
         };
+        const { startGodModeRun } = await import('../services/godModeOrchestrator');
         const run = startGodModeRun({
           request: userMessage,
           intent: godModeIntent,
@@ -982,6 +985,25 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const isWebRunning = Boolean(webPlan?.jobs.some((job) =>
     job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
   const canSubmitWithoutModel = Boolean(extractFirstPublicHttpsUrl(question) || webSourceSession);
+  const dismissGodModePlan = () => {
+    if (godModeDismissTimerRef.current) {
+      window.clearTimeout(godModeDismissTimerRef.current);
+      godModeDismissTimerRef.current = null;
+    }
+    if (godModePlan) {
+      dismissedGodModeRunsRef.current.add(godModePlan.runId);
+      removeGodModePlan(godModePlan.runId);
+    }
+    setGodModePlan(null);
+  };
+  const clearConversationAndRuns = () => {
+    setChatHistory([]);
+    setTourSteps([]);
+    setLastGodModeRequest(null);
+    dismissGodModePlan();
+    clearGodModePlans();
+    setWebPlan(null);
+  };
 
   if (collapsed) {
     return (
@@ -1048,8 +1070,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           className="clear-chat-btn"
           aria-label={t('clearConversation', locale)}
           title={t('memoryCount', locale, { count: conversationTurnCount })}
-          onClick={() => setChatHistory([])}
-          disabled={conversationTurnCount === 0 || isTyping || actionQueue.length > 0}
+          onClick={clearConversationAndRuns}
+          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan)
+            || isTyping || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
         >
           <Trash2 size={13} />
         </button>
@@ -1133,6 +1156,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                     ? { ...job, status: 'cancelled', error: undefined, finishedAt: Date.now() }
                     : job),
               });
+              removeGodModePlan(dismissedPlan.runId);
             }
             setGodModePlan(null);
             setIsGodModeTypingSource(false);
@@ -1140,6 +1164,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             setIsExecutingQueue(false);
             setIsTyping(false);
           }}
+          onDismiss={dismissGodModePlan}
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}
           onRetry={() => {
@@ -1159,6 +1184,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             setWebPlan(null);
             setIsTyping(false);
           }}
+          onDismiss={() => setWebPlan(null)}
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}
           onRetry={() => {

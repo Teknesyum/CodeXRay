@@ -90,6 +90,23 @@ describe('God Mode routing', () => {
     expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'create-algorithm', template });
   });
 
+  it.each([
+    '2d dp yaz simüle et',
+    'dinamik programlama simüle et',
+    '1d dp oluştur',
+  ])('asks for a concrete problem before starting a generic DP graph: %s', (request) => {
+    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+  });
+
+  it('keeps named 2D DP requests on deterministic templates', () => {
+    expect(routeGodModeRequest('LCS için 2D DP yaz simüle et', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'lcs-2d-dp',
+    });
+    expect(routeGodModeRequest('edit distance 2D tablo oluştur', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'edit-distance-2d-dp',
+    });
+  });
+
   it('never sends a concrete author-and-simulate request to ordinary chat', () => {
     expect(routeGodModeRequest('asal çarpanlara ayırma sorusu yaz, çöz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm',

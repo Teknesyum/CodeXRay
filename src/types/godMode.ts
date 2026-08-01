@@ -44,6 +44,11 @@ export interface ManagerJobV1 {
   maxAttempts: number;
   startedAt?: number;
   finishedAt?: number;
+  queueMs?: number;
+  firstTokenMs?: number | null;
+  inferenceMs?: number;
+  completionTokens?: number | null;
+  finishReason?: string;
   summary?: string;
   error?: string;
 }

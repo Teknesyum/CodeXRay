@@ -145,6 +145,17 @@ export const routeGodModeRequest = (
   if (dpTemplate && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
     return { type: 'create-algorithm', template: dpTemplate };
   }
+  const requestsGenericDp = /\b(?:1d|2d|interval)?\s*(?:dp|dynamic programming|dinamik programlama)\b/.test(text);
+  if (requestsGenericDp
+    && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
+    const ignored = new Set([
+      '1d', '2d', 'interval', 'dp', 'dynamic', 'programming', 'dinamik', 'programlama', 'tablo', 'table',
+      'coz', 'cozum', 'yaz', 'olustur', 'kur', 'simule', 'goster', 'solve', 'write', 'create', 'simulate',
+      'show', 'bana', 'bir', 'benim', 'icin', 'lutfen', 'please', 'et', 've', 'and', 'a', 'me',
+    ]);
+    const specificationWords = text.split(' ').filter((word) => !ignored.has(word));
+    if (specificationWords.length === 0) return { type: 'clarify-algorithm' };
+  }
   const requestsMemoryOptimization = /\b(bellek|memory|space)\b.*\b(optimi|min|azalt|dusur)|\bo min m n\b/.test(text);
   const currentAlgorithmIsLcs = /\b(lcs|longest common subsequence|en uzun ortak alt dizi)\b/i.test(algorithmName);
   if (requestsMemoryOptimization && currentAlgorithmIsLcs

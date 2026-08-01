@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { prebuiltAppConfig } from '@mlc-ai/web-llm';
 import {
   getLocalAiModelDefinition,
   LOCAL_AI_MODELS,
@@ -16,7 +17,21 @@ describe('local AI model profiles', () => {
       maxOutputTokens: 900,
       vramMb: 7545,
     });
+    expect(getLocalAiModelDefinition('DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC')).toMatchObject({
+      contextWindow: 4096,
+      maxContextWindow: 32768,
+      maxOutputTokens: 1100,
+      vramMb: 5107,
+      reasoningModel: true,
+      fallbackEligible: false,
+      agentTimeouts: { firstTokenMs: 45_000, longAbsoluteMs: 150_000 },
+    });
     expect(LOCAL_AI_MODELS.every((model) => model.maxContextWindow === 32768)).toBe(true);
+    expect(prebuiltAppConfig.model_list.find((model) =>
+      model.model_id === 'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC')).toMatchObject({
+      vram_required_MB: 5106.67,
+      overrides: { context_window_size: 4096 },
+    });
   });
 
   it('accepts only the four supported context-window profiles', () => {
@@ -34,5 +49,8 @@ describe('local AI model profiles', () => {
     expect(selectCachedModelForAutoLoad(ultra, [fast, ultra], true)).toBe(ultra);
     expect(selectCachedModelForAutoLoad('missing', [fast, ultra], true)).toBe(ultra);
     expect(selectCachedModelForAutoLoad('missing', [fast, ultra], false)).toBeNull();
+    const reasoning = LOCAL_AI_MODELS.find((model) => model.reasoningModel)!.id;
+    expect(selectCachedModelForAutoLoad('missing', [fast, reasoning], true)).toBe(fast);
+    expect(selectCachedModelForAutoLoad(reasoning, [reasoning], true)).toBe(reasoning);
   });
 });

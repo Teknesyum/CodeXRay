@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TimelineProvider, useTimeline } from '../context/TimelineContext';
+import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
+import type { ManagerPlanV1 } from '../types/godMode';
 import { AiAssistant } from './AiAssistant';
 
 const mocks = vi.hoisted(() => ({
@@ -54,6 +56,7 @@ const renderReadyAssistant = () => render(
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   mocks.askQuestion.mockReset().mockResolvedValue('DFS çalışma alanı hazır.');
   mocks.planLocalActions.mockReset().mockResolvedValue('{"actions":[]}');
 });
@@ -172,5 +175,34 @@ describe('AiAssistant safe action pipeline', () => {
     expect(writeText).toHaveBeenCalled();
     expect(execCommand).toHaveBeenCalledWith('copy');
     expect(await screen.findByText('AI cevabı kopyalandı')).toHaveClass('copy-response-feedback');
+  });
+
+  it('clears a persisted failed God Mode bar with the conversation trash button', async () => {
+    const plan: ManagerPlanV1 = {
+      version: 1,
+      runId: 'failed-architect',
+      request: '2d dp yaz simüle et',
+      intent: 'create-algorithm',
+      createdAt: Date.now(),
+      jobs: [{
+        id: 'architect-design-algorithm-contract',
+        role: 'architect',
+        label: 'Design contract',
+        dependsOn: [],
+        weight: 100,
+        status: 'failed',
+        attempt: 1,
+        maxAttempts: 1,
+        error: 'Invalid contract',
+      }],
+    };
+    persistGodModePlan(plan);
+    const user = userEvent.setup();
+    renderReadyAssistant();
+
+    expect(await screen.findByText('Invalid contract')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Konuşma hafızasını temizle' }));
+    await waitFor(() => expect(screen.queryByText('Invalid contract')).not.toBeInTheDocument());
+    expect(loadLatestGodModePlan()).toBeNull();
   });
 });

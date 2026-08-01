@@ -1,7 +1,7 @@
 {
   "name": "codexray",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "publish:site": "node scripts/publish-to-site.mjs"
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.84",
+    "@mlc-ai/web-llm": "0.2.84",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

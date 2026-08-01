@@ -2,7 +2,7 @@ import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
-import { LOCAL_AI_MODELS } from './localAiModels';
+import { getLocalAiModelDefinition, LOCAL_AI_MODELS } from './localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
 import type { LocalAgentResultV2 } from '../types/webSource';
 
@@ -13,8 +13,13 @@ interface WorkerResponse {
   type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted' | 'agent-event';
   text?: string;
   progress?: InitProgressReport;
-  status?: 'queued' | 'running' | 'cancelled';
+  status?: LocalAgentProgress['status'];
   result?: LocalAgentResultV2;
+  queueMs?: number;
+  firstTokenMs?: number | null;
+  inferenceMs?: number;
+  completionTokens?: number | null;
+  finishReason?: string;
 }
 
 interface PendingRequest {
@@ -25,8 +30,13 @@ interface PendingRequest {
 
 export interface LocalAgentProgress {
   requestId: number;
-  status: 'queued' | 'running' | 'cancelled';
+  status: 'queued' | 'running' | 'first-token' | 'streaming' | 'target-exceeded' | 'validating' | 'completed' | 'cancelled';
   text: string;
+  queueMs?: number;
+  firstTokenMs?: number | null;
+  inferenceMs?: number;
+  completionTokens?: number | null;
+  finishReason?: string;
 }
 
 export interface LocalAgentRequest {
@@ -40,6 +50,9 @@ export interface LocalAgentRequest {
   temperature?: number;
   queueTimeoutMs?: number;
   inferenceTimeoutMs?: number;
+  firstTokenTimeoutMs?: number;
+  inactivityTimeoutMs?: number;
+  absoluteTimeoutMs?: number;
 }
 
 export interface LocalAgentHandle {
@@ -62,7 +75,12 @@ let readyContextWindow: number | undefined;
 let activeInteractiveRequestId: number | null = null;
 
 export const DEFAULT_AGENT_QUEUE_TIMEOUT_MS = 20_000;
-export const DEFAULT_AGENT_INFERENCE_TIMEOUT_MS = 20_000;
+export const DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS = 30_000;
+export const DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS = 20_000;
+export const DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS = 45_000;
+export const DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS = 90_000;
+/** @deprecated Prefer the phase-specific timeout constants. */
+export const DEFAULT_AGENT_INFERENCE_TIMEOUT_MS = DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
 const LOCAL_MODEL_BUSY_ERROR = 'Local model files are busy in another tab.';
 
 interface LocalModelLockManager {
@@ -116,6 +134,11 @@ const getWorker = () => {
         requestId: response.id,
         status: response.status ?? 'running',
         text: response.text ?? '',
+        queueMs: response.queueMs,
+        firstTokenMs: response.firstTokenMs,
+        inferenceMs: response.inferenceMs,
+        completionTokens: response.completionTokens,
+        finishReason: response.finishReason,
       });
       return;
     }
@@ -301,38 +324,80 @@ export const runLocalAgent = (
     };
   }
   const id = ++requestId;
-  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
-  const inferenceTimeoutMs = request.inferenceTimeoutMs ?? DEFAULT_AGENT_INFERENCE_TIMEOUT_MS;
-  let phase: 'queue' | 'inference' = 'queue';
-  let timeout: ReturnType<typeof globalThis.setTimeout>;
+  const definition = getLocalAiModelDefinition(readyModel);
+  const profile = definition?.agentTimeouts;
+  const queueTimeoutMs = request.queueTimeoutMs ?? profile?.queueMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const legacyInferenceTimeoutMs = request.inferenceTimeoutMs;
+  const firstTokenTimeoutMs = request.firstTokenTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? profile?.firstTokenMs ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
+  const inactivityTimeoutMs = request.inactivityTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? profile?.inactivityMs ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
+  const absoluteTimeoutMs = request.absoluteTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? ((request.maxTokens ?? definition?.maxOutputTokens ?? 520) <= 260
+      ? profile?.shortAbsoluteMs ?? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
+      : profile?.longAbsoluteMs ?? DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
+  let phase: 'queue' | 'first-token' | 'streaming' | 'validating' = 'queue';
+  let phaseTimeout: ReturnType<typeof globalThis.setTimeout>;
+  let absoluteTimeout: ReturnType<typeof globalThis.setTimeout> | undefined;
+  let targetTimeout: ReturnType<typeof globalThis.setTimeout> | undefined;
+  const clearTimers = () => {
+    globalThis.clearTimeout(phaseTimeout);
+    if (absoluteTimeout) globalThis.clearTimeout(absoluteTimeout);
+    if (targetTimeout) globalThis.clearTimeout(targetTimeout);
+  };
+  const cancelRequest = (message: string) => {
+    const activeRequest = pending.get(id);
+    if (!activeRequest) return;
+    pending.delete(id);
+    clearTimers();
+    activeRequest.reject(new Error(message));
+    worker?.postMessage({ id, type: 'agent-cancel' });
+  };
+  const armInactivityTimeout = () => {
+    globalThis.clearTimeout(phaseTimeout);
+    phaseTimeout = globalThis.setTimeout(() => {
+      cancelRequest(`God Mode ${request.role} agent stopped producing output for ${Math.round(inactivityTimeoutMs / 1_000)} seconds.`);
+    }, inactivityTimeoutMs);
+  };
   const basePromise = new Promise<string>((resolve, reject) => {
     pending.set(id, {
-      resolve: resolve as (value: never) => void,
+      resolve: ((value: string | LocalAgentResultV2) => resolve(
+        typeof value === 'string' ? value : value.text,
+      )) as (value: never) => void,
       reject,
       onAgentEvent: (progress) => {
         onProgress?.(progress);
         if (progress.status === 'running' && phase === 'queue') {
-          phase = 'inference';
-          globalThis.clearTimeout(timeout);
-          timeout = globalThis.setTimeout(() => {
-            cancelRequest(`God Mode ${request.role} agent timed out during inference after ${Math.round(inferenceTimeoutMs / 1_000)} seconds.`);
-          }, inferenceTimeoutMs);
+          phase = 'first-token';
+          globalThis.clearTimeout(phaseTimeout);
+          phaseTimeout = globalThis.setTimeout(() => {
+            cancelRequest(`God Mode ${request.role} agent produced no first token within ${Math.round(firstTokenTimeoutMs / 1_000)} seconds.`);
+          }, firstTokenTimeoutMs);
+          absoluteTimeout = globalThis.setTimeout(() => {
+            cancelRequest(`God Mode ${request.role} agent reached its ${Math.round(absoluteTimeoutMs / 1_000)} second absolute limit.`);
+          }, absoluteTimeoutMs);
+          targetTimeout = globalThis.setTimeout(() => {
+            onProgress?.({
+              requestId: id,
+              status: 'target-exceeded',
+              text: 'The 20 second performance target was exceeded; the local model is still working.',
+            });
+          }, 20_000);
+        } else if (progress.status === 'first-token' || progress.status === 'streaming') {
+          phase = 'streaming';
+          armInactivityTimeout();
+        } else if (progress.status === 'validating' || progress.status === 'completed') {
+          phase = 'validating';
+          globalThis.clearTimeout(phaseTimeout);
         }
       },
     });
     worker?.postMessage({ id, type: 'agent-run', ...request });
   });
-  const cancelRequest = (message: string) => {
-    const activeRequest = pending.get(id);
-    if (!activeRequest) return;
-    pending.delete(id);
-    activeRequest.reject(new Error(message));
-    worker?.postMessage({ id, type: 'agent-cancel' });
-  };
-  timeout = globalThis.setTimeout(() => {
+  phaseTimeout = globalThis.setTimeout(() => {
     cancelRequest(`God Mode ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
   }, queueTimeoutMs);
-  const promise = basePromise.finally(() => globalThis.clearTimeout(timeout));
+  const promise = basePromise.finally(clearTimers);
   return {
     requestId: id,
     promise,
@@ -352,10 +417,41 @@ export const runLocalAgentDetailed = (
     };
   }
   const id = ++requestId;
-  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
-  const inferenceTimeoutMs = request.inferenceTimeoutMs ?? DEFAULT_AGENT_INFERENCE_TIMEOUT_MS;
-  let phase: 'queue' | 'inference' = 'queue';
-  let timeout: ReturnType<typeof globalThis.setTimeout>;
+  const definition = getLocalAiModelDefinition(readyModel);
+  const profile = definition?.agentTimeouts;
+  const queueTimeoutMs = request.queueTimeoutMs ?? profile?.queueMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const legacyInferenceTimeoutMs = request.inferenceTimeoutMs;
+  const firstTokenTimeoutMs = request.firstTokenTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? profile?.firstTokenMs ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
+  const inactivityTimeoutMs = request.inactivityTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? profile?.inactivityMs ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
+  const absoluteTimeoutMs = request.absoluteTimeoutMs ?? legacyInferenceTimeoutMs
+    ?? ((request.maxTokens ?? definition?.maxOutputTokens ?? 520) <= 260
+      ? profile?.shortAbsoluteMs ?? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
+      : profile?.longAbsoluteMs ?? DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
+  let phase: 'queue' | 'first-token' | 'streaming' | 'validating' = 'queue';
+  let phaseTimeout: ReturnType<typeof globalThis.setTimeout>;
+  let absoluteTimeout: ReturnType<typeof globalThis.setTimeout> | undefined;
+  let targetTimeout: ReturnType<typeof globalThis.setTimeout> | undefined;
+  const clearTimers = () => {
+    globalThis.clearTimeout(phaseTimeout);
+    if (absoluteTimeout) globalThis.clearTimeout(absoluteTimeout);
+    if (targetTimeout) globalThis.clearTimeout(targetTimeout);
+  };
+  const cancelRequest = (message: string) => {
+    const activeRequest = pending.get(id);
+    if (!activeRequest) return;
+    pending.delete(id);
+    clearTimers();
+    activeRequest.reject(new Error(message));
+    worker?.postMessage({ id, type: 'agent-cancel' });
+  };
+  const armInactivityTimeout = () => {
+    globalThis.clearTimeout(phaseTimeout);
+    phaseTimeout = globalThis.setTimeout(() => {
+      cancelRequest(`Web problem ${request.role} agent stopped producing output for ${Math.round(inactivityTimeoutMs / 1_000)} seconds.`);
+    }, inactivityTimeoutMs);
+  };
   const basePromise = new Promise<LocalAgentResultV2>((resolve, reject) => {
     pending.set(id, {
       resolve: resolve as (value: never) => void,
@@ -363,29 +459,38 @@ export const runLocalAgentDetailed = (
       onAgentEvent: (progress) => {
         onProgress?.(progress);
         if (progress.status === 'running' && phase === 'queue') {
-          phase = 'inference';
-          globalThis.clearTimeout(timeout);
-          timeout = globalThis.setTimeout(() => {
-            cancelRequest(`Web problem ${request.role} agent timed out during inference after ${Math.round(inferenceTimeoutMs / 1_000)} seconds.`);
-          }, inferenceTimeoutMs);
+          phase = 'first-token';
+          globalThis.clearTimeout(phaseTimeout);
+          phaseTimeout = globalThis.setTimeout(() => {
+            cancelRequest(`Web problem ${request.role} agent produced no first token within ${Math.round(firstTokenTimeoutMs / 1_000)} seconds.`);
+          }, firstTokenTimeoutMs);
+          absoluteTimeout = globalThis.setTimeout(() => {
+            cancelRequest(`Web problem ${request.role} agent reached its ${Math.round(absoluteTimeoutMs / 1_000)} second absolute limit.`);
+          }, absoluteTimeoutMs);
+          targetTimeout = globalThis.setTimeout(() => {
+            onProgress?.({
+              requestId: id,
+              status: 'target-exceeded',
+              text: 'The 20 second performance target was exceeded; the local model is still working.',
+            });
+          }, 20_000);
+        } else if (progress.status === 'first-token' || progress.status === 'streaming') {
+          phase = 'streaming';
+          armInactivityTimeout();
+        } else if (progress.status === 'validating' || progress.status === 'completed') {
+          phase = 'validating';
+          globalThis.clearTimeout(phaseTimeout);
         }
       },
     });
     worker?.postMessage({ id, type: 'agent-run', detailed: true, ...request });
   });
-  const cancelRequest = (message: string) => {
-    const activeRequest = pending.get(id);
-    if (!activeRequest) return;
-    pending.delete(id);
-    activeRequest.reject(new Error(message));
-    worker?.postMessage({ id, type: 'agent-cancel' });
-  };
-  timeout = globalThis.setTimeout(() => {
+  phaseTimeout = globalThis.setTimeout(() => {
     cancelRequest(`Web problem ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
   }, queueTimeoutMs);
   return {
     requestId: id,
-    promise: basePromise.finally(() => globalThis.clearTimeout(timeout)),
+    promise: basePromise.finally(clearTimers),
     cancel: () => cancelRequest('Web problem agent was cancelled.'),
   };
 };

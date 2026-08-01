@@ -516,6 +516,9 @@ export const ControlBar = ({
                       memory: (selectedModel.vramMb / 1000).toFixed(1),
                     })}
                   </p>
+                  {selectedModel.reasoningModel && (
+                    <p className="model-requirement">{t('reasoningModelRequirement', locale)}</p>
+                  )}
                   <p className="model-requirement">
                     {t('modelTokenProfile', locale, {
                       context: aiContextWindow,
@@ -801,7 +804,7 @@ export const ControlBar = ({
               </div>
               <footer className="settings-version-footer" aria-label="CodeXRay version">
                 <span>CodeXRay</span>
-                <strong>v2.0.0</strong>
+                <strong>v2.1.0</strong>
               </footer>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManagerPlanV2 } from '../types/webSource';
 import { GodModeProgress } from './GodModeProgress';
@@ -39,6 +39,7 @@ describe('GodModeProgress timing', () => {
         plan={plan}
         locale="tr"
         onCancel={() => undefined}
+        onDismiss={() => undefined}
         onUndo={() => undefined}
         onRedo={() => undefined}
         onRetry={() => undefined}
@@ -50,5 +51,48 @@ describe('GodModeProgress timing', () => {
     expect(screen.getByText('0.0s')).toBeVisible();
     await vi.advanceTimersByTimeAsync(1_250);
     expect(screen.getByText('1.3s')).toBeVisible();
+  });
+
+  it('keeps retry and dismiss controls available after a failed run', () => {
+    const onRetry = vi.fn();
+    const onDismiss = vi.fn();
+    const plan: ManagerPlanV2 = {
+      version: 2,
+      runId: 'failed-run',
+      request: 'solve',
+      intent: 'solve-web-problem',
+      createdAt: Date.now(),
+      jobs: [{
+        version: 2,
+        id: 'java-author',
+        role: 'code-author',
+        label: 'Draft Java',
+        dependsOn: [],
+        consumes: ['problem-spec'],
+        produces: ['java-solution'],
+        resourceLocks: ['webgpu'],
+        status: 'failed',
+        attempt: 1,
+        maxAttempts: 2,
+        error: 'Invalid contract',
+      }],
+    };
+    render(
+      <GodModeProgress
+        plan={plan}
+        locale="tr"
+        onCancel={() => undefined}
+        onDismiss={onDismiss}
+        onUndo={() => undefined}
+        onRedo={() => undefined}
+        onRetry={onRetry}
+        canUndo={false}
+        canRedo={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Başarısız ajan çalışmasını yeniden dene' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajan çalışmasını kapat' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(onDismiss).toHaveBeenCalledOnce();
   });
 });

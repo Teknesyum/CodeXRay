@@ -100,8 +100,11 @@ describe('application workspace', () => {
     expect(screen.getByRole('option', { name: /Qwen2.5 Coder 7B/ })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /Qwen3.5 9B.*16 GB class/ }))
       .toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /DeepSeek R1 Distill Qwen 7B/ }))
+      .toBeInTheDocument();
     expect(screen.getByText(/browser-managed OPFS\/cache/)).toBeInTheDocument();
     expect(screen.getByText(/initializes automatically/)).toBeInTheDocument();
+    expect(screen.getByText('v2.1.0')).toBeInTheDocument();
 
     await user.selectOptions(modelSelect, 'Qwen3.5-9B-q4f32_1-MLC');
     const contextSelect = screen.getByRole('combobox', { name: 'Context window' });
@@ -112,6 +115,9 @@ describe('application workspace', () => {
       .toBeInTheDocument();
     expect(within(contextSelect).getByRole('option', { name: /32K context.*experimental/ }))
       .toBeInTheDocument();
+
+    await user.selectOptions(modelSelect, 'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC');
+    expect(screen.getByText(/8 GB GPU is recommended/)).toBeInTheDocument();
 
     await user.selectOptions(modelSelect, 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC');
     expect(within(contextSelect).getByRole('option', { name: /8K context.*experimental/ }))

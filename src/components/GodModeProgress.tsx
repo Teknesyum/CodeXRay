@@ -20,6 +20,7 @@ interface GodModeProgressProps {
   plan: ManagerPlanV1 | ManagerPlanV2;
   locale: Locale;
   onCancel: () => void;
+  onDismiss: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onRetry: () => void;
@@ -49,7 +50,11 @@ const jobDetails = (
   const timing = elapsed === null
     ? ''
     : `Time: ${(elapsed / 1_000).toFixed(2)}s${'queueMs' in job && typeof job.queueMs === 'number'
-      ? ` · queue ${(job.queueMs / 1_000).toFixed(2)}s · inference ${((job.inferenceMs ?? 0) / 1_000).toFixed(2)}s`
+      ? ` · queue ${(job.queueMs / 1_000).toFixed(2)}s${typeof job.firstTokenMs === 'number'
+        ? ` · first token ${(job.firstTokenMs / 1_000).toFixed(2)}s`
+        : ''} · inference ${((job.inferenceMs ?? 0) / 1_000).toFixed(2)}s${typeof job.completionTokens === 'number'
+        ? ` · ${job.completionTokens} tokens`
+        : ''}${job.finishReason ? ` · ${job.finishReason}` : ''}`
       : ''}`;
   return [job.error ?? job.summary, timing].filter(Boolean).join(' · ') || undefined;
 };
@@ -66,6 +71,7 @@ export const GodModeProgress = ({
   plan,
   locale,
   onCancel,
+  onDismiss,
   onUndo,
   onRedo,
   onRetry,
@@ -176,6 +182,20 @@ export const GodModeProgress = ({
             onBlur={() => setTooltip(null)}
           >
             <RefreshCw size={13} />
+          </button>
+        )}
+        {(completed || failed || cancelled) && (
+          <button
+            type="button"
+            className="god-mode-mini-btn"
+            onClick={onDismiss}
+            aria-label={t('godModeDismiss', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('godModeDismiss', locale))}
+            onMouseLeave={() => setTooltip(null)}
+            onFocus={(event) => showControlTooltip(event, t('godModeDismiss', locale))}
+            onBlur={() => setTooltip(null)}
+          >
+            <X size={13} />
           </button>
         )}
       </div>

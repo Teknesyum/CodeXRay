@@ -189,6 +189,7 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   await expect(page.locator('.god-mode-agent.failed')).toContainText('Code');
   await expect(page.locator('.god-mode-agent.failed')).toContainText('could not produce valid SimLang');
   await expect(page.getByRole('button', { name: 'Retry failed agent run' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dismiss agent run' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as Window & { __codeAuthorAttempts?: number }).__codeAuthorAttempts)).toBe(2);
 
   await expect(page.getByLabel('Quick Sort execution')).toHaveText(sourceBefore ?? '');
@@ -197,4 +198,9 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   await expect(page.locator('.visualizer-header-actions > span')).toHaveText(progressBefore ?? '');
   await expect(page.getByLabel(/Custom Algorithm.*execution/)).toHaveCount(0);
   await expect(question).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Clear conversation memory' }).click();
+  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('codexray.god-mode.runs.v1')))
+    .toBeNull();
 });

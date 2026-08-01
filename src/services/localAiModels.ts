@@ -5,6 +5,16 @@ export interface LocalAiModelDefinition {
   contextWindow: number;
   maxContextWindow: number;
   maxOutputTokens: number;
+  reasoningModel?: boolean;
+  fallbackEligible?: boolean;
+  recommendedGpuMb?: number;
+  agentTimeouts?: {
+    queueMs: number;
+    firstTokenMs: number;
+    inactivityMs: number;
+    shortAbsoluteMs: number;
+    longAbsoluteMs: number;
+  };
   capabilities: {
     solveWebProblem: boolean;
     strictJson: boolean;
@@ -28,6 +38,8 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 520,
+    reasoningModel: false,
+    fallbackEligible: true,
     capabilities: { solveWebProblem: false, strictJson: false },
   },
   {
@@ -37,6 +49,8 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 640,
+    reasoningModel: false,
+    fallbackEligible: true,
     capabilities: { solveWebProblem: false, strictJson: true },
   },
   {
@@ -46,6 +60,8 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 760,
+    reasoningModel: false,
+    fallbackEligible: true,
     capabilities: { solveWebProblem: true, strictJson: true },
   },
   {
@@ -55,6 +71,27 @@ export const LOCAL_AI_MODELS = [
     contextWindow: 4096,
     maxContextWindow: 32768,
     maxOutputTokens: 900,
+    reasoningModel: false,
+    fallbackEligible: true,
+    capabilities: { solveWebProblem: true, strictJson: true },
+  },
+  {
+    id: 'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC',
+    label: 'DeepSeek R1 Distill Qwen 7B (reasoning, experimental)',
+    vramMb: 5107,
+    contextWindow: 4096,
+    maxContextWindow: 32768,
+    maxOutputTokens: 1100,
+    reasoningModel: true,
+    fallbackEligible: false,
+    recommendedGpuMb: 8000,
+    agentTimeouts: {
+      queueMs: 20_000,
+      firstTokenMs: 45_000,
+      inactivityMs: 25_000,
+      shortAbsoluteMs: 75_000,
+      longAbsoluteMs: 150_000,
+    },
     capabilities: { solveWebProblem: true, strictJson: true },
   },
 ] as const satisfies readonly LocalAiModelDefinition[];
@@ -73,5 +110,5 @@ export const selectCachedModelForAutoLoad = (
   if (!allowFallback) return null;
   return [...LOCAL_AI_MODELS]
     .reverse()
-    .find((model) => cachedModels.includes(model.id))?.id ?? null;
+    .find((model) => model.fallbackEligible !== false && cachedModels.includes(model.id))?.id ?? null;
 };

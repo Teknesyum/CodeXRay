@@ -128,14 +128,18 @@ const postError = (id: number, error: unknown) => {
   });
 };
 
+const postAgentEvent = (
+  id: number,
+  status: 'queued' | 'running' | 'first-token' | 'streaming' | 'validating' | 'completed' | 'cancelled',
+  text: string,
+  metrics: Partial<Pick<LocalAgentResultV2, 'queueMs' | 'firstTokenMs' | 'inferenceMs' | 'completionTokens' | 'finishReason'>> = {},
+) => {
+  self.postMessage({ id, type: 'agent-event', status, text, ...metrics });
+};
+
 const scheduleInference = (id: number, task: () => Promise<string | LocalAgentResultV2>) => {
   const queuedAt = performance.now();
-  self.postMessage({
-    id,
-    type: 'agent-event',
-    status: 'queued',
-    text: 'Queued on the local WebGPU engine.',
-  });
+  postAgentEvent(id, 'queued', 'Queued on the local WebGPU engine.');
   inferenceQueue = inferenceQueue
     .catch(() => undefined)
     .then(async () => {
@@ -143,12 +147,7 @@ const scheduleInference = (id: number, task: () => Promise<string | LocalAgentRe
         postError(id, new Error('God Mode agent was cancelled.'));
         return;
       }
-      self.postMessage({
-        id,
-        type: 'agent-event',
-        status: 'running',
-        text: 'Running inference on WebGPU.',
-      });
+      postAgentEvent(id, 'running', 'Waiting for the first token from WebGPU.');
       try {
         activeInferenceId = id;
         const inferenceStartedAt = performance.now();
@@ -160,20 +159,31 @@ const scheduleInference = (id: number, task: () => Promise<string | LocalAgentRe
         if (typeof output === 'string') {
           self.postMessage({ id, type: 'answer', text: output });
         } else {
+          const result = {
+            ...output,
+            queueMs: Math.max(0, Math.round(inferenceStartedAt - queuedAt)),
+            inferenceMs: Math.max(0, Math.round(performance.now() - inferenceStartedAt)),
+          };
+          postAgentEvent(id, 'completed', 'Local inference completed.', {
+            queueMs: result.queueMs,
+            firstTokenMs: result.firstTokenMs,
+            inferenceMs: result.inferenceMs,
+            completionTokens: result.completionTokens,
+            finishReason: result.finishReason,
+          });
           self.postMessage({
             id,
             type: 'answer',
-            text: output.text,
-            result: {
-              ...output,
-              queueMs: Math.max(0, Math.round(inferenceStartedAt - queuedAt)),
-              inferenceMs: Math.max(0, Math.round(performance.now() - inferenceStartedAt)),
-            },
+            text: result.text,
+            result,
           });
         }
       } catch (error) {
-        postError(id, error);
+        postError(id, cancelledRequests.has(id)
+          ? new Error('God Mode agent was cancelled.')
+          : error);
       } finally {
+        cancelledRequests.delete(id);
         if (activeInferenceId === id) activeInferenceId = null;
       }
     });
@@ -196,7 +206,7 @@ const runPlanner = async (message: PlanMessage): Promise<string> => {
   return completion.choices[0]?.message.content ?? '{}';
 };
 
-const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentResultV2> => {
+const runAgent = async (message: AgentRunMessage): Promise<LocalAgentResultV2> => {
   const expectsJson = Boolean(message.responseSchema || message.jsonMode);
   const outputTokens = Math.min(message.maxTokens ?? maxOutputTokens, maxOutputTokens + 300);
   const systemContent = [
@@ -216,6 +226,7 @@ const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentRe
       - systemContent.length
       - (includeSchema ? schemaText.length : 0),
   );
+  const inferenceStartedAt = performance.now();
   const completion = await loadedEngine().chat.completions.create({
     messages: [
       { role: 'system', content: systemContent },
@@ -224,6 +235,8 @@ const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentRe
     temperature: message.temperature ?? (expectsJson ? 0 : 0.12),
     ...({ enable_thinking: false }),
     max_tokens: outputTokens,
+    stream: true,
+    stream_options: { include_usage: true },
     ...(expectsJson ? {
       response_format: {
         type: 'json_object' as const,
@@ -231,17 +244,44 @@ const runAgent = async (message: AgentRunMessage): Promise<string | LocalAgentRe
       },
     } : {}),
   });
-  const text = completion.choices[0]?.message.content ?? (expectsJson ? '{}' : '');
-  if (!message.detailed) return text;
+  let text = '';
+  let finishReason = 'unknown';
+  let promptTokens: number | null = null;
+  let completionTokens: number | null = null;
+  let firstTokenMs: number | null = null;
+  let lastHeartbeatAt = 0;
+  for await (const chunk of completion) {
+    const content = chunk.choices[0]?.delta.content ?? '';
+    if (content) {
+      text += content;
+      const now = performance.now();
+      if (firstTokenMs === null) {
+        firstTokenMs = Math.max(0, Math.round(now - inferenceStartedAt));
+        lastHeartbeatAt = now;
+        postAgentEvent(message.id, 'first-token', 'The local model produced its first token.', { firstTokenMs });
+      } else if (now - lastHeartbeatAt >= 250) {
+        lastHeartbeatAt = now;
+        postAgentEvent(message.id, 'streaming', 'The local model is still producing output.', { firstTokenMs });
+      }
+    }
+    const chunkFinishReason = chunk.choices[0]?.finish_reason;
+    if (chunkFinishReason) finishReason = chunkFinishReason;
+    if (chunk.usage) {
+      promptTokens = chunk.usage.prompt_tokens;
+      completionTokens = chunk.usage.completion_tokens;
+    }
+  }
+  postAgentEvent(message.id, 'validating', 'Validating the completed local-model response.', { firstTokenMs });
   return {
     version: 2,
-    text,
-    finishReason: completion.choices[0]?.finish_reason ?? 'unknown',
+    text: text || (expectsJson ? '{}' : ''),
+    finishReason,
     model: activeModel,
     contextWindow: activeContextWindow,
-    promptTokens: completion.usage?.prompt_tokens ?? null,
-    completionTokens: completion.usage?.completion_tokens ?? null,
+    promptTokens,
+    completionTokens,
     queueMs: 0,
+    firstTokenMs,
     inferenceMs: 0,
     schemaMode: message.responseSchema ? 'json-schema' : message.jsonMode ? 'json-object' : 'none',
   };

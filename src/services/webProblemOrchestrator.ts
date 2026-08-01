@@ -228,8 +228,6 @@ export const startJavaFallbackRun = (options: {
         responseSchema: JAVA_SCHEMA as unknown as Record<string, unknown>,
         jsonMode: true,
         maxTokens: 520,
-        queueTimeoutMs: 20_000,
-        inferenceTimeoutMs: 20_000,
         temperature: 0,
       });
       const result = await active.promise;
@@ -240,7 +238,10 @@ export const startJavaFallbackRun = (options: {
         updateJob('java-author', {
           status: 'completed',
           queueMs: attempts.filter((item) => item.jobId === 'java-author').reduce((sum, item) => sum + item.queueMs, 0),
+          firstTokenMs: result.firstTokenMs,
           inferenceMs: attempts.filter((item) => item.jobId === 'java-author').reduce((sum, item) => sum + item.inferenceMs, 0),
+          completionTokens: result.completionTokens,
+          finishReason: result.finishReason,
           summary: `Validated Java schema on attempt ${attempt}.`,
         });
         break;
@@ -267,8 +268,6 @@ export const startJavaFallbackRun = (options: {
       responseSchema: CRITIC_SCHEMA as unknown as Record<string, unknown>,
       jsonMode: true,
       maxTokens: 260,
-      queueTimeoutMs: 20_000,
-      inferenceTimeoutMs: 20_000,
       temperature: 0,
     });
     const criticResult = await active.promise;
@@ -282,7 +281,10 @@ export const startJavaFallbackRun = (options: {
     updateJob('critic', {
       status: 'completed',
       queueMs: criticResult.queueMs,
+      firstTokenMs: criticResult.firstTokenMs,
       inferenceMs: criticResult.inferenceMs,
+      completionTokens: criticResult.completionTokens,
+      finishReason: criticResult.finishReason,
       summary: review.summary,
     });
     const artifact: SolutionArtifactV1 = {

@@ -30,6 +30,19 @@ const send = (data: Record<string, unknown>) => {
   self.onmessage?.({ data } as MessageEvent);
 };
 
+const streamedCompletion = (text: string, finishReason = 'stop') => ({
+  async *[Symbol.asyncIterator]() {
+    yield {
+      choices: [{ delta: { content: text }, finish_reason: null }],
+      usage: undefined,
+    };
+    yield {
+      choices: [{ delta: {}, finish_reason: finishReason }],
+      usage: { prompt_tokens: 40, completion_tokens: 8, total_tokens: 48 },
+    };
+  },
+});
+
 const waitForOutput = async (predicate: (message: WorkerOutput) => boolean) => {
   await vi.waitFor(() => expect(outputs().some(predicate)).toBe(true));
 };
@@ -98,7 +111,7 @@ describe('local AI worker protocol', () => {
     await initialize();
     webLlm.complete
       .mockResolvedValueOnce({ choices: [{ message: { content: '{"actions":[{"type":"jump","step":3}]' }, finish_reason: 'stop' }] })
-      .mockResolvedValueOnce({ choices: [{ message: { content: '{"passed":true}' }, finish_reason: 'stop' }] });
+      .mockResolvedValueOnce(streamedCompletion('{"passed":true}'));
     send({ id: 10, type: 'plan', question: 'step three', context: JSON.stringify({ steps: 8 }) });
     send({
       id: 11,
@@ -145,7 +158,7 @@ describe('local AI worker protocol', () => {
 
   it('shortens oversized specialist context before inference on the stable 4K profile', async () => {
     await initialize();
-    webLlm.complete.mockResolvedValueOnce({ choices: [{ message: { content: 'bounded' }, finish_reason: 'stop' }] });
+    webLlm.complete.mockResolvedValueOnce(streamedCompletion('bounded'));
     send({
       id: 25,
       type: 'agent-run',
@@ -172,7 +185,7 @@ describe('local AI worker protocol', () => {
     await waitForOutput((message) => message.id === 30 && message.status === 'running');
     send({ id: 30, type: 'agent-cancel' });
     expect(webLlm.interrupt).toHaveBeenCalledOnce();
-    resolveCompletion({ choices: [{ message: { content: 'Late answer' }, finish_reason: 'stop' }] });
+    resolveCompletion(streamedCompletion('Late answer'));
     await waitForOutput((message) => message.id === 30 && message.type === 'error');
     expect(outputs()).toContainEqual(expect.objectContaining({ id: 30, type: 'agent-event', status: 'cancelled' }));
     expect(outputs().some((message) => message.id === 30 && message.type === 'answer')).toBe(false);

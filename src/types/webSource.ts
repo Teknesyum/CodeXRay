@@ -118,7 +118,10 @@ export interface ManagerJobV2 {
   finishedAt?: number;
   durationMs?: number;
   queueMs?: number;
+  firstTokenMs?: number | null;
   inferenceMs?: number;
+  completionTokens?: number | null;
+  finishReason?: string;
   summary?: string;
   error?: string;
 }
@@ -160,6 +163,7 @@ export interface LocalAgentResultV2 {
   promptTokens: number | null;
   completionTokens: number | null;
   queueMs: number;
+  firstTokenMs: number | null;
   inferenceMs: number;
   schemaMode: AgentAttemptV1['schemaMode'];
 }

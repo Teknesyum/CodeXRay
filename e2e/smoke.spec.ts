@@ -410,6 +410,7 @@ test('offers experimental extended context profiles for every local model', asyn
     'Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC',
     'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
     'Qwen3.5-9B-q4f32_1-MLC',
+    'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC',
   ]) {
     await model.selectOption(modelId);
     await expect(context.locator('option[value="8192"]'))
@@ -420,7 +421,7 @@ test('offers experimental extended context profiles for every local model', asyn
       .toHaveText(/32K context.*experimental/);
   }
   await context.selectOption('32768');
-  await expect(page.getByText(/32768-token context.*1200 response tokens/))
+  await expect(page.getByText(/32768-token context.*1400 response tokens/))
     .toBeVisible();
 });
 

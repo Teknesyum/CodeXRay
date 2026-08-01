@@ -50,3 +50,28 @@ export const loadLatestGodModePlan = (
     return null;
   }
 };
+
+export const removeGodModePlan = (
+  runId: string,
+  storage: Storage = sessionStorage,
+): void => {
+  try {
+    storage.removeItem(`${RUN_PREFIX}${runId}`);
+    storage.setItem(INDEX_KEY, JSON.stringify(
+      readIndex(storage).filter((storedRunId) => storedRunId !== runId),
+    ));
+  } catch {
+    // The in-memory bar can still be dismissed when storage is unavailable.
+  }
+};
+
+export const clearGodModePlans = (
+  storage: Storage = sessionStorage,
+): void => {
+  try {
+    readIndex(storage).forEach((runId) => storage.removeItem(`${RUN_PREFIX}${runId}`));
+    storage.removeItem(INDEX_KEY);
+  } catch {
+    // Clearing the visible conversation remains available when storage is constrained.
+  }
+};

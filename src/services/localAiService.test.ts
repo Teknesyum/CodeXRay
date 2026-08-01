@@ -76,9 +76,9 @@ const waitForWorker = async (): Promise<FakeWorker> => {
   return FakeWorker.instances.at(-1)!;
 };
 
-const initialize = async () => {
+const initialize = async (model: string = LOCAL_AI_MODELS[0].id) => {
   const progress = vi.fn();
-  const promise = initializeLocalAi(LOCAL_AI_MODELS[0].id, 4096, progress);
+  const promise = initializeLocalAi(model, 4096, progress);
   const worker = await waitForWorker();
   const request = worker.posted.find((message) => message.type === 'initialize')!;
   worker.emit({ id: request.id, type: 'ready', text: request.model });
@@ -127,6 +127,7 @@ describe('local AI worker bridge', () => {
     await expect(promise).resolves.toEqual([
       LOCAL_AI_MODELS[0].id,
       LOCAL_AI_MODELS[2].id,
+      LOCAL_AI_MODELS[4].id,
     ]);
   });
 
@@ -246,6 +247,7 @@ describe('local AI worker bridge', () => {
       promptTokens: 120,
       completionTokens: 12,
       queueMs: 4,
+      firstTokenMs: 6,
       inferenceMs: 18,
       schemaMode: 'json-object' as const,
     };
@@ -282,10 +284,67 @@ describe('local AI worker bridge', () => {
       maxTokens: 100,
     });
     worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Running inference' });
-    const timedOut = expect(handle.promise).rejects.toThrow('timed out during inference after 20 seconds');
-    await vi.advanceTimersByTimeAsync(20_000);
+    const timedOut = expect(handle.promise).rejects.toThrow('produced no first token within 30 seconds');
+    await vi.advanceTimersByTimeAsync(30_000);
     await timedOut;
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
+  });
+
+  it('keeps an architect alive past the 20 second target while streamed output is progressing', async () => {
+    const { worker } = await initialize();
+    vi.useFakeTimers();
+    const progress = vi.fn();
+    const handle = runLocalAgent({
+      role: 'architect',
+      instructions: 'Design a validated contract.',
+      context: 'bounded context',
+      locale: 'en',
+      maxTokens: 520,
+    }, progress);
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Waiting' });
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect(progress).toHaveBeenCalledWith(expect.objectContaining({ status: 'target-exceeded' }));
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'first-token', text: 'First token' });
+    await vi.advanceTimersByTimeAsync(15_000);
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'streaming', text: 'Still streaming' });
+    await vi.advanceTimersByTimeAsync(15_000);
+    worker.emit({ id: handle.requestId, type: 'answer', text: '{"version":1}' });
+    await expect(handle.promise).resolves.toBe('{"version":1}');
+    expect(worker.posted.filter((message) => message.type === 'agent-cancel')).toHaveLength(0);
+  });
+
+  it('stops a stream that becomes inactive after its first token', async () => {
+    const { worker } = await initialize();
+    vi.useFakeTimers();
+    const handle = runLocalAgent({
+      role: 'architect',
+      instructions: 'Design a validated contract.',
+      context: 'bounded context',
+      locale: 'en',
+      maxTokens: 520,
+    });
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Waiting' });
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'first-token', text: 'First token' });
+    const timedOut = expect(handle.promise).rejects.toThrow('stopped producing output for 20 seconds');
+    await vi.advanceTimersByTimeAsync(20_000);
+    await timedOut;
+  });
+
+  it('uses the longer first-token profile for DeepSeek R1 7B', async () => {
+    const reasoningModel = LOCAL_AI_MODELS.find((model) => model.reasoningModel)!;
+    const { worker } = await initialize(reasoningModel.id);
+    vi.useFakeTimers();
+    const handle = runLocalAgent({
+      role: 'architect',
+      instructions: 'Design a validated contract.',
+      context: 'bounded context',
+      locale: 'en',
+      maxTokens: 520,
+    });
+    worker.emit({ id: handle.requestId, type: 'agent-event', status: 'running', text: 'Waiting' });
+    const timedOut = expect(handle.promise).rejects.toThrow('produced no first token within 45 seconds');
+    await vi.advanceTimersByTimeAsync(45_000);
+    await timedOut;
   });
 
   it('deletes a ready model through a fresh worker after terminating active inference', async () => {

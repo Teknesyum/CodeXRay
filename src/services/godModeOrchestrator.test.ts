@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { LocalAgentHandle, LocalAgentRequest } from './localAiService';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
-import { startGodModeRun } from './godModeOrchestrator';
+import { startGodModeRun, validateArchitectureContract } from './godModeOrchestrator';
 
 const modelAuthoredProgram = {
   version: 1 as const,
@@ -50,6 +50,41 @@ const successfulAgent = (request: LocalAgentRequest): LocalAgentHandle => {
 };
 
 describe('God Mode orchestrator', () => {
+  it('validates a fenced Architect contract after removing private reasoning', () => {
+    const validation = validateArchitectureContract(`<think>private reasoning</think>\n\`\`\`json\n${JSON.stringify({
+      version: 1,
+      title: 'LCS',
+      purpose: 'Compute a longest common subsequence.',
+      inputKind: 'string',
+      dataStructures: ['2D table'],
+      invariants: ['Dependencies are final before each cell.'],
+      termination: 'The final cell is computed.',
+      complexity: { time: 'O(mn)', space: 'O(mn)' },
+    })}\n\`\`\``);
+    expect(validation).toMatchObject({ ok: true, value: { inputKind: 'string' } });
+  });
+
+  it('reports semantic input-kind and truncation failures without exposing model reasoning', () => {
+    const matrix = validateArchitectureContract(JSON.stringify({
+      version: 1,
+      title: 'Matrix DP',
+      purpose: 'Fill a table.',
+      inputKind: 'matrix',
+      dataStructures: ['table'],
+      invariants: ['Dependencies are ready.'],
+      termination: 'The table is full.',
+      complexity: { time: 'O(n^2)', space: 'O(n^2)' },
+    }));
+    expect(matrix).toEqual(expect.objectContaining({
+      ok: false,
+      stage: 'semantic',
+      issues: [expect.stringContaining('inputKind')],
+    }));
+    expect(validateArchitectureContract('{"version":1', 'length')).toEqual(expect.objectContaining({
+      ok: false,
+      stage: 'truncated',
+    }));
+  });
   it('runs specialist jobs, compiles bidirectional BFS, and applies one package transaction', async () => {
     const applyPackage = vi.fn();
     const sourcePhases: string[] = [];

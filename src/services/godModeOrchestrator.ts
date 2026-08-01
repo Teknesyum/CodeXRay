@@ -15,7 +15,12 @@ import { generateSimulationSteps } from './aiService';
 import { compileCustomSimulationPackage } from './customSimulationCompiler';
 import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
 import { parseSimulationInput } from './inputParsers';
-import { runLocalAgent, type LocalAgentHandle, type LocalAgentRequest } from './localAiService';
+import {
+  runLocalAgent,
+  type LocalAgentHandle,
+  type LocalAgentProgress,
+  type LocalAgentRequest,
+} from './localAiService';
 import { renderProgramSource, validateProgramSpec } from './simLang';
 import { PROGRAM_SPEC_V1_SCHEMA, SIMLANG_AUTHOR_INSTRUCTIONS } from './simLangSchema';
 import {
@@ -42,7 +47,7 @@ export interface GodModeRunResult {
 }
 
 interface AgentRunner {
-  (request: LocalAgentRequest, onProgress?: (status: string) => void): LocalAgentHandle;
+  (request: LocalAgentRequest, onProgress?: (status: LocalAgentProgress) => void): LocalAgentHandle;
 }
 
 export interface GodModeOrchestratorOptions {
@@ -228,7 +233,7 @@ const megaDpUpdateSchema = {
 
 const safeJsonObject = (text: string): Record<string, unknown> | null => {
   try {
-    const value = JSON.parse(text) as unknown;
+    const value = JSON.parse(stripArchitectureWrappers(text)) as unknown;
     return value && typeof value === 'object' && !Array.isArray(value)
       ? value as Record<string, unknown> : null;
   } catch {
@@ -253,15 +258,105 @@ const defaultBidirectionalDesign = (locale: Locale): AlgorithmDesignV1 => ({
   complexity: { time: 'O(V + E)', space: 'O(V)' },
 });
 
-const parseArchitecture = (value: Record<string, unknown> | null): AlgorithmDesignV1 | null => {
-  if (!value || value.version !== 1 || typeof value.title !== 'string'
-    || typeof value.purpose !== 'string' || !['array', 'string', 'tree', 'graph'].includes(String(value.inputKind))
-    || !Array.isArray(value.dataStructures) || !Array.isArray(value.invariants)
-    || typeof value.termination !== 'string' || !value.complexity
-    || typeof value.complexity !== 'object') return null;
-  const complexity = value.complexity as Record<string, unknown>;
-  if (typeof complexity.time !== 'string' || typeof complexity.space !== 'string') return null;
-  return value as unknown as AlgorithmDesignV1;
+export type ArchitectureContractFailureStage =
+  | 'empty'
+  | 'truncated'
+  | 'json_parse'
+  | 'schema'
+  | 'semantic';
+
+export type ArchitectureContractValidation =
+  | { ok: true; value: AlgorithmDesignV1 }
+  | { ok: false; stage: ArchitectureContractFailureStage; issues: string[] };
+
+const stripArchitectureWrappers = (text: string): string => {
+  const withoutInternalBlocks = text
+    .replace(/<(think|analysis|reasoning)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(think|analysis|reasoning)(?:\s[^>]*)?>[\s\S]*$/gi, '')
+    .trim();
+  const fenced = withoutInternalBlocks.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return (fenced?.[1] ?? withoutInternalBlocks).trim();
+};
+
+export const validateArchitectureContract = (
+  text: string,
+  finishReason?: string,
+): ArchitectureContractValidation => {
+  const candidate = stripArchitectureWrappers(text);
+  if (!candidate) return { ok: false, stage: 'empty', issues: ['$: response is empty'] };
+  if (finishReason === 'length') {
+    return { ok: false, stage: 'truncated', issues: ['$: response reached the generation limit'] };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    return { ok: false, stage: 'json_parse', issues: ['$: response is not one complete JSON object'] };
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { ok: false, stage: 'schema', issues: ['$: expected an object'] };
+  }
+
+  const value = parsed as Record<string, unknown>;
+  const issues: string[] = [];
+  const allowed = new Set([
+    'version', 'title', 'purpose', 'inputKind', 'dataStructures', 'invariants', 'termination', 'complexity',
+  ]);
+  Object.keys(value).filter((key) => !allowed.has(key)).forEach((key) =>
+    issues.push(`$.${key}: additional property is not allowed`));
+  if (value.version !== 1) issues.push('$.version: expected 1');
+  for (const key of ['title', 'purpose', 'termination'] as const) {
+    if (typeof value[key] !== 'string' || !value[key].trim()) issues.push(`$.${key}: expected a non-empty string`);
+  }
+  for (const key of ['dataStructures', 'invariants'] as const) {
+    if (!Array.isArray(value[key])) issues.push(`$.${key}: expected an array`);
+    else if (!value[key].every((item) => typeof item === 'string')) issues.push(`$.${key}: every item must be a string`);
+  }
+  if (typeof value.inputKind !== 'string' || !value.inputKind) {
+    issues.push('$.inputKind: expected a non-empty string');
+  }
+  if (!value.complexity || typeof value.complexity !== 'object' || Array.isArray(value.complexity)) {
+    issues.push('$.complexity: expected an object');
+  } else {
+    const complexity = value.complexity as Record<string, unknown>;
+    if (typeof complexity.time !== 'string') issues.push('$.complexity.time: expected a string');
+    if (typeof complexity.space !== 'string') issues.push('$.complexity.space: expected a string');
+  }
+  if (issues.length) return { ok: false, stage: 'schema', issues };
+
+  const inputKinds = ['array', 'string', 'tree', 'graph'];
+  if (!inputKinds.includes(String(value.inputKind))) {
+    return {
+      ok: false,
+      stage: 'semantic',
+      issues: [`$.inputKind: "${String(value.inputKind)}" is unsupported; expected array, string, tree, or graph`],
+    };
+  }
+  return { ok: true, value: value as unknown as AlgorithmDesignV1 };
+};
+
+const architectureContractError = (
+  validation: Exclude<ArchitectureContractValidation, { ok: true }>,
+  locale: Locale,
+): string => {
+  const detail = validation.issues.slice(0, 3).map((issue) => locale === 'tr'
+    ? issue
+      .replace('response is empty', 'yanıt boş')
+      .replace('response reached the generation limit', 'yanıt üretim sınırına ulaştı')
+      .replace('response is not one complete JSON object', 'yanıt tek ve tamamlanmış bir JSON nesnesi değil')
+      .replace('is unsupported; expected array, string, tree, or graph', 'desteklenmiyor; array, string, tree veya graph bekleniyor')
+      .replace('expected a non-empty string', 'boş olmayan bir metin bekleniyor')
+      .replace('expected an array', 'dizi bekleniyor')
+      .replace('every item must be a string', 'her öğe metin olmalı')
+      .replace('expected an object', 'nesne bekleniyor')
+      .replace('expected a string', 'metin bekleniyor')
+      .replace('additional property is not allowed', 'ek alana izin verilmiyor')
+      .replace('expected 1', '1 bekleniyor')
+    : issue).join('; ');
+  return locale === 'tr'
+    ? `Algoritma Mimarı sözleşmesi geçersiz (${validation.stage}): ${detail}`
+    : `The Algorithm Architect contract is invalid (${validation.stage}): ${detail}`;
 };
 
 const fiveLensContext = (
@@ -342,7 +437,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   let cancelled = false;
   let activeAgent: LocalAgentHandle | null = null;
   const runner: AgentRunner = options.agentRunner ?? ((request, onProgress) =>
-    runLocalAgent(request, (progress) => onProgress?.(progress.text)));
+    runLocalAgent(request, onProgress));
 
   const publish = () => options.onPlan({ ...plan, jobs: plan.jobs.map((value) => ({ ...value })) });
   const setJob = (id: string, changes: Partial<ManagerJobV1>) => {
@@ -396,10 +491,17 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       maxTokens,
       temperature: responseSchema || jsonMode ? 0 : 0.12,
       locale: options.locale,
-    }, (status) => {
+    }, (progress) => {
       const activeJob = [...plan.jobs].reverse().find((candidate) =>
         candidate.role === role && (candidate.status === 'running' || candidate.status === 'retrying'));
-      if (activeJob) setJob(activeJob.id, { summary: status.slice(0, 240) });
+      if (activeJob) setJob(activeJob.id, {
+        summary: progress.text.slice(0, 240),
+        queueMs: progress.queueMs ?? activeJob.queueMs,
+        firstTokenMs: progress.firstTokenMs ?? activeJob.firstTokenMs,
+        inferenceMs: progress.inferenceMs ?? activeJob.inferenceMs,
+        completionTokens: progress.completionTokens ?? activeJob.completionTokens,
+        finishReason: progress.finishReason ?? activeJob.finishReason,
+      });
     });
     try {
       return await activeAgent.promise;
@@ -843,15 +945,20 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           )
           : await callAgent(
             'architect',
-            'Design the requested algorithm contract using only SimLang-compatible data structures.',
+            [
+              'Design the requested algorithm contract using only SimLang-compatible data structures.',
+              'inputKind describes the source input, not the visualization. A 2D table is a visual/state representation; inputKind must be array, string, tree, or graph, never matrix.',
+            ].join(' '),
             JSON.stringify({ request: options.request, workspace: options.workspace }),
             architectureSchema,
             520,
           );
-        const parsed = parseArchitecture(safeJsonObject(response));
+        const architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
+        const validation = validateArchitectureContract(response, architectJob?.finishReason);
+        const parsed = validation.ok ? validation.value : null;
         if (parsed) design = parsed;
         else if (creationIntent.template === 'model-authored') {
-          throw new Error('The Algorithm Architect returned an invalid contract.');
+          throw new Error(architectureContractError(validation as Exclude<ArchitectureContractValidation, { ok: true }>, options.locale));
         }
         const authoredTitle = creationIntent.template === 'model-authored' && parsed
           ? `${parsed.title.trim()} — ${options.locale === 'tr' ? 'Özel' : 'Custom'}`

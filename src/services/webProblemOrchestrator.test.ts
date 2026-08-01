@@ -4,7 +4,7 @@ import { createJavaFallbackPlan, isWebProblemSolveCapable, validateManagerPlanV2
 
 describe('web problem orchestration', () => {
   it('gates small profiles without switching models', () => {
-    expect(LOCAL_AI_MODELS.map((model) => isWebProblemSolveCapable(model.id))).toEqual([false, false, true, true]);
+    expect(LOCAL_AI_MODELS.map((model) => isWebProblemSolveCapable(model.id))).toEqual([false, false, true, true, true]);
   });
 
   it('creates a dependency-checked serial WebGPU plan', () => {

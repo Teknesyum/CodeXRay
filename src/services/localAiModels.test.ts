@@ -16,6 +16,7 @@ describe('local AI model profiles', () => {
       maxOutputTokens: 900,
       vramMb: 7545,
     });
+    expect(LOCAL_AI_MODELS.every((model) => model.maxContextWindow === 32768)).toBe(true);
   });
 
   it('accepts only the four supported context-window profiles', () => {

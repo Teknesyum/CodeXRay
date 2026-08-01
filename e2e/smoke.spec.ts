@@ -357,18 +357,25 @@ test('opens the playlist radio without loading it before user interaction', asyn
   await expect(volume).toHaveValue('30');
 });
 
-test('offers the 9B model and its experimental extended context profiles', async ({ page }) => {
+test('offers experimental extended context profiles for every local model', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('combobox', { name: 'On-device model' })
-    .selectOption('Qwen3.5-9B-q4f32_1-MLC');
+  const model = page.getByRole('combobox', { name: 'On-device model' });
   const context = page.getByRole('combobox', { name: 'Context window' });
-  await expect(context.locator('option[value="8192"]'))
-    .toHaveText(/8K context.*experimental/);
-  await expect(context.locator('option[value="16384"]'))
-    .toHaveText(/16K context.*experimental/);
-  await expect(context.locator('option[value="32768"]'))
-    .toHaveText(/32K context.*experimental/);
+  for (const modelId of [
+    'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC',
+    'Qwen2.5-Coder-1.5B-Instruct-q4f32_1-MLC',
+    'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
+    'Qwen3.5-9B-q4f32_1-MLC',
+  ]) {
+    await model.selectOption(modelId);
+    await expect(context.locator('option[value="8192"]'))
+      .toHaveText(/8K context.*experimental/);
+    await expect(context.locator('option[value="16384"]'))
+      .toHaveText(/16K context.*experimental/);
+    await expect(context.locator('option[value="32768"]'))
+      .toHaveText(/32K context.*experimental/);
+  }
   await context.selectOption('32768');
   await expect(page.getByText(/32768-token context.*1200 response tokens/))
     .toBeVisible();

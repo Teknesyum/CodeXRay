@@ -22,7 +22,7 @@ export const LOCAL_AI_MODELS = [
     label: 'Qwen2.5 Coder 0.5B (default, faster)',
     vramMb: 1061,
     contextWindow: 4096,
-    maxContextWindow: 4096,
+    maxContextWindow: 32768,
     maxOutputTokens: 520,
   },
   {
@@ -30,7 +30,7 @@ export const LOCAL_AI_MODELS = [
     label: 'Qwen2.5 Coder 1.5B (enhanced)',
     vramMb: 1889,
     contextWindow: 4096,
-    maxContextWindow: 4096,
+    maxContextWindow: 32768,
     maxOutputTokens: 640,
   },
   {
@@ -38,7 +38,7 @@ export const LOCAL_AI_MODELS = [
     label: 'Qwen2.5 Coder 7B (ultra, highest quality)',
     vramMb: 5107,
     contextWindow: 4096,
-    maxContextWindow: 4096,
+    maxContextWindow: 32768,
     maxOutputTokens: 760,
   },
   {

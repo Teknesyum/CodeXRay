@@ -106,6 +106,14 @@ describe('application workspace', () => {
       .toBeInTheDocument();
     expect(within(contextSelect).getByRole('option', { name: /32K context.*experimental/ }))
       .toBeInTheDocument();
+
+    await user.selectOptions(modelSelect, 'Qwen2.5-Coder-0.5B-Instruct-q4f32_1-MLC');
+    expect(within(contextSelect).getByRole('option', { name: /8K context.*experimental/ }))
+      .toBeInTheDocument();
+    expect(within(contextSelect).getByRole('option', { name: /16K context.*experimental/ }))
+      .toBeInTheDocument();
+    expect(within(contextSelect).getByRole('option', { name: /32K context.*experimental/ }))
+      .toBeInTheDocument();
   });
 
   it('opens the requested YouTube Music playlist in a compact radio player', async () => {

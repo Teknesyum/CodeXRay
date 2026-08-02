@@ -23,4 +23,24 @@ describe('right workspace layout', () => {
     expect(controls).toHaveStyle({ height: '58px' });
     expect(controls?.querySelector('.simulate-btn')).not.toBeNull();
   });
+
+  it('maximizes and restores the simulation panel while keeping controls available', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    const visualizer = container.querySelector('.visualizer-container');
+    const assistant = container.querySelector('.assistant-container');
+    const controls = container.querySelector('.control-container');
+
+    await user.click(screen.getByRole('button', { name: 'Simülasyon panelini büyüt' }));
+
+    expect(visualizer).toHaveClass('maximized');
+    expect(visualizer).toHaveStyle({ flex: '1' });
+    expect(assistant).toHaveStyle({ display: 'none' });
+    expect(controls).toHaveStyle({ height: '58px' });
+    expect(controls?.querySelector('.simulate-btn')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Simülasyon panelini geri yükle' }));
+    expect(visualizer).not.toHaveClass('maximized');
+    expect(assistant).not.toHaveStyle({ display: 'none' });
+  });
 });

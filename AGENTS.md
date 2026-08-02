@@ -7,6 +7,24 @@ deterministic, step-by-step algorithm visualization. It supports 60 algorithms,
 typed array/string/tree/graph input, a manual graph builder, and an optional
 on-device WebLLM assistant. No API key or remote AI provider is used.
 
+## Handoff Record
+
+- `docs/DEVIRALAN.md` is the canonical current-state handoff record for the
+  developer or AI agent taking over the project. It documents the synchronized
+  commit, preserved local work, latest verification results, known blockers,
+  incomplete behavior, risks, and the recommended continuation order.
+- Read `docs/DEVIRALAN.md` after this guide and before proposing or implementing
+  changes. Treat the live source and test results as authoritative if an older
+  planning document conflicts with it.
+- Update `docs/DEVIRALAN.md` at every handoff and after any material change to
+  repository synchronization, working-tree scope, validation status, blockers,
+  or next priorities. Record failed or skipped checks explicitly; never present
+  prototype behavior as complete.
+- Keep long-term product vision in the existing roadmap documents. Do not turn
+  `docs/DEVIRALAN.md` into a changelog or duplicate historical plans; it should
+  remain a concise, actionable snapshot of the work that is actually being
+  handed over.
+
 ## Commands
 
 ```bash

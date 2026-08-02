@@ -80,7 +80,7 @@ test('turns the committed LCS into a space-optimized 1D follow-up without overfl
 test('authors and simulates the exact Java Coin Change contract', async ({ page }) => {
   await prepare(page);
   const chat = page.getByPlaceholder('Type your question here...');
-  await chat.fill('Solve Coin Change in Java for coins=[1,2,5], amount=11 and simulate every DP state.');
+  await chat.fill('bana coin exchange problemi yaz ve simüle et');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 322 — Coin Change execution')).toBeVisible();
   await expect(page.locator('.code-display')).toContainText('public int coinChange(int[] coins, int amount)');

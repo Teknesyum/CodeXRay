@@ -57,7 +57,7 @@ export const resolveDpTemplateFromRequest = (request: string): DpTemplateId | nu
     return 'lcs-space-optimized-1d-dp';
   }
   if (/\b(lcs|longest common subsequence|en uzun ortak alt dizi|leetcode 1143|lc 1143)\b/.test(text)) return 'lcs-2d-dp';
-  if (/\b(coin change|bozuk para degisimi|leetcode 322|lc 322)\b/.test(text)) return 'coin-change-1d-dp';
+  if (/\b(coin change|coin exchange|bozuk para degisimi|leetcode 322|lc 322)\b/.test(text)) return 'coin-change-1d-dp';
   if (/\b(edit distance|duzenleme mesafesi|levenshtein|leetcode 72|lc 72)\b/.test(text)) return 'edit-distance-2d-dp';
   if (/\b(0 1 knapsack|01 knapsack|knapsack|sirt cantasi)\b/.test(text)) return 'knapsack-2d-dp';
   if (/\b(longest palindromic subsequence|longest palindrome sequence|en uzun palindromik (?:alt )?dizi|leetcode 516|lc 516)\b/.test(text)) {

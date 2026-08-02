@@ -11,6 +11,19 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('application workspace', () => {
+  it('exposes a dedicated input save action and rebuilds a standard simulation', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const bubbleSort = algorithmRegistry.find((algorithm) => algorithm.name.includes('Bubble Sort'));
+    await user.selectOptions(screen.getByLabelText('Algorithm preset'), bubbleSort?.code ?? '');
+    const input = screen.getByRole('textbox', { name: 'Array Simulation Input:' });
+    fireEvent.change(input, { target: { value: '[9,1,7,3,5]' } });
+    await user.click(screen.getByRole('button', { name: 'Save input' }));
+
+    expect(input).toHaveValue('[9,1,7,3,5]');
+    expect(screen.getByText(/Step 1/)).toBeInTheDocument();
+  });
+
   it('switches the complete shell to Turkish immediately', async () => {
     const user = userEvent.setup();
     render(<App />);

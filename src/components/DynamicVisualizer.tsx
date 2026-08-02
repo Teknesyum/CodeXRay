@@ -1,6 +1,6 @@
-import { CheckCircle2, LoaderCircle, PinOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { CheckCircle2, LoaderCircle, Maximize2, Minimize2, PinOff } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import type {
   ArrayVisualData,
@@ -12,12 +12,77 @@ import type {
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
 import { GraphInputEditor } from './GraphInputEditor';
 import { isVisualizationV2 } from '../services/visualizationDesigner';
+import { calculateVisualAutoFitScale } from '../services/visualAutoFit';
 import './DynamicVisualizer.css';
 
 const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
 
 const formatPinnedValue = (value: TraceValue): string =>
   typeof value === 'string' ? value : JSON.stringify(value);
+
+const AutoFitVisual = ({
+  children,
+  fitKey,
+  fill = false,
+}: {
+  children: ReactNode;
+  fitKey: string;
+  fill?: boolean;
+}) => {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+    if (!viewport || !content || fill) {
+      setScale(1);
+      return;
+    }
+
+    const measure = () => {
+      const nextScale = calculateVisualAutoFitScale(
+        Math.max(0, viewport.clientWidth - 12),
+        Math.max(0, viewport.clientHeight - 12),
+        Math.max(content.scrollWidth, content.offsetWidth),
+        Math.max(content.scrollHeight, content.offsetHeight),
+      );
+      setScale((current) => Math.abs(current - nextScale) < 0.001 ? current : nextScale);
+    };
+
+    measure();
+    const frame = window.requestAnimationFrame(measure);
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(measure);
+    observer?.observe(viewport);
+    observer?.observe(content);
+    window.addEventListener('resize', measure);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [fill, fitKey]);
+
+  return (
+    <div
+      ref={viewportRef}
+      className={`visual-auto-fit-viewport ${fill ? 'fill' : 'intrinsic'}`}
+      data-auto-scaled={scale < 0.999 ? 'true' : 'false'}
+      data-visual-scale={scale.toFixed(3)}
+    >
+      <div
+        ref={contentRef}
+        className="visual-auto-fit-content"
+        style={{ '--visual-auto-scale': scale } as CSSProperties}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const ArrayView = ({ data }: { data: ArrayVisualData }) => (
   <div className="visual-array">
@@ -226,12 +291,16 @@ const VisualDataView = ({ visualData }: { visualData: VisualData }) => {
 
 interface DynamicVisualizerProps {
   collapsed: boolean;
+  maximized?: boolean;
   onToggleCollapse: () => void;
+  onToggleMaximize?: () => void;
 }
 
 export const DynamicVisualizer = ({
   collapsed,
+  maximized = false,
   onToggleCollapse,
+  onToggleMaximize = () => undefined,
 }: DynamicVisualizerProps) => {
   const {
     algorithmName,
@@ -389,6 +458,15 @@ export const DynamicVisualizer = ({
           {!showBuilder && currentStep && <span>{currentIndex + 1} / {steps.length}</span>}
           <button
             type="button"
+            className={`visualizer-maximize-btn ${maximized ? 'active' : ''}`}
+            aria-label={t(maximized ? 'minimizeSimulationPanel' : 'maximizeSimulationPanel', locale)}
+            title={t(maximized ? 'minimizeSimulationPanel' : 'maximizeSimulationPanel', locale)}
+            onClick={onToggleMaximize}
+          >
+            {maximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+          <button
+            type="button"
             className="panel-toggle"
             aria-label={t('collapsePanel', locale, { panel: panelTitle })}
             onClick={onToggleCollapse}
@@ -431,7 +509,14 @@ export const DynamicVisualizer = ({
         />
       ) : currentStep ? (
         <>
-          <div className="visualizer-content"><VisualDataView visualData={currentStep.visualData} /></div>
+          <div className="visualizer-content">
+            <AutoFitVisual
+              fitKey={`${currentIndex}:${currentStep.visualData.type}`}
+              fill={currentStep.visualData.type === 'graph'}
+            >
+              <VisualDataView visualData={currentStep.visualData} />
+            </AutoFitVisual>
+          </div>
           <div className="step-explanation">
             <strong>{localizeAlgorithmName(algorithmName, locale)}</strong>
             <span>{translateRuntimeText(currentStep.explanation, locale)}</span>

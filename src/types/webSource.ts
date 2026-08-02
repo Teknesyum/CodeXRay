@@ -56,10 +56,13 @@ export interface WebProblemSpecV1 {
   sourceHash: string;
   title: string;
   description: string;
+  inputFormat: string | null;
+  outputFormat: string | null;
   examples: ProblemExampleV1[];
   constraints: string[];
+  notes: string[];
   signature: string | null;
-  sourceSegmentIds: Record<'description' | 'examples' | 'constraints' | 'signature', string[]>;
+  sourceSegmentIds: Record<'description' | 'inputFormat' | 'outputFormat' | 'examples' | 'constraints' | 'notes' | 'signature', string[]>;
   simulationCompatibility: {
     compatible: boolean;
     reason: string;

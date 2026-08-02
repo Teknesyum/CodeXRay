@@ -56,6 +56,30 @@ const buildPackage = () => {
 };
 
 describe('GM-2 visual and teaching contracts', () => {
+  it('generates richer teaching inputs while respecting exponential trace budgets', () => {
+    const arrayDesign: AlgorithmDesignV1 = {
+      ...design,
+      title: 'Dynamic Programming Teaching Case',
+      inputKind: 'array',
+    };
+    const arrayInput = createAgentInputContract(arrayDesign, 'create a new input', workspace);
+    expect(JSON.parse(arrayInput.value.text)).toHaveLength(14);
+
+    const backtrackingInput = createAgentInputContract(
+      { ...arrayDesign, title: 'Permutations Backtracking' },
+      'create a new input',
+      workspace,
+    );
+    expect(JSON.parse(backtrackingInput.value.text)).toHaveLength(5);
+
+    const stringInput = createAgentInputContract(
+      { ...arrayDesign, title: 'String Window', inputKind: 'string' },
+      'create a new input',
+      workspace,
+    );
+    expect(stringInput.value.text.length).toBeGreaterThanOrEqual(19);
+  });
+
   it('generates an original collision-free graph with semantic frontier roles', () => {
     const packageValue = buildPackage();
     expect(packageValue.input.origin).toBe('agent');

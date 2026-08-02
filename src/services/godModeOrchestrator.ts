@@ -26,7 +26,8 @@ import { PROGRAM_SPEC_V1_SCHEMA, SIMLANG_AUTHOR_INSTRUCTIONS } from './simLangSc
 import {
   createBidirectionalBfsProgram,
 } from './simLangBuiltins';
-import { canonicalCustomTitle, type GodModeIntent } from './godModeRouting';
+import { canonicalCustomTitle } from './godModeRouting';
+import type { GodModeIntent } from '../types/godMode';
 import { createAgentInputContract } from './agentInputGenerator';
 import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
 import { createVisualizationContractV2 } from './visualizationDesigner';
@@ -36,7 +37,8 @@ import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './inte
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { runVerificationGates } from './verificationGates';
 import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/godMode';
-export interface GodModeRunResult {
+export type GodModeRunResult = {
+  status: 'success';
   runId: string;
   plan: ManagerPlanV1;
   summary: string;
@@ -44,7 +46,12 @@ export interface GodModeRunResult {
   package?: CustomSimulationPackageV1;
   input?: SimulationInput;
   steps?: SimulationStep[];
-}
+} | {
+  status: 'unsupported' | 'needs-source';
+  runId: string;
+  plan: ManagerPlanV1;
+  reason?: string;
+};
 
 interface AgentRunner {
   (request: LocalAgentRequest, onProgress?: (status: LocalAgentProgress) => void): LocalAgentHandle;
@@ -146,7 +153,7 @@ const createPlan = (
   request,
   intent: intent.type === 'create-algorithm'
     ? 'create-algorithm'
-    : intent.type === 'discuss-current-step' ? 'discuss' : intent.type,
+    : intent.type,
   jobs: createJobs(intent),
   createdAt: Date.now(),
 });
@@ -436,6 +443,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   const plan = createPlan(runId, options.request, options.intent);
   let cancelled = false;
   let activeAgent: LocalAgentHandle | null = null;
+  const useAdvisoryModel = options.agentRunner !== undefined
+    || options.intent.type === 'discuss-current-step'
+    || (options.intent.type === 'create-algorithm' && options.intent.template === 'model-authored');
   const runner: AgentRunner = options.agentRunner ?? ((request, onProgress) =>
     runLocalAgent(request, onProgress));
 
@@ -517,6 +527,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     responseSchema?: Record<string, unknown>,
     maxTokens?: number,
   ): Promise<string> => {
+    if (!useAdvisoryModel) return fallback;
     try {
       return await callAgent(role, instructions, context, responseSchema, maxTokens);
     } catch {
@@ -554,7 +565,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             undefined,
             650,
           ));
-        return { runId, plan, summary: 'Current step discussed through five lenses.', tutorAnswer };
+        return { status: 'success', runId, plan, summary: 'Current step discussed through five lenses.', tutorAnswer };
       }
 
       await runJob('manager-decompose-request', async () => {
@@ -685,6 +696,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             360,
           ));
         return {
+          status: 'success',
           runId,
           plan,
           summary: options.locale === 'tr' ? 'Uyumlu input ve trace uygulandı.' : 'Compatible input and trace applied.',
@@ -808,6 +820,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             700,
           ));
         return {
+          status: 'success',
           runId,
           plan,
           summary: options.locale === 'tr'
@@ -921,6 +934,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           700,
         ));
         return {
+          status: 'success',
           runId,
           plan,
           summary: options.locale === 'tr'
@@ -1204,6 +1218,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         return generated.trim().length >= 140 ? generated : groundedTour;
       });
       return {
+        status: 'success',
         runId,
         plan,
         summary: options.locale === 'tr'

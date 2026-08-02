@@ -1,3 +1,5 @@
+import type { DeterministicWorkspaceCommand } from '../services/aiTimelineControl';
+import type { DpTemplateId } from '../services/dpTemplateCompiler';
 import type {
   InputKind,
   Locale,
@@ -57,13 +59,7 @@ export interface ManagerPlanV1 {
   version: 1;
   runId: string;
   request: string;
-  intent:
-    | 'load-preset'
-    | 'adapt-input'
-    | 'create-algorithm'
-    | 'timeline'
-    | 'ui-control'
-    | 'discuss';
+  intent: GodModeIntent['type'];
   jobs: ManagerJobV1[];
   createdAt: number;
 }
@@ -499,3 +495,25 @@ export interface VerificationGatesV1 {
   complexityConsistent: boolean;
   transactionSafe: boolean;
 }
+
+export type GodModeIntent =
+  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'model-authored' }
+  | { type: 'create-catalog-problem'; source: string; problemId: string }
+  | { type: 'clarify-algorithm' }
+  | { type: 'adapt-input' }
+  | { type: 'discuss-current-step' }
+  | {
+    type: 'ui-control';
+    command:
+      | 'focus-code'
+      | 'focus-simulation'
+      | 'focus-assistant'
+      | 'balanced'
+      | 'theme-neon'
+      | 'theme-dark'
+      | 'theme-light'
+      | 'radio-open'
+      | 'radio-play'
+      | 'radio-pause';
+  }
+  | { type: 'deterministic'; actions: DeterministicWorkspaceCommand[] };

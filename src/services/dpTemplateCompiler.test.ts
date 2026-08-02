@@ -36,6 +36,7 @@ describe('deterministic DP template compiler', () => {
     ['LCS tablosunu yaz ve göster', 'lcs-2d-dp'],
     ['LCS memory optimize O(min(m,n)) kodunu yaz', 'lcs-space-optimized-1d-dp'],
     ['Coin Change Java çözümünü yaz ve simüle et', 'coin-change-1d-dp'],
+    ['bana coin exchange problemi yaz ve simüle et', 'coin-change-1d-dp'],
     ['LeetCode 72 Edit Distance 2D tabloyla çöz', 'edit-distance-2d-dp'],
     ['0/1 Knapsack Java kodunu yaz ve simüle et', 'knapsack-2d-dp'],
     ['LeetCode 516 longest palindromic subsequence çöz', 'longest-palindrome-interval-dp'],
@@ -143,6 +144,23 @@ describe('deterministic DP template compiler', () => {
     expect(standard.steps.at(-1)?.visualData.vars.result).toBe(3);
     expect(impossible.steps.at(-1)?.visualData.vars.result).toBe(-1);
     expect(zero.steps.at(-1)?.visualData.vars.result).toBe(0);
+  });
+
+  it('turns the exact Turkish Coin Exchange request into a complete default simulation', () => {
+    const packageValue = compileDpTemplatePackage({
+      template: 'coin-change-1d-dp',
+      id: 'coin-exchange-default',
+      request: 'bana coin exchange problemi yaz ve simüle et',
+      locale: 'tr',
+      workspace,
+    });
+
+    expect(packageValue.input.value.text).toBe('[1,2,5]');
+    expect(packageValue.input.value.parameters).toEqual({ amount: '11' });
+    expect(packageValue.source).toMatchObject({ language: 'java' });
+    expect(packageValue.source.code).toContain('public int coinChange(int[] coins, int amount)');
+    expect(packageValue.steps.length).toBeGreaterThan(1);
+    expect(packageValue.steps.at(-1)?.visualData.vars.result).toBe(3);
   });
 
   it('solves LCS and Edit Distance with exact Java signatures and matrix dependencies', () => {

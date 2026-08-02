@@ -72,7 +72,7 @@ test('persists keyboard resizing and collapse state across reload', async ({ pag
   await page.getByRole('button', { name: 'Collapse Source Code' }).click();
   await page.getByRole('button', { name: 'Collapse Controls' }).click();
   const storedBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('codexray.layout.v2') ?? '{}'));
-  expect(storedBefore.version).toBe(6);
+  expect(storedBefore.version).toBe(7);
   expect(storedBefore.collapsed).toMatchObject({ code: true, controls: true });
 
   await page.reload();

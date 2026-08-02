@@ -139,6 +139,41 @@ describe('local AI worker protocol', () => {
     expect(agentOptions.messages[0].content).toContain('human-readable string field in Turkish');
   });
 
+  it('releases the WebGPU queue before an immediate repair agent is submitted', async () => {
+    await initialize();
+    webLlm.complete
+      .mockResolvedValueOnce(streamedCompletion('{"version":1,"invalid":true}'))
+      .mockResolvedValueOnce(streamedCompletion('{"version":1,"repaired":true}'));
+
+    send({
+      id: 12,
+      type: 'agent-run',
+      role: 'code-author',
+      instructions: 'Return the first candidate.',
+      context: '{}',
+      locale: 'en',
+      jsonMode: true,
+    });
+    await waitForOutput((message) => message.id === 12 && message.type === 'answer');
+
+    send({
+      id: 13,
+      type: 'agent-run',
+      role: 'code-author',
+      instructions: 'Repair the rejected candidate.',
+      context: '{"errors":["invalid"]}',
+      locale: 'en',
+      jsonMode: true,
+    });
+    await waitForOutput((message) => message.id === 13 && message.type === 'answer');
+
+    expect(outputs()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 12, type: 'agent-event', status: 'running' }),
+      expect.objectContaining({ id: 13, type: 'agent-event', status: 'running' }),
+      expect.objectContaining({ id: 13, type: 'answer', text: '{"version":1,"repaired":true}' }),
+    ]));
+  });
+
   it('performs one bounded continuation and marks a still-truncated conversation honestly', async () => {
     await initialize();
     webLlm.complete

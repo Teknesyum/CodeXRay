@@ -14,6 +14,7 @@ import { generateAnalysis, generateSimulationSteps } from './services/aiService'
 import { parseSimulationInput } from './services/inputParsers';
 import {
   constrainRightPanelSizes,
+  createDefaultLeftTopHeight,
   createDefaultRightPanelSizes,
   RIGHT_PANEL_LIMITS,
 } from './services/workspaceLayout';
@@ -26,7 +27,7 @@ import './App.css';
 type PanelName = 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls';
 
 interface LayoutState {
-  version: 6;
+  version: 7;
   leftWidth: number;
   leftTopHeight: number;
   visualizerHeight: number;
@@ -39,9 +40,9 @@ const LAYOUT_STORAGE_KEY = 'codexray.layout.v2';
 const createDefaultLayout = (): LayoutState => {
   const right = createDefaultRightPanelSizes(window.innerHeight);
   return {
-    version: 6,
+    version: 7,
     leftWidth: 460,
-    leftTopHeight: Math.max(340, Math.round(window.innerHeight * 0.60)),
+    leftTopHeight: createDefaultLeftTopHeight(window.innerHeight),
     visualizerHeight: right.visualizerHeight,
     assistantHeight: right.assistantHeight,
     controlHeight: right.controlHeight,
@@ -62,10 +63,11 @@ const loadLayout = (): LayoutState => {
     const loaded: LayoutState = {
       ...defaults,
       ...saved,
-      version: 6,
+      version: 7,
       collapsed: { ...defaults.collapsed, ...saved.collapsed },
     };
-    if (saved.version !== 6) {
+    if (saved.version !== 7) {
+      loaded.leftTopHeight = defaults.leftTopHeight;
       loaded.visualizerHeight = defaults.visualizerHeight;
       loaded.assistantHeight = defaults.assistantHeight;
       loaded.controlHeight = RIGHT_PANEL_LIMITS.controls;
@@ -98,9 +100,17 @@ const CodeRayApp = () => {
     setIsEditingInput,
     isAiMaximized,
     setIsAiMaximized,
+    activeSimulationPackage,
+    applySimulationPackage,
+    packageOutOfSync,
   } = useTimeline();
   const [layout, setLayout] = useState<LayoutState>(loadLayout);
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const [isVisualizerMaximized, setIsVisualizerMaximized] = useState(false);
+
+  useEffect(() => {
+    if (isAiMaximized) setIsVisualizerMaximized(false);
+  }, [isAiMaximized]);
 
   useEffect(() => {
     try {
@@ -134,6 +144,7 @@ const CodeRayApp = () => {
       const action = event.detail;
       if (action.type === 'set-workspace-layout') {
         if (action.layout === 'focus-assistant') {
+          setIsVisualizerMaximized(false);
           setIsAiMaximized(true);
           setLayout((current) => ({
             ...current,
@@ -142,6 +153,7 @@ const CodeRayApp = () => {
           return;
         }
         setIsAiMaximized(false);
+        setIsVisualizerMaximized(action.layout === 'focus-simulation');
         setLayout((current) => {
           if (action.layout === 'focus-code') return {
             ...current,
@@ -173,7 +185,7 @@ const CodeRayApp = () => {
     return () => window.removeEventListener(GOD_MODE_UI_EVENT, handleGodModeUiAction);
   }, [setIsAiMaximized]);
 
-  const handleSimulate = () => {
+  const handleSimulate = async () => {
     if (!code.trim()) {
       setInputError('Select an algorithm or enter source code first.');
       return;
@@ -189,6 +201,37 @@ const CodeRayApp = () => {
       return;
     }
     try {
+      if (activeSimulationPackage && !packageOutOfSync) {
+        setCurrentIndex(0);
+        setInputError(null);
+        pause();
+        setIsEditingInput(false);
+        return;
+      }
+      if (activeSimulationPackage && packageOutOfSync) {
+        const { recompileSimulationInput } = await import('./services/recompileSimulationInput');
+        const rebuiltPackage = recompileSimulationInput({
+          activePackage: activeSimulationPackage,
+          input: { ...validation.input, origin: 'user' },
+          locale,
+          workspace: {
+            version: 1,
+            algorithmName,
+            code,
+            simulationInput: validation.input,
+            steps,
+            currentIndex: 0,
+            analysis: null,
+            inputError: null,
+            activePackageId: activeSimulationPackage.id,
+            packageOutOfSync: true,
+          },
+        });
+        applySimulationPackage(rebuiltPackage, `manual-input-${Date.now().toString(36)}`);
+        pause();
+        setIsEditingInput(false);
+        return;
+      }
       const generatedSteps = generateSimulationSteps(algorithmName, code, validation.input);
       setSteps(generatedSteps);
       setCurrentIndex(0);
@@ -207,6 +250,7 @@ const CodeRayApp = () => {
   };
 
   const togglePanel = (panel: PanelName) => {
+    if (panel === 'visualizer' && isVisualizerMaximized) setIsVisualizerMaximized(false);
     setLayout((current) => ({
       ...current,
       collapsed: {
@@ -214,6 +258,18 @@ const CodeRayApp = () => {
         [panel]: !current.collapsed[panel],
       },
     }));
+  };
+
+  const toggleVisualizerMaximize = () => {
+    const next = !isVisualizerMaximized;
+    setIsVisualizerMaximized(next);
+    if (next) {
+      setIsAiMaximized(false);
+      setLayout((current) => ({
+        ...current,
+        collapsed: { ...current.collapsed, visualizer: false },
+      }));
+    }
   };
 
   const beginResize = (
@@ -355,7 +411,11 @@ const CodeRayApp = () => {
             className={`left-top panel-region ${codeCollapsed ? 'collapsed' : ''}`}
             style={codeCollapsed ? { height: 44 } : variablesCollapsed ? { flex: 1 } : { height: layout.leftTopHeight }}
           >
-            <CodeEditor collapsed={codeCollapsed} onToggleCollapse={() => togglePanel('code')} />
+            <CodeEditor
+              collapsed={codeCollapsed}
+              onToggleCollapse={() => togglePanel('code')}
+              onSaveInput={handleSimulate}
+            />
           </section>
           {!codeCollapsed && !variablesCollapsed && (
             <div
@@ -420,18 +480,25 @@ const CodeRayApp = () => {
 
         <div className="panel-right">
           <section
-            className={`visualizer-container panel-region ${visualizerCollapsed ? 'collapsed' : ''}`}
-            style={isAiMaximized 
+            className={`visualizer-container panel-region ${visualizerCollapsed ? 'collapsed' : ''} ${isVisualizerMaximized ? 'maximized' : ''}`}
+            style={isAiMaximized
               ? { display: 'none' } 
+              : isVisualizerMaximized
+                ? { flex: 1 }
               : visualizerCollapsed
                 ? { height: 44 }
                 : assistantCollapsed && controlsCollapsed
                   ? { flex: 1 }
                   : { height: displayedRightSizes.visualizerHeight }}
           >
-            <DynamicVisualizer collapsed={visualizerCollapsed} onToggleCollapse={() => togglePanel('visualizer')} />
+            <DynamicVisualizer
+              collapsed={visualizerCollapsed}
+              maximized={isVisualizerMaximized}
+              onToggleCollapse={() => togglePanel('visualizer')}
+              onToggleMaximize={toggleVisualizerMaximize}
+            />
           </section>
-          {!visualizerCollapsed && !assistantCollapsed && !isAiMaximized && (
+          {!visualizerCollapsed && !assistantCollapsed && !isAiMaximized && !isVisualizerMaximized && (
             <div
               className="panel-splitter horizontal"
               role="separator"
@@ -464,7 +531,9 @@ const CodeRayApp = () => {
           )}
           <section
             className={`assistant-container panel-region ${assistantCollapsed ? 'collapsed' : ''} ${isAiMaximized ? 'maximized' : ''}`}
-            style={isAiMaximized
+            style={isVisualizerMaximized
+              ? { display: 'none' }
+              : isAiMaximized
               ? { flex: 1 }
               : assistantCollapsed
                 ? { height: 44 }
@@ -474,7 +543,7 @@ const CodeRayApp = () => {
           >
             <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
           </section>
-          {!assistantCollapsed && !controlsCollapsed && !isAiMaximized && (
+          {!assistantCollapsed && !controlsCollapsed && !isAiMaximized && !isVisualizerMaximized && (
             <div
               className="panel-splitter horizontal"
               role="separator"
@@ -507,7 +576,7 @@ const CodeRayApp = () => {
           )}
           <section
             className={`control-container panel-region ${controlsCollapsed ? 'collapsed' : ''}`}
-            style={!controlsCollapsed && (isAiMaximized
+            style={!controlsCollapsed && ((isAiMaximized || isVisualizerMaximized)
               || (!visualizerCollapsed && !assistantCollapsed))
                 ? { height: displayedRightSizes.controlHeight, flex: '0 0 auto' }
                 : undefined}

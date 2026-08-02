@@ -140,12 +140,11 @@ const postAgentEvent = (
 const scheduleInference = (id: number, task: () => Promise<string | LocalAgentResultV2>) => {
   const queuedAt = performance.now();
   postAgentEvent(id, 'queued', 'Queued on the local WebGPU engine.');
-  inferenceQueue = inferenceQueue
+  const execution = inferenceQueue
     .catch(() => undefined)
     .then(async () => {
       if (cancelledRequests.delete(id)) {
-        postError(id, new Error('God Mode agent was cancelled.'));
-        return;
+        throw new Error('God Mode agent was cancelled.');
       }
       postAgentEvent(id, 'running', 'Waiting for the first token from WebGPU.');
       try {
@@ -153,40 +152,42 @@ const scheduleInference = (id: number, task: () => Promise<string | LocalAgentRe
         const inferenceStartedAt = performance.now();
         const output = await task();
         if (cancelledRequests.delete(id)) {
-          postError(id, new Error('God Mode agent was cancelled.'));
-          return;
+          throw new Error('God Mode agent was cancelled.');
         }
         if (typeof output === 'string') {
-          self.postMessage({ id, type: 'answer', text: output });
-        } else {
-          const result = {
-            ...output,
-            queueMs: Math.max(0, Math.round(inferenceStartedAt - queuedAt)),
-            inferenceMs: Math.max(0, Math.round(performance.now() - inferenceStartedAt)),
-          };
-          postAgentEvent(id, 'completed', 'Local inference completed.', {
-            queueMs: result.queueMs,
-            firstTokenMs: result.firstTokenMs,
-            inferenceMs: result.inferenceMs,
-            completionTokens: result.completionTokens,
-            finishReason: result.finishReason,
-          });
-          self.postMessage({
-            id,
-            type: 'answer',
-            text: result.text,
-            result,
-          });
+          return { output };
         }
-      } catch (error) {
-        postError(id, cancelledRequests.has(id)
-          ? new Error('God Mode agent was cancelled.')
-          : error);
+        const result = {
+          ...output,
+          queueMs: Math.max(0, Math.round(inferenceStartedAt - queuedAt)),
+          inferenceMs: Math.max(0, Math.round(performance.now() - inferenceStartedAt)),
+        };
+        return { output: result.text, result };
       } finally {
         cancelledRequests.delete(id);
         if (activeInferenceId === id) activeInferenceId = null;
       }
     });
+
+  // Release the serialized queue before publishing the answer. The main thread
+  // can enqueue a repair agent immediately after receiving an answer; publishing
+  // while this promise is still unresolved can strand that repair behind the
+  // just-finished request on real WebGPU engines.
+  inferenceQueue = execution.then(() => undefined, () => undefined);
+  void execution.then(({ output, result }) => {
+    if (result) {
+      postAgentEvent(id, 'completed', 'Local inference completed.', {
+        queueMs: result.queueMs,
+        firstTokenMs: result.firstTokenMs,
+        inferenceMs: result.inferenceMs,
+        completionTokens: result.completionTokens,
+        finishReason: result.finishReason,
+      });
+      self.postMessage({ id, type: 'answer', text: output, result });
+      return;
+    }
+    self.postMessage({ id, type: 'answer', text: output });
+  }).catch((error) => postError(id, error));
 };
 
 const runPlanner = async (message: PlanMessage): Promise<string> => {

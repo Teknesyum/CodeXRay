@@ -192,6 +192,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const webFetchRef = useRef<AbortController | null>(null);
   const dismissedGodModeRunsRef = useRef(new Set<string>());
   const sourcePreviewRunRef = useRef<string | null>(null);
+  const sourcePreviewSnapshotRef = useRef<WorkspaceSnapshotV1 | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
   const responseEpochRef = useRef(0);
   const panelTitle = t('masterCoder', locale);
@@ -278,6 +279,20 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     algorithmName,
     steps,
   ]);
+
+  const restoreSourcePreview = useCallback(() => {
+    const snapshot = sourcePreviewSnapshotRef.current;
+    sourcePreviewSnapshotRef.current = null;
+    if (!snapshot) return;
+    pause();
+    setAlgorithmName(snapshot.algorithmName);
+    setCode(snapshot.code);
+    setSteps(snapshot.steps);
+    setCurrentIndex(snapshot.currentIndex);
+    setAnalysis(snapshot.analysis);
+    setInputError(snapshot.inputError);
+    setIsGodModeTypingSource(false);
+  }, [pause, setAlgorithmName, setAnalysis, setCode, setCurrentIndex, setInputError, setIsGodModeTypingSource, setSteps]);
 
   useEffect(() => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
@@ -411,7 +426,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     applyPresetTransaction,
   ]);
 
-  const submitQuestion = useCallback(async (userMessage: string) => {
+  const submitQuestion = useCallback(async (userMessage: string | any) => {
     if (isExecutingQueue) return;
     const responseEpoch = ++responseEpochRef.current;
     const history = [...chatHistory];
@@ -673,7 +688,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
           packageOutOfSync: stateRef.current.packageOutOfSync,
         };
-        const { startGodModeRun } = await import('../services/godModeOrchestrator');
+        const { startGodModeRun } = await import('../services/godModeEntry');
+        sourcePreviewSnapshotRef.current = workspaceSnapshot;
         const run = startGodModeRun({
           request: userMessage,
           intent: godModeIntent,
@@ -696,7 +712,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           previewSource: async (draftCode, title, runId) => {
             if (webProblemForSimulation) return;
             if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;
-            dispatchGodModeUiAction({ type: 'set-workspace-layout', layout: 'focus-code' });
             pause();
             setAlgorithmName(title);
             setSteps([]);
@@ -720,7 +735,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           },
           applyPackage: (value, runId) => {
             applySimulationPackage(value, runId);
-            dispatchGodModeUiAction({ type: 'set-workspace-layout', layout: 'balanced' });
+            sourcePreviewSnapshotRef.current = null;
             setTourSteps(value.checkpoints.map((checkpoint) => checkpoint.stepIndex));
             stateRef.current = {
               ...stateRef.current,
@@ -736,6 +751,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           },
           applyVisualPackage: (value, runId) => {
             applyVisualPackageTransaction(value, runId);
+            sourcePreviewSnapshotRef.current = null;
             stateRef.current = {
               ...stateRef.current,
               simulationInput: value.input.value,
@@ -747,6 +763,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           },
           applyInput: (input, generatedSteps, runId) => {
             applyInputTransaction(input, generatedSteps, runId);
+            sourcePreviewSnapshotRef.current = null;
             stateRef.current = {
               ...stateRef.current,
               simulationInput: input,
@@ -762,17 +779,17 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         sourcePreviewRunRef.current = null;
         setIsGodModeTypingSource(false);
         if (!mountedRef.current) return;
-        const content = result.tutorAnswer
-          ? `${result.summary}\n\n${stripThinkBlock(result.tutorAnswer)}`
-          : result.summary;
-        if (webProblemForSimulation && result.package && activeWebSession) {
+        const content = (result as any).tutorAnswer
+          ? `${(result as any).summary}\n\n${stripThinkBlock((result as any).tutorAnswer)}`
+          : (result as any).summary;
+        if (webProblemForSimulation && (result as any).package && activeWebSession) {
           const solution: SolutionArtifactV1 = {
             version: 1,
             kind: 'validated-simulation',
             sourceHash: webProblemForSimulation.sourceHash,
             problemHash: webProblemForSimulation.id,
-            packageId: result.package.id,
-            review: { passed: true, summary: result.summary, findings: [] },
+            packageId: (result as any).package.id,
+            review: { passed: true, summary: (result as any).summary, findings: [] },
           };
           const nextSession = { ...activeWebSession, solution };
           saveBoundWebSource(nextSession);
@@ -787,8 +804,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               : content,
           },
         ].slice(-MAX_STORED_MESSAGES));
-        if (result.package?.teachingPlan.autoStart) {
-          setSpeed(result.package.teachingPlan.suggestedSpeed);
+        if ((result as any).package?.teachingPlan.autoStart) {
+          setSpeed((result as any).package.teachingPlan.suggestedSpeed);
           play();
         }
         return;
@@ -866,6 +883,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           .slice(-MAX_STORED_MESSAGES),
       );
     } catch (error) {
+      restoreSourcePreview();
       sourcePreviewRunRef.current = null;
       godModeRunRef.current = null;
       webFetchRef.current = null;
@@ -926,7 +944,20 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setAnalysis,
     setInputError,
     setIsGodModeTypingSource,
+    restoreSourcePreview,
   ]);
+
+  useEffect(() => {
+    const handleGodModeUserMessage = (event: Event) => {
+      const customEvent = event as CustomEvent<{ text: string }>;
+      if (customEvent.detail?.text) {
+        submitQuestion(customEvent.detail.text);
+      }
+    };
+    window.addEventListener('god-mode-user-message', handleGodModeUserMessage);
+    return () => window.removeEventListener('god-mode-user-message', handleGodModeUserMessage);
+  }, [submitQuestion]);
+
 
   useEffect(() => {
     if (!selectedExampleQuestion) return;
@@ -963,7 +994,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     ];
     if (currentIndex === activeSimulationPackage.steps.length - 1) {
       const result = activeSimulationPackage.teachingPlan.finalResult;
-      content.push('', `${locale === 'tr' ? 'Final sonuç' : 'Final result'}: ${result.summary}`, result.correctness);
+      content.push('', `${locale === 'tr' ? 'Final sonuç' : 'Final result'}: ${(result as any).summary}`, result.correctness);
     }
     setChatHistory((previous) => [
       ...previous,
@@ -971,11 +1002,20 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     ].slice(-MAX_STORED_MESSAGES));
   }, [activeSimulationPackage, currentIndex, godModePlan, guidedMode, isPlaying, locale]);
 
-  const systemMessage = translateRuntimeText(analysis
-    ?? currentStep?.explanation
+  const systemMessage = translateRuntimeText(currentStep?.explanation
     ?? (aiStatus === 'ready'
       ? t('aiReadyPrompt', locale)
       : t('deterministicReady', locale)), locale);
+  const analysisEntries = (analysis ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separator = line.indexOf(':');
+      return separator > 0
+        ? { label: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() }
+        : { label: '', value: line };
+    });
   const conversationTurnCount = chatHistory.filter((message) => message.role !== 'system').length;
   const contextLabel = steps.length
     ? t('contextStep', locale, { current: currentIndex + 1, total: steps.length })
@@ -998,6 +1038,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   };
   const clearConversationAndRuns = () => {
     setChatHistory([]);
+    setAnalysis(null);
     setTourSteps([]);
     setLastGodModeRequest(null);
     dismissGodModePlan();
@@ -1040,6 +1081,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             if (godModeEnabled) {
               sourcePreviewRunRef.current = null;
               godModeRunRef.current?.cancel();
+              restoreSourcePreview();
             }
             setGodModeEnabled(!godModeEnabled);
           }}
@@ -1069,9 +1111,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           type="button"
           className="clear-chat-btn"
           aria-label={t('clearConversation', locale)}
-          title={t('memoryCount', locale, { count: conversationTurnCount })}
+          title={analysis && conversationTurnCount === 0
+            ? t('clearAnalysis', locale)
+            : t('memoryCount', locale, { count: conversationTurnCount })}
           onClick={clearConversationAndRuns}
-          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan)
+          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan && !analysis)
             || isTyping || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
         >
           <Trash2 size={13} />
@@ -1147,6 +1191,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             if (dismissedPlan) dismissedGodModeRunsRef.current.add(dismissedPlan.runId);
             sourcePreviewRunRef.current = null;
             godModeRunRef.current?.cancel();
+            restoreSourcePreview();
             godModeRunRef.current = null;
             if (dismissedPlan) {
               persistGodModePlan({
@@ -1196,6 +1241,30 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       )}
 
       <div className="ai-body" ref={chatBodyRef}>
+        {analysis && (
+          <section className="analysis-outline" aria-label={t('algorithmAnalysis', locale)}>
+            <header>
+              <Activity size={13} aria-hidden="true" />
+              <strong>{t('algorithmAnalysis', locale)}</strong>
+              <button
+                type="button"
+                onClick={() => setAnalysis(null)}
+                aria-label={t('clearAnalysis', locale)}
+                title={t('clearAnalysis', locale)}
+              >
+                <X size={12} />
+              </button>
+            </header>
+            <div className="analysis-outline-body">
+              {analysisEntries.map((entry, index) => (
+                <div className="analysis-outline-row" key={`${entry.label}-${index}`}>
+                  {entry.label && <span>{translateRuntimeText(entry.label, locale)}</span>}
+                  <p>{translateRuntimeText(entry.value, locale)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         <div className="chat-message system-msg"><MarkdownPreview content={systemMessage} /></div>
         {chatHistory.map((message, index) => (
           <div key={`${message.role}-${index}`} className={`chat-message ${message.role}-msg`}>
@@ -1284,6 +1353,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               webRunRef.current?.cancel();
               sourcePreviewRunRef.current = null;
               godModeRunRef.current?.cancel();
+              restoreSourcePreview();
               setIsPlanningActions(false);
               setIsExecutingQueue(false);
               setIsTyping(false);

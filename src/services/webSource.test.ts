@@ -36,6 +36,66 @@ describe('web source client', () => {
     expect(problem.simulationCompatibility.compatible).toBe(true);
   });
 
+  it('derives statement, I/O, constraints, and examples from generic problem pages', () => {
+    const genericDocument: ExternalDocumentV1 = {
+      ...document,
+      provider: 'generic-html',
+      title: 'CSES - Weird Algorithm',
+      segments: [
+        { id: 'title', kind: 'title', text: 'CSES - Weird Algorithm' },
+        { id: 'task', kind: 'body', text: 'Task' },
+        { id: 'time', kind: 'body', text: 'Time limit: 1.00 s' },
+        { id: 'memory', kind: 'body', text: 'Memory limit: 512 MB' },
+        { id: 'statement', kind: 'body', text: 'Apply the described process to a positive integer n.' },
+        { id: 'input-heading', kind: 'body', text: 'Input' },
+        { id: 'input', kind: 'body', text: 'The only input line contains n.' },
+        { id: 'output-heading', kind: 'body', text: 'Output' },
+        { id: 'output', kind: 'body', text: 'Print every value of n.' },
+        { id: 'constraints-heading', kind: 'body', text: 'Constraints' },
+        { id: 'constraint', kind: 'body', text: '1 <= n <= 1000000' },
+        { id: 'example-heading', kind: 'body', text: 'Example' },
+        { id: 'example-input-heading', kind: 'body', text: 'Input:' },
+        { id: 'example-input', kind: 'body', text: '3' },
+        { id: 'example-output-heading', kind: 'body', text: 'Output:' },
+        { id: 'example-output', kind: 'body', text: '3 10 5 16 8 4 2 1' },
+      ],
+    };
+
+    const problem = normalizeWebProblem(genericDocument);
+    expect(problem.description).toBe('Apply the described process to a positive integer n.');
+    expect(problem.inputFormat).toBe('The only input line contains n.');
+    expect(problem.outputFormat).toBe('Print every value of n.');
+    expect(problem.constraints).toEqual(['1 <= n <= 1000000']);
+    expect(problem.examples[0]).toMatchObject({ input: '3', output: '3 10 5 16 8 4 2 1' });
+  });
+
+  it('removes Codeforces navigation and execution metadata from the statement', () => {
+    const codeforcesDocument: ExternalDocumentV1 = {
+      ...document,
+      provider: 'generic-html',
+      title: 'Problem - 1A - Codeforces',
+      segments: [
+        { id: 'nav', kind: 'body', text: 'Home Catalog Contests Problemset' },
+        { id: 'title', kind: 'body', text: 'A. Theatre Square' },
+        { id: 'time', kind: 'body', text: 'time limit per test\n1 second' },
+        { id: 'memory', kind: 'body', text: 'memory limit per test\n256 megabytes' },
+        { id: 'stdin', kind: 'body', text: 'input\nstdin' },
+        { id: 'stdout', kind: 'body', text: 'output\nstdout' },
+        { id: 'statement', kind: 'body', text: 'Find the least number of flagstones.' },
+        { id: 'input-heading', kind: 'body', text: 'Input' },
+        { id: 'input', kind: 'body', text: 'Three integers n, m, and a (1 ≤ n, m, a ≤ 10^9).' },
+        { id: 'output-heading', kind: 'body', text: 'Output' },
+        { id: 'output', kind: 'body', text: 'Print the answer.' },
+        { id: 'examples-heading', kind: 'body', text: 'Examples' },
+      ],
+    };
+
+    const problem = normalizeWebProblem(codeforcesDocument);
+    expect(problem.description).toBe('Find the least number of flagstones.');
+    expect(problem.description).not.toContain('Home Catalog');
+    expect(problem.constraints).toEqual(['1 ≤ n, m, a ≤ 10^9']);
+  });
+
   it('routes matrix signatures to Java fallback', () => {
     const problem = normalizeWebProblem({ ...document, segments: document.segments.map((segment) => segment.kind === 'signature' ? { ...segment, text: 'public int solve(int[][] grid)' } : segment) });
     expect(problem.simulationCompatibility.compatible).toBe(false);

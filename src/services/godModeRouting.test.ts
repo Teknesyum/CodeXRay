@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { routeGodModeRequest, routeWebSourceRequest } from './godModeRouting';
 
 describe('God Mode routing', () => {
+  it('preserves platform and numeric ID from the catalog drawer command', () => {
+    expect(routeGodModeRequest('Create catalog problem: leetcode/486', [], 0)).toEqual({
+      type: 'create-catalog-problem',
+      source: 'leetcode',
+      problemId: '486',
+    });
+    expect(routeGodModeRequest('Create catalog problem: cses/1192', [], 0)).toEqual({
+      type: 'create-catalog-problem',
+      source: 'cses',
+      problemId: '1192',
+    });
+  });
   it('routes web URLs before punctuation cleanup and binds follow-ups', () => {
     expect(routeWebSourceRequest('Oku: https://leetcode.com/problems/two-sum/?envType=daily-question.', false)).toEqual({
       type: 'read-web-source',
@@ -34,10 +46,42 @@ describe('God Mode routing', () => {
     expect(routeGodModeRequest('bu kod için inputları düzenle', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
+  it('keeps composite solve, author, input, and simulate requests on the creation pipeline', () => {
+    expect(routeGodModeRequest(
+      'LeetCode 1 Two Sum solve: write code, create original input, simulate every step, and verify the final result',
+      [],
+      0,
+    )).toEqual({ type: 'create-algorithm', template: 'model-authored' });
+  });
+
+  it.each([
+    'bunu 10*10 luk bir inputla simüle eder misin',
+    'bunu 10x10 bir tabloyla yeniden çalıştır',
+    'mevcut algoritmayı 10 elemanlı girdiyle tekrar simüle et',
+    'simülasyonu 10*10 yapar mısın',
+    'mevcut simülasyonumu 10x10 boyutuna çıkar',
+    'inputu 10*10 yap',
+    'girdiyi 10x10 yapabilir misin',
+  ])('routes sized follow-up simulations through input adaptation: %s', (request) => {
+    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
+  });
+
+  it('does not mutate the workspace for a size-only knowledge question', () => {
+    expect(routeGodModeRequest('10x10 interval DP tablosu nedir?', [], 0)).toBeNull();
+    expect(routeGodModeRequest('10x10 input yapısı nedir?', [], 0)).toBeNull();
+  });
+
   it('routes bidirectional BFS creation to the validated template', () => {
     expect(routeGodModeRequest('bana iki yönlü BFS yaz', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'bidirectional-bfs',
+    });
+  });
+
+  it('routes the exact Coin Exchange request to the deterministic Coin Change agent', () => {
+    expect(routeGodModeRequest('bana coin exchange problemi yaz ve simüle et', [], 0)).toEqual({
+      type: 'create-algorithm',
+      template: 'coin-change-1d-dp',
     });
   });
 
@@ -74,6 +118,8 @@ describe('God Mode routing', () => {
   it.each([
     'LeetCode 486 Predict the Winner sorusunu çöz ve simüle et',
     'Predict the Winner çözümünü 2D DP ile göster',
+    'interval dp sorusu yaz ve simüle et',
+    'write and simulate an interval DP problem',
   ])('routes Predict the Winner to the deterministic interval-DP template: %s', (request) => {
     expect(routeGodModeRequest(request, [], 0)).toEqual({
       type: 'create-algorithm',

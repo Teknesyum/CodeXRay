@@ -11,6 +11,9 @@ export interface RightPanelSizes {
   controlHeight: number;
 }
 
+export const createDefaultLeftTopHeight = (viewportHeight: number): number =>
+  Math.max(340, Math.round(viewportHeight * 0.68));
+
 const availableHeight = (viewportHeight: number): number =>
   Math.max(
     RIGHT_PANEL_LIMITS.visualizer

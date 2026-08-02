@@ -53,13 +53,21 @@ const createPedagogicalInput = (
     return createInputPreset('tree', seed % 3, design.title);
   }
   if (design.inputKind === 'string') {
-    const samples = ['TRACEALGORITHMTRACE', 'BANANABANDANA', 'NEONFRONTIERMEETING'];
+    const samples = [
+      'TRACEALGORITHMWORKSPACE',
+      'BANANABANDANACABANA',
+      'NEONFRONTIERMEETINGPOINT',
+    ];
     return { kind: 'string', text: samples[seed % samples.length] };
   }
+  if (/permutation|subset|combination|backtrack/i.test(design.title)) {
+    const samples = ['[2,5,7,9,12]', '[1,4,6,8,11]', '[3,10,14,18,21]'];
+    return { kind: 'array', text: samples[seed % samples.length] };
+  }
   const arrays = [
-    '[12,-4,7,7,0,19,-8,5,13,2]',
-    '[31,4,18,9,27,1,16,8,23,5]',
-    '[6,2,9,3,8,1,7,4,5,0]',
+    '[12,-4,7,7,0,19,-8,5,13,2,21,-3,11,6]',
+    '[31,4,18,9,27,1,16,8,23,5,42,14,3,29]',
+    '[6,2,9,3,8,1,7,4,5,0,12,10,15,11]',
   ];
   return { kind: 'array', text: arrays[seed % arrays.length] };
 };

@@ -108,7 +108,7 @@ describe('God Mode orchestrator', () => {
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
     });
-    const result = await run.promise;
+    const result = await run.promise as any;
 
     expect(result.package?.title).toBe('İki Yönlü BFS — Özel');
     expect(result.package?.visualization.version).toBe(2);
@@ -140,9 +140,35 @@ describe('God Mode orchestrator', () => {
       agentRunner: failingAgent,
     });
 
-    const result = await run.promise;
+    const result = await run.promise as any;
     expect(result.package?.tests.passed).toBe(true);
     expect(result.tutorAnswer).toContain('Kod:');
+    expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('does not block a verified interval-DP run on advisory model inference', async () => {
+    const applyPackage = vi.fn();
+    const previewSource = vi.fn();
+    const run = startGodModeRun({
+      request: 'interval dp yaz simüle et',
+      intent: { type: 'create-algorithm', template: 'predict-winner-interval-dp' },
+      locale: 'tr',
+      workspace,
+      activePackage: null,
+      onPlan: vi.fn(),
+      previewSource,
+      applyPackage,
+      applyInput: vi.fn(),
+    });
+
+    await expect(run.promise).resolves.toMatchObject({
+      status: 'success',
+      package: {
+        program: { id: 'predict_winner_interval_dp' },
+        visualization: { type: 'matrix' },
+      },
+    });
+    expect(previewSource).toHaveBeenCalledOnce();
     expect(applyPackage).toHaveBeenCalledOnce();
   });
 
@@ -193,7 +219,7 @@ describe('God Mode orchestrator', () => {
       agentRunner: runner,
     });
 
-    const result = await run.promise;
+    const result = await run.promise as any;
     const codeAuthorCalls = calls.filter((request) => request.role === 'code-author');
     expect(codeAuthorCalls).toHaveLength(2);
     expect(codeAuthorCalls[0]?.responseSchema).toBeDefined();
@@ -381,7 +407,7 @@ describe('God Mode orchestrator', () => {
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
     });
-    const packageValue = (await run.promise).package;
+    const packageValue = (await run.promise as any).package;
     expect(packageValue).toBeDefined();
     const graph = packageValue?.input.value.graph;
     expect(graph?.nodes).toHaveLength(10);
@@ -391,9 +417,9 @@ describe('God Mode orchestrator', () => {
     expect(packageValue?.visualization.version).toBe(2);
     if (packageValue?.visualization.version === 2) {
       expect(packageValue.visualization.frontierLayers).toHaveLength(2);
-      expect(packageValue.visualization.nodeRoles.find((role) => role.id === 'frontier-start')?.style.shape)
-        .not.toBe(packageValue.visualization.nodeRoles.find((role) => role.id === 'frontier-target')?.style.shape);
-      expect(packageValue.visualization.edgeRoles.map((role) => role.id)).toEqual(expect.arrayContaining([
+      expect(packageValue.visualization.nodeRoles.find((role: any) => role.id === 'frontier-start')?.style.shape)
+        .not.toBe(packageValue.visualization.nodeRoles.find((role: any) => role.id === 'frontier-target')?.style.shape);
+      expect(packageValue.visualization.edgeRoles.map((role: any) => role.id)).toEqual(expect.arrayContaining([
         'inspect-start', 'inspect-target', 'tree-start', 'tree-target', 'path',
       ]));
     }
@@ -404,7 +430,7 @@ describe('God Mode orchestrator', () => {
       expect(Array.isArray(path)).toBe(true);
       const ids = path as string[];
       for (let index = 1; index < ids.length; index += 1) {
-        expect(graph?.edges.some((edge) =>
+        expect(graph?.edges.some((edge: any) =>
           (edge.from === ids[index - 1] && edge.to === ids[index])
           || (!graph.directed && edge.from === ids[index] && edge.to === ids[index - 1])),
         ).toBe(true);
@@ -412,7 +438,7 @@ describe('God Mode orchestrator', () => {
       expect(final.vars.meeting).not.toBeNull();
     }
     expect(packageValue?.teachingPlan.checkpoints.length).toBeGreaterThanOrEqual(3);
-    expect(packageValue?.teachingPlan.checkpoints.every(({ narration }) =>
+    expect(packageValue?.teachingPlan.checkpoints.every(({ narration }: any) =>
       ['code', 'data', 'visual', 'reasoning', 'time'].every((lens) =>
         Boolean(narration.lenses[lens as keyof typeof narration.lenses])))).toBe(true);
     expect(packageValue?.teachingPlan.finalResult.summary).toBeTruthy();
@@ -453,10 +479,10 @@ describe('God Mode orchestrator', () => {
       applyPackage: vi.fn(),
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
-    }).promise;
+    }).promise as any;
     expect(result.package?.input.origin).toBe('user');
-    expect(result.package?.input.value.graph?.nodes.map(({ id, label }) => ({ id, label })))
-      .toEqual(graph.nodes.map(({ id, label }) => ({ id, label })));
+    expect(result.package?.input.value.graph?.nodes.map(({ id, label }: any) => ({ id, label })))
+      .toEqual(graph.nodes.map(({ id, label }: any) => ({ id, label })));
     expect(result.package?.input.value.graph?.edges).toEqual(graph.edges);
     expect(result.package?.input.value.graph?.startId).toBe(graph.startId);
     expect(result.package?.input.value.graph?.targetId).toBe(graph.targetId);
@@ -475,7 +501,7 @@ describe('God Mode orchestrator', () => {
       applyPackage: vi.fn(),
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
-    }).promise;
+    }).promise as any;
     const activePackage = created.package!;
     const packageWorkspace: WorkspaceSnapshotV1 = {
       ...workspace,
@@ -497,7 +523,7 @@ describe('God Mode orchestrator', () => {
       applyVisualPackage,
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
-    }).promise;
+    }).promise as any;
     expect(applyVisualPackage).toHaveBeenCalledOnce();
     const visualPackage = applyVisualPackage.mock.calls[0]?.[0];
     expect(visualPackage.program).toEqual(activePackage.program);
@@ -508,7 +534,7 @@ describe('God Mode orchestrator', () => {
       id: node.id,
       x: node.x,
       y: node.y,
-    }))).not.toEqual(activePackage.input.value.graph?.nodes.map(({ id, x, y }) => ({ id, x, y })));
+    }))).not.toEqual(activePackage.input.value.graph?.nodes.map(({ id, x, y }: any) => ({ id, x, y })));
 
     const applyPackage = vi.fn();
     const connectorId = activePackage.input.value.graph?.nodes[1]?.id ?? 'S';
@@ -522,7 +548,7 @@ describe('God Mode orchestrator', () => {
       applyPackage,
       applyInput: vi.fn(),
       agentRunner: successfulAgent,
-    }).promise;
+    }).promise as any;
     expect(applyPackage).toHaveBeenCalledOnce();
     const structuralPackage = applyPackage.mock.calls[0]?.[0];
     const structuralGraph = structuralPackage.input.value.graph;

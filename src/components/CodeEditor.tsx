@@ -1,10 +1,13 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import { algorithmRegistry } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import { getAlgorithmParameterDefinitions } from '../services/algorithmInputs';
 import type { InputKind } from '../types/simulation';
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
+import React from 'react';
+import { BookOpen, Save } from 'lucide-react';
+const LeetCodeDrawer = React.lazy(() => import('./LeetCodeDrawer').then(module => ({ default: module.LeetCodeDrawer })));
 import './CodeEditor.css';
 
 const inputHelpKeys: Record<InputKind, string> = {
@@ -93,12 +96,23 @@ const renderHighlightedCodeLine = (line: string) => {
   return output;
 };
 
+const renderHighlightedCode = (source: string, keyPrefix: string) => source
+  .split('\n')
+  .map((line, index, lines) => (
+    <React.Fragment key={`${keyPrefix}-${index}-${line}`}>
+      {renderHighlightedCodeLine(line)}
+      {index < lines.length - 1 ? '\n' : null}
+    </React.Fragment>
+  ));
+
 interface CodeEditorProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onSaveInput: () => void;
 }
 
-export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => {
+export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEditorProps) => {
+  const [isLeetCodeOpen, setIsLeetCodeOpen] = useState(false);
   const editableHighlightRef = useRef<HTMLPreElement>(null);
   const {
     code,
@@ -118,6 +132,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
     locale,
     setIsEditingInput,
     isGodModeTypingSource,
+    packageOutOfSync,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const panelTitle = t('sourceCode', locale);
@@ -195,6 +210,16 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
         </select>
         <button
           type="button"
+          className="leetcode-open-btn"
+          onClick={() => setIsLeetCodeOpen(true)}
+          title={locale === 'tr' ? 'Problem örneklerini aç' : 'Open problem examples'}
+          aria-label={locale === 'tr' ? 'Problem kataloğunu aç' : 'Open problem catalog'}
+        >
+          <BookOpen size={14} />
+          {locale === 'tr' ? 'Örnekler' : 'Examples'}
+        </button>
+        <button
+          type="button"
           className="panel-toggle"
           aria-label={t('collapsePanel', locale, { panel: panelTitle })}
           onClick={onToggleCollapse}
@@ -202,6 +227,12 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
           −
         </button>
       </div>
+
+      {isLeetCodeOpen && (
+        <React.Suspense fallback={null}>
+          <LeetCodeDrawer isOpen={isLeetCodeOpen} onClose={() => setIsLeetCodeOpen(false)} />
+        </React.Suspense>
+      )}
 
       <div className="input-config">
         <label htmlFor="input-kind">{t('simulationInput', locale)}</label>
@@ -270,6 +301,15 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
             />
           </label>
         ))}
+        <button
+          type="button"
+          className={`input-save-btn ${packageOutOfSync ? 'dirty' : ''}`}
+          onClick={onSaveInput}
+          title={t('saveInputAndResimulate', locale)}
+        >
+          <Save size={14} aria-hidden="true" />
+          {t('saveInput', locale)}
+        </button>
         <span className="input-format-help">{t(inputHelpKey, locale)}</span>
       </div>
       {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}
@@ -282,9 +322,9 @@ export const CodeEditor = ({ collapsed, onToggleCollapse }: CodeEditorProps) => 
               aria-label={t('sourceCodeLabel', locale)}
               aria-live="polite"
             >
-              <span>{code.slice(0, neonTypingStart)}</span>
+              <span>{renderHighlightedCode(code.slice(0, neonTypingStart), 'typed')}</span>
               <span key={code.length} className="god-mode-code-new-text">
-                {code.slice(neonTypingStart)}
+                {renderHighlightedCode(code.slice(neonTypingStart), 'new')}
               </span>
               <span className="god-mode-code-caret" aria-hidden="true" />
             </pre>

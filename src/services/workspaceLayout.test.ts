@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   constrainRightPanelSizes,
+  createDefaultLeftTopHeight,
   createDefaultRightPanelSizes,
   RIGHT_PANEL_LIMITS,
 } from './workspaceLayout';
 
 describe('workspace layout sizing', () => {
+  it('moves twenty percent of the former variables share into the code panel', () => {
+    expect(createDefaultLeftTopHeight(1_000)).toBe(680);
+    expect(1_000 - createDefaultLeftTopHeight(1_000)).toBe(320);
+  });
+
   it('keeps the default controls compact across common desktop heights', () => {
     expect(createDefaultRightPanelSizes(720)).toEqual({
       visualizerHeight: 377,

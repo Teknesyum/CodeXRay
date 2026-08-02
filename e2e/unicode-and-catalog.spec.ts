@@ -58,9 +58,9 @@ test('clears incompatible timeline and analysis while touring catalog families',
     if (previousName) await expect(page.getByLabel(`${previousName} execution`)).toHaveCount(0);
     await expect(inputKind).toHaveValue(item.kind);
     await expect(page.getByRole('button', { name: 'Previous step' })).toBeDisabled();
-    await expect(page.locator('.system-msg')).not.toContainText('Time Complexity:');
+    await expect(page.getByRole('region', { name: 'Algorithm analysis' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Analyze' }).click();
-    await expect(page.locator('.system-msg')).toContainText('Time Complexity:');
+    await expect(page.getByRole('region', { name: 'Algorithm analysis' })).toContainText('Time Complexity');
     await page.getByRole('button', { name: /Simulate/ }).click();
     await expect(page.getByLabel(`${item.name} execution`)).toBeVisible();
     previousName = item.name;

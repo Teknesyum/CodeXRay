@@ -1,10 +1,10 @@
 import type { SimulationStep } from '../types/simulation';
-import type { DeterministicWorkspaceCommand } from './aiTimelineControl';
 import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
 import { findImportantStepIndices } from './aiTimelineControl';
 import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
-import { resolveDpTemplateFromRequest, type DpTemplateId } from './dpTemplateCompiler';
+import { resolveDpTemplateFromRequest } from './dpTemplateCompiler';
+import type { GodModeIntent } from '../types/godMode';
 import { extractFirstPublicHttpsUrl } from './webSource';
 
 export type WebSourceIntent =
@@ -30,31 +30,12 @@ export const routeWebSourceRequest = (
   return null;
 };
 
-export type GodModeIntent =
-  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'model-authored' }
-  | { type: 'clarify-algorithm' }
-  | { type: 'adapt-input' }
-  | { type: 'discuss-current-step' }
-  | {
-    type: 'ui-control';
-    command:
-      | 'focus-code'
-      | 'focus-simulation'
-      | 'focus-assistant'
-      | 'balanced'
-      | 'theme-neon'
-      | 'theme-dark'
-      | 'theme-light'
-      | 'radio-open'
-      | 'radio-play'
-      | 'radio-pause';
-  }
-  | { type: 'deterministic'; actions: DeterministicWorkspaceCommand[] };
 
 export const normalizeGodModeText = (value: string): string => value
   .toLocaleLowerCase('tr-TR')
   .normalize('NFKD')
   .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[×✕✖]/g, 'x')
   .replace(/ı/g, 'i')
   .replace(/ş/g, 's')
   .replace(/ğ/g, 'g')
@@ -108,6 +89,14 @@ export const routeGodModeRequest = (
   currentIndex: number,
   algorithmName = '',
 ): GodModeIntent | null => {
+  const catalogMatch = question.match(/^Create catalog problem:\s*([^/\s]+)\/(.+)$/i);
+  if (catalogMatch) {
+    return {
+      type: 'create-catalog-problem',
+      source: catalogMatch[1].trim().toLowerCase(),
+      problemId: catalogMatch[2].trim(),
+    };
+  }
   const text = normalizeGodModeText(question);
   if (/\b(radyo|radio)\b.*\b(ac|goster|open|show)\b/.test(text)) {
     return { type: 'ui-control', command: 'radio-open' };
@@ -146,15 +135,19 @@ export const routeGodModeRequest = (
     return { type: 'create-algorithm', template: dpTemplate };
   }
   const requestsGenericDp = /\b(?:1d|2d|interval)?\s*(?:dp|dynamic programming|dinamik programlama)\b/.test(text);
+  const requestsGenericIntervalDp = /\binterval\s*(?:dp|dynamic programming|dinamik programlama)\b/.test(text);
   if (requestsGenericDp
     && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
     const ignored = new Set([
       '1d', '2d', 'interval', 'dp', 'dynamic', 'programming', 'dinamik', 'programlama', 'tablo', 'table',
       'coz', 'cozum', 'yaz', 'olustur', 'kur', 'simule', 'goster', 'solve', 'write', 'create', 'simulate',
-      'show', 'bana', 'bir', 'benim', 'icin', 'lutfen', 'please', 'et', 've', 'and', 'a', 'me',
+      'show', 'bana', 'bir', 'benim', 'icin', 'lutfen', 'please', 'et', 've', 'and', 'a', 'an', 'me',
+      'soru', 'sorusu', 'problem', 'question',
     ]);
     const specificationWords = text.split(' ').filter((word) => !ignored.has(word));
-    if (specificationWords.length === 0) return { type: 'clarify-algorithm' };
+    if (specificationWords.length === 0) return requestsGenericIntervalDp
+      ? { type: 'create-algorithm', template: 'predict-winner-interval-dp' }
+      : { type: 'clarify-algorithm' };
   }
   const requestsMemoryOptimization = /\b(bellek|memory|space)\b.*\b(optimi|min|azalt|dusur)|\bo min m n\b/.test(text);
   const currentAlgorithmIsLcs = /\b(lcs|longest common subsequence|en uzun ortak alt dizi)\b/i.test(algorithmName);
@@ -166,7 +159,36 @@ export const routeGodModeRequest = (
     && /\b(yaz|olustur|kur|ekle|generate|create|write|build)\b/.test(text)) {
     return { type: 'create-algorithm', template: 'bidirectional-bfs' };
   }
-  if (/\b(input\w*|girdi\w*|veri\w*)\b/.test(text)
+  const leetCodeMatch = question.match(/^LeetCode problemi oluştur:\s*(.+)$/i) ?? question.match(/^Create LeetCode problem:\s*(.+)$/i);
+  if (leetCodeMatch) {
+    const problemId = leetCodeMatch[1].trim();
+    // Support existing DP templates seamlessly
+    const dpTemplate = resolveDpTemplateFromRequest(problemId);
+    if (dpTemplate) return { type: 'create-algorithm', template: dpTemplate };
+    if (problemId === 'predict-winner-interval-dp') return { type: 'create-algorithm', template: 'predict-winner-interval-dp' };
+    if (problemId === 'bidirectional-bfs') return { type: 'create-algorithm', template: 'bidirectional-bfs' };
+    if (problemId === 'dfs-graph') return { type: 'create-catalog-problem', source: 'leetcode', problemId: 'dfs-graph' };
+    if (problemId === 'bfs-graph') return { type: 'create-catalog-problem', source: 'leetcode', problemId: 'bfs-graph' };
+
+    return { type: 'create-catalog-problem', source: 'leetcode', problemId };
+  }
+  const requestsCompositeCreation = /\b(coz|cozum|yaz|generate|write|build|solve)\w*\b/.test(text)
+    && /\b(simule|calistir|uygula|goster|simulate|run|execute|visualize|show)\w*\b/.test(text);
+  const hasSquareInputSize = (
+    /\b(\d{1,2})\s*(?:x|\*)\s*\1\b/.test(text)
+    || /\b\d{1,2}\s*(?:elemanli|boyutlu|uzunlugunda)\b/.test(text)
+  );
+  const hasSizedInputTarget = /\b(bunu|bu|mevcut|current|this|simulasyon\w*|simulation\w*|input\w*|girdi\w*|dizi\w*|tablo\w*|matrix\w*)\b/.test(text);
+  const hasResizeCommand = /\b(yap|yapar|yapin|yapalim|yapsana|yapabilir|cikar\w*|buyut\w*|degistir\w*|uyarla\w*|kur|make|resize|change|adapt)\b/.test(text);
+  const hasExecutionCommand = /\b(simule|calistir|uygula|tekrar|yeniden|simulate|run|execute|rerun)\w*\b/.test(text);
+  const requestsSizedResimulation = hasSquareInputSize
+    && hasSizedInputTarget
+    && (hasResizeCommand || hasExecutionCommand);
+  if (!requestsCompositeCreation && requestsSizedResimulation) {
+    return { type: 'adapt-input' };
+  }
+  if (!requestsCompositeCreation
+    && /\b(input\w*|girdi\w*|veri\w*)\b/.test(text)
     && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|adapt|create|prepare|change)\b/.test(text)) {
     return { type: 'adapt-input' };
   }
@@ -224,6 +246,9 @@ export const routeGodModeRequest = (
     const specificationWords = text.split(' ').filter((word) => !new Set([
       'bana', 'bir', 'benim', 'icin', 'lutfen', 'algoritma', 'algorithm', 'kod', 'code', 'program',
       'yaz', 'olustur', 'kur', 'generate', 'create', 'write', 'build', 'an', 'a', 'me', 'please',
+      '2d', '1d', 'dp', 'dinamik', 'programlama', 'dynamic', 'programming',
+      'array', 'dizi', 'graph', 'graf', 'matrix', 'matris', 'tree', 'agac',
+      'linked', 'list', 'bagli', 'liste', 'bfs', 'dfs'
     ]).has(word));
     if (specificationWords.length === 0) return { type: 'clarify-algorithm' };
     return { type: 'create-algorithm', template: 'model-authored' };
@@ -236,6 +261,9 @@ export const routeGodModeRequest = (
       'kod', 'code', 'program', 'coz', 'cozum', 'yaz', 'olustur', 'kur', 'simule', 'calistir', 'uygula',
       'goster', 'generate', 'create', 'write', 'build', 'solve', 'simulate', 'run', 'execute', 'visualize',
       'show', 'an', 'a', 'me', 'please', 'et', 've', 'and',
+      '2d', '1d', 'dp', 'dinamik', 'programlama', 'dynamic', 'programming',
+      'array', 'dizi', 'graph', 'graf', 'matrix', 'matris', 'tree', 'agac',
+      'linked', 'list', 'bagli', 'liste', 'bfs', 'dfs'
     ]).has(word));
     return specificationWords.length > 0
       ? { type: 'create-algorithm', template: 'model-authored' }

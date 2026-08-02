@@ -17,8 +17,33 @@ import { parseSimulationInput } from './inputParsers';
 import { reviewTrace } from './customSimulationCompiler';
 import { createTeachingPlan } from './teachingPlan';
 
-const DEFAULT_NUMBERS = [1, 5, 233, 7];
+const TEACHING_NUMBERS = [8, 15, 3, 7, 10, 2, 14, 6, 11, 4, 13, 1, 9, 5];
+const DEFAULT_NUMBERS = TEACHING_NUMBERS.slice(0, 6);
 const MAX_DP_ITEMS = 14;
+
+export const resolveRequestedPredictWinnerSize = (request: string): number | null => {
+  const normalized = request
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/[×✕✖]/g, 'x');
+  const square = normalized.match(/\b(\d{1,2})\s*(?:x|\*)\s*(\d{1,2})\b/);
+  if (square) {
+    const rows = Number(square[1]);
+    const columns = Number(square[2]);
+    return rows === columns ? rows : null;
+  }
+  const length = normalized.match(/\b(\d{1,2})\s*(?:elemanli|boyutlu|uzunlugunda)\b/);
+  return length ? Number(length[1]) : null;
+};
+
+export const createPredictWinnerTeachingNumbers = (size: number): number[] => {
+  if (!Number.isSafeInteger(size) || size < 1 || size > MAX_DP_ITEMS) {
+    throw new Error(`Predict the Winner matrix size must be between 1 and ${MAX_DP_ITEMS}.`);
+  }
+  return TEACHING_NUMBERS.slice(0, size);
+};
 
 export const createPredictWinnerProgram = (locale: Locale): ProgramSpecV1 => ({
   version: 1,
@@ -67,7 +92,7 @@ const sourceForPredictWinner = (): RenderedSourceV1 => {
     version: 1,
     language: 'cpp',
     code: lines.join('\n'),
-    lineMap: { 'read-input': 4, base: 7, interval: 11, candidates: 12, choose: 14, result: 17 },
+    lineMap: { 'read-input': 4, prepare: 5, base: 7, interval: 11, candidates: 12, choose: 14, result: 17 },
   };
 };
 
@@ -110,6 +135,10 @@ export const resolvePredictWinnerNumbers = (
 ): { numbers: number[]; origin: InputContractV1['origin'] } => {
   const explicit = requestNumbers(request);
   if (explicit) return { numbers: explicit, origin: 'user' };
+  const requestedSize = resolveRequestedPredictWinnerSize(request);
+  if (requestedSize !== null) {
+    return { numbers: createPredictWinnerTeachingNumbers(requestedSize), origin: 'agent' };
+  }
   const normalized = request.toLocaleLowerCase('tr-TR');
   if (/\b(bu|mevcut|current|my)\b.*\b(input|girdi|dizi)/i.test(normalized)) {
     const current = workspaceNumbers(workspace);

@@ -5,9 +5,12 @@ import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPr
 import { getAlgorithmParameterDefinitions } from '../services/algorithmInputs';
 import type { InputKind } from '../types/simulation';
 import { localizeAlgorithmName, t, translateRuntimeText } from '../i18n/translations';
+import { isInternalProblemCatalogVisible } from '../services/internalFeatures';
 import React from 'react';
 import { BookOpen, Save } from 'lucide-react';
-const LeetCodeDrawer = React.lazy(() => import('./LeetCodeDrawer').then(module => ({ default: module.LeetCodeDrawer })));
+const LeetCodeDrawer = import.meta.env.DEV
+  ? React.lazy(() => import('./LeetCodeDrawer').then(module => ({ default: module.LeetCodeDrawer })))
+  : null;
 import './CodeEditor.css';
 
 const inputHelpKeys: Record<InputKind, string> = {
@@ -113,6 +116,8 @@ interface CodeEditorProps {
 
 export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEditorProps) => {
   const [isLeetCodeOpen, setIsLeetCodeOpen] = useState(false);
+  const showInternalProblemCatalog = typeof window !== 'undefined'
+    && isInternalProblemCatalogVisible(window.location.hostname, import.meta.env.DEV);
   const editableHighlightRef = useRef<HTMLPreElement>(null);
   const {
     code,
@@ -208,16 +213,18 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          className="leetcode-open-btn"
-          onClick={() => setIsLeetCodeOpen(true)}
-          title={locale === 'tr' ? 'Problem örneklerini aç' : 'Open problem examples'}
-          aria-label={locale === 'tr' ? 'Problem kataloğunu aç' : 'Open problem catalog'}
-        >
-          <BookOpen size={14} />
-          {locale === 'tr' ? 'Örnekler' : 'Examples'}
-        </button>
+        {showInternalProblemCatalog && (
+          <button
+            type="button"
+            className="leetcode-open-btn"
+            onClick={() => setIsLeetCodeOpen(true)}
+            title={locale === 'tr' ? 'Problem örneklerini aç' : 'Open problem examples'}
+            aria-label={locale === 'tr' ? 'Problem kataloğunu aç' : 'Open problem catalog'}
+          >
+            <BookOpen size={14} />
+            {locale === 'tr' ? 'Örnekler' : 'Examples'}
+          </button>
+        )}
         <button
           type="button"
           className="panel-toggle"
@@ -228,7 +235,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
         </button>
       </div>
 
-      {isLeetCodeOpen && (
+      {showInternalProblemCatalog && isLeetCodeOpen && LeetCodeDrawer && (
         <React.Suspense fallback={null}>
           <LeetCodeDrawer isOpen={isLeetCodeOpen} onClose={() => setIsLeetCodeOpen(false)} />
         </React.Suspense>

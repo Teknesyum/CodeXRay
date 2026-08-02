@@ -497,7 +497,7 @@ export interface VerificationGatesV1 {
 }
 
 export type GodModeIntent =
-  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'model-authored' }
+  | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'jump-game-dp' | 'jump-game-greedy' | 'lis-quadratic-dp' | 'lis-binary-search' | 'model-authored' }
   | { type: 'create-catalog-problem'; source: string; problemId: string }
   | { type: 'clarify-algorithm' }
   | { type: 'adapt-input' }

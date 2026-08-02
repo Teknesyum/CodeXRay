@@ -13,7 +13,7 @@ import type {
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { generateSimulationSteps } from './aiService';
 import { compileCustomSimulationPackage } from './customSimulationCompiler';
-import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
+import { getInputKindForAlgorithm } from './inputPresets';
 import { parseSimulationInput } from './inputParsers';
 import {
   runLocalAgent,
@@ -37,6 +37,9 @@ import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './inte
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { runVerificationGates } from './verificationGates';
 import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/godMode';
+import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
+import { recompileSimulationInput } from './recompileSimulationInput';
+import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 export type GodModeRunResult = {
   status: 'success';
   runId: string;
@@ -593,15 +596,24 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         const input = await runJob('input-engineer-build-compatible-input', async () => {
           const kind = options.activePackage?.input.kind
             ?? getInputKindForAlgorithm(options.workspace.algorithmName);
+          const isMatrixPackage = options.activePackage?.program.id === 'spiral_matrix';
           const current = options.workspace.simulationInput.kind === kind
-            ? parseSimulationInput(
-              kind,
-              options.workspace.simulationInput.text,
-              options.workspace.simulationInput.graph,
-              options.workspace.simulationInput.parameters,
-            ).input
+            ? isMatrixPackage
+              ? options.workspace.simulationInput
+              : parseSimulationInput(
+                kind,
+                options.workspace.simulationInput.text,
+                options.workspace.simulationInput.graph,
+                options.workspace.simulationInput.parameters,
+              ).input
             : undefined;
-          let generated = current ?? createInputPreset(kind, 2, options.workspace.algorithmName);
+          let generated = adaptSimulationInputFromRequest({
+            request: options.request,
+            current: current ?? null,
+            kind,
+            algorithmName: options.workspace.algorithmName,
+            activeProgramId: options.activePackage?.program.id,
+          });
           if (options.activePackage?.program.id === 'predict_winner_interval_dp') {
             const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
             generated = {
@@ -636,8 +648,10 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         });
         let updatedPackage: CustomSimulationPackageV1 | null = null;
         const steps = await runJob('compiler-regenerate-deterministic-trace', () => {
-          const parsed = parseSimulationInput(input.kind, input.text, input.graph, input.parameters);
-          if (!parsed.input) throw new Error(parsed.error ?? 'Generated input is invalid.');
+          const parsed = options.activePackage?.program.id === 'spiral_matrix'
+            ? { input }
+            : parseSimulationInput(input.kind, input.text, input.graph, input.parameters);
+          if (!parsed.input) throw new Error('error' in parsed ? parsed.error ?? 'Generated input is invalid.' : 'Generated input is invalid.');
           if (options.activePackage) {
             if (options.activePackage.program.id === 'predict_winner_interval_dp') {
               updatedPackage = compilePredictWinnerPackage({
@@ -649,21 +663,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             } else if (visualOnly && parsed.input.graph) {
               updatedPackage = patchPackageGraphLayout(options.activePackage, parsed.input.graph);
             } else {
-              const patched = parsed.input.graph
-                ? patchPackageGraphLayout(options.activePackage, parsed.input.graph)
-                : options.activePackage;
-              updatedPackage = compileCustomSimulationPackage({
-                id: `${options.activePackage.id}-input-${Date.now().toString(36)}`,
-                title: options.activePackage.title,
+              updatedPackage = recompileSimulationInput({
+                activePackage: options.activePackage,
+                input: { ...parsed.input, origin: 'user' },
                 locale: options.locale,
-                program: options.activePackage.program,
-                input: {
-                  ...options.activePackage.input,
-                  value: { ...parsed.input, origin: 'user' },
-                  origin: 'user',
-                },
-                visualization: patched.visualization,
-                analysis: options.activePackage.analysis,
+                workspace: options.workspace,
               });
             }
             return updatedPackage.steps;
@@ -830,6 +834,81 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           package: packageValue,
           input: packageValue.input.value,
           steps: packageValue.steps,
+        };
+      }
+      if (['jump-game-dp', 'jump-game-greedy', 'lis-quadratic-dp', 'lis-binary-search'].includes(creationIntent.template)) {
+        const template = creationIntent.template as ArrayTemplateId;
+        let preparedPackage: CustomSimulationPackageV1 | null = null;
+        await runJob('architect-design-algorithm-contract', () => {
+          const summary = `Selected the validated deterministic ${template} contract.`;
+          setJob('architect-design-algorithm-contract', { summary });
+          return summary;
+        });
+        await runJob('code-author-author-executable-program', async () => {
+          preparedPackage = compileArrayTemplatePackage({
+            template, id: runId, request: options.request, locale: options.locale, workspace: options.workspace,
+          });
+          await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
+          const summary = `Authored the source-mapped ${template} implementation.`;
+          setJob('code-author-author-executable-program', { summary });
+          return summary;
+        });
+        await runJob('input-engineer-build-original-teaching-input', () => {
+          const summary = 'Resolved explicit input or selected a bounded branch-rich teaching input.';
+          setJob('input-engineer-build-original-teaching-input', { summary });
+          return summary;
+        });
+        await runJob('visual-designer-design-semantic-visual-language', () => {
+          const summary = template.startsWith('lis-')
+            ? 'Array states expose the DP or tails sequence and active comparison.'
+            : 'Array states expose reachable positions or the greedy farthest frontier.';
+          setJob('visual-designer-design-semantic-visual-language', { summary });
+          return summary;
+        });
+        await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
+          const summary = 'Scroll-safe array layout selected for every bounded input size.';
+          setJob('layout-engineer-resolve-responsive-graph-layout', { summary });
+          return summary;
+        });
+        const packageValue = await runJob('compiler-compile-source-and-trace', () => preparedPackage
+          ?? compileArrayTemplatePackage({
+            template, id: runId, request: options.request, locale: options.locale, workspace: options.workspace,
+          }));
+        await runJob('critic-test-visual-and-trace-alignment', () => {
+          if (!packageValue.tests.passed || !packageValue.steps.length) throw new Error('Array template package failed validation.');
+          const resultStep = packageValue.steps.at(-1);
+          if (!resultStep || !Object.prototype.hasOwnProperty.call(resultStep.visualData.vars, 'result')) {
+            throw new Error('Array template has no grounded final result.');
+          }
+          const summary = `${packageValue.steps.length} deterministic source-mapped states passed.`;
+          setJob('critic-test-visual-and-trace-alignment', { summary });
+          return summary;
+        });
+        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('trace-director-direct-live-teaching-checkpoints', () => {
+          const summary = `${packageValue.teachingPlan.checkpoints.length} grounded checkpoints prepared.`;
+          setJob('trace-director-direct-live-teaching-checkpoints', { summary });
+          return summary;
+        });
+        await runJob('result-analyst-ground-final-result-analysis', () => {
+          const summary = packageValue.teachingPlan.finalResult.summary;
+          setJob('result-analyst-ground-final-result-analysis', { summary });
+          return summary;
+        });
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () => callOptionalAgent(
+          'tutor',
+          'Explain this committed package through Code, Data, Visual, Reasoning, and Time without inventing values.',
+          fiveLensContext(options.workspace, options.request, packageValue),
+          deterministicPackageTour(options.locale, packageValue),
+          undefined,
+          620,
+        ));
+        return {
+          status: 'success', runId, plan,
+          summary: options.locale === 'tr'
+            ? `${packageValue.title} kodu, inputu, trace'i ve öğretim turu uygulandı.`
+            : `${packageValue.title} code, input, trace, and teaching tour were applied.`,
+          tutorAnswer, package: packageValue, input: packageValue.input.value, steps: packageValue.steps,
         };
       }
       if (['house-robber-1d-dp', 'lcs-2d-dp', 'lcs-space-optimized-1d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {

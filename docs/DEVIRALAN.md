@@ -4,10 +4,10 @@ Last updated: 2026-08-02
 
 ## Repository state
 
-- Branch: `main`; synchronized base commit: `f058a58`.
-- The working tree contains a combined, uncommitted catalog/God Mode change set
-  from Gemini and Codex. Preserve it as one integration scope; do not reapply
-  `stash@{0}` (`codex-pre-pull-handoff-2026-08-02`).
+- Branch: `main`; synchronized base commit: `b23a901`.
+- The working tree contains the uncommitted internal-catalog, natural-input,
+  multi-path, and source-fidelity acceptance scope described below. Preserve it
+  as one integration change set.
 - Package version: `2.1.2`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
@@ -23,7 +23,10 @@ Last updated: 2026-08-02
   input, deterministic trace, semantic visual, and grounded-result gates.
 - `catalogSupportRegistry.ts` uses strict `source:id` keys. The catalog drawer
   sends the same identity to God Mode.
-- The catalog UI is now titled `Examples` / `Örnekler` because it spans four
+- The catalog UI is now an internal development tool. Its trigger, JavaScript,
+  and CSS are included only in development builds on `localhost`, `127.0.0.1`,
+  or the IPv6 loopback host; production builds do not expose or ship the drawer.
+  It is titled `Examples` / `Örnekler` because it spans four
   platforms. It runtime-loads only the selected platform, supports title/ID/tag
   search plus difficulty and derived-category filters, paginates at 50 rows,
   and exposes a selectable metadata detail panel for every record. Only exact,
@@ -56,6 +59,12 @@ Last updated: 2026-08-02
 - Exact compiler families cover DP, arrays, strings, matrix, backtracking,
   linked lists, graph algorithms, trees, trie, and segment tree. Large matrix,
   advanced graph, and advanced structure compilers are lazy-loaded.
+- The exact registry now contains 32 strict LeetCode `source:id` contracts.
+  LeetCode 55 defaults to a source-mapped quadratic Jump Game DP package and can
+  switch on demand to a linear/O(1) greedy package. LeetCode 300 defaults to a
+  quadratic LIS DP package and can switch to an O(n log n) `tails`/binary-search
+  package. Both paths keep the current problem identity and atomically replace
+  source, input, trace, analysis, and teaching checkpoints.
 - Advanced graph compiler nodes now use deterministic percentage-based radial
   coordinates inside a reserved safe viewport. LeetCode 847 and the other
   advanced graph packages no longer interpret pixel-like values as percentages,
@@ -79,6 +88,13 @@ Last updated: 2026-08-02
   synchronized. Unsupported fixed packages fail without changing the existing
   simulation. The adapt-input agent uses the same compiler dispatcher and now
   recognizes explicit arrays, quoted strings, and common numeric parameters.
+- Natural input requests are executable transactions rather than advisory
+  prose. `inputu düzenle` selects a fresh compatible teaching input, `inputu
+  genişlet` grows the active input, and program-specific constraints keep Jump
+  Game/House Robber non-negative, Coin/Knapsack positive, and binary-search
+  families sorted. True matrix packages accept rectangular dimensions such as
+  `gridi 8*15 yap`; Spiral Matrix emits all 120 cells in a 122-step trace.
+  Square interval-DP sizing remains governed by its own semantic contract.
 - Model-authored teaching inputs are intentionally richer: ordinary arrays use
   14 elements, strings use longer repeated/overlapping patterns, backtracking
   remains bounded at five elements, graph/tree inputs retain their structured
@@ -130,10 +146,10 @@ The detailed evidence and model findings are in
 
 ## Latest verification
 
-Run on 2026-08-02 from the combined working tree:
+Run on 2026-08-02 from the current working tree:
 
 - `npm run lint`: passed, no warnings.
-- `npm run test`: 67 files, 425/425 passed.
+- `npm run test -- --run`: 72 files, 455/455 passed.
 - Advanced graph acceptance now checks that every generated node has a unique
   position within the safe visual bounds. A live LeetCode 847 catalog run at
   `http://localhost:5173/` rendered 4/4 nodes fully inside the graph container.
@@ -176,17 +192,24 @@ Run on 2026-08-02 from the combined working tree:
   audit, platform loading, detail normalization/cache, source failure handling,
   filters, verified/unverified dispatch, Escape, and focus.
 - focused catalog/orchestrator acceptance: 79/79 passed.
-- `npm run build`: passed.
-  - initial JS 556.7/620 KiB;
+- `npm run build`: passed. The internal catalog drawer produced no production
+  JavaScript or CSS chunk.
+  - initial JS 568.7/620 KiB;
   - every lazy JS chunk <=100 KiB;
   - local AI worker 5,929.9/6,500 KiB;
-  - styles 93.4/100 KiB.
+  - styles 76.2/100 KiB.
 - Simulation-maximize verification: `App.layout.test.tsx` plus both
   `DynamicVisualizer` suites passed (7/7), the production build passed with
   initial JS 556.7/620 KiB and styles 93.4/100 KiB, and the live localhost
   smoke confirmed that maximizing removes the assistant while retaining
   Controls and that Restore brings the AI maximize action back.
-- `npm run test:e2e` with the documented external-server switch: 61/61 passed.
+- `npm run test:e2e` with the documented external-server switch completed one
+  65/65 pass. A final high-load rerun reported four timing failures (two
+  bidirectional-BFS 5-second waits, one timeline performance threshold, and the
+  release-tour BFS wait) while the new scenarios still passed; the complete six
+  tests from those affected specs then passed 6/6 in an isolated rerun. The new
+  acceptance includes DP-to-greedy Jump Game, quadratic-to-binary-search LIS,
+  natural input edit/expand, and rectangular 8x15 matrix behavior.
 - Focused Playwright acceptance for the exact Turkish Coin Exchange request:
   1/1 passed, including God Mode dispatch, Java source application, timeline
   completion, and final result `3`.
@@ -224,10 +247,10 @@ deterministic acceptance result.
   error instead of leaving partial generated source in the editor. The five
   previously failing E2E areas were rerun after updating the layout-v7 and
   dedicated-analysis-card assertions: 8/8 focused Playwright tests passed.
-- Final verification after these repairs: lint passed without warnings, 68
-  Vitest files / 425 tests passed, and the production build passed (initial JS
-  568.5/620 KiB; all lazy chunks <=100 KiB; worker 5929.9/6500 KiB; styles
-  93.4/100 KiB).
+- Final verification after these repairs: lint passed without warnings, 72
+  Vitest files / 455 tests passed, the Playwright result is recorded above, and
+  the production build passed (initial JS 568.7/620 KiB; all lazy chunks <=100
+  KiB; worker 5929.9/6500 KiB; styles 76.2/100 KiB).
 
 ## Known limits and next priorities
 
@@ -237,13 +260,13 @@ deterministic acceptance result.
    or route an unsupported title to a generic family demo.
 3. Replace the two retained legacy array comparison functions after the catalog
    migration is stable; LC209 and LC560 already use their exact implementations.
-4. Continue per-title validation. Convert the completed interactive exact-entry
-   smoke flow into a committed Playwright scenario when the shared catalog
-   integration diff is stabilized.
+4. Continue per-title validation. The multi-path and natural-input flows now
+   have committed Playwright coverage; extend it only with newly registered
+   exact identities or source-specific regressions.
 5. Rerun cached DeepSeek and Qwen real-model scenarios separately. Keep their
    planner/author failures visible and do not convert prose into pass evidence.
-6. Before commit, review the combined Gemini/Codex diff carefully because both
-   agents modified the same integration scope.
+6. Before commit, review the internal-catalog/input/multi-path scope as one
+   transaction and keep source-fidelity claims bounded by reader availability.
 7. Extend the deployed first-party reader with a lawful AtCoder ingestion path
    before claiming full AtCoder statement/example availability. Re-run the live
    source matrix afterward; never replace blocked source text with model output.

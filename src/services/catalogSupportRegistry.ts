@@ -28,6 +28,7 @@ export type ExactSupportContract =
   | { type: 'needs-source' };
 
 const exactContracts = new Map<string, ExactCatalogTemplate>([
+  ['leetcode:55', 'jump-game-dp'],
   ['leetcode:72', 'edit-distance-2d-dp'],
   ['leetcode:77', 'combinations-backtracking'],
   ['leetcode:78', 'subsets-backtracking'],
@@ -39,6 +40,7 @@ const exactContracts = new Map<string, ExactCatalogTemplate>([
   ['leetcode:208', 'implement-trie'],
   ['leetcode:206', 'reverse-linked-list'],
   ['leetcode:209', 'sliding-window-array'],
+  ['leetcode:300', 'lis-quadratic-dp'],
   ['leetcode:307', 'range-sum-segment-tree'],
   ['leetcode:560', 'prefix-sum-array'],
   ['leetcode:704', 'binary-search-array'],

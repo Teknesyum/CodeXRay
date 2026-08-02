@@ -9,6 +9,7 @@ import { compileGraphTemplatePackage } from './graphCompiler';
 import { compilePredictWinnerPackage } from './intervalDpCompiler';
 import { compileLinkedListTemplatePackage } from './linkedListCompiler';
 import { compileStringTemplatePackage, type StringTemplateId } from './stringCompiler';
+import { compileMatrixTemplatePackage } from './matrixCompiler';
 
 const DP_TEMPLATES: Record<string, DpTemplateId> = {
   house_robber_1d_dp: 'house-robber-1d-dp',
@@ -26,6 +27,10 @@ const ARRAY_TEMPLATES: Record<string, ArrayTemplateId> = {
   subarray_sum_equals_k: 'prefix-sum-array',
   binary_search_array: 'binary-search-array',
   palindrome_number: 'palindrome-number',
+  jump_game_dp: 'jump-game-dp',
+  jump_game_greedy: 'jump-game-greedy',
+  lis_quadratic_dp: 'lis-quadratic-dp',
+  lis_binary_search: 'lis-binary-search',
 };
 
 const STRING_TEMPLATES: Record<string, StringTemplateId> = {
@@ -79,6 +84,7 @@ export const recompileSimulationInput = (options: {
   };
 
   if (programId === 'predict_winner_interval_dp') return compilePredictWinnerPackage(common);
+  if (programId === 'spiral_matrix') return compileMatrixTemplatePackage({ ...common, template: 'spiral-matrix' });
   if (DP_TEMPLATES[programId]) return compileDpTemplatePackage({ ...common, template: DP_TEMPLATES[programId] });
   if (ARRAY_TEMPLATES[programId]) return compileArrayTemplatePackage({ ...common, template: ARRAY_TEMPLATES[programId] });
   if (STRING_TEMPLATES[programId]) return compileStringTemplatePackage({ ...common, template: STRING_TEMPLATES[programId] });

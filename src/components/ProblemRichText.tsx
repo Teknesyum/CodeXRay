@@ -103,12 +103,17 @@ const renderMath = (expression: string, key: string, block: boolean): ReactNode 
 
 const renderPlainText = (text: string, key: string): ReactNode[] => {
   const nodes: ReactNode[] = [];
-  const exponent = /\b([A-Za-z0-9]+)\^(\{[^}\n]+\}|[+-]?\d+)|\b(10)[\u2009\u200a\u202f ]+([1-9])(?=[\s.,;)])/g;
+  const exponent = /\b([A-Za-z0-9]+)\^(\{[^}\n]+\}|[+-]?\d+)|((?:≤|>=|<=|<|>)\s*)(10)[\u2009\u200a\u202f ]+([1-9]\d?)(?=[\s.,;)])/g;
   let cursor = 0;
   for (const match of text.matchAll(exponent)) {
     const index = match.index ?? 0;
     if (index > cursor) nodes.push(text.slice(cursor, index));
-    nodes.push(renderMath(`${match[1] ?? match[3]}^${match[2] ?? match[4]}`, `${key}-power-${index}`, false));
+    if (match[3]) nodes.push(match[3]);
+    const exponentValue = match[2] ?? match[5] ?? '';
+    const exponentScript = exponentValue.startsWith('{') || exponentValue.length === 1
+      ? exponentValue
+      : `{${exponentValue}}`;
+    nodes.push(renderMath(`${match[1] ?? match[4]}^${exponentScript}`, `${key}-power-${index}`, false));
     cursor = index + match[0].length;
   }
   if (cursor < text.length) nodes.push(text.slice(cursor));

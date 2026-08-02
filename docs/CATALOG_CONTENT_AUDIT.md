@@ -22,6 +22,11 @@ into the repository. Selecting a record loads only that problem through the
 first-party `/api/codexray/read-url` gateway. The cleaned artifact is schema
 validated, bounded, and cached in memory by `source:id`.
 
+The catalog drawer is an internal development surface. Production builds omit
+its trigger and its lazy JavaScript/CSS chunks; it is available only in a Vite
+development build on a loopback hostname. This is visibility isolation, not a
+replacement for authenticated per-user authorization.
+
 ## Integrated detail fields
 
 The detail panel can display these source-grounded fields:
@@ -46,6 +51,9 @@ never invented.
 ## God Mode binding
 
 - Green-check records use the registered exact `source:id` simulation package.
+- The registry currently contains 32 exact LeetCode contracts. LeetCode 55 and
+  300 additionally expose verified on-demand optimization paths (DP to greedy,
+  and quadratic DP to O(n log n) binary search respectively).
 - Other records submit their canonical source URL to the validated web-problem
   pipeline.
 - Reader, schema, compiler, sample, visual, or critic failure leaves the
@@ -74,6 +82,8 @@ The localhost gateway was exercised against representative official pages:
 - Unit coverage for source URL generation, detail cache, empty-content
   rejection, generic section extraction, Codeforces chrome removal, source
   failure UI, platform switching, filtering, selection, and God Mode dispatch.
+- Math fidelity coverage includes literal, braced, Codeforces triple-dollar,
+  and escaped-inline forms of `10^4`, plus flattened `10 9` recovery.
 - Interactive browser verification for LeetCode, CSES, Codeforces, and AtCoder
   failure behavior.
 

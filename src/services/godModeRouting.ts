@@ -126,6 +126,18 @@ export const routeGodModeRequest = (
   if (/\b(oynat|baslat|devam|play|resume)\b/.test(text) && steps.length) {
     return { type: 'deterministic', actions: [{ type: 'play' }] };
   }
+  const requestsGreedy = /\b(greedy|acgozlu)\b/.test(text);
+  const currentIsJumpGame = /\bjump game\b/i.test(algorithmName);
+  const currentIsLis = /\b(?:lis|longest increasing subsequence)\b/i.test(algorithmName);
+  if ((/\bjump game\b/.test(text) || (currentIsJumpGame && requestsGreedy))
+    && /\b(coz|yaz|olustur|simule|uygula|solve|write|create|simulate|apply)\w*\b/.test(text)) {
+    return { type: 'create-algorithm', template: requestsGreedy ? 'jump-game-greedy' : 'jump-game-dp' };
+  }
+  const requestsFastLis = /\b(?:o\s*n\s*log\s*n|n\s*log\s*n|binary search|ikili arama)\b/.test(text);
+  if ((/\b(?:lis|longest increasing subsequence)\b/.test(text) || (currentIsLis && requestsFastLis))
+    && /\b(coz|yaz|olustur|simule|uygula|anlat|solve|write|create|simulate|apply|explain)\w*\b/.test(text)) {
+    return { type: 'create-algorithm', template: requestsFastLis ? 'lis-binary-search' : 'lis-quadratic-dp' };
+  }
   if (/\b(?:leetcode\s*)?486\b|predict the winner|kazanan[ıi] tahmin/.test(text)
     && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
     return { type: 'create-algorithm', template: 'predict-winner-interval-dp' };
@@ -174,14 +186,14 @@ export const routeGodModeRequest = (
   }
   const requestsCompositeCreation = /\b(coz|cozum|yaz|generate|write|build|solve)\w*\b/.test(text)
     && /\b(simule|calistir|uygula|goster|simulate|run|execute|visualize|show)\w*\b/.test(text);
-  const hasSquareInputSize = (
-    /\b(\d{1,2})\s*(?:x|\*)\s*\1\b/.test(text)
+  const hasSizedInput = (
+    /\b\d{1,2}\s*(?:x|\*)\s*\d{1,2}\b/.test(text)
     || /\b\d{1,2}\s*(?:elemanli|boyutlu|uzunlugunda)\b/.test(text)
   );
-  const hasSizedInputTarget = /\b(bunu|bu|mevcut|current|this|simulasyon\w*|simulation\w*|input\w*|girdi\w*|dizi\w*|tablo\w*|matrix\w*)\b/.test(text);
+  const hasSizedInputTarget = /\b(bunu|bu|mevcut|current|this|simulasyon\w*|simulation\w*|input\w*|girdi\w*|dizi\w*|tablo\w*|matrix\w*|matris\w*|grid\w*)\b/.test(text);
   const hasResizeCommand = /\b(yap|yapar|yapin|yapalim|yapsana|yapabilir|cikar\w*|buyut\w*|degistir\w*|uyarla\w*|kur|make|resize|change|adapt)\b/.test(text);
   const hasExecutionCommand = /\b(simule|calistir|uygula|tekrar|yeniden|simulate|run|execute|rerun)\w*\b/.test(text);
-  const requestsSizedResimulation = hasSquareInputSize
+  const requestsSizedResimulation = hasSizedInput
     && hasSizedInputTarget
     && (hasResizeCommand || hasExecutionCommand);
   if (!requestsCompositeCreation && requestsSizedResimulation) {
@@ -189,7 +201,7 @@ export const routeGodModeRequest = (
   }
   if (!requestsCompositeCreation
     && /\b(input\w*|girdi\w*|veri\w*)\b/.test(text)
-    && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|adapt|create|prepare|change)\b/.test(text)) {
+    && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|genislet|buyut|uzat|adapt|create|prepare|change|expand|extend|grow)\b/.test(text)) {
     return { type: 'adapt-input' };
   }
   if (/\b(graph\w*|graf\w*|node\w*|dugum\w*|cephe\w*|frontier\w*|layout\w*|yerlesim\w*)\b/.test(text)

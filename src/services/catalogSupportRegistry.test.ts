@@ -19,6 +19,7 @@ import { checkProblemSupport, getExactCatalogTemplate } from './catalogSupportRe
 
 describe('catalog exact-support registry', () => {
   it.each([
+    ['55', 'jump-game-dp'],
     ['72', 'edit-distance-2d-dp'],
     ['77', 'combinations-backtracking'],
     ['78', 'subsets-backtracking'],
@@ -31,6 +32,7 @@ describe('catalog exact-support registry', () => {
     ['208', 'implement-trie'],
     ['206', 'reverse-linked-list'],
     ['209', 'sliding-window-array'],
+    ['300', 'lis-quadratic-dp'],
     ['307', 'range-sum-segment-tree'],
     ['322', 'coin-change-1d-dp'],
     ['337', 'house-robber-tree-dp'],

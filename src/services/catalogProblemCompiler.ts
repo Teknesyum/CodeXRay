@@ -22,7 +22,8 @@ export const compileExactCatalogProblem = async (
     const { compileDpTemplatePackage } = await import('./dpTemplateCompiler');
     return compileDpTemplatePackage({ ...common, template: template as DpTemplateId });
   }
-  if (['two-pointers-array', 'sliding-window-array', 'prefix-sum-array', 'binary-search-array', 'palindrome-number'].includes(template)) {
+  if (['two-pointers-array', 'sliding-window-array', 'prefix-sum-array', 'binary-search-array', 'palindrome-number',
+    'jump-game-dp', 'jump-game-greedy', 'lis-quadratic-dp', 'lis-binary-search'].includes(template)) {
     const { compileArrayTemplatePackage } = await import('./arrayCompiler');
     return compileArrayTemplatePackage({ ...common, template: template as import('./arrayCompiler').ArrayTemplateId });
   }

@@ -13,16 +13,40 @@ import { createTeachingPlan } from './teachingPlan';
 export type MatrixTemplateId = 'spiral-matrix';
 
 const DEFAULT_MATRIX = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+export const MAX_MATRIX_SIDE = 15;
+export const MAX_MATRIX_CELLS = 200;
+
+export const matrixDimensionsFromRequest = (request: string): { rows: number; columns: number } | null => {
+  const match = request.match(/\b(\d{1,2})\s*(?:x|×|\*)\s*(\d{1,2})\b/i);
+  if (!match) return null;
+  const rows = Number(match[1]);
+  const columns = Number(match[2]);
+  return Number.isInteger(rows)
+    && Number.isInteger(columns)
+    && rows >= 1
+    && columns >= 1
+    && rows <= MAX_MATRIX_SIDE
+    && columns <= MAX_MATRIX_SIDE
+    && rows * columns <= MAX_MATRIX_CELLS
+    ? { rows, columns }
+    : null;
+};
+
+export const createTeachingMatrix = (rows: number, columns: number, start = 1): number[][] => (
+  Array.from({ length: rows }, (_, row) => (
+    Array.from({ length: columns }, (_, column) => row * columns + column + start)
+  ))
+);
 
 const requestMatrix = (request: string): number[][] | null => {
   const raw = request.match(/\[\s*\[[\s\S]*?\]\s*\]/)?.[0];
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as unknown;
-    if (!Array.isArray(value) || value.length === 0 || value.length > 8) return null;
+    if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MATRIX_SIDE) return null;
     const matrix = value as unknown[];
     const width = Array.isArray(matrix[0]) ? matrix[0].length : 0;
-    return width > 0 && width <= 8 && matrix.every((row) =>
+    return width > 0 && width <= MAX_MATRIX_SIDE && matrix.length * width <= MAX_MATRIX_CELLS && matrix.every((row) =>
       Array.isArray(row) && row.length === width && row.every(Number.isSafeInteger))
       ? matrix as number[][]
       : null;
@@ -99,7 +123,9 @@ export const compileMatrixTemplatePackage = (options: {
   workspace: WorkspaceSnapshotV1;
 }): CustomSimulationPackageV1 => {
   const explicit = requestMatrix(options.request);
-  const matrix = explicit ?? DEFAULT_MATRIX;
+  const requestedDimensions = matrixDimensionsFromRequest(options.request);
+  const matrix = explicit
+    ?? (requestedDimensions ? createTeachingMatrix(requestedDimensions.rows, requestedDimensions.columns) : DEFAULT_MATRIX);
   const result: number[] = [];
   const visited = new Set<string>();
   const steps: SimulationStep[] = [];
@@ -141,7 +167,7 @@ export const compileMatrixTemplatePackage = (options: {
   };
   const input: InputContractV1 = {
     version: 1, kind: 'array', description: 'Rectangular integer matrix',
-    constraints: ['1 <= rows, columns <= 8 for an interactive trace'], value: inputValue,
+    constraints: [`1 <= rows, columns <= ${MAX_MATRIX_SIDE}`, `rows * columns <= ${MAX_MATRIX_CELLS}`], value: inputValue,
     origin: explicit ? 'user' : 'agent',
   };
   const visualization: VisualizationContractV1 = {
@@ -151,7 +177,7 @@ export const compileMatrixTemplatePackage = (options: {
   const program: ProgramSpecV1 = {
     version: 1, id: 'spiral_matrix', title: 'LeetCode 54 — Spiral Matrix', locale: options.locale,
     inputKind: 'array', entry: [], functions: [],
-    budgets: { instructions: 2_000, traceSteps: 100, recursionDepth: 1, collectionSize: 64 },
+    budgets: { instructions: 4_000, traceSteps: MAX_MATRIX_CELLS + 4, recursionDepth: 1, collectionSize: MAX_MATRIX_CELLS },
   };
   const checkpoints = reviewTrace(steps, Math.min(16, steps.length));
   return {

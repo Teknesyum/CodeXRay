@@ -19,7 +19,11 @@ export type ArrayTemplateId =
   | 'sliding-window-array'
   | 'prefix-sum-array'
   | 'binary-search-array'
-  | 'palindrome-number';
+  | 'palindrome-number'
+  | 'jump-game-dp'
+  | 'jump-game-greedy'
+  | 'lis-quadratic-dp'
+  | 'lis-binary-search';
 
 interface ArrayArtifact {
   id: string;
@@ -90,7 +94,7 @@ const programShell = (id: string, title: string, locale: Locale, inputKind: Simu
   inputKind,
   entry: [],
   functions: [],
-  budgets: { instructions: 2_000, traceSteps: 160, recursionDepth: 1, collectionSize: MAX_ITEMS },
+  budgets: { instructions: 2_000, traceSteps: 420, recursionDepth: 1, collectionSize: MAX_ITEMS },
 });
 
 const twoPointersArtifact = (request: string, locale: Locale, _workspace: WorkspaceSnapshotV1): ArrayArtifact => {
@@ -543,6 +547,131 @@ const palindromeNumberArtifact = (request: string, locale: Locale): ArrayArtifac
   };
 };
 
+const jumpGameArtifact = (request: string, locale: Locale, greedy: boolean): ArrayArtifact => {
+  const explicit = requestArray(request);
+  const values = explicit ?? [2, 3, 1, 1, 4];
+  if (values.some((value) => value < 0)) throw new Error('Jump Game requires non-negative jump lengths.');
+  const steps: SimulationStep[] = [];
+  let result = true;
+  if (greedy) {
+    let farthest = 0;
+    values.forEach((value, index) => {
+      if (!result) return;
+      if (index > farthest) result = false;
+      else farthest = Math.max(farthest, index + value);
+      steps.push(arrayStep(values, { index }, { farthest, result }, result ? 7 : 6,
+        locale === 'tr' ? `İşlenen önek için en uzak erişim: ${farthest}.` : `Farthest reach for the processed prefix: ${farthest}.`));
+    });
+    steps.push(arrayStep(values, {}, { farthest, result }, 10,
+      locale === 'tr' ? `Greedy erişim sonucu: ${result}.` : `Greedy reachability result: ${result}.`));
+  } else {
+    const reachable = Array<boolean>(values.length).fill(false);
+    reachable[0] = true;
+    steps.push(arrayStep(values, { index: 0 }, { reachable: [...reachable] }, 5,
+      locale === 'tr' ? 'Başlangıç konumu erişilebilir olarak işaretlendi.' : 'Mark the starting position reachable.'));
+    for (let index = 0; index < values.length; index += 1) {
+      if (!reachable[index]) continue;
+      for (let next = index + 1; next <= Math.min(values.length - 1, index + values[index]); next += 1) {
+        reachable[next] = true;
+        steps.push(arrayStep(values, { index, next }, { reachable: [...reachable] }, 9,
+          locale === 'tr' ? `${index} konumundan ${next} konumuna erişildi.` : `Reach index ${next} from index ${index}.`));
+      }
+    }
+    result = reachable.at(-1) ?? false;
+    steps.push(arrayStep(values, {}, { reachable: [...reachable], result }, 13,
+      locale === 'tr' ? `DP erişim sonucu: ${result}.` : `DP reachability result: ${result}.`));
+  }
+  const variant = greedy ? 'Greedy' : 'DP';
+  return {
+    id: greedy ? 'jump_game_greedy' : 'jump_game_dp',
+    title: `LeetCode 55 — Jump Game (${variant})`,
+    input: { kind: 'array', text: JSON.stringify(values), origin: explicit ? 'user' : 'agent' },
+    inputDescription: 'Non-negative maximum jump lengths',
+    constraints: [`1 <= nums.length <= ${MAX_ITEMS}`, '0 <= nums[i]'],
+    source: greedy ? source([
+      'class Solution {', 'public:', '  bool canJump(vector<int>& nums) {', '    int farthest = 0;',
+      '    for (int i = 0; i < nums.size(); ++i) {', '      if (i > farthest) return false;',
+      '      farthest = max(farthest, i + nums[i]);', '    }', '    return true;', '  }', '};',
+    ], { check: 6, update: 7, result: 9 }) : source([
+      'class Solution {', 'public:', '  bool canJump(vector<int>& nums) {',
+      '    vector<bool> reachable(nums.size(), false);', '    reachable[0] = true;',
+      '    for (int i = 0; i < nums.size(); ++i) {', '      if (!reachable[i]) continue;',
+      '      for (int j = i + 1; j <= min((int)nums.size() - 1, i + nums[i]); ++j)',
+      '        reachable[j] = true;', '    }', '    return reachable.back();', '  }', '};',
+    ], { init: 5, transition: 9, result: 11 }),
+    steps,
+    visualization: { version: 1, type: 'array', activeVariables: ['index'], queuedVariables: greedy ? ['farthest'] : ['next'], visitedVariables: greedy ? [] : ['reachable'] },
+    analysis: greedy
+      ? 'State: farthest is the greatest index reachable from the processed prefix.\nTime Complexity: O(n)\nSpace Complexity: O(1)'
+      : 'State: reachable[i] tells whether index i can be visited.\nTime Complexity: O(n^2)\nSpace Complexity: O(n)',
+    invariants: [greedy
+      ? 'Every index at or before farthest is reachable from the processed prefix.'
+      : 'Every true reachable state has a valid chain of jumps from index 0.'],
+  };
+};
+
+const lisArtifact = (request: string, locale: Locale, binary: boolean): ArrayArtifact => {
+  const explicit = requestArray(request);
+  const values = explicit ?? [10, 9, 2, 5, 3, 7, 101, 18];
+  const steps: SimulationStep[] = [];
+  let result = 0;
+  if (binary) {
+    const tails: number[] = [];
+    values.forEach((value, index) => {
+      let left = 0;
+      let right = tails.length;
+      while (left < right) {
+        const middle = Math.floor((left + right) / 2);
+        if (tails[middle] < value) left = middle + 1;
+        else right = middle;
+      }
+      tails[left] = value;
+      steps.push(arrayStep(values, { index }, { value, position: left, tails: [...tails] }, 8,
+        locale === 'tr' ? `${value}, tails[${left}] konumuna yerleştirildi.` : `Place ${value} at tails[${left}].`));
+    });
+    result = tails.length;
+    steps.push(arrayStep(values, {}, { tails: [...tails], result }, 11,
+      locale === 'tr' ? `tails uzunluğu LIS sonucudur: ${result}.` : `The tails length is the LIS result: ${result}.`));
+  } else {
+    const dp = Array<number>(values.length).fill(1);
+    steps.push(arrayStep(values, {}, { dp: [...dp] }, 4,
+      locale === 'tr' ? 'Her öğe tek başına uzunluğu 1 olan bir alt dizidir.' : 'Each value starts a subsequence of length 1.'));
+    for (let index = 0; index < values.length; index += 1) {
+      for (let previous = 0; previous < index; previous += 1) {
+        if (values[previous] < values[index]) dp[index] = Math.max(dp[index], dp[previous] + 1);
+        steps.push(arrayStep(values, { previous, index }, { dp: [...dp] }, 8,
+          locale === 'tr' ? `dp[${index}] için ${previous} önceki konumu sınandı.` : `Test predecessor ${previous} for dp[${index}].`));
+      }
+    }
+    result = Math.max(...dp);
+    steps.push(arrayStep(values, {}, { dp: [...dp], result }, 11,
+      locale === 'tr' ? `LIS uzunluğu ${result}.` : `The LIS length is ${result}.`));
+  }
+  return {
+    id: binary ? 'lis_binary_search' : 'lis_quadratic_dp',
+    title: `LeetCode 300 — Longest Increasing Subsequence (${binary ? 'O(n log n)' : 'O(n²) DP'})`,
+    input: { kind: 'array', text: JSON.stringify(values), origin: explicit ? 'user' : 'agent' },
+    inputDescription: 'Integer sequence', constraints: [`1 <= nums.length <= ${MAX_ITEMS}`],
+    source: binary ? source([
+      'class Solution {', 'public:', '  int lengthOfLIS(vector<int>& nums) {', '    vector<int> tails;',
+      '    for (int value : nums) {', '      auto position = lower_bound(tails.begin(), tails.end(), value);',
+      '      if (position == tails.end()) tails.push_back(value);', '      else *position = value;',
+      '    }', '    return tails.size();', '  }', '};',
+    ], { search: 6, update: 8, result: 10 }) : source([
+      'class Solution {', 'public:', '  int lengthOfLIS(vector<int>& nums) {', '    vector<int> dp(nums.size(), 1);',
+      '    for (int i = 0; i < nums.size(); ++i)', '      for (int j = 0; j < i; ++j)',
+      '        if (nums[j] < nums[i])', '          dp[i] = max(dp[i], dp[j] + 1);',
+      '    return *max_element(dp.begin(), dp.end());', '  }', '};',
+    ], { init: 4, transition: 8, result: 9 }),
+    steps,
+    visualization: { version: 1, type: 'array', activeVariables: binary ? ['index'] : ['previous', 'index'], queuedVariables: binary ? ['position'] : [], visitedVariables: [binary ? 'tails' : 'dp'] },
+    analysis: binary
+      ? 'State: tails[k] is the smallest tail for an increasing subsequence of length k+1.\nTime Complexity: O(n log n)\nSpace Complexity: O(n)'
+      : 'State: dp[i] is the longest increasing subsequence ending at i.\nTime Complexity: O(n^2)\nSpace Complexity: O(n)',
+    invariants: [binary ? 'tails remains sorted.' : 'dp[i] considers every earlier valid predecessor.'],
+  };
+};
+
 export const compileArrayTemplatePackage = (options: {
   template: ArrayTemplateId;
   id: string;
@@ -561,7 +690,15 @@ export const compileArrayTemplatePackage = (options: {
         ? subarraySumArtifact(options.request, options.locale)
         : options.template === 'binary-search-array'
           ? binarySearchArtifact(options.request, options.locale)
-          : palindromeNumberArtifact(options.request, options.locale);
+          : options.template === 'palindrome-number'
+            ? palindromeNumberArtifact(options.request, options.locale)
+            : options.template === 'jump-game-dp'
+              ? jumpGameArtifact(options.request, options.locale, false)
+              : options.template === 'jump-game-greedy'
+                ? jumpGameArtifact(options.request, options.locale, true)
+                : options.template === 'lis-quadratic-dp'
+                  ? lisArtifact(options.request, options.locale, false)
+                  : lisArtifact(options.request, options.locale, true);
 
   const input: InputContractV1 = {
     version: 1,

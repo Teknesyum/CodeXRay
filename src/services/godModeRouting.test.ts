@@ -44,6 +44,7 @@ describe('God Mode routing', () => {
 
   it('routes input adaptation as a multi-agent intent', () => {
     expect(routeGodModeRequest('bu kod için inputları düzenle', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeGodModeRequest('inputu genişlet', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
   it('keeps composite solve, author, input, and simulate requests on the creation pipeline', () => {
@@ -62,6 +63,7 @@ describe('God Mode routing', () => {
     'mevcut simülasyonumu 10x10 boyutuna çıkar',
     'inputu 10*10 yap',
     'girdiyi 10x10 yapabilir misin',
+    'gridi 8*15 yap',
   ])('routes sized follow-up simulations through input adaptation: %s', (request) => {
     expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
   });
@@ -113,6 +115,27 @@ describe('God Mode routing', () => {
       0,
       'LeetCode 1143 — Longest Common Subsequence',
     )).toEqual({ type: 'create-algorithm', template: 'lcs-space-optimized-1d-dp' });
+  });
+
+  it('routes the documented Jump Game optimization path', () => {
+    expect(routeGodModeRequest('Jump Game DP çöz ve simüle et', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'jump-game-dp',
+    });
+    expect(routeGodModeRequest('aynı soruyu greedy yap, kodu yaz ve simüle et', [], 0, 'LeetCode 55 — Jump Game (DP)')).toEqual({
+      type: 'create-algorithm', template: 'jump-game-greedy',
+    });
+  });
+
+  it('routes the documented LIS optimization path', () => {
+    expect(routeGodModeRequest('LIS sorusunu anlat', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'lis-quadratic-dp',
+    });
+    expect(routeGodModeRequest('LIS DP çöz ve simüle et', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'lis-quadratic-dp',
+    });
+    expect(routeGodModeRequest('O(n log n) binary search uygula, kodu yaz ve simüle et', [], 0, 'LeetCode 300 — Longest Increasing Subsequence (O(n²) DP)')).toEqual({
+      type: 'create-algorithm', template: 'lis-binary-search',
+    });
   });
 
   it.each([

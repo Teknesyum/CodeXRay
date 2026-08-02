@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LocalAgentHandle, LocalAgentProgress, LocalAgentRequest } from './localAiService';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
 import { startGodModeRun, validateArchitectureContract } from './godModeOrchestrator';
+import { compileMatrixTemplatePackage } from './matrixCompiler';
 
 const modelAuthoredProgram = {
   version: 1 as const,
@@ -559,5 +560,48 @@ describe('God Mode orchestrator', () => {
     ]));
     expect(structuralPackage.steps.length).toBeGreaterThan(0);
     expect(JSON.stringify(structuralPackage.steps)).toContain('X');
+  });
+
+  it.each([
+    ['jump-game-dp', 'Jump Game DP çöz ve simüle et', 'O(n^2)'],
+    ['jump-game-greedy', 'aynı soruyu greedy yap', 'O(n)'],
+    ['lis-quadratic-dp', 'LIS DP çöz ve simüle et', 'O(n^2)'],
+    ['lis-binary-search', 'LIS O(n log n) çöz', 'O(n log n)'],
+  ] as const)('applies the deterministic %s optimization package', async (template, request, complexity) => {
+    const applyPackage = vi.fn();
+    const result = await startGodModeRun({
+      request,
+      intent: { type: 'create-algorithm', template },
+      locale: 'tr', workspace, activePackage: null, onPlan: vi.fn(),
+      applyPackage, applyInput: vi.fn(), agentRunner: successfulAgent,
+    }).promise as any;
+    expect(result.package.analysis).toContain(complexity);
+    expect(result.package.steps.at(-1).visualData.vars.result).toBeDefined();
+    expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('recompiles an active matrix package as an 8 by 15 grid', async () => {
+    const activePackage = compileMatrixTemplatePackage({
+      template: 'spiral-matrix', id: 'initial', request: '3x3', locale: 'tr', workspace,
+    });
+    const matrixWorkspace = {
+      ...workspace,
+      algorithmName: activePackage.title,
+      code: activePackage.source.code,
+      simulationInput: activePackage.input.value,
+      steps: activePackage.steps,
+      activePackageId: activePackage.id,
+    };
+    const applyPackage = vi.fn();
+    await startGodModeRun({
+      request: 'gridi 8*15 yap', intent: { type: 'adapt-input' }, locale: 'tr',
+      workspace: matrixWorkspace, activePackage, onPlan: vi.fn(), applyPackage,
+      applyInput: vi.fn(), agentRunner: successfulAgent,
+    }).promise;
+    const updated = applyPackage.mock.calls[0]?.[0];
+    const matrix = JSON.parse(updated.input.value.text) as number[][];
+    expect(matrix).toHaveLength(8);
+    expect(matrix[0]).toHaveLength(15);
+    expect(updated.steps.at(-1).visualData.vars.visitedCells).toBe(120);
   });
 });

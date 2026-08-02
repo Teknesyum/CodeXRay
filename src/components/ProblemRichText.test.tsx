@@ -25,9 +25,18 @@ describe('ProblemRichText', () => {
   });
 
   it('repairs the flattened power notation returned by some cleaned Codeforces pages', () => {
-    const { container } = render(<ProblemRichText text={'1 ≤ n, m, a ≤ 10 9.'} />);
+    const { container } = render(<ProblemRichText text={'1 ≤ n, m, a ≤ 10 9 and x <= 10 18.'} />);
 
-    expect(container.querySelector('.problem-math')).toHaveAttribute('aria-label', '10^9');
-    expect(container.querySelector('sup')).toHaveTextContent('9');
+    expect(container.querySelectorAll('.problem-math')[0]).toHaveAttribute('aria-label', '10^9');
+    expect(container.querySelectorAll('.problem-math')[1]).toHaveAttribute('aria-label', '10^{18}');
+    expect(container.querySelectorAll('sup')[1]).toHaveTextContent('18');
   });
+
+  it.each(['10^4', '10^{4}', '$$$10^4$$$', '\\(10^4\\)'])(
+    'preserves a ten-to-the-fourth constraint from %s notation',
+    (notation) => {
+      const { container } = render(<ProblemRichText text={`1 <= n <= ${notation}`} />);
+      expect(container.querySelector('sup')).toHaveTextContent('4');
+    },
+  );
 });

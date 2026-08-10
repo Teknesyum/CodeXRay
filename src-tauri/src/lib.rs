@@ -212,7 +212,7 @@ fn completion_body(request: &CompletionRequest, stream: bool) -> Value {
         "model": request.model,
         "messages": request.messages,
         "temperature": request.temperature.clamp(0.0, 2.0),
-        "max_tokens": request.max_tokens.clamp(1, 16_384),
+        "max_tokens": request.max_tokens.clamp(1, 32_768),
         "stream": stream
     });
     if request.json_mode {
@@ -237,7 +237,11 @@ fn parse_usage(value: &Value) -> (Option<u64>, Option<u64>, Option<u64>) {
 }
 
 fn absolute_timeout_seconds(max_tokens: u32) -> u64 {
-    (300 + u64::from(max_tokens) / 16).clamp(300, 1_200)
+    (300 + u64::from(max_tokens) / 16).clamp(300, 1_800)
+}
+
+fn is_retryable_reasoning_only(answer: &str, reasoning: &str, finish_reason: &str) -> bool {
+    answer.is_empty() && !reasoning.is_empty() && finish_reason == "length"
 }
 
 async fn collect_non_streaming(
@@ -498,7 +502,11 @@ async fn collect_streaming(
             finish_reason: Some(finish_reason.clone()),
         },
     );
-    if answer.is_empty() {
+    // A reasoning model can spend the whole generation budget in its hidden
+    // trace and finish with `length` before emitting the requested answer.
+    // Return that bounded, typed result so the provider-neutral frontend can
+    // retry with a larger budget. Other empty streams remain protocol errors.
+    if answer.is_empty() && !is_retryable_reasoning_only(&answer, &reasoning, &finish_reason) {
         return Err("Local AI stream completed without visible content.".to_string());
     }
     Ok(CompletionResult {
@@ -830,7 +838,15 @@ mod tests {
     #[test]
     fn completion_timeout_scales_with_the_requested_output_budget() {
         assert!(absolute_timeout_seconds(512) >= 300);
-        assert_eq!(absolute_timeout_seconds(16_384), 1_200);
-        assert_eq!(absolute_timeout_seconds(u32::MAX), 1_200);
+        assert!(absolute_timeout_seconds(16_384) > 1_200);
+        assert_eq!(absolute_timeout_seconds(32_768), 1_800);
+        assert_eq!(absolute_timeout_seconds(u32::MAX), 1_800);
+    }
+
+    #[test]
+    fn reasoning_only_length_stop_is_returned_for_a_bounded_retry() {
+        assert!(is_retryable_reasoning_only("", "hidden trace", "length"));
+        assert!(!is_retryable_reasoning_only("", "", "length"));
+        assert!(!is_retryable_reasoning_only("", "hidden trace", "stop"));
     }
 }

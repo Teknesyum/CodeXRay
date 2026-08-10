@@ -29,7 +29,8 @@ import {
 import { isDesktopRuntime } from '../services/desktopAiService';
 import {
   EXTERNAL_AI_CONTEXT_WINDOWS,
-  EXTERNAL_AI_MAX_OUTPUT_TOKENS,
+  getExternalAiMaxOutputTokens,
+  getRecommendedExternalOutputTokens,
   invalidateExternalProfile,
   providerProfile,
 } from '../services/aiProviderProfiles';
@@ -855,8 +856,11 @@ export const ControlBar = ({
                             updateExternalProfile({
                               contextWindow,
                               maxOutputTokens: Math.min(
-                                externalProfile?.maxOutputTokens ?? 1024,
-                                contextWindow - 512,
+                                getExternalAiMaxOutputTokens(contextWindow),
+                                Math.max(
+                                  externalProfile?.maxOutputTokens ?? 1024,
+                                  getRecommendedExternalOutputTokens(contextWindow),
+                                ),
                               ),
                             });
                           }}
@@ -874,17 +878,13 @@ export const ControlBar = ({
                           type="number"
                           className="api-provider-select"
                           min={256}
-                          max={Math.min(
-                            EXTERNAL_AI_MAX_OUTPUT_TOKENS,
-                            (externalProfile?.contextWindow ?? 4096) - 512,
-                          )}
+                          max={getExternalAiMaxOutputTokens(externalProfile?.contextWindow ?? 4096)}
                           step={128}
                           value={externalProfile?.maxOutputTokens ?? 1024}
                           disabled={externalBusy}
                           onChange={(event) => updateExternalProfile({
                             maxOutputTokens: Math.min(
-                              EXTERNAL_AI_MAX_OUTPUT_TOKENS,
-                              (externalProfile?.contextWindow ?? 4096) - 512,
+                              getExternalAiMaxOutputTokens(externalProfile?.contextWindow ?? 4096),
                               Math.max(256, Number(event.target.value)),
                             ),
                           })}

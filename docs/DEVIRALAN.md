@@ -4,11 +4,11 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base before this scope: `5bccd70`.
-- The current scope adds the reasoning disclosure, adaptive inference timeouts,
-  and the 2.3.0 Windows delivery. The pre-existing untracked `opencode.json`
+- Branch: `main`; synchronized base before this scope: `a1ffe1f`.
+- The current scope fixes reasoning-only external-agent exhaustion and adds the
+  adaptive 2.3.2 Windows delivery. The pre-existing untracked `opencode.json`
   remains untouched.
-- Package version: `2.3.1`.
+- Package version: `2.3.2`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -234,6 +234,22 @@ Desktop/local-provider scope run on 2026-08-11:
   worker delta ordering. Lint, 43/43 focused frontend tests, production build,
   Rust fmt/clippy plus 5/5 tests, and the 2.3.1 Windows desktop build passed;
   refreshed portable/NSIS artifacts are under ignored `release-artifacts/`.
+- Version 2.3.2 fixes reasoning-only God Mode failures. Native streaming now
+  returns a typed `length` result when a model spends its complete budget in
+  reasoning, allowing the provider facade to retry once with an explicit final
+  JSON instruction instead of throwing `completed without visible content`.
+  External structured-agent budgets scale with context: 2K through 16K,
+  4K through 32K, 8K at 64K, and 16K at 128K; a reasoning-only retry can double
+  those values within the selected profile limit. Choosing a larger context
+  raises the recommended output budget, and the configurable output ceiling is
+  now half the context up to 32K. External first-token/inactivity limits are 90
+  seconds and absolute inference scales up to 30 minutes, while cancellation,
+  prompt reservation, and response-size boundaries remain enforced. The new
+  controlled fixture proves the reported 64K architect path retries 8K to 16K.
+  Full frontend tests passed 471/471, lint and production build passed, and Rust
+  fmt/clippy plus 6/6 tests passed. The 2.3.2 Windows desktop build passed; the
+  refreshed portable/NSIS artifacts and their SHA-256 file are under ignored
+  `release-artifacts/`.
 
 Run on 2026-08-02 from the current working tree:
 

@@ -58,13 +58,39 @@ describe('AI provider profile persistence', () => {
     const profile = {
       ...loadExternalAiProfiles()[1],
       contextWindow: 131072 as const,
-      maxOutputTokens: 16384,
+      maxOutputTokens: 32768,
     };
     saveExternalAiProfiles([profile]);
 
     expect(loadExternalAiProfiles()[0]).toMatchObject({
       contextWindow: 131072,
+      maxOutputTokens: 32768,
+    });
+  });
+
+  it('migrates an oversized legacy output budget without losing the endpoint', () => {
+    const legacy = {
+      ...loadExternalAiProfiles()[1],
+      baseUrl: 'http://127.0.0.1:8888/v1',
+      model: 'reasoning-model',
+      contextWindow: 16384 as const,
       maxOutputTokens: 16384,
+      capabilities: {
+        chat: true,
+        streaming: true,
+        structuredOutput: 'native' as const,
+        advancedWorkflows: true,
+        checkedAt: 1,
+        probeVersion: 1 as const,
+      },
+    };
+    localStorage.setItem(EXTERNAL_AI_PROFILES_KEY, JSON.stringify([legacy]));
+
+    expect(loadExternalAiProfiles()[0]).toMatchObject({
+      baseUrl: legacy.baseUrl,
+      model: legacy.model,
+      maxOutputTokens: 8192,
+      capabilities: null,
     });
   });
 

@@ -170,6 +170,11 @@ export const DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS = 30_000;
 export const DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS = 20_000;
 export const DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS = 45_000;
 export const DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS = 90_000;
+const EXTERNAL_AGENT_QUEUE_TIMEOUT_MS = 30_000;
+const EXTERNAL_AGENT_FIRST_TOKEN_TIMEOUT_MS = 90_000;
+const EXTERNAL_AGENT_INACTIVITY_TIMEOUT_MS = 90_000;
+const EXTERNAL_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS = 300_000;
+const EXTERNAL_AGENT_LONG_ABSOLUTE_TIMEOUT_MS = 1_800_000;
 /** @deprecated Prefer the phase-specific timeout constants. */
 export const DEFAULT_AGENT_INFERENCE_TIMEOUT_MS = DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
 const LOCAL_MODEL_BUSY_ERROR = 'Local model files are busy in another tab.';
@@ -578,17 +583,36 @@ const runExternalAgentDetailed = (
   const session = externalSession;
   const id = ++requestId;
   const expectsJson = Boolean(request.responseSchema || request.jsonMode);
-  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const queueTimeoutMs = request.queueTimeoutMs ?? EXTERNAL_AGENT_QUEUE_TIMEOUT_MS;
   const firstTokenTimeoutMs = request.firstTokenTimeoutMs ?? request.inferenceTimeoutMs
-    ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
+    ?? EXTERNAL_AGENT_FIRST_TOKEN_TIMEOUT_MS;
   const inactivityTimeoutMs = request.inactivityTimeoutMs ?? request.inferenceTimeoutMs
-    ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
-  const maxTokens = Math.min(
+    ?? EXTERNAL_AGENT_INACTIVITY_TIMEOUT_MS;
+  const requestedMaxTokens = Math.min(
     request.maxTokens ?? session.profile.maxOutputTokens,
     session.profile.maxOutputTokens,
   );
+  // Agent contracts describe the desired payload size. Reasoning endpoints also
+  // count their hidden trace against max_tokens, so reserve room for that trace
+  // without weakening the user's profile/context safety boundaries.
+  const structuredOutputFloor = session.profile.contextWindow >= 131_072
+    ? 16_384
+    : session.profile.contextWindow >= 65_536
+      ? 8_192
+      : session.profile.contextWindow >= 32_768
+        ? 4_096
+        : 2_048;
+  const maxTokens = expectsJson
+    ? Math.min(session.profile.maxOutputTokens, Math.max(requestedMaxTokens, structuredOutputFloor))
+    : requestedMaxTokens;
+  const retryMaxTokens = Math.min(
+    session.profile.maxOutputTokens,
+    Math.max(maxTokens * 2, 4_096),
+  );
   const absoluteTimeoutMs = request.absoluteTimeoutMs ?? request.inferenceTimeoutMs
-    ?? (maxTokens <= 260 ? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS : DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
+    ?? (maxTokens <= 260
+      ? EXTERNAL_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
+      : EXTERNAL_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
   let settled = false;
   let phaseTimer: ReturnType<typeof globalThis.setTimeout>;
   let absoluteTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
@@ -624,23 +648,22 @@ const runExternalAgentDetailed = (
   ].join('\n');
   const promptBudget = Math.max(
     900,
-    (session.profile.contextWindow - maxTokens - 420) * 2 - systemContent.length,
+    (session.profile.contextWindow - retryMaxTokens - 420) * 2 - systemContent.length,
   );
   const boundedContext = request.context.length <= promptBudget
     ? request.context
     : `${request.context.slice(0, Math.floor(promptBudget * 0.72))}\n[Context shortened]\n${request.context.slice(-Math.floor(promptBudget * 0.28))}`;
 
-  const operation = runExternalRequest(id, [
+  const baseMessages: DesktopChatMessage[] = [
     { role: 'system', content: systemContent },
     { role: 'user', content: boundedContext },
-  ], request.locale, {
-    temperature: request.temperature ?? (expectsJson ? 0 : 0.12),
-    maxTokens,
-    jsonMode: expectsJson,
-  }, (event) => {
+  ];
+  const handleEvent = (event: DesktopAiEvent) => {
     if (settled) return;
     if (event.type === 'reasoning-delta' || event.type === 'answer-delta') return;
-    if (event.type !== 'error') {
+    // Native completion fires before we can decide whether a reasoning-only
+    // length stop needs a retry. Publish the terminal event only once below.
+    if (event.type !== 'error' && event.type !== 'completed') {
       onProgress?.({
         requestId: id,
         status: event.type,
@@ -672,7 +695,47 @@ const runExternalAgentDetailed = (
     } else if (event.type === 'validating' || event.type === 'completed') {
       globalThis.clearTimeout(phaseTimer);
     }
-  });
+  };
+  const execute = (
+    messages: DesktopChatMessage[],
+    outputTokens: number,
+  ) => runExternalRequest(id, messages, request.locale, {
+    temperature: request.temperature ?? (expectsJson ? 0 : 0.12),
+    maxTokens: outputTokens,
+    jsonMode: expectsJson,
+  }, handleEvent);
+
+  const operation = (async () => {
+    const first = await execute(baseMessages, maxTokens);
+    if (first.text.trim() || first.finishReason !== 'length' || !first.reasoning.trim()) {
+      return first;
+    }
+    onProgress?.({
+      requestId: id,
+      status: 'running',
+      text: retryMaxTokens > maxTokens
+        ? `The reasoning model used its first ${maxTokens}-token budget before the final answer. Retrying with ${retryMaxTokens} tokens.`
+        : `The reasoning model used the full ${maxTokens}-token output limit before the final answer. Retrying once with a compact-answer instruction.`,
+    });
+    const retryMessages: DesktopChatMessage[] = [
+      ...baseMessages,
+      {
+        role: 'user',
+        content: expectsJson
+          ? 'Return the final JSON object now. Keep internal reasoning brief and spend the available budget on the complete schema-valid JSON. Do not use markdown.'
+          : 'Return the final answer now. Keep internal reasoning brief and answer completely and concisely.',
+      },
+    ];
+    const retry = await execute(retryMessages, retryMaxTokens);
+    if (!retry.text.trim()) {
+      throw new Error(
+        retry.finishReason === 'length'
+          ? `The reasoning model used the entire ${retryMaxTokens}-token output limit before producing the final answer. Increase the profile output limit in AI Settings and retry.`
+          : 'Local AI stream completed without visible content.',
+      );
+    }
+    return retry;
+  })();
 
   const promise = new Promise<LocalAgentResultV2>((resolve, reject) => {
     rejectPromise = reject;
@@ -680,6 +743,16 @@ const runExternalAgentDetailed = (
       if (settled) return;
       settled = true;
       clearTimers();
+      onProgress?.({
+        requestId: id,
+        status: 'completed',
+        text: 'Local inference completed.',
+        queueMs: result.queueMs,
+        firstTokenMs: result.firstTokenMs,
+        inferenceMs: result.inferenceMs,
+        completionTokens: result.completionTokens,
+        finishReason: result.finishReason,
+      });
       resolve({
         version: 2,
         text: result.text || (expectsJson ? '{}' : ''),

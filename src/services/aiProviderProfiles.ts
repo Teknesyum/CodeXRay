@@ -10,7 +10,18 @@ import { LOCAL_AI_MODELS, parseLocalAiContextWindow } from './localAiModels';
 export const AI_SELECTION_KEY = 'codexray.ai-selection.v2';
 export const EXTERNAL_AI_PROFILES_KEY = 'codexray.ai-external-profiles.v1';
 export const EXTERNAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768, 65536, 131072] as const;
-export const EXTERNAL_AI_MAX_OUTPUT_TOKENS = 16384;
+export const EXTERNAL_AI_MAX_OUTPUT_TOKENS = 32768;
+
+export const getExternalAiMaxOutputTokens = (contextWindow: number): number =>
+  Math.min(EXTERNAL_AI_MAX_OUTPUT_TOKENS, Math.floor(contextWindow / 2));
+
+export const getRecommendedExternalOutputTokens = (contextWindow: number): number => {
+  if (contextWindow >= 131072) return 16384;
+  if (contextWindow >= 65536) return 8192;
+  if (contextWindow >= 32768) return 4096;
+  if (contextWindow >= 16384) return 2048;
+  return 1024;
+};
 
 const parseExternalContextWindow = (value: unknown): ExternalAiContextWindow => {
   const parsed = Number(value);
@@ -61,8 +72,11 @@ const parseProfile = (value: unknown): AiConnectionProfileV1 | null => {
   const contextWindow = parseExternalContextWindow(value.contextWindow);
   const maxOutputTokens = Number(value.maxOutputTokens);
   if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 256
-    || maxOutputTokens > EXTERNAL_AI_MAX_OUTPUT_TOKENS
-    || maxOutputTokens > contextWindow - 512) return null;
+    || maxOutputTokens > EXTERNAL_AI_MAX_OUTPUT_TOKENS) return null;
+  const normalizedMaxOutputTokens = Math.min(
+    maxOutputTokens,
+    getExternalAiMaxOutputTokens(contextWindow),
+  );
   return {
     version: 1,
     id: value.id.slice(0, 80),
@@ -71,8 +85,10 @@ const parseProfile = (value: unknown): AiConnectionProfileV1 | null => {
     baseUrl: value.baseUrl.slice(0, 500),
     model: value.model.slice(0, 240),
     contextWindow,
-    maxOutputTokens,
-    capabilities: parseCapabilities(value.capabilities),
+    maxOutputTokens: normalizedMaxOutputTokens,
+    capabilities: normalizedMaxOutputTokens === maxOutputTokens
+      ? parseCapabilities(value.capabilities)
+      : null,
   };
 };
 

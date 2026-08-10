@@ -71,10 +71,12 @@ export interface DesktopAiEvent {
 
 export interface DesktopCompletionResult {
   text: string;
+  reasoning: string;
   model: string;
   finishReason: string;
   promptTokens: number | null;
   completionTokens: number | null;
+  reasoningTokens: number | null;
   queueMs: number;
   firstTokenMs: number | null;
   inferenceMs: number;

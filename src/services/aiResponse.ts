@@ -5,6 +5,24 @@ const stripInternalBlocks = (value: string): string => value
   .replace(/<(think|analysis|reasoning|system|developer)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi, '')
   .replace(/<(think|analysis|reasoning|system|developer)(?:\s[^>]*)?>[\s\S]*$/gi, '');
 
+export interface SplitModelAnswer {
+  content: string;
+  reasoning: string;
+}
+
+export const splitLocalModelAnswer = (answer: string): SplitModelAnswer => {
+  const reasoning = [...answer.matchAll(
+    /<(think|analysis|reasoning)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi,
+  )]
+    .map((match) => match[2].trim())
+    .filter(Boolean)
+    .join('\n\n');
+  return {
+    content: sanitizeLocalModelAnswer(answer),
+    reasoning,
+  };
+};
+
 const startsWithInternalNarration = (value: string): boolean =>
   /^(?:reasoning|analysis|system prompt|system instructions?|developer instructions?|snapshot metadata|workspace snapshot|my task is|wait(?:\b|[,:])|let(?:'|’)s check(?:\b|[,:]))/i
     .test(value.trim());

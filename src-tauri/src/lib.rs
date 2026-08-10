@@ -62,10 +62,12 @@ struct CompletionRequest {
 #[serde(rename_all = "camelCase")]
 struct CompletionResult {
     text: String,
+    reasoning: String,
     model: String,
     finish_reason: String,
     prompt_tokens: Option<u64>,
     completion_tokens: Option<u64>,
+    reasoning_tokens: Option<u64>,
     queue_ms: u64,
     first_token_ms: Option<u64>,
     inference_ms: u64,
@@ -219,7 +221,7 @@ fn completion_body(request: &CompletionRequest, stream: bool) -> Value {
     body
 }
 
-fn parse_usage(value: &Value) -> (Option<u64>, Option<u64>) {
+fn parse_usage(value: &Value) -> (Option<u64>, Option<u64>, Option<u64>) {
     let usage = value.get("usage");
     (
         usage
@@ -228,7 +230,14 @@ fn parse_usage(value: &Value) -> (Option<u64>, Option<u64>) {
         usage
             .and_then(|item| item.get("completion_tokens"))
             .and_then(Value::as_u64),
+        usage
+            .and_then(|item| item.pointer("/completion_tokens_details/reasoning_tokens"))
+            .and_then(Value::as_u64),
     )
+}
+
+fn absolute_timeout_seconds(max_tokens: u32) -> u64 {
+    (300 + u64::from(max_tokens) / 16).clamp(300, 1_200)
 }
 
 async fn collect_non_streaming(
@@ -243,7 +252,9 @@ async fn collect_non_streaming(
         request.bearer_token.as_deref(),
         completion_body(request, false),
     )
-    .timeout(Duration::from_secs(45))
+    .timeout(Duration::from_secs(absolute_timeout_seconds(
+        request.max_tokens,
+    )))
     .send()
     .await
     .map_err(|error| format!("Local AI request failed: {error}"))?;
@@ -262,18 +273,26 @@ async fn collect_non_streaming(
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
+    let reasoning = value
+        .pointer("/choices/0/message/reasoning_content")
+        .or_else(|| value.pointer("/choices/0/message/reasoning"))
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
     let finish_reason = value
         .pointer("/choices/0/finish_reason")
         .and_then(Value::as_str)
         .unwrap_or("unknown")
         .to_string();
-    let (prompt_tokens, completion_tokens) = parse_usage(&value);
+    let (prompt_tokens, completion_tokens, reasoning_tokens) = parse_usage(&value);
     Ok(CompletionResult {
         text,
+        reasoning,
         model: request.model.clone(),
         finish_reason,
         prompt_tokens,
         completion_tokens,
+        reasoning_tokens,
         queue_ms: 0,
         first_token_ms: None,
         inference_ms: started.elapsed().as_millis() as u64,
@@ -325,21 +344,23 @@ async fn collect_streaming(
     let mut stream = response.bytes_stream();
     let mut buffer = String::new();
     let mut answer = String::new();
+    let mut reasoning = String::new();
     let mut finish_reason = "unknown".to_string();
     let mut prompt_tokens = None;
     let mut completion_tokens = None;
+    let mut reasoning_tokens = None;
     let mut first_token_ms = None;
     let mut last_heartbeat = Instant::now();
     let mut total_bytes = 0usize;
     let mut saw_done = false;
 
     loop {
-        if started.elapsed() > Duration::from_secs(180) {
+        if started.elapsed() > Duration::from_secs(absolute_timeout_seconds(request.max_tokens)) {
             return Err("Local AI request exceeded the absolute timeout.".to_string());
         }
         let next = tokio::select! {
             _ = cancellation.cancelled() => return Err("Local AI request was cancelled.".to_string()),
-            value = tokio::time::timeout(Duration::from_secs(45), stream.next()) =>
+            value = tokio::time::timeout(Duration::from_secs(90), stream.next()) =>
                 value.map_err(|_| "Local AI stream became inactive.".to_string())?,
         };
         let Some(chunk) = next else { break };
@@ -367,46 +388,51 @@ async fn collect_streaming(
                 }
                 let value: Value = serde_json::from_str(payload)
                     .map_err(|_| "Local AI returned an invalid SSE event.".to_string())?;
-                if let Some(content) = value
+                let content = value
                     .pointer("/choices/0/delta/content")
                     .and_then(Value::as_str)
-                {
+                    .unwrap_or_default();
+                let reasoning_content = value
+                    .pointer("/choices/0/delta/reasoning_content")
+                    .or_else(|| value.pointer("/choices/0/delta/reasoning"))
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                if !content.is_empty() || !reasoning_content.is_empty() {
                     if !content.is_empty() {
                         answer.push_str(content);
-                        let elapsed = started.elapsed().as_millis() as u64;
-                        if first_token_ms.is_none() {
-                            first_token_ms = Some(elapsed);
-                            send_event(
-                                channel,
-                                AiEvent {
-                                    request_id: request.request_id,
-                                    kind: "first-token",
-                                    text: "The local endpoint produced its first token."
-                                        .to_string(),
-                                    queue_ms: None,
-                                    first_token_ms,
-                                    inference_ms: None,
-                                    completion_tokens: None,
-                                    finish_reason: None,
-                                },
-                            );
-                        } else if last_heartbeat.elapsed() >= Duration::from_millis(250) {
-                            last_heartbeat = Instant::now();
-                            send_event(
-                                channel,
-                                AiEvent {
-                                    request_id: request.request_id,
-                                    kind: "streaming",
-                                    text: "The local endpoint is still producing output."
-                                        .to_string(),
-                                    queue_ms: None,
-                                    first_token_ms,
-                                    inference_ms: None,
-                                    completion_tokens: None,
-                                    finish_reason: None,
-                                },
-                            );
-                        }
+                    }
+                    reasoning.push_str(reasoning_content);
+                    let elapsed = started.elapsed().as_millis() as u64;
+                    if first_token_ms.is_none() {
+                        first_token_ms = Some(elapsed);
+                        send_event(
+                            channel,
+                            AiEvent {
+                                request_id: request.request_id,
+                                kind: "first-token",
+                                text: "The local endpoint produced its first token.".to_string(),
+                                queue_ms: None,
+                                first_token_ms,
+                                inference_ms: None,
+                                completion_tokens: None,
+                                finish_reason: None,
+                            },
+                        );
+                    } else if last_heartbeat.elapsed() >= Duration::from_millis(250) {
+                        last_heartbeat = Instant::now();
+                        send_event(
+                            channel,
+                            AiEvent {
+                                request_id: request.request_id,
+                                kind: "streaming",
+                                text: "The local endpoint is still producing output.".to_string(),
+                                queue_ms: None,
+                                first_token_ms,
+                                inference_ms: None,
+                                completion_tokens: None,
+                                finish_reason: None,
+                            },
+                        );
                     }
                 }
                 if let Some(reason) = value
@@ -421,6 +447,9 @@ async fn collect_streaming(
                 }
                 if usage.1.is_some() {
                     completion_tokens = usage.1;
+                }
+                if usage.2.is_some() {
+                    reasoning_tokens = usage.2;
                 }
             }
         }
@@ -446,10 +475,12 @@ async fn collect_streaming(
     }
     Ok(CompletionResult {
         text: answer,
+        reasoning,
         model: request.model.clone(),
         finish_reason,
         prompt_tokens,
         completion_tokens,
+        reasoning_tokens,
         queue_ms: 0,
         first_token_ms,
         inference_ms: started.elapsed().as_millis() as u64,
@@ -766,5 +797,12 @@ mod tests {
         let message = http_error_message(401);
         assert!(message.contains("session Bearer token"));
         assert!(!message.contains("Authorization"));
+    }
+
+    #[test]
+    fn completion_timeout_scales_with_the_requested_output_budget() {
+        assert!(absolute_timeout_seconds(512) >= 300);
+        assert_eq!(absolute_timeout_seconds(16_384), 1_200);
+        assert_eq!(absolute_timeout_seconds(u32::MAX), 1_200);
     }
 }

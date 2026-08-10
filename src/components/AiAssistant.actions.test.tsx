@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../services/aiService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/aiService')>();
-  return { ...actual, askQuestion: mocks.askQuestion };
+  return { ...actual, askQuestionDetailed: mocks.askQuestion };
 });
 
 vi.mock('../services/localAiService', async (importOriginal) => {
@@ -57,7 +57,7 @@ const renderReadyAssistant = () => render(
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
-  mocks.askQuestion.mockReset().mockResolvedValue('DFS çalışma alanı hazır.');
+  mocks.askQuestion.mockReset().mockResolvedValue({ content: 'DFS çalışma alanı hazır.' });
   mocks.planLocalActions.mockReset().mockResolvedValue('{"actions":[]}');
 });
 
@@ -114,8 +114,8 @@ describe('AiAssistant safe action pipeline', () => {
   });
 
   it('renders the completed Markdown answer atomically without a duplicate partial message', async () => {
-    let releaseAnswer: ((value: string) => void) | undefined;
-    mocks.askQuestion.mockImplementation(() => new Promise<string>((resolve) => {
+    let releaseAnswer: ((value: { content: string }) => void) | undefined;
+    mocks.askQuestion.mockImplementation(() => new Promise<{ content: string }>((resolve) => {
       releaseAnswer = resolve;
     }));
     const user = userEvent.setup();
@@ -126,10 +126,31 @@ describe('AiAssistant safe action pipeline', () => {
     expect(await screen.findByText('Yerel olarak düşünüyor…')).toBeVisible();
     expect(container.querySelectorAll('.chat-message.ai-msg')).toHaveLength(1);
 
-    releaseAnswer?.('**Türkçe yanıt**\n\nİki kısa adım.');
+    releaseAnswer?.({ content: '**Türkçe yanıt**\n\nİki kısa adım.' });
     expect(await screen.findByText('Türkçe yanıt')).toBeVisible();
     await waitFor(() => expect(container.querySelectorAll('.chat-message.ai-msg.typing')).toHaveLength(0));
     expect(container.querySelectorAll('.chat-message.ai-msg')).toHaveLength(1);
+  });
+
+  it('shows model reasoning in a collapsed disclosure separate from the final answer', async () => {
+    mocks.askQuestion.mockResolvedValue({
+      content: 'Sonuç hazır.',
+      reasoning: 'Önce mevcut izi kontrol ettim, ardından sonucu doğruladım.',
+      reasoningTokens: 101,
+      inferenceMs: 3_200,
+    });
+    const user = userEvent.setup();
+    const { container } = renderReadyAssistant();
+
+    await user.type(await screen.findByRole('textbox'), 'Nasıl düşündün?{Enter}');
+    expect(await screen.findByText('Sonuç hazır.')).toBeVisible();
+    const disclosure = container.querySelector('details.reasoning-disclosure');
+    expect(disclosure).not.toHaveAttribute('open');
+    expect(screen.getByText('101 düşünme tokenı')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Düşünme süreci'));
+    expect(disclosure).toHaveAttribute('open');
+    expect(screen.getByText(/Önce mevcut izi kontrol ettim/)).toBeVisible();
   });
 
   it('reports clipboard permission failures instead of failing silently', async () => {
@@ -139,7 +160,7 @@ describe('AiAssistant safe action pipeline', () => {
       configurable: true,
       value: { writeText },
     });
-    mocks.askQuestion.mockResolvedValue('Kopyalanacak Türkçe yanıt.');
+    mocks.askQuestion.mockResolvedValue({ content: 'Kopyalanacak Türkçe yanıt.' });
     renderReadyAssistant();
 
     const input = await screen.findByRole('textbox');
@@ -164,7 +185,7 @@ describe('AiAssistant safe action pipeline', () => {
       configurable: true,
       value: execCommand,
     });
-    mocks.askQuestion.mockResolvedValue('Fallback ile kopyalanacak yanıt.');
+    mocks.askQuestion.mockResolvedValue({ content: 'Fallback ile kopyalanacak yanıt.' });
     renderReadyAssistant();
 
     const input = await screen.findByRole('textbox');

@@ -1,6 +1,6 @@
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { simulateAlgorithm } from './simulators';
-import { askLocalModel } from './localAiService';
+import { askLocalModel, askLocalModelDetailed, type LocalModelAnswer } from './localAiService';
 import {
   buildAssistantContext,
   selectAssistantHistory,
@@ -124,6 +124,27 @@ export const askQuestion = async (
     boundedQuestion,
     context,
     selectAssistantHistory(chatHistory, historyBudget, profile.messages),
+    workspace.locale,
+  );
+};
+
+export const askQuestionDetailed = async (
+  question: string,
+  workspace: AssistantWorkspace,
+  chatHistory: AssistantMessage[] = [],
+): Promise<LocalModelAnswer> => {
+  const contextWindow = workspace.contextWindow ?? 4096;
+  const questionLimit = contextWindow >= 32768 ? 2_400 : contextWindow >= 16384 ? 1_800 : contextWindow >= 8192 ? 1_200 : 800;
+  const boundedQuestion = question.length > questionLimit
+    ? `${question.slice(0, questionLimit - 40)}\n[Question shortened for the local model context window.]`
+    : question;
+  const context = buildAssistantContext(workspace, boundedQuestion);
+  const historyBudget = contextWindow >= 32768 ? 9_600 : contextWindow >= 16384 ? 4_800 : contextWindow >= 8192 ? 2_400 : 1_000;
+  const messageLimit = contextWindow >= 16384 ? 16 : 8;
+  return askLocalModelDetailed(
+    boundedQuestion,
+    context,
+    selectAssistantHistory(chatHistory, historyBudget, messageLimit),
     workspace.locale,
   );
 };

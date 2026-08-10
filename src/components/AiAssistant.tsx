@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Check, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
+import { Activity, Bot, BrainCircuit, Check, ChevronDown, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
-import { askQuestion, generateSimulationSteps } from '../services/aiService';
+import { askQuestionDetailed, generateSimulationSteps } from '../services/aiService';
 import { cancelLocalResponse, isDisposedLocalModelError, planLocalActions } from '../services/localAiService';
 import type { AssistantMessage } from '../services/aiContext';
 import {
@@ -98,7 +98,18 @@ const loadChatHistory = (): AssistantMessage[] => {
           && 'content' in message
           && typeof message.content === 'string',
         ))
-      .slice(-MAX_STORED_MESSAGES);
+      .slice(-MAX_STORED_MESSAGES)
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+        ...(typeof message.reasoning === 'string' && message.reasoning.trim()
+          ? { reasoning: message.reasoning.slice(0, 200_000) }
+          : {}),
+        ...(typeof message.reasoningTokens === 'number'
+          ? { reasoningTokens: message.reasoningTokens }
+          : {}),
+        ...(typeof message.inferenceMs === 'number' ? { inferenceMs: message.inferenceMs } : {}),
+      }));
   } catch {
     return [];
   }
@@ -873,13 +884,19 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         locale,
       };
 
-      const answer = await askQuestion(modelQuestion, workspace, historyForModel);
+      const answer = await askQuestionDetailed(modelQuestion, workspace, historyForModel);
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
 
-      const cleanedAnswer = stripThinkBlock(answer);
+      const cleanedAnswer = stripThinkBlock(answer.content);
 
       setChatHistory((previous) =>
-        [...previous, { role: 'ai' as const, content: cleanedAnswer }]
+        [...previous, {
+          role: 'ai' as const,
+          content: cleanedAnswer,
+          reasoning: answer.reasoning,
+          reasoningTokens: answer.reasoningTokens,
+          inferenceMs: answer.inferenceMs,
+        }]
           .slice(-MAX_STORED_MESSAGES),
       );
     } catch (error) {
@@ -1271,7 +1288,32 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             {message.role === 'ai' && <Bot size={14} className="msg-icon" />}
             {message.role === 'user'
               ? <p>{message.content}</p>
-              : <MarkdownPreview content={message.content} />}
+              : (
+                <div className="ai-message-content">
+                  {message.role === 'ai' && message.reasoning && (
+                    <details className="reasoning-disclosure">
+                      <summary>
+                        <span className="reasoning-title">
+                          <BrainCircuit size={14} aria-hidden="true" />
+                          {t('modelReasoning', locale)}
+                        </span>
+                        <span className="reasoning-meta">
+                          {message.reasoningTokens
+                            ? t('reasoningTokenCount', locale, { count: message.reasoningTokens })
+                            : message.inferenceMs
+                              ? t('reasoningDuration', locale, { seconds: (message.inferenceMs / 1000).toFixed(1) })
+                              : ''}
+                          <ChevronDown size={14} aria-hidden="true" />
+                        </span>
+                      </summary>
+                      <div className="reasoning-body">
+                        <MarkdownPreview content={message.reasoning} />
+                      </div>
+                    </details>
+                  )}
+                  <MarkdownPreview content={message.content} />
+                </div>
+              )}
             {message.role === 'ai' && (
               <button
                 type="button"

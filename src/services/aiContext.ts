@@ -5,6 +5,9 @@ import { findImportantStepIndices } from './aiTimelineControl';
 export interface AssistantMessage {
   role: 'system' | 'user' | 'ai';
   content: string;
+  reasoning?: string;
+  reasoningTokens?: number | null;
+  inferenceMs?: number;
 }
 
 export interface AssistantWorkspace {

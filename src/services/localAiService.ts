@@ -2,7 +2,7 @@ import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
 import { buildPlannerInstructions, buildTutorInstructions } from './aiContext';
-import { sanitizeLocalModelAnswer } from './aiResponse';
+import { sanitizeLocalModelAnswer, splitLocalModelAnswer } from './aiResponse';
 import {
   getLocalAiModelDefinition,
   LOCAL_AI_MODELS,
@@ -55,6 +55,13 @@ export interface LocalAgentProgress {
   inferenceMs?: number;
   completionTokens?: number | null;
   finishReason?: string;
+}
+
+export interface LocalModelAnswer {
+  content: string;
+  reasoning?: string;
+  reasoningTokens?: number | null;
+  inferenceMs?: number;
 }
 
 export interface LocalAgentRequest {
@@ -389,7 +396,7 @@ const externalConversation = async (
   context: string,
   history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
   locale: Locale,
-): Promise<string> => {
+): Promise<LocalModelAnswer> => {
   const session = requireExternalSession();
   const messages: DesktopChatMessage[] = [
     { role: 'system', content: buildTutorInstructions(locale) },
@@ -406,6 +413,9 @@ const externalConversation = async (
     maxTokens: session.profile.maxOutputTokens,
   });
   let answer = first.text;
+  let reasoning = first.reasoning;
+  let reasoningTokens = first.reasoningTokens;
+  let inferenceMs = first.inferenceMs;
   if (first.finishReason === 'length' && answer.trim()) {
     const continuation = await runExternalRequest(id, [
       ...messages,
@@ -419,28 +429,35 @@ const externalConversation = async (
       maxTokens: Math.min(320, session.profile.maxOutputTokens),
     });
     if (continuation.text.trim()) answer = mergeExternalContinuation(answer, continuation.text);
+    if (continuation.reasoning.trim()) {
+      reasoning = reasoning.trim()
+        ? `${reasoning.trim()}\n\n${continuation.reasoning.trim()}`
+        : continuation.reasoning;
+    }
+    reasoningTokens = (reasoningTokens ?? 0) + (continuation.reasoningTokens ?? 0) || null;
+    inferenceMs += continuation.inferenceMs;
     if (continuation.finishReason === 'length') {
       answer += locale === 'tr'
         ? '\n\n[Yanıt yerel üretim sınırına ulaştı.]'
         : '\n\n[The response reached the local generation limit.]';
     }
   }
-  return answer;
+  return { content: answer, reasoning, reasoningTokens, inferenceMs };
 };
 
-export const askLocalModel = (
+export const askLocalModelDetailed = (
   question: string,
   context: string,
   history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
   locale: Locale,
-): Promise<string> => {
+): Promise<LocalModelAnswer> => {
   if (externalSession) {
     const id = ++requestId;
     activeInteractiveRequestId = id;
-    return externalConversation(id, question, context, history, locale).then((answer) => {
-      const cleaned = sanitizeLocalModelAnswer(answer);
+    return externalConversation(id, question, context, history, locale).then((result) => {
+      const cleaned = sanitizeLocalModelAnswer(result.content);
       if (!cleaned) throw new Error('The local model did not produce a safe visible answer.');
-      return cleaned;
+      return { ...result, content: cleaned, reasoning: result.reasoning?.trim() || undefined };
     }).finally(() => {
       if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
     });
@@ -454,16 +471,25 @@ export const askLocalModel = (
     pending.set(id, { resolve, reject });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
   }).then((answer) => {
-    const cleaned = sanitizeLocalModelAnswer(answer);
-    if (!cleaned) {
+    const split = splitLocalModelAnswer(answer);
+    if (!split.content) {
       throw new Error(locale === 'tr'
         ? 'Yerel model güvenli ve görünür bir cevap üretmedi. Lütfen tekrar deneyin.'
         : 'The local model did not produce a safe visible answer. Please try again.');
     }
-    return cleaned;
+    return { content: split.content, reasoning: split.reasoning || undefined };
   }).finally(() => {
     if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
   });
+};
+
+export const askLocalModel = (
+  question: string,
+  context: string,
+  history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
+  locale: Locale,
+): Promise<string> => {
+  return askLocalModelDetailed(question, context, history, locale).then((result) => result.content);
 };
 
 export const planLocalActions = (

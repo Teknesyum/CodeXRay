@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeLocalModelAnswer } from './aiResponse';
+import { sanitizeLocalModelAnswer, splitLocalModelAnswer } from './aiResponse';
 
 describe('local model answer cleanup', () => {
   it('removes repeated prose and a duplicated unfinished tail', () => {
@@ -47,6 +47,15 @@ describe('local model answer cleanup', () => {
 
   it('returns an empty result when the model emitted only hidden reasoning', () => {
     expect(sanitizeLocalModelAnswer('<think>no visible answer</think>')).toBe('');
+  });
+
+  it('separates model-provided reasoning from the visible answer', () => {
+    expect(splitLocalModelAnswer(
+      '<think>Inspect the trace, then verify the invariant.</think>\n\nThe result is 3.',
+    )).toEqual({
+      reasoning: 'Inspect the trace, then verify the invariant.',
+      content: 'The result is 3.',
+    });
   });
 
   it('separates collapsed numbered steps and summary labels without changing code', () => {

@@ -4,11 +4,11 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized desktop-provider commit: `1ec2f93`.
-- A follow-up UI fix gives the provider selector its own desktop grid row and
-  injects the displayed version from `package.json`. The pre-existing untracked
-  `opencode.json` remains untouched.
-- Package version: `2.2.1`.
+- Branch: `main`; synchronized base before this scope: `636a812`.
+- The current scope adds the reasoning disclosure, adaptive inference timeouts,
+  and the 2.3.0 Windows delivery. The pre-existing untracked `opencode.json`
+  remains untouched.
+- Package version: `2.3.0`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -210,6 +210,19 @@ Desktop/local-provider scope run on 2026-08-11:
   Playwright acceptance passed 1/1 in 10.8 seconds. The corrected delivery is
   versioned 2.2.1 so it cannot be confused with the earlier 2.2.0 binary;
   desktop build and refreshed portable/NSIS artifacts completed successfully.
+- Version 2.3.0 preserves OpenAI-compatible `reasoning_content` separately from
+  the final answer. Bilgiç Dede renders it in a muted, collapsed-by-default
+  disclosure with reasoning-token or elapsed-time metadata; expanding it does
+  not merge the trace into the copyable final answer. `<think>`, `<analysis>`,
+  and `<reasoning>` blocks emitted by WebLLM are separated through the same UI.
+  The reasoning record remains in the existing local-only bounded chat history.
+- Native streaming treats reasoning deltas as first-token/heartbeat activity.
+  The former fixed 180-second absolute timeout now scales with requested output
+  from roughly 5 to 20 minutes, while stream inactivity increases from 45 to 90
+  seconds. This keeps bounded cancellation while avoiding premature termination
+  for slower 30B reasoning models. Focused UI/service tests passed 42/42, Rust
+  tests passed 5/5, production build passed, and reasoning/provider Playwright
+  acceptance passed 2/2 in 10.8 seconds.
 
 Run on 2026-08-02 from the current working tree:
 

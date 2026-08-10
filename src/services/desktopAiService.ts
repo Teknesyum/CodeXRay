@@ -37,12 +37,21 @@ const assertDesktop = (): void => {
   if (!isDesktopRuntime()) throw new Error('External local AI providers are available in the desktop app.');
 };
 
+const invokeDesktop = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  try {
+    return await invoke<T>(command, args);
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error(typeof error === 'string' ? error : 'The desktop command failed.');
+  }
+};
+
 export const listDesktopModels = async (
   baseUrl: string,
   bearerToken = '',
 ): Promise<string[]> => {
   assertDesktop();
-  return invoke<string[]>('list_models', {
+  return invokeDesktop<string[]>('list_models', {
     baseUrl: normalizeLoopbackBaseUrl(baseUrl),
     bearerToken,
   });
@@ -53,7 +62,7 @@ export const probeDesktopModel = async (
   bearerToken = '',
 ): Promise<DesktopProbeResult> => {
   assertDesktop();
-  return invoke<DesktopProbeResult>('probe_model', {
+  return invokeDesktop<DesktopProbeResult>('probe_model', {
     request: {
       baseUrl: normalizeLoopbackBaseUrl(profile.baseUrl),
       model: profile.model,
@@ -71,7 +80,7 @@ export const runDesktopCompletion = async (
   assertDesktop();
   const channel = new Channel<DesktopAiEvent>();
   channel.onmessage = (event) => onEvent?.(event);
-  return invoke<DesktopCompletionResult>('run_completion', {
+  return invokeDesktop<DesktopCompletionResult>('run_completion', {
     request: {
       ...request,
       baseUrl: normalizeLoopbackBaseUrl(request.baseUrl),
@@ -82,7 +91,7 @@ export const runDesktopCompletion = async (
 
 export const cancelDesktopCompletion = async (requestId: number): Promise<void> => {
   if (!isDesktopRuntime()) return;
-  await invoke('cancel_completion', { requestId });
+  await invokeDesktop('cancel_completion', { requestId });
 };
 
 export const readWebSourceFromDesktop = async (
@@ -94,7 +103,7 @@ export const readWebSourceFromDesktop = async (
   const cancellation = () => undefined;
   signal?.addEventListener('abort', cancellation, { once: true });
   try {
-    const result = await invoke<{ status: number; body: string }>('read_web_source', { url });
+    const result = await invokeDesktop<{ status: number; body: string }>('read_web_source', { url });
     if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
     return new Response(result.body, {
       status: result.status,

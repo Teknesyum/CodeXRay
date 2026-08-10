@@ -8,7 +8,7 @@ Last updated: 2026-08-11
 - A follow-up UI fix gives the provider selector its own desktop grid row and
   injects the displayed version from `package.json`. The pre-existing untracked
   `opencode.json` remains untouched.
-- Package version: `2.2.0`.
+- Package version: `2.2.1`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -192,6 +192,24 @@ Desktop/local-provider scope run on 2026-08-11:
   `npm run desktop:build` produced a fresh 2.2.0 portable executable and NSIS
   installer. The ignored `release-artifacts/SHA256SUMS.txt` contains the hashes
   for these rebuilt deliverables.
+- Authenticated real-runtime smoke against the user's loopback OpenAI-compatible
+  service at port 8888 discovered `Muse-Glimmer-30B-UD-Q4_K_XL`, returned HTTP
+  200 for non-streaming, SSE streaming with `[DONE]`, and native JSON-object
+  responses. The supplied credential was used only in process memory and was
+  not written to the repository or application storage.
+- That smoke exposed a reasoning-model compatibility issue: the old 64-token
+  synthetic probe exhausted its budget in `reasoning_content` and returned no
+  visible answer. At 512 tokens the same model returned `OK` after 101 completion
+  tokens and valid `{"ok":true}` after 148 tokens. The bounded probe now uses
+  256–512 tokens. Tauri string rejections are converted to visible errors, with
+  an actionable and bilingual HTTP 401 message.
+- External-provider context choices now extend through 64K and 128K. Maximum
+  output is 16K, constrained below the selected context so prompt capacity stays
+  reserved; Rust's request-body clamp matches the UI. Focused frontend tests
+  passed 23/23, Rust fmt/clippy and 4/4 tests passed, and the expanded-settings
+  Playwright acceptance passed 1/1 in 10.8 seconds. The corrected delivery is
+  versioned 2.2.1 so it cannot be confused with the earlier 2.2.0 binary;
+  desktop build and refreshed portable/NSIS artifacts completed successfully.
 
 Run on 2026-08-02 from the current working tree:
 

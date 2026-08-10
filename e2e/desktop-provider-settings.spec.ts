@@ -22,5 +22,12 @@ test('shows desktop AI providers and the Ollama connection form', async ({ page 
   await provider.selectOption('ollama');
   await expect(page.getByText('Ollama', { exact: true }).last()).toBeVisible();
   await expect(page.locator('input.api-provider-select').first()).toHaveValue('http://127.0.0.1:11434/v1');
+  const externalContext = page.getByLabel('Bağlam penceresi');
+  await externalContext.selectOption('131072');
+  await expect(externalContext).toHaveValue('131072');
+  const outputLimit = page.getByLabel('Azami çıktı tokenı');
+  await expect(outputLimit).toHaveAttribute('max', '16384');
+  await outputLimit.fill('16384');
+  await expect(outputLimit).toHaveValue('16384');
   await expect(page.getByRole('button', { name: 'Test et ve bağlan' })).toBeVisible();
 });

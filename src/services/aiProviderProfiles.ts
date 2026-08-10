@@ -1,5 +1,6 @@
 import type {
   AiConnectionProfileV1,
+  ExternalAiContextWindow,
   AiProviderCapabilities,
   AiProviderKind,
   AiRuntimeSelection,
@@ -8,6 +9,13 @@ import { LOCAL_AI_MODELS, parseLocalAiContextWindow } from './localAiModels';
 
 export const AI_SELECTION_KEY = 'codexray.ai-selection.v2';
 export const EXTERNAL_AI_PROFILES_KEY = 'codexray.ai-external-profiles.v1';
+export const EXTERNAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768, 65536, 131072] as const;
+export const EXTERNAL_AI_MAX_OUTPUT_TOKENS = 16384;
+
+const parseExternalContextWindow = (value: unknown): ExternalAiContextWindow => {
+  const parsed = Number(value);
+  return EXTERNAL_AI_CONTEXT_WINDOWS.find((candidate) => candidate === parsed) ?? 4096;
+};
 
 export const DEFAULT_EXTERNAL_AI_PROFILES: readonly AiConnectionProfileV1[] = [
   {
@@ -50,8 +58,11 @@ const parseProfile = (value: unknown): AiConnectionProfileV1 | null => {
     || typeof value.name !== 'string' || typeof value.baseUrl !== 'string'
     || typeof value.model !== 'string'
     || (value.provider !== 'ollama' && value.provider !== 'openai-compatible')) return null;
+  const contextWindow = parseExternalContextWindow(value.contextWindow);
   const maxOutputTokens = Number(value.maxOutputTokens);
-  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 256 || maxOutputTokens > 4096) return null;
+  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 256
+    || maxOutputTokens > EXTERNAL_AI_MAX_OUTPUT_TOKENS
+    || maxOutputTokens > contextWindow - 512) return null;
   return {
     version: 1,
     id: value.id.slice(0, 80),
@@ -59,7 +70,7 @@ const parseProfile = (value: unknown): AiConnectionProfileV1 | null => {
     provider: value.provider,
     baseUrl: value.baseUrl.slice(0, 500),
     model: value.model.slice(0, 240),
-    contextWindow: parseLocalAiContextWindow(Number(value.contextWindow)),
+    contextWindow,
     maxOutputTokens,
     capabilities: parseCapabilities(value.capabilities),
   };

@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { isDesktopRuntime, normalizeLoopbackBaseUrl } from './desktopAiService';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  isDesktopRuntime,
+  listDesktopModels,
+  normalizeLoopbackBaseUrl,
+} from './desktopAiService';
+
+const invokeMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@tauri-apps/api/core', () => ({
+  Channel: class MockChannel {},
+  invoke: invokeMock,
+  isTauri: () => Boolean((globalThis as typeof globalThis & { isTauri?: boolean }).isTauri),
+}));
 
 describe('desktop AI endpoint boundary', () => {
   it('normalizes localhost and default API paths', () => {
@@ -28,6 +40,17 @@ describe('desktop AI endpoint boundary', () => {
     Object.defineProperty(globalThis, 'isTauri', { value: true, configurable: true });
     try {
       expect(isDesktopRuntime()).toBe(true);
+    } finally {
+      delete (globalThis as typeof globalThis & { isTauri?: boolean }).isTauri;
+    }
+  });
+
+  it('turns Tauri string rejections into visible errors', async () => {
+    Object.defineProperty(globalThis, 'isTauri', { value: true, configurable: true });
+    invokeMock.mockRejectedValueOnce('Local AI endpoint returned HTTP 401.');
+    try {
+      await expect(listDesktopModels('http://127.0.0.1:8888/v1'))
+        .rejects.toThrow('Local AI endpoint returned HTTP 401.');
     } finally {
       delete (globalThis as typeof globalThis & { isTauri?: boolean }).isTauri;
     }

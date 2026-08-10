@@ -4,6 +4,8 @@ export type AiProviderKind = 'webllm' | 'ollama' | 'openai-compatible';
 
 export type AiStructuredOutputMode = 'none' | 'native' | 'prompt-only';
 
+export type ExternalAiContextWindow = 4096 | 8192 | 16384 | 32768 | 65536 | 131072;
+
 export interface AiProviderCapabilities {
   chat: boolean;
   streaming: boolean;
@@ -20,7 +22,7 @@ export interface AiConnectionProfileV1 {
   provider: Exclude<AiProviderKind, 'webllm'>;
   baseUrl: string;
   model: string;
-  contextWindow: 4096 | 8192 | 16384 | 32768;
+  contextWindow: ExternalAiContextWindow;
   maxOutputTokens: number;
   capabilities: AiProviderCapabilities | null;
 }

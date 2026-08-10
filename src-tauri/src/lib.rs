@@ -194,10 +194,15 @@ async fn error_for_response(response: Response) -> Result<Response, String> {
     if status.is_success() {
         return Ok(response);
     }
-    Err(format!(
-        "Local AI endpoint returned HTTP {}.",
-        status.as_u16()
-    ))
+    Err(http_error_message(status.as_u16()))
+}
+
+fn http_error_message(status: u16) -> String {
+    if status == 401 {
+        return "Local AI endpoint returned HTTP 401. Enter its API key in the session Bearer token field."
+            .to_string();
+    }
+    format!("Local AI endpoint returned HTTP {status}.")
 }
 
 fn completion_body(request: &CompletionRequest, stream: bool) -> Value {
@@ -205,7 +210,7 @@ fn completion_body(request: &CompletionRequest, stream: bool) -> Value {
         "model": request.model,
         "messages": request.messages,
         "temperature": request.temperature.clamp(0.0, 2.0),
-        "max_tokens": request.max_tokens.clamp(1, 4096),
+        "max_tokens": request.max_tokens.clamp(1, 16_384),
         "stream": stream
     });
     if request.json_mode {
@@ -523,7 +528,10 @@ async fn probe_model(
             content: "Reply with exactly OK.".to_string(),
         }],
         temperature: 0.0,
-        max_tokens: request.max_output_tokens.clamp(16, 64),
+        // Reasoning models can spend the first 100+ tokens in reasoning_content
+        // before producing visible content. Keep the synthetic probe bounded,
+        // but large enough to observe the actual assistant response.
+        max_tokens: request.max_output_tokens.clamp(256, 512),
         json_mode: false,
         context_window: request.context_window,
         locale: "en".to_string(),
@@ -751,5 +759,12 @@ mod tests {
         assert!(parse_json_object("{\"ok\":true}").is_ok());
         assert!(parse_json_object("```json\n{\"ok\":true}\n```").is_ok());
         assert!(parse_json_object("[]").is_err());
+    }
+
+    #[test]
+    fn authentication_errors_are_actionable_without_echoing_credentials() {
+        let message = http_error_message(401);
+        assert!(message.contains("session Bearer token"));
+        assert!(!message.contains("Authorization"));
     }
 }

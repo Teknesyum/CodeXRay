@@ -753,6 +753,10 @@ export const localizeAlgorithmName = (name: string, locale: Locale): string =>
   locale === 'tr' ? turkishAlgorithmNames[name] ?? name : name;
 
 const runtimeReplacements: Array<[RegExp, string]> = [
+  [/Local AI endpoint returned HTTP 401\. Enter its API key in the session Bearer token field\./g,
+    'Yerel AI endpoint’i HTTP 401 döndürdü. API anahtarını Oturumluk Bearer token alanına girin.'],
+  [/Local AI endpoint returned HTTP (\d+)\./g, 'Yerel AI endpoint’i HTTP $1 döndürdü.'],
+  [/Local AI request failed:/g, 'Yerel AI isteği başarısız oldu:'],
   [/Array input cannot contain empty items\./g, 'Dizi girdisi boş eleman içeremez.'],
   [/Initialize the KMP prefix table\./g, 'KMP önek tablosunu başlat.'],
   [/Extend the KMP prefix table\./g, 'KMP önek tablosunu genişlet.'],

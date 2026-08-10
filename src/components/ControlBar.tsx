@@ -27,8 +27,17 @@ import {
   supportsLocalAi,
 } from '../services/localAiService';
 import { isDesktopRuntime } from '../services/desktopAiService';
-import { invalidateExternalProfile, providerProfile } from '../services/aiProviderProfiles';
-import type { AiConnectionProfileV1, AiProviderKind } from '../types/aiProvider';
+import {
+  EXTERNAL_AI_CONTEXT_WINDOWS,
+  EXTERNAL_AI_MAX_OUTPUT_TOKENS,
+  invalidateExternalProfile,
+  providerProfile,
+} from '../services/aiProviderProfiles';
+import type {
+  AiConnectionProfileV1,
+  AiProviderKind,
+  ExternalAiContextWindow,
+} from '../types/aiProvider';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { selectCachedModelForAutoLoad } from '../services/localAiModels';
 import { normalizeLocalAiProgress } from '../services/localAiProgress';
@@ -841,14 +850,22 @@ export const ControlBar = ({
                           className="api-provider-select"
                           value={externalProfile?.contextWindow ?? 4096}
                           disabled={externalBusy}
-                          onChange={(event) => updateExternalProfile({
-                            contextWindow: Number(event.target.value) as 4096 | 8192 | 16384 | 32768,
-                          })}
+                          onChange={(event) => {
+                            const contextWindow = Number(event.target.value) as ExternalAiContextWindow;
+                            updateExternalProfile({
+                              contextWindow,
+                              maxOutputTokens: Math.min(
+                                externalProfile?.maxOutputTokens ?? 1024,
+                                contextWindow - 512,
+                              ),
+                            });
+                          }}
                         >
-                          <option value={4096}>{t('context4k', locale)}</option>
-                          <option value={8192}>{t('context8kExperimental', locale)}</option>
-                          <option value={16384}>{t('context16kExperimental', locale)}</option>
-                          <option value={32768}>{t('context32kExperimental', locale)}</option>
+                          {EXTERNAL_AI_CONTEXT_WINDOWS.map((contextWindow) => (
+                            <option key={contextWindow} value={contextWindow}>
+                              {contextWindow >= 1024 ? `${contextWindow / 1024}K` : contextWindow}
+                            </option>
+                          ))}
                         </select>
                       </label>
                       <label className="local-ai-field">
@@ -857,12 +874,19 @@ export const ControlBar = ({
                           type="number"
                           className="api-provider-select"
                           min={256}
-                          max={4096}
+                          max={Math.min(
+                            EXTERNAL_AI_MAX_OUTPUT_TOKENS,
+                            (externalProfile?.contextWindow ?? 4096) - 512,
+                          )}
                           step={128}
                           value={externalProfile?.maxOutputTokens ?? 1024}
                           disabled={externalBusy}
                           onChange={(event) => updateExternalProfile({
-                            maxOutputTokens: Math.min(4096, Math.max(256, Number(event.target.value))),
+                            maxOutputTokens: Math.min(
+                              EXTERNAL_AI_MAX_OUTPUT_TOKENS,
+                              (externalProfile?.contextWindow ?? 4096) - 512,
+                              Math.max(256, Number(event.target.value)),
+                            ),
                           })}
                         />
                       </label>

@@ -54,6 +54,20 @@ describe('AI provider profile persistence', () => {
     });
   });
 
+  it('persists expanded external context and output budgets', () => {
+    const profile = {
+      ...loadExternalAiProfiles()[1],
+      contextWindow: 131072 as const,
+      maxOutputTokens: 16384,
+    };
+    saveExternalAiProfiles([profile]);
+
+    expect(loadExternalAiProfiles()[0]).toMatchObject({
+      contextWindow: 131072,
+      maxOutputTokens: 16384,
+    });
+  });
+
   it('rejects a saved provider selection whose profile/provider pair does not match', () => {
     localStorage.setItem(AI_SELECTION_KEY, JSON.stringify({
       version: 2,

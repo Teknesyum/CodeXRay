@@ -11,6 +11,11 @@ test('shows desktop AI providers and the Ollama connection form', async ({ page 
 
   const provider = page.getByLabel('Yapay zekâ sağlayıcısı');
   await expect(provider).toBeVisible();
+  const providerBox = await provider.boundingBox();
+  const webLlmModelBox = await page.getByLabel('Cihaz üzerindeki model').first().boundingBox();
+  expect(providerBox).not.toBeNull();
+  expect(webLlmModelBox).not.toBeNull();
+  expect(providerBox!.y + providerBox!.height).toBeLessThan(webLlmModelBox!.y);
   await expect(provider.locator('option[value="ollama"]')).toBeEnabled();
   await expect(provider.locator('option[value="openai-compatible"]')).toBeEnabled();
 

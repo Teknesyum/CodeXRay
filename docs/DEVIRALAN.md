@@ -4,9 +4,10 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base commit at the start of this scope: `a19a9ad`.
-- The working tree contains the uncommitted Windows desktop/local-provider
-  implementation. The pre-existing untracked `opencode.json` remains untouched.
+- Branch: `main`; synchronized desktop-provider commit: `1ec2f93`.
+- A follow-up UI fix gives the provider selector its own desktop grid row and
+  injects the displayed version from `package.json`. The pre-existing untracked
+  `opencode.json` remains untouched.
 - Package version: `2.2.0`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
@@ -182,6 +183,15 @@ Desktop/local-provider scope run on 2026-08-11:
   detection used an obsolete private global. Version is now `2.2.0` and desktop
   detection uses the Tauri API's `isTauri()` function. The rebuilt 2.2.0
   portable process opened a responsive `CodeXRay` window.
+- The remaining invisible selector was a desktop CSS-grid collision: provider
+  and WebLLM model cards both occupied the `model` area, so the latter painted
+  over the former. The provider now occupies a distinct full-width `provider`
+  row. Focused Playwright acceptance additionally compares both controls'
+  bounding boxes and passed 1/1 in 11.5 seconds, proving they do not overlap.
+- After this UI fix, focused Vitest passed 13/13, lint passed, and
+  `npm run desktop:build` produced a fresh 2.2.0 portable executable and NSIS
+  installer. The ignored `release-artifacts/SHA256SUMS.txt` contains the hashes
+  for these rebuilt deliverables.
 
 Run on 2026-08-02 from the current working tree:
 

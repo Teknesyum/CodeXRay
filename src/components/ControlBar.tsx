@@ -592,7 +592,7 @@ export const ControlBar = ({
               <div className={`settings-modal-content ${activeTab === 'ai' ? 'ai-settings-layout' : ''}`}>
                 {activeTab === 'ai' && (
                   <>
-                <div className="settings-section ai-model-settings">
+                <div className="settings-section ai-provider-settings">
                   <div className="settings-title">{t('aiProvider', locale)}</div>
                   <select
                     aria-label={t('aiProvider', locale)}
@@ -1084,7 +1084,7 @@ export const ControlBar = ({
               </div>
               <footer className="settings-version-footer" aria-label="CodeXRay version">
                 <span>CodeXRay</span>
-                <strong>v2.1.2</strong>
+                <strong>v{__CODEXRAY_VERSION__}</strong>
               </footer>
             </div>
           )}

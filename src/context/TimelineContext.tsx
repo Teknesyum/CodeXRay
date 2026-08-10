@@ -16,6 +16,14 @@ import { compileCustomSimulationPackage } from '../services/customSimulationComp
 import { classifyGraphChange, patchPackageGraphLayout } from '../services/graphTransactions';
 import { parseSimulationInput } from '../services/inputParsers';
 import { parseLocalAiContextWindow } from '../services/localAiModels';
+import type { AiConnectionProfileV1, AiProviderKind, AiRuntimeSelection } from '../types/aiProvider';
+import {
+  AI_SELECTION_KEY,
+  loadAiRuntimeSelection,
+  loadExternalAiProfiles,
+  saveExternalAiProfiles,
+} from '../services/aiProviderProfiles';
+import { isDesktopRuntime } from '../services/desktopAiService';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
 export type Theme = 'neon' | 'dark' | 'light';
@@ -48,6 +56,12 @@ interface TimelineContextType {
   setSelectedExampleQuestion: (question: string | null) => void;
   aiModel: string;
   setAiModel: (model: string) => void;
+  aiProvider: AiProviderKind;
+  setAiProvider: (provider: AiProviderKind) => void;
+  aiProfiles: AiConnectionProfileV1[];
+  setAiProfiles: Dispatch<SetStateAction<AiConnectionProfileV1[]>>;
+  aiBearerToken: string;
+  setAiBearerToken: (token: string) => void;
   aiContextWindow: number;
   setAiContextWindow: (size: number) => void;
   aiStatus: LocalAiStatus;
@@ -345,17 +359,40 @@ const loadPinnedVariables = (): string[] => {
   }
 };
 
-const loadAiModel = (): string => {
+const loadInitialAiState = (): {
+  profiles: AiConnectionProfileV1[];
+  selection: AiRuntimeSelection;
+} => {
   try {
-    const saved = localStorage.getItem(AI_MODEL_KEY);
-    if (saved && LOCAL_AI_MODELS.some((model) => model.id === saved)) return saved;
+    const profiles = loadExternalAiProfiles();
+    const selection = loadAiRuntimeSelection(profiles);
+    if (selection.provider !== 'webllm' && !isDesktopRuntime()) {
+      return {
+        profiles,
+        selection: {
+          version: 2,
+          provider: 'webllm',
+          model: LOCAL_AI_MODELS[0].id,
+          contextWindow: 4096,
+        },
+      };
+    }
+    return { profiles, selection };
   } catch {
-    // Fall back to the fast model when storage is unavailable.
+    return {
+      profiles: loadExternalAiProfiles(),
+      selection: {
+        version: 2,
+        provider: 'webllm',
+        model: LOCAL_AI_MODELS[0].id,
+        contextWindow: 4096,
+      },
+    };
   }
-  return LOCAL_AI_MODELS[0].id;
 };
 
 export const TimelineProvider = ({ children }: { children: ReactNode }) => {
+  const [initialAiState] = useState(loadInitialAiState);
   const [workspace, dispatchWorkspace] = useReducer(workspaceReducer, null, () => ({
     code: '',
     algorithmName: 'Custom Code',
@@ -395,9 +432,22 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1000);
   const [selectedExampleQuestion, setSelectedExampleQuestion] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState(loadAiModel);
+  const initialProfileId = initialAiState.selection.provider === 'webllm'
+    ? null
+    : initialAiState.selection.profileId;
+  const initialExternalProfile = initialProfileId === null
+    ? null
+    : initialAiState.profiles.find((profile) => profile.id === initialProfileId) ?? null;
+  const [aiProvider, setAiProvider] = useState<AiProviderKind>(initialAiState.selection.provider);
+  const [aiProfiles, setAiProfiles] = useState<AiConnectionProfileV1[]>(initialAiState.profiles);
+  const [aiBearerToken, setAiBearerToken] = useState('');
+  const [aiModel, setAiModel] = useState(() => initialAiState.selection.provider === 'webllm'
+    ? initialAiState.selection.model
+    : initialExternalProfile?.model ?? '');
   const [aiContextWindow, setAiContextWindow] = useState<number>(() =>
-    parseLocalAiContextWindow(readStorage(AI_CONTEXT_WINDOW_KEY) ?? 4096),
+    initialAiState.selection.provider === 'webllm'
+      ? initialAiState.selection.contextWindow
+      : initialExternalProfile?.contextWindow ?? parseLocalAiContextWindow(readStorage(AI_CONTEXT_WINDOW_KEY) ?? 4096),
   );
   const [aiStatus, setAiStatus] = useState<LocalAiStatus>('idle');
   const [aiProgress, setAiProgress] = useState('');
@@ -620,19 +670,48 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
+      saveExternalAiProfiles(aiProfiles);
+    } catch {
+      // Profiles remain usable for the current desktop session.
+    }
+  }, [aiProfiles]);
+
+  useEffect(() => {
+    const externalProfile = aiProvider === 'webllm'
+      ? null
+      : aiProfiles.find((profile) => profile.provider === aiProvider) ?? null;
+    const selection: AiRuntimeSelection = aiProvider === 'webllm'
+      ? {
+        version: 2,
+        provider: 'webllm',
+        model: aiModel,
+        contextWindow: parseLocalAiContextWindow(aiContextWindow),
+      }
+      : {
+        version: 2,
+        provider: aiProvider,
+        profileId: externalProfile?.id ?? `${aiProvider}-default`,
+      };
+    writeStorage(AI_SELECTION_KEY, JSON.stringify(selection));
+  }, [aiContextWindow, aiModel, aiProfiles, aiProvider]);
+
+  useEffect(() => {
+    if (aiProvider !== 'webllm') return;
+    try {
       localStorage.setItem(AI_MODEL_KEY, aiModel);
     } catch {
       // Model selection still works for this session when storage is unavailable.
     }
-  }, [aiModel]);
+  }, [aiModel, aiProvider]);
 
   useEffect(() => {
+    if (aiProvider !== 'webllm') return;
     try {
       localStorage.setItem(AI_CONTEXT_WINDOW_KEY, String(aiContextWindow));
     } catch {
       // Context selection still works for this session when storage is unavailable.
     }
-  }, [aiContextWindow]);
+  }, [aiContextWindow, aiProvider]);
 
   return (
     <TimelineContext.Provider value={{
@@ -663,6 +742,12 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       setSelectedExampleQuestion,
       aiModel,
       setAiModel,
+      aiProvider,
+      setAiProvider,
+      aiProfiles,
+      setAiProfiles,
+      aiBearerToken,
+      setAiBearerToken,
       aiContextWindow,
       setAiContextWindow,
       aiStatus,

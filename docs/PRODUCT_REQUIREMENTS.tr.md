@@ -12,6 +12,23 @@ dış ortam kapılarıdır; açık geliştirme maddesi değildir.
 
 Kapsam: CodeXRay uygulamasının tamamı
 
+## Windows masaüstü ve yerel sağlayıcı kapsamı
+
+- Browser ürünü korunur; Windows 10/11 x64 için Tauri 2 tabanlı yerel uygulama
+  aynı deterministik çalışma alanını paketler.
+- Browser yalnız WebLLM kullanır. Desktop; WebLLM yanında kullanıcı tarafından
+  çalıştırılan Ollama veya OpenAI-compatible loopback servisine bağlanabilir.
+- Desktop yalnız `localhost`, `127.0.0.1` ve `[::1]` endpointlerini kabul eder;
+  redirect, URL credential, query, fragment ve loopback dışı adresler reddedilir.
+- Oturumluk Bearer token diske veya browser storage'a yazılmaz. Endpoint/model/
+  context/output ayarı değiştiğinde eski uyumluluk kanıtı geçersizleşir.
+- Chat için chat+streaming probe'u; God Mode ve web-problem akışları için ayrıca
+  native veya prompt-only JSON probe'u zorunludur. Çalışma alanı probe sırasında
+  gönderilmez.
+- Kurulum Ollama, Unsloth, llama.cpp veya model ağırlığı içermez. İlk iç dağıtım
+  imzasız NSIS kurucu ve portable EXE'dir; code signing ve auto-update kapsam
+  dışıdır.
+
 Bu belge insan tarafından okunmak ve ürün davranışları tek tek onaylanmak için
 hazırlanmıştır. Uygulama sırası, kaynak dosya isimleri, otomasyon dosyaları,
 teknik görev dağılımı veya kodlama yöntemi içermez. Yalnızca kullanıcının

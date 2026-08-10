@@ -1,0 +1,58 @@
+name: Windows desktop release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+      - run: npm ci
+      - name: Verify release version
+        run: node scripts/check-desktop-version.mjs "${{ github.ref_name }}"
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run desktop:check
+      - run: npm run desktop:build
+      - name: Prepare signed-hash release artifacts
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $target = 'src-tauri/target/x86_64-pc-windows-msvc/release'
+          $setup = Get-ChildItem -LiteralPath "$target/bundle/nsis" -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'NSIS setup artifact was not produced.' }
+          New-Item -ItemType Directory -Path release-artifacts -Force | Out-Null
+          Copy-Item -LiteralPath $setup.FullName -Destination "release-artifacts/CodeXRay_${version}_windows_x64_setup.exe"
+          Copy-Item -LiteralPath "$target/codexray.exe" -Destination "release-artifacts/CodeXRay_${version}_windows_x64_portable.exe"
+          Get-ChildItem -LiteralPath release-artifacts -Filter '*.exe' | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content -LiteralPath release-artifacts/SHA256SUMS.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodeXRay-windows-x64
+          path: release-artifacts/*
+          if-no-files-found: error
+      - name: Publish GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release view "${{ github.ref_name }}" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "${{ github.ref_name }}" --title "CodeXRay ${{ github.ref_name }}" --generate-notes
+          }
+          gh release upload "${{ github.ref_name }}" release-artifacts/* --clobber

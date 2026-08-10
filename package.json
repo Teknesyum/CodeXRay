@@ -15,10 +15,14 @@
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:ai": "node scripts/run-e2e.mjs --real-ai",
     "test:e2e:radio-live": "node scripts/run-e2e.mjs --real-radio",
-    "publish:site": "node scripts/publish-to-site.mjs"
+    "publish:site": "node scripts/publish-to-site.mjs",
+    "desktop:dev": "tauri dev",
+    "desktop:check": "node scripts/check-desktop-version.mjs && cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings && cargo test --manifest-path src-tauri/Cargo.toml",
+    "desktop:build": "node scripts/check-desktop-version.mjs && tauri build --target x86_64-pc-windows-msvc"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "0.2.84",
+    "@tauri-apps/api": "^2.11.1",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
@@ -26,6 +30,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.62.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

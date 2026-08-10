@@ -13,6 +13,8 @@ import { useTimeline } from '../context/TimelineContext';
 import { generateQuestions } from '../services/aiService';
 import {
   deleteLocalModel,
+  connectExternalAi,
+  listExternalAiModels,
   getCachedLocalModels,
   getPersistentStorageStatus,
   initializeLocalAi,
@@ -24,6 +26,9 @@ import {
   resetLocalAi,
   supportsLocalAi,
 } from '../services/localAiService';
+import { isDesktopRuntime } from '../services/desktopAiService';
+import { invalidateExternalProfile, providerProfile } from '../services/aiProviderProfiles';
+import type { AiConnectionProfileV1, AiProviderKind } from '../types/aiProvider';
 import { t, translateRuntimeText } from '../i18n/translations';
 import { selectCachedModelForAutoLoad } from '../services/localAiModels';
 import { normalizeLocalAiProgress } from '../services/localAiProgress';
@@ -61,6 +66,12 @@ export const ControlBar = ({
     setSelectedExampleQuestion,
     aiModel,
     setAiModel,
+    aiProvider,
+    setAiProvider,
+    aiProfiles,
+    setAiProfiles,
+    aiBearerToken,
+    setAiBearerToken,
     aiContextWindow,
     setAiContextWindow,
     aiStatus,
@@ -113,6 +124,8 @@ export const ControlBar = ({
   const [cacheChecked, setCacheChecked] = useState(false);
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
   const [repairableModel, setRepairableModel] = useState(false);
+  const [externalModels, setExternalModels] = useState<string[]>([]);
+  const [externalBusy, setExternalBusy] = useState(false);
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const startupCacheFallback = useRef(true);
   const autoLoadAttempts = useRef(new Set<string>());
@@ -121,6 +134,90 @@ export const ControlBar = ({
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
     ?? LOCAL_AI_MODELS[0];
   const modelCached = cacheChecked ? cachedModels.includes(aiModel) : null;
+  const desktopRuntime = isDesktopRuntime();
+  const externalProfile = aiProvider === 'webllm'
+    ? null
+    : providerProfile(aiProvider, aiProfiles);
+
+  const resetAiUiState = () => {
+    resetLocalAi();
+    setRepairableModel(false);
+    setAiStatus('idle');
+    setAiProgress('');
+    setAiProgressPercent(null);
+  };
+
+  const changeProvider = (provider: AiProviderKind) => {
+    if (provider !== 'webllm' && !desktopRuntime) return;
+    resetAiUiState();
+    setAiBearerToken('');
+    setExternalModels([]);
+    setAiProvider(provider);
+    if (provider === 'webllm') {
+      const model = LOCAL_AI_MODELS[0];
+      setAiModel(model.id);
+      setAiContextWindow(model.contextWindow);
+      return;
+    }
+    const profile = providerProfile(provider, aiProfiles);
+    setAiModel(profile.model);
+    setAiContextWindow(profile.contextWindow);
+  };
+
+  const updateExternalProfile = (
+    patch: Partial<Pick<AiConnectionProfileV1, 'baseUrl' | 'model' | 'contextWindow' | 'maxOutputTokens'>>,
+  ) => {
+    if (!externalProfile) return;
+    const updated = invalidateExternalProfile(externalProfile, patch);
+    setAiProfiles((profiles) => profiles.map((profile) => profile.id === updated.id ? updated : profile));
+    setAiModel(updated.model);
+    setAiContextWindow(updated.contextWindow);
+    resetAiUiState();
+  };
+
+  const discoverExternalModels = async () => {
+    if (!externalProfile) return;
+    setExternalBusy(true);
+    setAiProgress('');
+    try {
+      const models = await listExternalAiModels(externalProfile.baseUrl, aiBearerToken);
+      setExternalModels(models);
+      setAiProgress(models.length
+        ? t('externalModelsFound', locale, { count: models.length })
+        : t('externalModelsEmpty', locale));
+    } catch (error) {
+      setAiProgress(error instanceof Error ? error.message : t('externalDiscoveryFailed', locale));
+    } finally {
+      setExternalBusy(false);
+    }
+  };
+
+  const connectSelectedExternal = async () => {
+    if (!externalProfile || !externalProfile.model.trim()) {
+      setAiStatus('error');
+      setAiProgress(t('externalModelRequired', locale));
+      return;
+    }
+    setExternalBusy(true);
+    setAiStatus('loading');
+    setAiProgress(t('testingExternalModel', locale));
+    setAiProgressPercent(null);
+    try {
+      const connected = await connectExternalAi(externalProfile, aiBearerToken);
+      setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
+      setAiModel(connected.model);
+      setAiContextWindow(connected.contextWindow);
+      setAiStatus('ready');
+      setAiProgress(connected.capabilities?.advancedWorkflows
+        ? t('externalModelAdvancedReady', locale)
+        : t('externalModelChatReady', locale));
+    } catch (error) {
+      setAiStatus('error');
+      setAiProgress(error instanceof Error ? error.message : t('externalConnectionFailed', locale));
+    } finally {
+      setExternalBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (showSettings) settingsDialogRef.current?.focus();
@@ -171,6 +268,7 @@ export const ControlBar = ({
   }, [locale, setAiProgress, setAiProgressPercent, setAiStatus]);
 
   useEffect(() => {
+    if (aiProvider !== 'webllm') return;
     if (aiContextWindow <= selectedModel.maxContextWindow) return;
     resetLocalAi();
     setAiContextWindow(selectedModel.contextWindow);
@@ -179,6 +277,7 @@ export const ControlBar = ({
     setAiProgressPercent(null);
   }, [
     aiContextWindow,
+    aiProvider,
     selectedModel.contextWindow,
     selectedModel.maxContextWindow,
     setAiContextWindow,
@@ -188,6 +287,7 @@ export const ControlBar = ({
   ]);
 
   useEffect(() => {
+    if (aiProvider !== 'webllm') return;
     if (aiContextWindow > selectedModel.maxContextWindow) return;
     let active = true;
     setCacheChecked(false);
@@ -223,6 +323,7 @@ export const ControlBar = ({
     };
   }, [
     activateModel,
+    aiProvider,
     aiContextWindow,
     aiModel,
     selectedModel.maxContextWindow,
@@ -231,15 +332,52 @@ export const ControlBar = ({
   ]);
 
   useEffect(() => {
+    if (aiProvider === 'webllm' || !desktopRuntime || !autoLoadAiModel
+      || !externalProfile?.capabilities || aiBearerToken || aiStatus !== 'idle') return;
+    const loadKey = `external:${externalProfile.id}:${externalProfile.model}:${externalProfile.baseUrl}`;
+    if (autoLoadAttempts.current.has(loadKey)) return;
+    autoLoadAttempts.current.add(loadKey);
+    let active = true;
+    setAiStatus('loading');
+    setAiProgress(t('testingExternalModel', locale));
+    void connectExternalAi(externalProfile).then((connected) => {
+      if (!active) return;
+      setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
+      setAiStatus('ready');
+      setAiProgress(connected.capabilities?.advancedWorkflows
+        ? t('externalModelAdvancedReady', locale)
+        : t('externalModelChatReady', locale));
+    }).catch((error) => {
+      if (!active) return;
+      setAiStatus('error');
+      setAiProgress(error instanceof Error ? error.message : t('externalConnectionFailed', locale));
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    aiBearerToken,
+    aiProvider,
+    aiStatus,
+    autoLoadAiModel,
+    desktopRuntime,
+    externalProfile,
+    locale,
+    setAiProfiles,
+    setAiProgress,
+    setAiStatus,
+  ]);
+
+  useEffect(() => {
     const handleLoadModel = () => {
-      void activateModel(aiModel, aiContextWindow);
+      if (aiProvider === 'webllm') void activateModel(aiModel, aiContextWindow);
     };
     window.addEventListener('codexray:loadModel', handleLoadModel);
     return () => window.removeEventListener('codexray:loadModel', handleLoadModel);
-  }, [activateModel, aiModel, aiContextWindow]);
+  }, [activateModel, aiContextWindow, aiModel, aiProvider]);
 
   useEffect(() => {
-    if (!showSettings) return;
+    if (!showSettings || aiProvider !== 'webllm') return;
     let active = true;
     void getPersistentStorageStatus().then((persistent) => {
       if (active) setStoragePersistent(persistent);
@@ -247,7 +385,7 @@ export const ControlBar = ({
     return () => {
       active = false;
     };
-  }, [showSettings]);
+  }, [aiProvider, showSettings]);
 
   if (collapsed) {
     return (
@@ -455,6 +593,23 @@ export const ControlBar = ({
                 {activeTab === 'ai' && (
                   <>
                 <div className="settings-section ai-model-settings">
+                  <div className="settings-title">{t('aiProvider', locale)}</div>
+                  <select
+                    aria-label={t('aiProvider', locale)}
+                    className="api-provider-select"
+                    value={aiProvider}
+                    disabled={aiStatus === 'loading' || externalBusy}
+                    onChange={(event) => changeProvider(event.target.value as AiProviderKind)}
+                  >
+                    <option value="webllm">WebLLM</option>
+                    <option value="ollama" disabled={!desktopRuntime}>Ollama</option>
+                    <option value="openai-compatible" disabled={!desktopRuntime}>OpenAI-compatible</option>
+                  </select>
+                  {!desktopRuntime && <p className="local-ai-note">{t('desktopProvidersOnly', locale)}</p>}
+                </div>
+                {aiProvider === 'webllm' ? (
+                  <>
+                <div className="settings-section ai-model-settings">
                   <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
                     aria-label={t('onDeviceModel', locale)}
@@ -639,6 +794,131 @@ export const ControlBar = ({
                   </div>
                 )}
                 {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
+                  </>
+                ) : (
+                  <>
+                    <div className="settings-section ai-model-settings">
+                      <div className="settings-title">
+                        {aiProvider === 'ollama' ? 'Ollama' : 'Unsloth / llama.cpp'}
+                      </div>
+                      <label className="local-ai-field">
+                        <span>{t('endpointUrl', locale)}</span>
+                        <input
+                          className="api-provider-select"
+                          value={externalProfile?.baseUrl ?? ''}
+                          disabled={externalBusy}
+                          onChange={(event) => updateExternalProfile({ baseUrl: event.target.value })}
+                          spellCheck={false}
+                        />
+                      </label>
+                      <div className="ai-load-actions">
+                        <button
+                          type="button"
+                          className="neon-button ai-load-button"
+                          disabled={externalBusy}
+                          onClick={() => void discoverExternalModels()}
+                        >
+                          {t('discoverModels', locale)}
+                        </button>
+                      </div>
+                      <label className="local-ai-field">
+                        <span>{t('externalModelId', locale)}</span>
+                        <input
+                          className="api-provider-select"
+                          list="codexray-external-models"
+                          value={externalProfile?.model ?? ''}
+                          disabled={externalBusy}
+                          onChange={(event) => updateExternalProfile({ model: event.target.value })}
+                          spellCheck={false}
+                        />
+                        <datalist id="codexray-external-models">
+                          {externalModels.map((model) => <option key={model} value={model} />)}
+                        </datalist>
+                      </label>
+                      <label className="local-ai-field">
+                        <span>{t('contextWindow', locale)}</span>
+                        <select
+                          className="api-provider-select"
+                          value={externalProfile?.contextWindow ?? 4096}
+                          disabled={externalBusy}
+                          onChange={(event) => updateExternalProfile({
+                            contextWindow: Number(event.target.value) as 4096 | 8192 | 16384 | 32768,
+                          })}
+                        >
+                          <option value={4096}>{t('context4k', locale)}</option>
+                          <option value={8192}>{t('context8kExperimental', locale)}</option>
+                          <option value={16384}>{t('context16kExperimental', locale)}</option>
+                          <option value={32768}>{t('context32kExperimental', locale)}</option>
+                        </select>
+                      </label>
+                      <label className="local-ai-field">
+                        <span>{t('maxOutputTokens', locale)}</span>
+                        <input
+                          type="number"
+                          className="api-provider-select"
+                          min={256}
+                          max={4096}
+                          step={128}
+                          value={externalProfile?.maxOutputTokens ?? 1024}
+                          disabled={externalBusy}
+                          onChange={(event) => updateExternalProfile({
+                            maxOutputTokens: Math.min(4096, Math.max(256, Number(event.target.value))),
+                          })}
+                        />
+                      </label>
+                      <label className="local-ai-field">
+                        <span>{t('sessionBearerToken', locale)}</span>
+                        <input
+                          type="password"
+                          className="api-provider-select"
+                          value={aiBearerToken}
+                          disabled={externalBusy}
+                          autoComplete="off"
+                          onChange={(event) => setAiBearerToken(event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <p className="local-ai-note ai-privacy-note">{t('externalAiPrivacy', locale)}</p>
+                    {externalProfile?.capabilities && (
+                      <div className="local-storage-status">
+                        <span className={externalProfile.capabilities.chat ? 'ready' : ''}>
+                          {t('externalChatCompatible', locale)}
+                        </span>
+                        <span className={externalProfile.capabilities.advancedWorkflows ? 'ready' : ''}>
+                          {externalProfile.capabilities.advancedWorkflows
+                            ? t('externalAdvancedCompatible', locale)
+                            : t('externalAdvancedUnavailable', locale)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="ai-load-actions">
+                      <button
+                        type="button"
+                        className="neon-button ai-load-button"
+                        disabled={externalBusy || aiStatus === 'ready'}
+                        onClick={() => void connectSelectedExternal()}
+                      >
+                        {externalBusy
+                          ? t('testingExternalModel', locale)
+                          : aiStatus === 'ready'
+                            ? t('modelReady', locale)
+                            : t('testAndConnect', locale)}
+                      </button>
+                    </div>
+                    <div className="settings-section ai-load-preferences">
+                      <label className="neon-checkbox-label">
+                        <input
+                          type="checkbox"
+                          className="neon-checkbox"
+                          checked={autoLoadAiModel}
+                          onChange={(event) => setAutoLoadAiModel(event.target.checked)}
+                        />
+                        <span className="checkbox-text">{t('autoConnectExternalModel', locale)}</span>
+                      </label>
+                    </div>
+                    {aiProgress && <p className={`ai-status ${aiStatus}`}>{aiProgress}</p>}
+                  </>
+                )}
                 </>
                 )}
 

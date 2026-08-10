@@ -1,6 +1,7 @@
 import type { InitProgressReport } from '@mlc-ai/web-llm';
 import type { Locale } from '../i18n/translations';
 import type { AssistantMessage } from './aiContext';
+import { buildPlannerInstructions, buildTutorInstructions } from './aiContext';
 import { sanitizeLocalModelAnswer } from './aiResponse';
 import {
   getLocalAiModelDefinition,
@@ -9,6 +10,19 @@ import {
 } from './localAiModels';
 import type { GodModeAgentRole } from '../types/godMode';
 import type { LocalAgentResultV2 } from '../types/webSource';
+import type {
+  AiConnectionProfileV1,
+  AiProviderCapabilities,
+  AiProviderKind,
+  DesktopAiEvent,
+  DesktopChatMessage,
+} from '../types/aiProvider';
+import {
+  cancelDesktopCompletion,
+  listDesktopModels,
+  probeDesktopModel,
+  runDesktopCompletion,
+} from './desktopAiService';
 
 export { LOCAL_AI_MODELS } from './localAiModels';
 
@@ -77,6 +91,65 @@ const pending = new Map<number, PendingRequest>();
 let readyModel: string | undefined;
 let readyContextWindow: number | undefined;
 let activeInteractiveRequestId: number | null = null;
+
+interface ExternalAiSession {
+  profile: AiConnectionProfileV1;
+  bearerToken: string;
+}
+
+let externalSession: ExternalAiSession | null = null;
+let selectedProvider: AiProviderKind = 'webllm';
+const externalRequestIds = new Set<number>();
+let externalGeneration = 0;
+
+export const getActiveAiProvider = (): AiProviderKind => selectedProvider;
+
+export const getActiveAiCapabilities = (): AiProviderCapabilities | null =>
+  externalSession?.profile.capabilities ?? null;
+
+export const isActiveAiAdvancedCapable = (modelId: string): boolean =>
+  externalSession
+    ? externalSession.profile.model === modelId
+      && externalSession.profile.capabilities?.advancedWorkflows === true
+    : getLocalAiModelDefinition(modelId)?.capabilities.solveWebProblem === true;
+
+export const listExternalAiModels = listDesktopModels;
+
+export const connectExternalAi = async (
+  profile: AiConnectionProfileV1,
+  bearerToken = '',
+): Promise<AiConnectionProfileV1> => {
+  externalGeneration += 1;
+  for (const id of externalRequestIds) void cancelDesktopCompletion(id);
+  externalRequestIds.clear();
+  const probe = await probeDesktopModel(profile, bearerToken);
+  if (!probe.capabilities.chat || !probe.capabilities.streaming) {
+    throw new Error('The local endpoint did not pass the chat and streaming compatibility checks.');
+  }
+  worker?.terminate();
+  worker = undefined;
+  readyModel = profile.model;
+  readyContextWindow = profile.contextWindow;
+  selectedProvider = profile.provider;
+  const connected = {
+    ...profile,
+    baseUrl: probe.normalizedBaseUrl,
+    capabilities: probe.capabilities,
+  };
+  externalSession = { profile: connected, bearerToken };
+  return connected;
+};
+
+export const disconnectExternalAi = (): void => {
+  externalGeneration += 1;
+  for (const id of externalRequestIds) void cancelDesktopCompletion(id);
+  externalRequestIds.clear();
+  externalSession = null;
+  selectedProvider = 'webllm';
+  readyModel = undefined;
+  readyContextWindow = undefined;
+  activeInteractiveRequestId = null;
+};
 
 export const DEFAULT_AGENT_QUEUE_TIMEOUT_MS = 20_000;
 export const DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS = 30_000;
@@ -220,6 +293,8 @@ export const initializeLocalAi = async (
   contextWindow: number,
   onProgress: (progress: InitProgressReport) => void,
 ): Promise<void> => {
+  externalSession = null;
+  selectedProvider = 'webllm';
   if (!await supportsLocalAi()) {
     throw new Error('WebGPU is not available in this browser.');
   }
@@ -261,12 +336,115 @@ export const initializeLocalAi = async (
   });
 };
 
+const mergeExternalContinuation = (answer: string, continuation: string): string => {
+  const left = answer.trimEnd();
+  const right = continuation.trimStart();
+  const maximumOverlap = Math.min(left.length, right.length, 2_000);
+  for (let overlap = maximumOverlap; overlap >= 16; overlap -= 1) {
+    if (left.slice(-overlap) === right.slice(0, overlap)) {
+      return `${left}${right.slice(overlap)}`;
+    }
+  }
+  return `${left}\n\n${right}`;
+};
+
+const requireExternalSession = (): ExternalAiSession => {
+  if (!externalSession) throw new Error('Connect a desktop local AI provider from Settings first.');
+  return externalSession;
+};
+
+const runExternalRequest = (
+  id: number,
+  messages: DesktopChatMessage[],
+  locale: Locale,
+  options: { temperature: number; maxTokens: number; jsonMode?: boolean },
+  onEvent?: (event: DesktopAiEvent) => void,
+) => {
+  const session = requireExternalSession();
+  const generation = externalGeneration;
+  externalRequestIds.add(id);
+  return runDesktopCompletion({
+    requestId: id,
+    baseUrl: session.profile.baseUrl,
+    model: session.profile.model,
+    bearerToken: session.bearerToken || undefined,
+    messages,
+    temperature: options.temperature,
+    maxTokens: Math.min(options.maxTokens, session.profile.maxOutputTokens),
+    jsonMode: Boolean(options.jsonMode
+      && session.profile.capabilities?.structuredOutput === 'native'),
+    contextWindow: session.profile.contextWindow,
+    locale,
+  }, onEvent).then((result) => {
+    if (generation !== externalGeneration) {
+      throw new Error('The local AI response was discarded because the provider changed.');
+    }
+    return result;
+  }).finally(() => externalRequestIds.delete(id));
+};
+
+const externalConversation = async (
+  id: number,
+  question: string,
+  context: string,
+  history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
+  locale: Locale,
+): Promise<string> => {
+  const session = requireExternalSession();
+  const messages: DesktopChatMessage[] = [
+    { role: 'system', content: buildTutorInstructions(locale) },
+    ...history
+      .filter((item) => item.role === 'user' || item.role === 'ai')
+      .map((item): DesktopChatMessage => ({
+        role: item.role === 'ai' ? 'assistant' : 'user',
+        content: item.content,
+      })),
+    { role: 'user', content: `${context}\n\nQuestion: ${question}` },
+  ];
+  const first = await runExternalRequest(id, messages, locale, {
+    temperature: 0.15,
+    maxTokens: session.profile.maxOutputTokens,
+  });
+  let answer = first.text;
+  if (first.finishReason === 'length' && answer.trim()) {
+    const continuation = await runExternalRequest(id, [
+      ...messages,
+      { role: 'assistant', content: answer },
+      {
+        role: 'user',
+        content: 'Continue exactly where the answer stopped. Do not repeat earlier text. Finish concisely.',
+      },
+    ], locale, {
+      temperature: 0.1,
+      maxTokens: Math.min(320, session.profile.maxOutputTokens),
+    });
+    if (continuation.text.trim()) answer = mergeExternalContinuation(answer, continuation.text);
+    if (continuation.finishReason === 'length') {
+      answer += locale === 'tr'
+        ? '\n\n[Yanıt yerel üretim sınırına ulaştı.]'
+        : '\n\n[The response reached the local generation limit.]';
+    }
+  }
+  return answer;
+};
+
 export const askLocalModel = (
   question: string,
   context: string,
   history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
   locale: Locale,
 ): Promise<string> => {
+  if (externalSession) {
+    const id = ++requestId;
+    activeInteractiveRequestId = id;
+    return externalConversation(id, question, context, history, locale).then((answer) => {
+      const cleaned = sanitizeLocalModelAnswer(answer);
+      if (!cleaned) throw new Error('The local model did not produce a safe visible answer.');
+      return cleaned;
+    }).finally(() => {
+      if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
+    });
+  }
   if (!worker || !readyModel) {
     return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
   }
@@ -292,6 +470,22 @@ export const planLocalActions = (
   question: string,
   context: string,
 ): Promise<string> => {
+  if (externalSession) {
+    const id = ++requestId;
+    activeInteractiveRequestId = id;
+    const parsed = JSON.parse(context) as { steps?: unknown };
+    const maximumStep = typeof parsed.steps === 'number' && parsed.steps > 0
+      ? Math.floor(parsed.steps)
+      : 1;
+    const schemaHint = `Return JSON with an actions array of at most 3 items. A jump action needs an integer step from 1 to ${maximumStep}; other allowed action types are play, pause, next, previous, next-important, previous-important, and tour.`;
+    return runExternalRequest(id, [
+      { role: 'system', content: `${buildPlannerInstructions()}\n${schemaHint}` },
+      { role: 'user', content: `${context}\n\nQuestion: ${question}` },
+    ], 'en', { temperature: 0, maxTokens: 160, jsonMode: true }).then((result) => result.text)
+      .finally(() => {
+        if (activeInteractiveRequestId === id) activeInteractiveRequestId = null;
+      });
+  }
   if (!worker || !readyModel) {
     return Promise.reject(new Error('Load a local AI model from Settings before asking questions.'));
   }
@@ -307,7 +501,13 @@ export const planLocalActions = (
 
 export const cancelLocalResponse = (): boolean => {
   const id = activeInteractiveRequestId;
-  if (id === null || !worker) return false;
+  if (id === null) return false;
+  if (externalSession) {
+    activeInteractiveRequestId = null;
+    void cancelDesktopCompletion(id);
+    return true;
+  }
+  if (!worker) return false;
   activeInteractiveRequestId = null;
   const request = pending.get(id);
   pending.delete(id);
@@ -316,10 +516,161 @@ export const cancelLocalResponse = (): boolean => {
   return true;
 };
 
+const runExternalAgentDetailed = (
+  request: LocalAgentRequest,
+  onProgress?: (progress: LocalAgentProgress) => void,
+): DetailedLocalAgentHandle => {
+  if (!externalSession) {
+    return {
+      requestId: -1,
+      promise: Promise.reject(new Error('Connect a desktop local AI provider before running agents.')),
+      cancel: () => undefined,
+    };
+  }
+  const session = externalSession;
+  const id = ++requestId;
+  const expectsJson = Boolean(request.responseSchema || request.jsonMode);
+  const queueTimeoutMs = request.queueTimeoutMs ?? DEFAULT_AGENT_QUEUE_TIMEOUT_MS;
+  const firstTokenTimeoutMs = request.firstTokenTimeoutMs ?? request.inferenceTimeoutMs
+    ?? DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
+  const inactivityTimeoutMs = request.inactivityTimeoutMs ?? request.inferenceTimeoutMs
+    ?? DEFAULT_AGENT_INACTIVITY_TIMEOUT_MS;
+  const maxTokens = Math.min(
+    request.maxTokens ?? session.profile.maxOutputTokens,
+    session.profile.maxOutputTokens,
+  );
+  const absoluteTimeoutMs = request.absoluteTimeoutMs ?? request.inferenceTimeoutMs
+    ?? (maxTokens <= 260 ? DEFAULT_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS : DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
+  let settled = false;
+  let phaseTimer: ReturnType<typeof globalThis.setTimeout>;
+  let absoluteTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+  let targetTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+  let rejectPromise: ((reason: Error) => void) | undefined;
+
+  const clearTimers = () => {
+    globalThis.clearTimeout(phaseTimer);
+    if (absoluteTimer) globalThis.clearTimeout(absoluteTimer);
+    if (targetTimer) globalThis.clearTimeout(targetTimer);
+  };
+  const cancel = (message = 'Local AI agent was cancelled.') => {
+    if (settled) return;
+    settled = true;
+    clearTimers();
+    void cancelDesktopCompletion(id);
+    rejectPromise?.(new Error(message));
+  };
+  const armInactivity = () => {
+    globalThis.clearTimeout(phaseTimer);
+    phaseTimer = globalThis.setTimeout(() => {
+      cancel(`Local AI ${request.role} agent stopped producing output for ${Math.round(inactivityTimeoutMs / 1_000)} seconds.`);
+    }, inactivityTimeoutMs);
+  };
+  const schemaText = request.responseSchema ? JSON.stringify(request.responseSchema) : '';
+  const systemContent = [
+    `You are the isolated CodeXRay ${request.role} specialist.`,
+    request.instructions,
+    'Use only supplied workspace state and artifacts. Never claim that application state changed.',
+    expectsJson
+      ? `Return exactly one JSON object${schemaText ? ` matching this schema: ${schemaText}` : ''}. Do not use markdown. Write human-readable strings in ${request.locale === 'tr' ? 'Turkish' : 'English'}.`
+      : `Respond concisely in ${request.locale === 'tr' ? 'Turkish' : 'English'}.`,
+  ].join('\n');
+  const promptBudget = Math.max(
+    900,
+    (session.profile.contextWindow - maxTokens - 420) * 2 - systemContent.length,
+  );
+  const boundedContext = request.context.length <= promptBudget
+    ? request.context
+    : `${request.context.slice(0, Math.floor(promptBudget * 0.72))}\n[Context shortened]\n${request.context.slice(-Math.floor(promptBudget * 0.28))}`;
+
+  const operation = runExternalRequest(id, [
+    { role: 'system', content: systemContent },
+    { role: 'user', content: boundedContext },
+  ], request.locale, {
+    temperature: request.temperature ?? (expectsJson ? 0 : 0.12),
+    maxTokens,
+    jsonMode: expectsJson,
+  }, (event) => {
+    if (settled) return;
+    if (event.type !== 'error') {
+      onProgress?.({
+        requestId: id,
+        status: event.type,
+        text: event.text,
+        queueMs: event.queueMs,
+        firstTokenMs: event.firstTokenMs,
+        inferenceMs: event.inferenceMs,
+        completionTokens: event.completionTokens,
+        finishReason: event.finishReason,
+      });
+    }
+    if (event.type === 'running') {
+      globalThis.clearTimeout(phaseTimer);
+      phaseTimer = globalThis.setTimeout(() => {
+        cancel(`Local AI ${request.role} agent produced no first token within ${Math.round(firstTokenTimeoutMs / 1_000)} seconds.`);
+      }, firstTokenTimeoutMs);
+      absoluteTimer = globalThis.setTimeout(() => {
+        cancel(`Local AI ${request.role} agent reached its ${Math.round(absoluteTimeoutMs / 1_000)} second absolute limit.`);
+      }, absoluteTimeoutMs);
+      targetTimer = globalThis.setTimeout(() => {
+        onProgress?.({
+          requestId: id,
+          status: 'target-exceeded',
+          text: 'The 20 second performance target was exceeded; the local model is still working.',
+        });
+      }, 20_000);
+    } else if (event.type === 'first-token' || event.type === 'streaming') {
+      armInactivity();
+    } else if (event.type === 'validating' || event.type === 'completed') {
+      globalThis.clearTimeout(phaseTimer);
+    }
+  });
+
+  const promise = new Promise<LocalAgentResultV2>((resolve, reject) => {
+    rejectPromise = reject;
+    operation.then((result) => {
+      if (settled) return;
+      settled = true;
+      clearTimers();
+      resolve({
+        version: 2,
+        text: result.text || (expectsJson ? '{}' : ''),
+        finishReason: result.finishReason,
+        model: session.profile.model,
+        contextWindow: session.profile.contextWindow,
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        queueMs: result.queueMs,
+        firstTokenMs: result.firstTokenMs,
+        inferenceMs: result.inferenceMs,
+        schemaMode: expectsJson
+          ? session.profile.capabilities?.structuredOutput === 'native' ? 'json-object' : 'none'
+          : 'none',
+      });
+    }).catch((error) => {
+      if (settled) return;
+      settled = true;
+      clearTimers();
+      reject(error instanceof Error ? error : new Error(String(error)));
+    });
+  });
+  phaseTimer = globalThis.setTimeout(() => {
+    cancel(`Local AI ${request.role} agent timed out in the queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
+  }, queueTimeoutMs);
+  return { requestId: id, promise, cancel: () => cancel() };
+};
+
 export const runLocalAgent = (
   request: LocalAgentRequest,
   onProgress?: (progress: LocalAgentProgress) => void,
 ): LocalAgentHandle => {
+  if (externalSession) {
+    const handle = runExternalAgentDetailed(request, onProgress);
+    return {
+      requestId: handle.requestId,
+      promise: handle.promise.then((result) => result.text),
+      cancel: handle.cancel,
+    };
+  }
   if (!worker || !readyModel) {
     return {
       requestId: -1,
@@ -419,6 +770,7 @@ export const runLocalAgentDetailed = (
   request: LocalAgentRequest,
   onProgress?: (progress: LocalAgentProgress) => void,
 ): DetailedLocalAgentHandle => {
+  if (externalSession) return runExternalAgentDetailed(request, onProgress);
   if (!worker || !readyModel) {
     return {
       requestId: -1,
@@ -532,6 +884,11 @@ export const repairLocalModel = (model: string): Promise<void> =>
   });
 
 export const resetLocalAi = () => {
+  externalGeneration += 1;
+  for (const id of externalRequestIds) void cancelDesktopCompletion(id);
+  externalRequestIds.clear();
+  externalSession = null;
+  selectedProvider = 'webllm';
   worker?.terminate();
   worker = undefined;
   readyModel = undefined;

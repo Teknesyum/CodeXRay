@@ -7,8 +7,11 @@ import type {
   SolutionArtifactV1,
   WebProblemSpecV1,
 } from '../types/webSource';
-import { getLocalAiModelDefinition } from './localAiModels';
-import { runLocalAgentDetailed, type DetailedLocalAgentHandle } from './localAiService';
+import {
+  isActiveAiAdvancedCapable,
+  runLocalAgentDetailed,
+  type DetailedLocalAgentHandle,
+} from './localAiService';
 import { buildWebProblemPrompt } from './webSource';
 
 const JAVA_SCHEMA = {
@@ -88,7 +91,7 @@ const validateReview = (value: unknown): SolutionArtifactV1['review'] => {
 };
 
 export const isWebProblemSolveCapable = (modelId: string): boolean =>
-  getLocalAiModelDefinition(modelId)?.capabilities.solveWebProblem === true;
+  isActiveAiAdvancedCapable(modelId);
 
 export const validateManagerPlanV2 = (plan: ManagerPlanV2): void => {
   const ids = new Set(plan.jobs.map((job) => job.id));

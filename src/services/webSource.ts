@@ -8,6 +8,7 @@ import type {
   WebSourceSegmentKind,
   SolutionArtifactV1,
 } from '../types/webSource';
+import { isDesktopRuntime, readWebSourceFromDesktop } from './desktopAiService';
 
 export const WEB_SOURCE_SESSION_KEY = 'codexray.web-source.v1';
 const WEB_READER_PATH = '/api/codexray/read-url';
@@ -116,17 +117,25 @@ export const readWebSource = async (
   url: string,
   options: { signal?: AbortSignal; fetcher?: typeof fetch } = {},
 ): Promise<ExternalDocumentV1> => {
-  const fetcher = options.fetcher ?? fetch;
   let lastError: WebSourceError | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (options.signal?.aborted) throw new WebSourceError('cancelled', 'Web source reading was cancelled.');
     try {
-      const response = await fetcher(WEB_READER_PATH, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: 1, url }),
-        signal: options.signal,
-      });
+      const response = options.fetcher
+        ? await options.fetcher(WEB_READER_PATH, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version: 1, url }),
+          signal: options.signal,
+        })
+        : isDesktopRuntime()
+          ? await readWebSourceFromDesktop(url, options.signal)
+          : await fetch(WEB_READER_PATH, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ version: 1, url }),
+            signal: options.signal,
+          });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) throw parseErrorResponse(payload, response.status);
       if (!isRecord(payload) || payload.version !== 1 || !('document' in payload)) {

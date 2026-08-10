@@ -4,9 +4,11 @@
   <p><strong>See algorithms execute, one state change at a time.</strong></p>
 </div>
 
-CodeXRay is a bilingual English/Turkish browser-based algorithm visualizer built
-with React, TypeScript, and Vite. Its simulations are deterministic and local:
-source code and input are never sent to an API.
+CodeXRay is a bilingual English/Turkish algorithm visualizer available as a
+React/Vite browser app and a Tauri 2 Windows desktop app. Its deterministic
+simulations remain local. AI is optional: the browser uses WebLLM, while the
+desktop app can also connect to an explicitly selected loopback Ollama or
+OpenAI-compatible server.
 
 ## Features
 
@@ -25,6 +27,9 @@ source code and input are never sent to an API.
 - Optional private, on-device Qwen-family assistant powered by WebLLM/WebGPU,
   with bounded local conversation memory and live code/input/trace context.
   Its Turkish persona is **Bilgiç Dede**; English keeps **Master Coder**.
+- The Windows app can use Ollama at `http://127.0.0.1:11434/v1` or an
+  Unsloth/llama.cpp-compatible server at `http://127.0.0.1:8001/v1`. CodeXRay
+  never installs, starts, scans for, or manages those runtimes.
 - The assistant can safely control timeline playback: jump to a requested step,
   play, pause, move one step, or build an eight-stop guided tour of important
   deterministic trace moments. It cannot silently edit source code or input.
@@ -89,7 +94,17 @@ npm run test:coverage  # Run unit tests with coverage report
 npm run build          # Build the project for production
 npm run test:e2e       # Run deterministic end-to-end tests
 npm run test:e2e:ai    # Download and test the real on-device WebLLM model
+npm run desktop:dev     # Run the Tauri desktop app
+npm run desktop:check   # Rust format, clippy, and native tests
+npm run desktop:build   # Build Windows x64 executable and NSIS installer
 ```
+
+Desktop development additionally requires Rust stable, the MSVC C++ Build
+Tools, and the Tauri Windows prerequisites. Release builds produce an unsigned
+NSIS installer and a portable executable; Windows SmartScreen may warn until
+code signing is introduced. The portable build requires WebView2 to already be
+installed, while the NSIS package uses the WebView2 download bootstrapper when
+needed.
 
 The real-AI suite is intentionally separate because it requires a WebGPU-capable
 browser, downloads the selected model into browser-managed storage, and can take
@@ -131,6 +146,18 @@ a node to edit its ID or label; renaming an ID updates every edge and
 root/start/target reference. New numeric IDs reuse the first available gap.
 
 ## Local AI
+
+In a browser, only WebLLM is available. In the Windows app, Settings also shows
+Ollama and generic OpenAI-compatible providers. External endpoints are accepted
+only on `localhost`, `127.0.0.1`, or `[::1]`; redirects and URL credentials are
+rejected by the native boundary. Model discovery uses `/v1/models`, inference
+uses streaming `/v1/chat/completions`, and advanced workflows remain disabled
+until the endpoint passes chat, streaming, and structured-JSON probes.
+
+External connection profiles persist without credentials. An optional Bearer
+token is kept only in the current React/Rust process memory and must be entered
+again after restarting CodeXRay. Browser and desktop WebLLM storage origins are
+separate, so downloaded model caches are not shared.
 
 Open Settings and load one of:
 

@@ -1,16 +1,25 @@
 # CodeXRay Handoff Snapshot
 
-Last updated: 2026-08-02
+Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base commit: `b23a901`.
-- The working tree contains the uncommitted internal-catalog, natural-input,
-  multi-path, and source-fidelity acceptance scope described below. Preserve it
-  as one integration change set.
+- Branch: `main`; synchronized base commit at the start of this scope: `a19a9ad`.
+- The working tree contains the uncommitted Windows desktop/local-provider
+  implementation. The pre-existing untracked `opencode.json` remains untouched.
 - Package version: `2.1.2`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
+- `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
+  The renderer has only core IPC permission; native commands are limited to
+  loopback model discovery/probe/completion/cancel, the fixed first-party reader,
+  and validated HTTPS external-link opening.
+- The provider-neutral AI facade preserves WebLLM and adds Ollama plus generic
+  OpenAI-compatible streaming. Profiles persist without Bearer tokens, capability
+  probes gate advanced workflows, and a provider-generation guard discards late
+  responses after switching.
+- Windows CI validates frontend/Rust/Tauri builds. `v*` tags publish renamed
+  setup/portable executables and `SHA256SUMS.txt`.
 
 ## Current catalog and God Mode behavior
 
@@ -146,6 +155,27 @@ The detailed evidence and model findings are in
 
 ## Latest verification
 
+Desktop/local-provider scope run on 2026-08-11:
+
+- `npm run lint`: passed.
+- `npm run test -- --run`: 74 files, 462/462 passed, including the new
+  provider-profile/desktop-boundary coverage.
+- `npm run build`: passed; initial JavaScript 592.0/620 KiB, every lazy chunk
+  <=100 KiB, worker 5929.9/6500 KiB, styles 76.3/100 KiB.
+- `npm run desktop:check`: passed; version sync, rustfmt, clippy with warnings as
+  errors, and 3/3 Rust unit tests.
+- `npm run desktop:build`: passed and produced the Windows x64 executable plus
+  `CodeXRay_2.1.2_x64-setup.exe`.
+- Renamed local deliverables and hashes are under ignored `release-artifacts/`.
+  Portable process smoke passed: the app stayed responsive and exposed the
+  `CodeXRay` main window before its exact PID was closed.
+- Real Ollama/Unsloth model quality smoke, controlled full HTTP fixture coverage,
+  NSIS install/uninstall, and clean Windows 11 VM acceptance were not run. Do not
+  present the successful protocol/build checks as those external-runtime proofs.
+- The final Playwright suite was started with the documented external-server
+  workaround, then intentionally stopped at the user's request to commit/push;
+  it has no pass/fail result and must be rerun after this handoff.
+
 Run on 2026-08-02 from the current working tree:
 
 - `npm run lint`: passed, no warnings.
@@ -254,20 +284,26 @@ deterministic acceptance result.
 
 ## Known limits and next priorities
 
-1. The `37/37` result proves one representative per category, not all 3,236
+1. Add controlled Rust loopback fixture tests for fragmented SSE, redirects,
+   cancellation, response limits, Bearer redaction, and model-list variants;
+   current native tests cover URL normalization/rejection and JSON parsing only.
+2. Run real Ollama and Unsloth/llama-server smoke tests, then install/uninstall
+   NSIS and launch portable in a clean Windows 11 x64 VM. Code signing,
+   auto-update, ARM64, macOS, and Linux desktop remain out of scope.
+3. The `37/37` result proves one representative per category, not all 3,236
    LeetCode records. Untested titles remain in the persistent matrix.
-2. Expand exact support one `source:id` at a time. Never infer support from tags
+4. Expand exact support one `source:id` at a time. Never infer support from tags
    or route an unsupported title to a generic family demo.
-3. Replace the two retained legacy array comparison functions after the catalog
+5. Replace the two retained legacy array comparison functions after the catalog
    migration is stable; LC209 and LC560 already use their exact implementations.
-4. Continue per-title validation. The multi-path and natural-input flows now
+6. Continue per-title validation. The multi-path and natural-input flows now
    have committed Playwright coverage; extend it only with newly registered
    exact identities or source-specific regressions.
-5. Rerun cached DeepSeek and Qwen real-model scenarios separately. Keep their
+7. Rerun cached DeepSeek and Qwen real-model scenarios separately. Keep their
    planner/author failures visible and do not convert prose into pass evidence.
-6. Before commit, review the internal-catalog/input/multi-path scope as one
-   transaction and keep source-fidelity claims bounded by reader availability.
-7. Extend the deployed first-party reader with a lawful AtCoder ingestion path
+8. Before commit, review the desktop/provider scope together with the preserved
+   catalog/input/multi-path scope and keep validation claims bounded by evidence.
+9. Extend the deployed first-party reader with a lawful AtCoder ingestion path
    before claiming full AtCoder statement/example availability. Re-run the live
    source matrix afterward; never replace blocked source text with model output.
 
@@ -278,6 +314,8 @@ git status --short --branch
 npm run lint
 npm run test -- --run
 npm run build
+npm run desktop:check
+npm run desktop:build
 ```
 
 For Playwright on Codex Desktop, use the external-server procedure documented in

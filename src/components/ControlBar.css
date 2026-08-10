@@ -773,6 +773,18 @@
   cursor: pointer;
 }
 
+.local-ai-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.local-ai-field > span {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .api-provider-select option {
   background: var(--bg-dark);
 }

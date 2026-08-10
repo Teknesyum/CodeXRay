@@ -1,4 +1,4 @@
-import { Channel, invoke } from '@tauri-apps/api/core';
+import { Channel, invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   AiConnectionProfileV1,
   DesktopAiEvent,
@@ -9,8 +9,7 @@ import type {
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
-export const isDesktopRuntime = (): boolean =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+export const isDesktopRuntime = (): boolean => isTauri();
 
 export const normalizeLoopbackBaseUrl = (value: string): string => {
   const parsed = new URL(value.trim());

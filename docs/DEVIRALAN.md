@@ -7,7 +7,7 @@ Last updated: 2026-08-11
 - Branch: `main`; synchronized base commit at the start of this scope: `a19a9ad`.
 - The working tree contains the uncommitted Windows desktop/local-provider
   implementation. The pre-existing untracked `opencode.json` remains untouched.
-- Package version: `2.1.2`.
+- Package version: `2.2.0`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -160,21 +160,28 @@ Desktop/local-provider scope run on 2026-08-11:
 - `npm run lint`: passed.
 - `npm run test -- --run`: 74 files, 462/462 passed, including the new
   provider-profile/desktop-boundary coverage.
-- `npm run build`: passed; initial JavaScript 592.0/620 KiB, every lazy chunk
+- `npm run build`: passed; initial JavaScript 592.1/620 KiB, every lazy chunk
   <=100 KiB, worker 5929.9/6500 KiB, styles 76.3/100 KiB.
 - `npm run desktop:check`: passed; version sync, rustfmt, clippy with warnings as
   errors, and 3/3 Rust unit tests.
 - `npm run desktop:build`: passed and produced the Windows x64 executable plus
-  `CodeXRay_2.1.2_x64-setup.exe`.
+  `CodeXRay_2.2.0_x64-setup.exe`.
 - Renamed local deliverables and hashes are under ignored `release-artifacts/`.
   Portable process smoke passed: the app stayed responsive and exposed the
   `CodeXRay` main window before its exact PID was closed.
 - Real Ollama/Unsloth model quality smoke, controlled full HTTP fixture coverage,
   NSIS install/uninstall, and clean Windows 11 VM acceptance were not run. Do not
   present the successful protocol/build checks as those external-runtime proofs.
-- The final Playwright suite was started with the documented external-server
-  workaround, then intentionally stopped at the user's request to commit/push;
-  it has no pass/fail result and must be rerun after this handoff.
+- The Windows external-server E2E runner incorrectly spawned a second Vite
+  process even when `PLAYWRIGHT_EXTERNAL_SERVER=1`; it now honors the switch.
+  A focused desktop-provider Playwright acceptance passed 1/1 in 13.1 seconds,
+  proving the provider selector, enabled Ollama/OpenAI-compatible options,
+  Ollama preset URL, and connect action. The full suite was not rerun afterward.
+- A reported desktop window without the provider selector exposed two release
+  issues: the new feature had reused installed version `2.1.2`, and runtime
+  detection used an obsolete private global. Version is now `2.2.0` and desktop
+  detection uses the Tauri API's `isTauri()` function. The rebuilt 2.2.0
+  portable process opened a responsive `CodeXRay` window.
 
 Run on 2026-08-02 from the current working tree:
 

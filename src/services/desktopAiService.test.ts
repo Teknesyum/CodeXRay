@@ -23,4 +23,13 @@ describe('desktop AI endpoint boundary', () => {
   it('does not expose native providers in an ordinary browser build', () => {
     expect(isDesktopRuntime()).toBe(false);
   });
+
+  it('uses the supported Tauri runtime marker', () => {
+    Object.defineProperty(globalThis, 'isTauri', { value: true, configurable: true });
+    try {
+      expect(isDesktopRuntime()).toBe(true);
+    } finally {
+      delete (globalThis as typeof globalThis & { isTauri?: boolean }).isTauri;
+    }
+  });
 });

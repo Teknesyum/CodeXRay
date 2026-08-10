@@ -400,8 +400,36 @@ async fn collect_streaming(
                 if !content.is_empty() || !reasoning_content.is_empty() {
                     if !content.is_empty() {
                         answer.push_str(content);
+                        send_event(
+                            channel,
+                            AiEvent {
+                                request_id: request.request_id,
+                                kind: "answer-delta",
+                                text: content.to_string(),
+                                queue_ms: None,
+                                first_token_ms,
+                                inference_ms: None,
+                                completion_tokens: None,
+                                finish_reason: None,
+                            },
+                        );
                     }
-                    reasoning.push_str(reasoning_content);
+                    if !reasoning_content.is_empty() {
+                        reasoning.push_str(reasoning_content);
+                        send_event(
+                            channel,
+                            AiEvent {
+                                request_id: request.request_id,
+                                kind: "reasoning-delta",
+                                text: reasoning_content.to_string(),
+                                queue_ms: None,
+                                first_token_ms,
+                                inference_ms: None,
+                                completion_tokens: None,
+                                finish_reason: None,
+                            },
+                        );
+                    }
                     let elapsed = started.elapsed().as_millis() as u64;
                     if first_token_ms.is_none() {
                         first_token_ms = Some(elapsed);

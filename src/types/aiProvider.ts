@@ -60,7 +60,7 @@ export interface DesktopCompletionRequest {
 
 export interface DesktopAiEvent {
   requestId: number;
-  type: 'queued' | 'running' | 'first-token' | 'streaming' | 'validating' | 'completed' | 'cancelled' | 'error';
+  type: 'queued' | 'running' | 'first-token' | 'streaming' | 'reasoning-delta' | 'answer-delta' | 'validating' | 'completed' | 'cancelled' | 'error';
   text: string;
   queueMs?: number;
   firstTokenMs?: number | null;

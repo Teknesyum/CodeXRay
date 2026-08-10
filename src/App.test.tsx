@@ -117,7 +117,7 @@ describe('application workspace', () => {
       .toBeInTheDocument();
     expect(screen.getByText(/browser-managed OPFS\/cache/)).toBeInTheDocument();
     expect(screen.getByText(/initializes automatically/)).toBeInTheDocument();
-    expect(screen.getByText('v2.3.0')).toBeInTheDocument();
+    expect(screen.getByText('v2.3.1')).toBeInTheDocument();
 
     await user.selectOptions(modelSelect, 'Qwen3.5-9B-q4f32_1-MLC');
     const contextSelect = screen.getByRole('combobox', { name: 'Context window' });

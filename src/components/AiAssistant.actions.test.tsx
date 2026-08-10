@@ -89,6 +89,7 @@ describe('AiAssistant safe action pipeline', () => {
           currentIndex: 0,
         }),
         expect.any(Array),
+        expect.any(Function),
       );
     });
   });
@@ -151,6 +152,33 @@ describe('AiAssistant safe action pipeline', () => {
     await user.click(screen.getByText('Düşünme süreci'));
     expect(disclosure).toHaveAttribute('open');
     expect(screen.getByText(/Önce mevcut izi kontrol ettim/)).toBeVisible();
+  });
+
+  it('renders reasoning and answer deltas before the request completes', async () => {
+    let finish!: (value: { content: string; reasoning: string }) => void;
+    mocks.askQuestion.mockImplementation((
+      _question: string,
+      _workspace: unknown,
+      _history: unknown,
+      onStream: (update: { type: 'reasoning' | 'answer'; delta: string }) => void,
+    ) => new Promise<{ content: string; reasoning: string }>((resolve) => {
+      finish = resolve;
+      onStream({ type: 'reasoning', delta: 'İzi kontrol ' });
+      onStream({ type: 'reasoning', delta: 'ediyorum.' });
+      onStream({ type: 'answer', delta: 'Sonuç ' });
+      onStream({ type: 'answer', delta: 'akıyor.' });
+    }));
+    const user = userEvent.setup();
+    const { container } = renderReadyAssistant();
+
+    await user.type(await screen.findByRole('textbox'), 'Canlı anlat{Enter}');
+    expect(await screen.findByText('İzi kontrol ediyorum.')).toBeVisible();
+    expect(screen.getByText('Sonuç akıyor.')).toBeVisible();
+    expect(container.querySelector('details.reasoning-disclosure.live')).toHaveAttribute('open');
+
+    finish({ content: 'Sonuç akıyor.', reasoning: 'İzi kontrol ediyorum.' });
+    await waitFor(() => expect(container.querySelector('.live-stream')).not.toBeInTheDocument());
+    expect(screen.getByText('Sonuç akıyor.')).toBeVisible();
   });
 
   it('reports clipboard permission failures instead of failing silently', async () => {

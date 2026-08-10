@@ -20,6 +20,7 @@ interface WorkerOutput {
   type: string;
   text?: string;
   status?: string;
+  phase?: 'reasoning' | 'answer';
   progress?: { progress: number; text: string };
 }
 
@@ -193,6 +194,26 @@ describe('local AI worker protocol', () => {
     expect(answer).toContain('reached the local generation limit');
     expect(webLlm.complete).toHaveBeenCalledTimes(2);
     expect(webLlm.complete.mock.calls[1]?.[0].messages.at(-1).content).toContain('Continue exactly where it stopped');
+  });
+
+  it('publishes WebLLM conversation deltas before the final answer', async () => {
+    await initialize(24);
+    webLlm.complete.mockResolvedValueOnce(streamedCompletion('Canlı cevap.'));
+    send({
+      id: 24,
+      type: 'generate',
+      question: 'Canlı anlat.',
+      context: 'CURRENT SNAPSHOT',
+      history: [],
+      locale: 'tr',
+    });
+
+    await waitForOutput((message) => message.id === 24 && message.type === 'answer');
+    const deltaIndex = outputs().findIndex((message) =>
+      message.id === 24 && message.type === 'stream-delta' && message.text === 'Canlı cevap.');
+    const answerIndex = outputs().findIndex((message) => message.id === 24 && message.type === 'answer');
+    expect(deltaIndex).toBeGreaterThanOrEqual(0);
+    expect(deltaIndex).toBeLessThan(answerIndex);
   });
 
   it('disables reasoning narration and expands strict JSON budgets for DeepSeek R1', async () => {

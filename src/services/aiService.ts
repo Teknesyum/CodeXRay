@@ -1,6 +1,11 @@
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { simulateAlgorithm } from './simulators';
-import { askLocalModel, askLocalModelDetailed, type LocalModelAnswer } from './localAiService';
+import {
+  askLocalModel,
+  askLocalModelDetailed,
+  type LocalModelAnswer,
+  type LocalModelStreamUpdate,
+} from './localAiService';
 import {
   buildAssistantContext,
   selectAssistantHistory,
@@ -132,6 +137,7 @@ export const askQuestionDetailed = async (
   question: string,
   workspace: AssistantWorkspace,
   chatHistory: AssistantMessage[] = [],
+  onStream?: (update: LocalModelStreamUpdate) => void,
 ): Promise<LocalModelAnswer> => {
   const contextWindow = workspace.contextWindow ?? 4096;
   const questionLimit = contextWindow >= 32768 ? 2_400 : contextWindow >= 16384 ? 1_800 : contextWindow >= 8192 ? 1_200 : 800;
@@ -146,5 +152,6 @@ export const askQuestionDetailed = async (
     context,
     selectAssistantHistory(chatHistory, historyBudget, messageLimit),
     workspace.locale,
+    onStream,
   );
 };

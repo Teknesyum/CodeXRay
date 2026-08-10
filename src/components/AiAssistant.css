@@ -218,6 +218,47 @@
   color: inherit;
 }
 
+.reasoning-disclosure.live {
+  border-color: rgba(0, 243, 255, 0.18);
+}
+
+.reasoning-disclosure.live > summary {
+  cursor: default;
+}
+
+.live-thinking-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 243, 255, 0.75);
+  box-shadow: 0 0 7px rgba(0, 243, 255, 0.5);
+  animation: reasoning-pulse 1.25s ease-in-out infinite;
+}
+
+.streaming-answer {
+  position: relative;
+  min-width: 0;
+}
+
+.stream-caret {
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  border-radius: 2px;
+  background: rgba(0, 243, 255, 0.68);
+  animation: stream-caret-blink 0.85s steps(1) infinite;
+}
+
+@keyframes reasoning-pulse {
+  50% { opacity: 0.35; transform: scale(0.72); }
+}
+
+@keyframes stream-caret-blink {
+  50% { opacity: 0.18; }
+}
+
 .analysis-outline {
   flex: 0 0 auto;
   width: 100%;

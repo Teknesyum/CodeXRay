@@ -28,8 +28,9 @@ export { LOCAL_AI_MODELS } from './localAiModels';
 
 interface WorkerResponse {
   id: number;
-  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted' | 'agent-event';
+  type: 'ready' | 'progress' | 'answer' | 'error' | 'cache-status' | 'model-deleted' | 'agent-event' | 'stream-delta';
   text?: string;
+  phase?: 'reasoning' | 'answer';
   progress?: InitProgressReport;
   status?: LocalAgentProgress['status'];
   result?: LocalAgentResultV2;
@@ -44,6 +45,7 @@ interface PendingRequest {
   resolve: (value: never) => void;
   reject: (reason: Error) => void;
   onAgentEvent?: (event: LocalAgentProgress) => void;
+  onStream?: (update: LocalModelStreamUpdate) => void;
 }
 
 export interface LocalAgentProgress {
@@ -62,6 +64,11 @@ export interface LocalModelAnswer {
   reasoning?: string;
   reasoningTokens?: number | null;
   inferenceMs?: number;
+}
+
+export interface LocalModelStreamUpdate {
+  type: 'reasoning' | 'answer';
+  delta: string;
 }
 
 export interface LocalAgentRequest {
@@ -213,6 +220,13 @@ const getWorker = () => {
     if (response.type === 'progress') return;
     const request = pending.get(response.id);
     if (!request) return;
+    if (response.type === 'stream-delta') {
+      request.onStream?.({
+        type: response.phase === 'reasoning' ? 'reasoning' : 'answer',
+        delta: response.text ?? '',
+      });
+      return;
+    }
     if (response.type === 'agent-event') {
       request.onAgentEvent?.({
         requestId: response.id,
@@ -396,6 +410,7 @@ const externalConversation = async (
   context: string,
   history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
   locale: Locale,
+  onStream?: (update: LocalModelStreamUpdate) => void,
 ): Promise<LocalModelAnswer> => {
   const session = requireExternalSession();
   const messages: DesktopChatMessage[] = [
@@ -411,6 +426,9 @@ const externalConversation = async (
   const first = await runExternalRequest(id, messages, locale, {
     temperature: 0.15,
     maxTokens: session.profile.maxOutputTokens,
+  }, (event) => {
+    if (event.type === 'reasoning-delta') onStream?.({ type: 'reasoning', delta: event.text });
+    if (event.type === 'answer-delta') onStream?.({ type: 'answer', delta: event.text });
   });
   let answer = first.text;
   let reasoning = first.reasoning;
@@ -427,6 +445,9 @@ const externalConversation = async (
     ], locale, {
       temperature: 0.1,
       maxTokens: Math.min(320, session.profile.maxOutputTokens),
+    }, (event) => {
+      if (event.type === 'reasoning-delta') onStream?.({ type: 'reasoning', delta: event.text });
+      if (event.type === 'answer-delta') onStream?.({ type: 'answer', delta: event.text });
     });
     if (continuation.text.trim()) answer = mergeExternalContinuation(answer, continuation.text);
     if (continuation.reasoning.trim()) {
@@ -450,11 +471,12 @@ export const askLocalModelDetailed = (
   context: string,
   history: Array<Pick<AssistantMessage, 'role' | 'content'>>,
   locale: Locale,
+  onStream?: (update: LocalModelStreamUpdate) => void,
 ): Promise<LocalModelAnswer> => {
   if (externalSession) {
     const id = ++requestId;
     activeInteractiveRequestId = id;
-    return externalConversation(id, question, context, history, locale).then((result) => {
+    return externalConversation(id, question, context, history, locale, onStream).then((result) => {
       const cleaned = sanitizeLocalModelAnswer(result.content);
       if (!cleaned) throw new Error('The local model did not produce a safe visible answer.');
       return { ...result, content: cleaned, reasoning: result.reasoning?.trim() || undefined };
@@ -468,7 +490,7 @@ export const askLocalModelDetailed = (
   const id = ++requestId;
   activeInteractiveRequestId = id;
   return new Promise<string>((resolve, reject) => {
-    pending.set(id, { resolve, reject });
+    pending.set(id, { resolve, reject, onStream });
     worker?.postMessage({ id, type: 'generate', question, context, history, locale });
   }).then((answer) => {
     const split = splitLocalModelAnswer(answer);
@@ -617,6 +639,7 @@ const runExternalAgentDetailed = (
     jsonMode: expectsJson,
   }, (event) => {
     if (settled) return;
+    if (event.type === 'reasoning-delta' || event.type === 'answer-delta') return;
     if (event.type !== 'error') {
       onProgress?.({
         requestId: id,

@@ -325,7 +325,35 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
       })),
     { role: 'user', content: `${message.context}\n\nQuestion: ${message.question}` },
   ];
-  const first = await loadedEngine().chat.completions.create({
+  const streamCompletion = async (
+    options: Parameters<MLCEngine['chat']['completions']['create']>[0],
+  ): Promise<{ text: string; finishReason: string | null | undefined }> => {
+    const completion = await loadedEngine().chat.completions.create({
+      ...options,
+      stream: true,
+    } as Parameters<MLCEngine['chat']['completions']['create']>[0]);
+    if (completion && typeof completion === 'object' && Symbol.asyncIterator in completion) {
+      let text = '';
+      let finishReason: string | null | undefined;
+      for await (const chunk of completion) {
+        const delta = chunk.choices[0]?.delta?.content ?? '';
+        if (delta) {
+          text += delta;
+          self.postMessage({ id: message.id, type: 'stream-delta', phase: 'answer', text: delta });
+        }
+        finishReason = chunk.choices[0]?.finish_reason ?? finishReason;
+      }
+      return { text, finishReason };
+    }
+    const fallback = completion as unknown as {
+      choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
+    };
+    const text = fallback.choices?.[0]?.message?.content ?? 'The local model returned no answer.';
+    if (text) self.postMessage({ id: message.id, type: 'stream-delta', phase: 'answer', text });
+    return { text, finishReason: fallback.choices?.[0]?.finish_reason };
+  };
+
+  const first = await streamCompletion({
     messages: promptMessages,
     temperature: 0.15,
     frequency_penalty: 0.35,
@@ -334,10 +362,10 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
     ...({ enable_thinking: false }),
     max_tokens: maxOutputTokens,
   });
-  let answer = first.choices[0]?.message.content ?? 'The local model returned no answer.';
-  let finishReason = first.choices[0]?.finish_reason;
+  let answer = first.text;
+  let finishReason = first.finishReason;
   if (finishReason === 'length' && answer.trim()) {
-    const continuation = await loadedEngine().chat.completions.create({
+    const continuation = await streamCompletion({
       messages: [
         ...promptMessages,
         { role: 'assistant', content: answer },
@@ -357,9 +385,9 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
       ...({ enable_thinking: false }),
       max_tokens: maxOutputTokens >= 800 ? 320 : 240,
     });
-    const continuedText = continuation.choices[0]?.message.content?.trim();
+    const continuedText = continuation.text.trim();
     if (continuedText) answer = mergeContinuationText(answer, continuedText);
-    finishReason = continuation.choices[0]?.finish_reason;
+    finishReason = continuation.finishReason;
   }
   if (finishReason === 'length') {
     answer = [

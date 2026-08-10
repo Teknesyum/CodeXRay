@@ -4,11 +4,11 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base before this scope: `636a812`.
+- Branch: `main`; synchronized base before this scope: `5bccd70`.
 - The current scope adds the reasoning disclosure, adaptive inference timeouts,
   and the 2.3.0 Windows delivery. The pre-existing untracked `opencode.json`
   remains untouched.
-- Package version: `2.3.0`.
+- Package version: `2.3.1`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -223,6 +223,17 @@ Desktop/local-provider scope run on 2026-08-11:
   for slower 30B reasoning models. Focused UI/service tests passed 42/42, Rust
   tests passed 5/5, production build passed, and reasoning/provider Playwright
   acceptance passed 2/2 in 10.8 seconds.
+- Version 2.3.1 streams interactive output into the assistant while inference is
+  still running. Native SSE `reasoning_content` and answer chunks travel as
+  separate `reasoning-delta` / `answer-delta` channel events; the live reasoning
+  disclosure remains open with a muted activity indicator while the final answer
+  grows below it. WebLLM conversation output uses its async stream and the same
+  UI callback contract. React updates are coalesced to 32 ms frames, cancellation
+  clears the draft immediately, and only the validated final result enters chat
+  history. Focused tests cover pre-completion reasoning/answer rendering and
+  worker delta ordering. Lint, 43/43 focused frontend tests, production build,
+  Rust fmt/clippy plus 5/5 tests, and the 2.3.1 Windows desktop build passed;
+  refreshed portable/NSIS artifacts are under ignored `release-artifacts/`.
 
 Run on 2026-08-02 from the current working tree:
 

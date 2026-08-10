@@ -174,6 +174,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState<AssistantMessage[]>(loadChatHistory);
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingResponse, setStreamingResponse] = useState<{
+    reasoning: string;
+    content: string;
+  } | null>(null);
+  const streamingResponseRef = useRef<{ reasoning: string; content: string } | null>(null);
+  const streamFlushTimerRef = useRef<number | null>(null);
   const [tourSteps, setTourSteps] = useState<number[]>([]);
   const [copyStatus, setCopyStatus] = useState<{
     index: number;
@@ -256,6 +262,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       webFetchRef.current?.abort();
       if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
       if (godModeDismissTimerRef.current) window.clearTimeout(godModeDismissTimerRef.current);
+      if (streamFlushTimerRef.current) window.clearTimeout(streamFlushTimerRef.current);
     };
   }, []);
 
@@ -307,7 +314,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   useEffect(() => {
     if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-  }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText]);
+  }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText, streamingResponse]);
 
   useEffect(() => {
     try {
@@ -447,6 +454,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         .slice(-MAX_STORED_MESSAGES),
     );
     setIsTyping(true);
+    setStreamingResponse(null);
+    streamingResponseRef.current = null;
 
     try {
       const webIntent = routeWebSourceRequest(userMessage, Boolean(webSourceSession));
@@ -884,7 +893,21 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         locale,
       };
 
-      const answer = await askQuestionDetailed(modelQuestion, workspace, historyForModel);
+      const answer = await askQuestionDetailed(modelQuestion, workspace, historyForModel, (update) => {
+        if (!mountedRef.current || responseEpoch !== responseEpochRef.current || !update.delta) return;
+        const current = streamingResponseRef.current ?? { reasoning: '', content: '' };
+        streamingResponseRef.current = update.type === 'reasoning'
+          ? { ...current, reasoning: `${current.reasoning}${update.delta}`.slice(0, 200_000) }
+          : { ...current, content: `${current.content}${update.delta}`.slice(0, 200_000) };
+        if (streamFlushTimerRef.current === null) {
+          streamFlushTimerRef.current = window.setTimeout(() => {
+            streamFlushTimerRef.current = null;
+            if (mountedRef.current && responseEpoch === responseEpochRef.current) {
+              setStreamingResponse(streamingResponseRef.current);
+            }
+          }, 32);
+        }
+      });
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
 
       const cleanedAnswer = stripThinkBlock(answer.content);
@@ -928,6 +951,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         setIsPlanningActions(false);
         setIsTyping(false);
         setIsExecutingQueue(false);
+        if (streamFlushTimerRef.current) window.clearTimeout(streamFlushTimerRef.current);
+        streamFlushTimerRef.current = null;
+        streamingResponseRef.current = null;
+        setStreamingResponse(null);
       }
     }
   }, [
@@ -1339,9 +1366,43 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           </div>
         ))}
         {isTyping && actionQueue.length === 0 && (
-          <div className="chat-message ai-msg typing">
-            <Loader size={14} className="spin-icon" />
-            <p>{t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
+          <div className={`chat-message ai-msg typing ${streamingResponse ? 'live-stream' : ''}`}>
+            <Bot size={14} className="msg-icon" />
+            {streamingResponse ? (
+              <div className="ai-message-content">
+                {streamingResponse.reasoning && (
+                  <details className="reasoning-disclosure live" open>
+                    <summary>
+                      <span className="reasoning-title">
+                        <BrainCircuit size={14} aria-hidden="true" />
+                        {t('modelReasoning', locale)}
+                        <span className="live-thinking-dot" aria-label={t('reasoningStreaming', locale)} />
+                      </span>
+                      <span className="reasoning-meta">
+                        {t('live', locale)}
+                        <ChevronDown size={14} aria-hidden="true" />
+                      </span>
+                    </summary>
+                    <div className="reasoning-body live-body">
+                      <MarkdownPreview content={streamingResponse.reasoning} />
+                      <span className="stream-caret" aria-hidden="true" />
+                    </div>
+                  </details>
+                )}
+                {streamingResponse.content
+                  ? (
+                    <div className="streaming-answer" aria-label={t('answerStreaming', locale)}>
+                      <MarkdownPreview content={streamingResponse.content} />
+                      <span className="stream-caret" aria-hidden="true" />
+                    </div>
+                  )
+                  : !streamingResponse.reasoning && (
+                    <p><Loader size={14} className="spin-icon" /> {t('thinkingLocally', locale)}</p>
+                  )}
+              </div>
+            ) : (
+              <p><Loader size={14} className="spin-icon" /> {t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
+            )}
           </div>
         )}
       </div>
@@ -1399,6 +1460,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               setIsPlanningActions(false);
               setIsExecutingQueue(false);
               setIsTyping(false);
+              if (streamFlushTimerRef.current) window.clearTimeout(streamFlushTimerRef.current);
+              streamFlushTimerRef.current = null;
+              streamingResponseRef.current = null;
+              setStreamingResponse(null);
             }}
           >
             <Square size={13} fill="currentColor" />

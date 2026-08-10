@@ -651,6 +651,82 @@
   backdrop-filter: blur(14px) saturate(140%);
 }
 
+.god-mode-progress.has-reasoning {
+  align-items: stretch;
+  flex-direction: column;
+  max-height: 180px;
+}
+
+.god-mode-progress-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 23px;
+}
+
+.god-mode-agent-reasoning {
+  min-height: 22px;
+  max-height: 138px;
+  overflow: hidden;
+  border: 1px solid rgba(127, 164, 181, 0.18);
+  border-radius: 7px;
+  color: rgba(205, 224, 232, 0.68);
+  background: rgba(2, 8, 13, 0.58);
+  font: 0.62rem/1.5 var(--font-mono);
+}
+
+.god-mode-agent-reasoning.live {
+  border-color: rgba(0, 243, 255, 0.22);
+}
+
+.god-mode-agent-reasoning summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 21px;
+  padding: 2px 7px;
+  color: rgba(205, 224, 232, 0.62);
+  cursor: pointer;
+  user-select: none;
+}
+
+.god-mode-agent-reasoning summary::marker {
+  color: rgba(0, 243, 255, 0.55);
+}
+
+.god-mode-agent-reasoning pre {
+  max-height: 108px;
+  margin: 0;
+  padding: 5px 8px 8px;
+  overflow: auto;
+  color: rgba(205, 224, 232, 0.58);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+}
+
+.god-mode-thinking-live {
+  margin-left: auto;
+  color: rgba(0, 243, 255, 0.7);
+  font-size: 0.54rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.god-mode-thinking-live::before {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 7px currentColor;
+  content: '';
+  animation: reasoning-pulse 1.2s ease-in-out infinite;
+}
+
 .god-mode-progress::before {
   position: absolute;
   inset: 0;

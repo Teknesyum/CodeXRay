@@ -17,6 +17,7 @@ vi.mock('./desktopAiService', () => ({
 
 import {
   connectExternalAi,
+  getActiveAiProvider,
   resetLocalAi,
   runLocalAgentDetailed,
 } from './localAiService';
@@ -72,7 +73,10 @@ describe('external reasoning agent budgets', () => {
 
   it('scales a 64K structured agent and retries a reasoning-only length stop', async () => {
     desktop.run
-      .mockResolvedValueOnce(completion('', 'bounded hidden trace', 'length'))
+      .mockImplementationOnce(async (_request, onEvent) => {
+        onEvent?.({ requestId: 1, type: 'reasoning-delta', text: 'live trace' });
+        return completion('', 'bounded hidden trace', 'length');
+      })
       .mockResolvedValueOnce(completion('{"version":1}', 'short trace', 'stop'));
 
     const progress = vi.fn();
@@ -94,5 +98,34 @@ describe('external reasoning agent budgets', () => {
       status: 'running',
       text: expect.stringContaining('Retrying with 16384 tokens'),
     }));
+    expect(progress).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'reasoning-delta',
+      text: 'live trace',
+    }));
+  });
+
+  it('discards a connection probe that completes after the provider is reset', async () => {
+    let resolveProbe!: (value: Awaited<ReturnType<typeof desktop.probe>>) => void;
+    desktop.probe.mockReset();
+    desktop.probe.mockReturnValue(new Promise((resolve) => {
+      resolveProbe = resolve;
+    }));
+
+    const connection = connectExternalAi(profile, 'session-only-token');
+    resetLocalAi();
+    resolveProbe({
+      normalizedBaseUrl: profile.baseUrl,
+      capabilities: {
+        chat: true,
+        streaming: true,
+        structuredOutput: 'native',
+        advancedWorkflows: true,
+        checkedAt: 1,
+        probeVersion: 1,
+      },
+    });
+
+    await expect(connection).rejects.toThrow('discarded because the provider changed');
+    expect(getActiveAiProvider()).toBe('webllm');
   });
 });

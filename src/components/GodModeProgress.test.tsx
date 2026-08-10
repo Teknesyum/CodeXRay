@@ -9,6 +9,51 @@ afterEach(() => {
 });
 
 describe('GodModeProgress timing', () => {
+  it('shows live subagent reasoning in a muted collapsible disclosure', () => {
+    const plan: ManagerPlanV2 = {
+      version: 2,
+      runId: 'reasoning-run',
+      request: 'design',
+      intent: 'solve-web-problem',
+      createdAt: Date.now(),
+      jobs: [{
+        version: 2,
+        id: 'architect-live',
+        role: 'architect',
+        label: 'Design contract',
+        dependsOn: [],
+        consumes: ['problem-spec'],
+        produces: ['simulation-package'],
+        resourceLocks: ['webgpu'],
+        status: 'running',
+        attempt: 1,
+        maxAttempts: 1,
+        reasoning: 'Checking the input contract in real time…',
+      }],
+    };
+
+    render(
+      <GodModeProgress
+        plan={plan}
+        locale="en"
+        onCancel={() => undefined}
+        onDismiss={() => undefined}
+        onUndo={() => undefined}
+        onRedo={() => undefined}
+        onRetry={() => undefined}
+        canUndo={false}
+        canRedo={false}
+      />,
+    );
+
+    const disclosure = screen.getByText('thinking').closest('details');
+    expect(disclosure).toHaveAttribute('open');
+    expect(disclosure).toHaveClass('live');
+    expect(screen.getByText('Checking the input contract in real time…')).toBeVisible();
+    fireEvent.click(screen.getByText('thinking'));
+    expect(disclosure).not.toHaveAttribute('open');
+  });
+
   it('shows a live elapsed duration on each started agent chip', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-01T20:00:00.000Z'));

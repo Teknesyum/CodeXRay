@@ -123,7 +123,8 @@ describe('local assistant context', () => {
     expect(instructions).toContain('Assume the learner is new');
     expect(instructions).toContain('Never invent');
 
-    expect(instructions).toContain('under 450 tokens');
+    expect(instructions).toContain('Match the depth and length to the question');
+    expect(instructions).not.toMatch(/under \d+ tokens/i);
   });
 
   it('scales prompt capacity across the stable and experimental engine profiles', () => {

@@ -50,7 +50,7 @@ interface PendingRequest {
 
 export interface LocalAgentProgress {
   requestId: number;
-  status: 'queued' | 'running' | 'first-token' | 'streaming' | 'target-exceeded' | 'validating' | 'completed' | 'cancelled';
+  status: 'queued' | 'running' | 'first-token' | 'streaming' | 'reasoning-delta' | 'answer-delta' | 'target-exceeded' | 'validating' | 'completed' | 'cancelled';
   text: string;
   queueMs?: number;
   firstTokenMs?: number | null;
@@ -133,10 +133,13 @@ export const connectExternalAi = async (
   profile: AiConnectionProfileV1,
   bearerToken = '',
 ): Promise<AiConnectionProfileV1> => {
-  externalGeneration += 1;
+  const connectionGeneration = ++externalGeneration;
   for (const id of externalRequestIds) void cancelDesktopCompletion(id);
   externalRequestIds.clear();
   const probe = await probeDesktopModel(profile, bearerToken);
+  if (connectionGeneration !== externalGeneration) {
+    throw new Error('The local AI connection was discarded because the provider changed.');
+  }
   if (!probe.capabilities.chat || !probe.capabilities.streaming) {
     throw new Error('The local endpoint did not pass the chat and streaming compatibility checks.');
   }
@@ -449,7 +452,7 @@ const externalConversation = async (
       },
     ], locale, {
       temperature: 0.1,
-      maxTokens: Math.min(320, session.profile.maxOutputTokens),
+      maxTokens: Math.max(256, Math.floor(session.profile.maxOutputTokens / 2)),
     }, (event) => {
       if (event.type === 'reasoning-delta') onStream?.({ type: 'reasoning', delta: event.text });
       if (event.type === 'answer-delta') onStream?.({ type: 'answer', delta: event.text });
@@ -644,7 +647,7 @@ const runExternalAgentDetailed = (
     'Use only supplied workspace state and artifacts. Never claim that application state changed.',
     expectsJson
       ? `Return exactly one JSON object${schemaText ? ` matching this schema: ${schemaText}` : ''}. Do not use markdown. Write human-readable strings in ${request.locale === 'tr' ? 'Turkish' : 'English'}.`
-      : `Respond concisely in ${request.locale === 'tr' ? 'Turkish' : 'English'}.`,
+      : `Match answer depth to the task and respond completely in ${request.locale === 'tr' ? 'Turkish' : 'English'}.`,
   ].join('\n');
   const promptBudget = Math.max(
     900,
@@ -660,7 +663,15 @@ const runExternalAgentDetailed = (
   ];
   const handleEvent = (event: DesktopAiEvent) => {
     if (settled) return;
-    if (event.type === 'reasoning-delta' || event.type === 'answer-delta') return;
+    if (event.type === 'reasoning-delta' || event.type === 'answer-delta') {
+      armInactivity();
+      onProgress?.({
+        requestId: id,
+        status: event.type,
+        text: event.text,
+      });
+      return;
+    }
     // Native completion fires before we can decide whether a reasoning-only
     // length stop needs a retry. Publish the terminal event only once below.
     if (event.type !== 'error' && event.type !== 'completed') {

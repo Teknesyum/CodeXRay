@@ -18,6 +18,11 @@ test('shows desktop AI providers and the Ollama connection form', async ({ page 
   expect(providerBox!.y + providerBox!.height).toBeLessThan(webLlmModelBox!.y);
   await expect(provider.locator('option[value="ollama"]')).toBeEnabled();
   await expect(provider.locator('option[value="openai-compatible"]')).toBeEnabled();
+  await expect(provider).toBeEnabled();
+
+  await provider.selectOption('openai-compatible');
+  await expect(provider).toHaveValue('openai-compatible');
+  await expect(provider).toBeEnabled();
 
   await provider.selectOption('ollama');
   await expect(page.getByText('Ollama', { exact: true }).last()).toBeVisible();
@@ -26,8 +31,8 @@ test('shows desktop AI providers and the Ollama connection form', async ({ page 
   await externalContext.selectOption('131072');
   await expect(externalContext).toHaveValue('131072');
   const outputLimit = page.getByLabel('Azami çıktı tokenı');
-  await expect(outputLimit).toHaveAttribute('max', '16384');
-  await outputLimit.fill('16384');
-  await expect(outputLimit).toHaveValue('16384');
+  await expect(outputLimit).toHaveAttribute('max', '32768');
+  await outputLimit.fill('32768');
+  await expect(outputLimit).toHaveValue('32768');
   await expect(page.getByRole('button', { name: 'Test et ve bağlan' })).toBeVisible();
 });

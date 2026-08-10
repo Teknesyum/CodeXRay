@@ -221,7 +221,7 @@ const runAgent = async (message: AgentRunMessage): Promise<LocalAgentResultV2> =
     'Use only supplied workspace state and artifacts. Never claim that application state changed.',
     expectsJson
       ? `Return exactly one JSON object matching the required schema. Do not use markdown. Write every human-readable string field in ${message.locale === 'tr' ? 'Turkish' : 'English'}; keep source code and complexity notation unchanged.`
-      : `Respond concisely in ${message.locale === 'tr' ? 'Turkish' : 'English'}.`,
+      : `Match answer depth to the task and respond completely in ${message.locale === 'tr' ? 'Turkish' : 'English'}.`,
   ].join('\n');
   const schemaText = message.responseSchema ? JSON.stringify(message.responseSchema) : '';
   const includeSchema = Boolean(message.responseSchema)
@@ -374,7 +374,7 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
           content: [
             'Your answer hit the local generation limit.',
             'Continue exactly where it stopped without repeating earlier sentences.',
-            'Finish the current thought concisely within 220 tokens.',
+            'Finish the current thought completely, without padding or an arbitrary fixed-length target.',
           ].join(' '),
         },
       ],
@@ -383,7 +383,7 @@ const runConversation = async (message: GenerateMessage): Promise<string> => {
       presence_penalty: 0,
       repetition_penalty: 1.1,
       ...({ enable_thinking: false }),
-      max_tokens: maxOutputTokens >= 800 ? 320 : 240,
+      max_tokens: Math.max(240, Math.floor(maxOutputTokens / 2)),
     });
     const continuedText = continuation.text.trim();
     if (continuedText) answer = mergeContinuationText(answer, continuedText);

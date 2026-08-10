@@ -11,6 +11,7 @@ import {
   isActiveAiAdvancedCapable,
   runLocalAgentDetailed,
   type DetailedLocalAgentHandle,
+  type LocalAgentProgress,
 } from './localAiService';
 import { buildWebProblemPrompt } from './webSource';
 
@@ -210,6 +211,25 @@ export const startJavaFallbackRun = (options: {
     };
     options.onPlan?.(plan);
   };
+  const reasoningBuffers = new Map<string, string>();
+  const reasoningTimers = new Map<string, ReturnType<typeof globalThis.setTimeout>>();
+  const flushReasoning = (jobId: string) => {
+    const timer = reasoningTimers.get(jobId);
+    if (timer) globalThis.clearTimeout(timer);
+    reasoningTimers.delete(jobId);
+    const delta = reasoningBuffers.get(jobId) ?? '';
+    reasoningBuffers.delete(jobId);
+    if (!delta) return;
+    const current = plan.jobs.find((job) => job.id === jobId)?.reasoning ?? '';
+    updateJob(jobId, { reasoning: `${current}${delta}`.slice(-200_000) });
+  };
+  const trackReasoning = (jobId: string) => (progress: LocalAgentProgress) => {
+    if (progress.status !== 'reasoning-delta') return;
+    reasoningBuffers.set(jobId, `${reasoningBuffers.get(jobId) ?? ''}${progress.text}`);
+    if (!reasoningTimers.has(jobId)) {
+      reasoningTimers.set(jobId, globalThis.setTimeout(() => flushReasoning(jobId), 32));
+    }
+  };
   updateJob('capability-gate', { status: 'completed', attempt: 1, summary: 'Java 17 fallback selected; workspace remains unchanged.' });
 
   const promise = (async (): Promise<SolutionArtifactV1> => {
@@ -232,8 +252,9 @@ export const startJavaFallbackRun = (options: {
         jsonMode: true,
         maxTokens: 520,
         temperature: 0,
-      });
+      }, trackReasoning('java-author'));
       const result = await active.promise;
+      flushReasoning('java-author');
       active = null;
       try {
         candidate = validateJavaCandidate(parseJson(result.text));
@@ -272,8 +293,9 @@ export const startJavaFallbackRun = (options: {
       jsonMode: true,
       maxTokens: 260,
       temperature: 0,
-    });
+    }, trackReasoning('critic'));
     const criticResult = await active.promise;
+    flushReasoning('critic');
     active = null;
     const review = validateReview(parseJson(criticResult.text));
     attempts.push(diagnostic(criticResult, plan, 'critic', 1, review.passed ? 'completed' : 'failed', review.findings, review.summary));
@@ -317,6 +339,7 @@ export const startJavaFallbackRun = (options: {
     promise,
     cancel: () => {
       cancelled = true;
+      for (const jobId of reasoningBuffers.keys()) flushReasoning(jobId);
       active?.cancel();
     },
   };

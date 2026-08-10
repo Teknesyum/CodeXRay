@@ -139,6 +139,7 @@ export const ControlBar = ({
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const startupCacheFallback = useRef(true);
   const autoLoadAttempts = useRef(new Set<string>());
+  const providerOperationGenerationRef = useRef(0);
   const aiProgressHighWaterRef = useRef(0);
   const panelTitle = t('controls', locale);
   const selectedModel = LOCAL_AI_MODELS.find((model) => model.id === aiModel)
@@ -159,7 +160,9 @@ export const ControlBar = ({
 
   const changeProvider = (provider: AiProviderKind) => {
     if (provider !== 'webllm' && !desktopRuntime) return;
+    providerOperationGenerationRef.current += 1;
     resetAiUiState();
+    setExternalBusy(false);
     setAiBearerToken('');
     setExternalModels([]);
     setAiProvider(provider);
@@ -187,18 +190,21 @@ export const ControlBar = ({
 
   const discoverExternalModels = async () => {
     if (!externalProfile) return;
+    const operationGeneration = providerOperationGenerationRef.current;
     setExternalBusy(true);
     setAiProgress('');
     try {
       const models = await listExternalAiModels(externalProfile.baseUrl, aiBearerToken);
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setExternalModels(models);
       setAiProgress(models.length
         ? t('externalModelsFound', locale, { count: models.length })
         : t('externalModelsEmpty', locale));
     } catch (error) {
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setAiProgress(error instanceof Error ? error.message : t('externalDiscoveryFailed', locale));
     } finally {
-      setExternalBusy(false);
+      if (operationGeneration === providerOperationGenerationRef.current) setExternalBusy(false);
     }
   };
 
@@ -208,12 +214,14 @@ export const ControlBar = ({
       setAiProgress(t('externalModelRequired', locale));
       return;
     }
+    const operationGeneration = providerOperationGenerationRef.current;
     setExternalBusy(true);
     setAiStatus('loading');
     setAiProgress(t('testingExternalModel', locale));
     setAiProgressPercent(null);
     try {
       const connected = await connectExternalAi(externalProfile, aiBearerToken);
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
       setAiModel(connected.model);
       setAiContextWindow(connected.contextWindow);
@@ -222,10 +230,11 @@ export const ControlBar = ({
         ? t('externalModelAdvancedReady', locale)
         : t('externalModelChatReady', locale));
     } catch (error) {
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setAiStatus('error');
       setAiProgress(error instanceof Error ? error.message : t('externalConnectionFailed', locale));
     } finally {
-      setExternalBusy(false);
+      if (operationGeneration === providerOperationGenerationRef.current) setExternalBusy(false);
     }
   };
 
@@ -236,7 +245,9 @@ export const ControlBar = ({
   }, [showSettings]);
 
   const activateModel = useCallback(async (model: string, contextWindow: number) => {
+    const operationGeneration = providerOperationGenerationRef.current;
     if (!await supportsLocalAi()) {
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setAiStatus('unsupported');
       setAiProgressPercent(null);
       setAiProgress(translateRuntimeText('WebGPU is unavailable. Simulations still work without AI.', locale));
@@ -247,8 +258,11 @@ export const ControlBar = ({
     setAiStatus('loading');
     setAiProgressPercent(0);
     try {
-      setStoragePersistent(await requestPersistentLocalAiStorage());
+      const persistent = await requestPersistentLocalAiStorage();
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
+      setStoragePersistent(persistent);
       await initializeLocalAi(model, contextWindow, (progress) => {
+        if (operationGeneration !== providerOperationGenerationRef.current) return;
         const displayedPercentage = normalizeLocalAiProgress(
           progress,
           aiProgressHighWaterRef.current,
@@ -257,6 +271,7 @@ export const ControlBar = ({
         setAiProgressPercent(displayedPercentage);
         setAiProgress(locale === 'tr' ? t('downloadingModel', locale) : progress.text);
       });
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       setCachedModels((current) => [...new Set([...current, model])]);
       setCacheChecked(true);
       setAiStatus('ready');
@@ -264,6 +279,7 @@ export const ControlBar = ({
       setAiProgressPercent(100);
       setAiProgress(translateRuntimeText('Local model ready. No code or prompts leave this browser.', locale));
     } catch (error) {
+      if (operationGeneration !== providerOperationGenerationRef.current) return;
       const busy = isLocalModelBusyError(error);
       const repairable = !busy && isRecoverableLocalModelCacheError(error);
       setRepairableModel(repairable);
@@ -608,7 +624,6 @@ export const ControlBar = ({
                     aria-label={t('aiProvider', locale)}
                     className="api-provider-select"
                     value={aiProvider}
-                    disabled={aiStatus === 'loading' || externalBusy}
                     onChange={(event) => changeProvider(event.target.value as AiProviderKind)}
                   >
                     <option value="webllm">WebLLM</option>

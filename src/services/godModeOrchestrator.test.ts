@@ -233,6 +233,7 @@ describe('God Mode orchestrator', () => {
 
   it('retries one compact Architect contract after a length-truncated response', async () => {
     const calls: LocalAgentRequest[] = [];
+    const onPlan = vi.fn();
     let architectCalls = 0;
     const runner = (
       request: LocalAgentRequest,
@@ -257,6 +258,11 @@ describe('God Mode orchestrator', () => {
           promise: Promise.resolve().then(() => {
             onProgress?.({
               requestId: calls.length,
+              status: 'reasoning-delta',
+              text: truncated ? 'Checking the first schema. ' : 'Checking the retry schema.',
+            });
+            onProgress?.({
+              requestId: calls.length,
               status: 'completed',
               text: truncated ? 'truncated' : 'complete',
               finishReason: truncated ? 'length' : 'stop',
@@ -279,7 +285,7 @@ describe('God Mode orchestrator', () => {
       locale: 'tr',
       workspace,
       activePackage: null,
-      onPlan: vi.fn(),
+      onPlan,
       applyPackage: vi.fn(),
       applyInput: vi.fn(),
       agentRunner: runner,
@@ -288,6 +294,9 @@ describe('God Mode orchestrator', () => {
     await expect(run.promise).resolves.toMatchObject({ package: { program: { id: 'scan_array' } } });
     expect(calls.filter((request) => request.role === 'architect')).toHaveLength(2);
     expect(calls.filter((request) => request.role === 'architect')[1]).toMatchObject({ maxTokens: 1400 });
+    expect(onPlan.mock.calls.some(([published]) => published.jobs.some(
+      (job: { reasoning?: string }) => job.reasoning?.includes('Checking the first schema.'),
+    ))).toBe(true);
   });
 
   it('blocks the workspace commit when the mandatory critic rejects the package', async () => {

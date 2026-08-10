@@ -126,6 +126,7 @@ export interface ManagerJobV2 {
   completionTokens?: number | null;
   finishReason?: string;
   summary?: string;
+  reasoning?: string;
   error?: string;
 }
 

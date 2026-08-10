@@ -495,6 +495,21 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     jsonMode = false,
   ): Promise<string> => {
     ensureActive();
+    let pendingReasoning = '';
+    let reasoningFlushTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    let reasoningJobId: string | undefined;
+    const flushReasoning = () => {
+      if (reasoningFlushTimer) globalThis.clearTimeout(reasoningFlushTimer);
+      reasoningFlushTimer = undefined;
+      if (!pendingReasoning || !reasoningJobId) return;
+      const target = plan.jobs.find((candidate) => candidate.id === reasoningJobId);
+      if (target) {
+        setJob(target.id, {
+          reasoning: `${target.reasoning ?? ''}${pendingReasoning}`.slice(-200_000),
+        });
+      }
+      pendingReasoning = '';
+    };
     activeAgent = runner({
       role,
       instructions,
@@ -507,6 +522,15 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     }, (progress) => {
       const activeJob = [...plan.jobs].reverse().find((candidate) =>
         candidate.role === role && (candidate.status === 'running' || candidate.status === 'retrying'));
+      if (activeJob && progress.status === 'reasoning-delta') {
+        reasoningJobId = activeJob.id;
+        pendingReasoning += progress.text;
+        if (!reasoningFlushTimer) {
+          reasoningFlushTimer = globalThis.setTimeout(flushReasoning, 32);
+        }
+        return;
+      }
+      if (progress.status === 'answer-delta') return;
       if (activeJob) setJob(activeJob.id, {
         summary: progress.text.slice(0, 240),
         queueMs: progress.queueMs ?? activeJob.queueMs,
@@ -517,8 +541,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       });
     });
     try {
-      return await activeAgent.promise;
+      const response = await activeAgent.promise;
+      flushReasoning();
+      return response;
     } finally {
+      flushReasoning();
       activeAgent = null;
     }
   };

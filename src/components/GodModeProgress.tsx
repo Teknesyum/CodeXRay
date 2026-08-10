@@ -9,7 +9,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useEffect, useState, type FocusEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { ManagerPlanV1 } from '../types/godMode';
 import type { ManagerPlanV2 } from '../types/webSource';
@@ -80,6 +80,8 @@ export const GodModeProgress = ({
 }: GodModeProgressProps) => {
   const [tooltip, setTooltip] = useState<AgentTooltip | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [reasoningOpen, setReasoningOpen] = useState(true);
+  const autoOpenedReasoningRef = useRef<string | null>(null);
   const totalWeight = plan.jobs.reduce((sum, job) => sum + ('weight' in job ? job.weight : 1), 0);
   const completedWeight = plan.jobs.reduce((sum, job) =>
     job.status === 'completed' || job.status === 'completed_with_fallback'
@@ -90,6 +92,16 @@ export const GodModeProgress = ({
   const failed = plan.jobs.some((job) => job.status === 'failed');
   const cancelled = plan.jobs.some((job) => job.status === 'cancelled');
   const completed = progress === 100;
+  const liveReasoningJob = [...plan.jobs].reverse().find((job) =>
+    (job.status === 'running' || job.status === 'retrying') && job.reasoning?.trim());
+  const reasoningJob = liveReasoningJob ?? [...plan.jobs].reverse().find((job) => job.reasoning?.trim());
+  const liveReasoningKey = liveReasoningJob ? `${plan.runId}:${liveReasoningJob.id}` : null;
+
+  useEffect(() => {
+    if (!liveReasoningKey || autoOpenedReasoningRef.current === liveReasoningKey) return;
+    autoOpenedReasoningRef.current = liveReasoningKey;
+    setReasoningOpen(true);
+  }, [liveReasoningKey]);
 
   useEffect(() => {
     if (!running) return undefined;
@@ -121,7 +133,8 @@ export const GodModeProgress = ({
   ) => positionTooltip(event.currentTarget.getBoundingClientRect(), label);
 
   return (
-    <section className={`god-mode-progress ${failed ? 'failed' : ''} ${completed ? 'completed' : ''}`}>
+    <section className={`god-mode-progress ${failed ? 'failed' : ''} ${completed ? 'completed' : ''} ${reasoningJob ? 'has-reasoning' : ''}`}>
+      <div className="god-mode-progress-main">
       <div className="god-mode-progress-header">
         <span className="god-mode-title"><Zap size={14} /> {t('godModeRun', locale)}</span>
         <span className="god-mode-percent">{progress}%</span>
@@ -247,6 +260,23 @@ export const GodModeProgress = ({
           </div>
         ))}
       </div>
+      </div>
+      {reasoningJob && (
+        <details
+          className={`god-mode-agent-reasoning ${liveReasoningJob?.id === reasoningJob.id ? 'live' : ''}`}
+          open={reasoningOpen}
+          onToggle={(event) => setReasoningOpen(event.currentTarget.open)}
+        >
+          <summary>
+            <span>{t(agentKey(reasoningJob.role), locale)}</span>
+            <span>{t('godAgentThinking', locale)}</span>
+            {liveReasoningJob?.id === reasoningJob.id && (
+              <span className="god-mode-thinking-live">{t('godAgentThinkingLive', locale)}</span>
+            )}
+          </summary>
+          <pre>{reasoningJob.reasoning}</pre>
+        </details>
+      )}
       {tooltip && createPortal(
         <div
           className="god-mode-agent-tooltip"

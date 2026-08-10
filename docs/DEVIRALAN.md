@@ -4,11 +4,11 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base before this scope: `a1ffe1f`.
-- The current scope fixes reasoning-only external-agent exhaustion and adds the
-  adaptive 2.3.2 Windows delivery. The pre-existing untracked `opencode.json`
-  remains untouched.
-- Package version: `2.3.2`.
+- Branch: `main`; synchronized base before this scope: `b163757`.
+- The current scope fixes pre-connection provider switching, removes arbitrary
+  answer-length instructions, and streams subagent reasoning in the 2.3.3
+  Windows delivery. The pre-existing untracked `opencode.json` remains untouched.
+- Package version: `2.3.3`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -250,6 +250,21 @@ Desktop/local-provider scope run on 2026-08-11:
   fmt/clippy plus 6/6 tests passed. The 2.3.2 Windows desktop build passed; the
   refreshed portable/NSIS artifacts and their SHA-256 file are under ignored
   `release-artifacts/`.
+- Version 2.3.3 keeps the provider selector interactive while WebLLM loads or an
+  external endpoint probe is in flight. Switching provider cancels/reset the
+  active runtime, invalidates late probe/model-load callbacks with generation
+  guards, and leaves the newly selected pre-connection form visible. Tutor
+  prompts no longer impose the arbitrary `under 450 tokens` instruction;
+  response and continuation depth now scales with the selected model profile
+  while context, output, cancellation, inactivity, and response-size safety
+  bounds remain enforced. External reasoning deltas now flow through the
+  provider-neutral agent progress contract into both ordinary and web-problem
+  God Mode jobs. The active subagent's reasoning renders in a muted, live,
+  collapsible session-only panel, batched to 32 ms and kept separate from final
+  JSON/artifacts. Full frontend tests passed 473/473, the focused desktop-provider
+  Playwright acceptance passed 1/1 in 11.1 seconds, lint/build passed, Rust
+  fmt/clippy plus 6/6 tests passed, and the 2.3.3 Windows build completed. The
+  refreshed portable/NSIS artifacts and hashes are under `release-artifacts/`.
 
 Run on 2026-08-02 from the current working tree:
 

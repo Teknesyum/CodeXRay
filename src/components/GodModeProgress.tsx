@@ -34,11 +34,14 @@ const jobElapsed = (
   job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number],
   now: number,
 ): number | null => {
-  const elapsed = 'durationMs' in job && typeof job.durationMs === 'number'
-    ? job.durationMs
-    : job.startedAt
-      ? (job.finishedAt ?? now) - job.startedAt
-      : null;
+  const isActive = job.status === 'running' || job.status === 'retrying';
+  const elapsed = isActive && job.startedAt
+    ? now - job.startedAt
+    : 'durationMs' in job && typeof job.durationMs === 'number'
+      ? job.durationMs
+      : job.startedAt
+        ? (job.finishedAt ?? now) - job.startedAt
+        : null;
   return elapsed === null ? null : Math.max(0, elapsed);
 };
 
@@ -56,8 +59,15 @@ const jobDetails = (
         ? ` · ${job.completionTokens} tokens`
         : ''}${job.finishReason ? ` · ${job.finishReason}` : ''}`
       : ''}`;
-  return [job.error ?? job.summary, timing].filter(Boolean).join(' · ') || undefined;
+  const context = typeof job.contextWindow === 'number' && typeof job.promptTokens === 'number'
+    ? `Context: ${job.promptTokensEstimated ? '~' : ''}${job.promptTokens + (job.completionTokens ?? 0)}/${job.contextWindow} tokens`
+    : '';
+  return [job.error ?? job.summary, timing, context].filter(Boolean).join(' · ') || undefined;
 };
+
+const compactTokens = (tokens: number): string => tokens >= 1_000
+  ? `${(tokens / 1_000).toFixed(tokens >= 10_000 ? 0 : 1)}K`
+  : String(tokens);
 
 interface AgentTooltip {
   role: string;
@@ -89,6 +99,9 @@ export const GodModeProgress = ({
       : sum, 0);
   const progress = totalWeight ? Math.round((completedWeight / totalWeight) * 100) : 0;
   const running = plan.jobs.find((job) => job.status === 'running' || job.status === 'retrying');
+  const runningTimerKey = running
+    ? `${plan.runId}:${running.id}:${running.status}:${running.startedAt ?? 'pending'}`
+    : null;
   const failed = plan.jobs.some((job) => job.status === 'failed');
   const cancelled = plan.jobs.some((job) => job.status === 'cancelled');
   const completed = progress === 100;
@@ -104,10 +117,10 @@ export const GodModeProgress = ({
   }, [liveReasoningKey]);
 
   useEffect(() => {
-    if (!running) return undefined;
+    if (!runningTimerKey) return undefined;
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
-  }, [running]);
+  }, [runningTimerKey]);
 
   const positionTooltip = (bounds: DOMRect, role: string, status?: string, details?: string) => {
     const tooltipHalfWidth = 170;
@@ -250,6 +263,12 @@ export const GodModeProgress = ({
             {jobElapsed(job, now) !== null && (
               <span className="agent-duration">
                 {(jobElapsed(job, now)! / 1_000).toFixed(1)}s
+              </span>
+            )}
+            {typeof job.contextWindow === 'number' && typeof job.promptTokens === 'number' && (
+              <span className="agent-context-usage">
+                {job.promptTokensEstimated ? '≈' : ''}
+                {compactTokens(job.promptTokens + (job.completionTokens ?? 0))}/{compactTokens(job.contextWindow)}
               </span>
             )}
             {(job.summary || job.error) && (

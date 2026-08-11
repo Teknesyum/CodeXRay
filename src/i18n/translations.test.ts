@@ -36,4 +36,10 @@ describe('translations', () => {
     expect(translateRuntimeText('Array input cannot contain empty items.', 'tr'))
       .toBe('Dizi girdisi boş eleman içeremez.');
   });
+
+  it('localizes typed visual row labels and semantic cell roles', () => {
+    expect(translateRuntimeText('split depth 2', 'tr')).toBe('bölünme derinliği 2');
+    expect(translateRuntimeText('LIS ending here', 'tr')).toBe('burada biten LIS');
+    expect(translateRuntimeText('dependency', 'tr')).toBe('bağımlılık');
+  });
 });

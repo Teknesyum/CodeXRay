@@ -48,7 +48,7 @@ const algorithmPresets: AlgorithmPreset[] = [
   {
     "id": "bellman-ford-algorithm",
     "name": "Bellman-Ford Algorithm",
-    "code": "void BellmanFord(int src) {\n    vector<int> dist(V, INT_MAX);\n    dist[src] = 0;\n    for (int i = 1; i <= V - 1; i++) {\n        for (int j = 0; j < E; j++) {\n            int u = graph->edge[j].src;\n            int v = graph->edge[j].dest;\n            int weight = graph->edge[j].weight;\n            if (dist[u] != INT_MAX && dist[u] + weight < dist[v])\n                dist[v] = dist[u] + weight;\n        }\n    }\n}",
+    "code": "bool BellmanFord(int src) {\n    vector<int> dist(V, INT_MAX);\n    dist[src] = 0;\n    for (int pass = 1; pass <= V - 1; pass++) {\n        bool changed = false;\n        for (Edge edge : edges) {\n            if (dist[edge.from] != INT_MAX && dist[edge.from] + edge.weight < dist[edge.to]) {\n                dist[edge.to] = dist[edge.from] + edge.weight;\n                changed = true;\n            }\n        }\n        if (!changed) break;\n    }\n    for (Edge edge : edges)\n        if (dist[edge.from] != INT_MAX && dist[edge.from] + edge.weight < dist[edge.to])\n            return false;\n    return true;\n}",
     "isSupported": false
   },
   {
@@ -60,7 +60,7 @@ const algorithmPresets: AlgorithmPreset[] = [
   {
     "id": "topological-sort",
     "name": "Topological Sort",
-    "code": "void topologicalSortUtil(int v, bool visited[], stack<int>& Stack) {\n    visited[v] = true;\n    for (int i : adj[v])\n        if (!visited[i])\n            topologicalSortUtil(i, visited, Stack);\n    Stack.push(v);\n}\nvoid topologicalSort() {\n    stack<int> Stack;\n    bool* visited = new bool[V];\n    for (int i = 0; i < V; i++) visited[i] = false;\n    for (int i = 0; i < V; i++)\n        if (visited[i] == false)\n            topologicalSortUtil(i, visited, Stack);\n    while (!Stack.empty()) {\n        cout << Stack.top() << \" \";\n        Stack.pop();\n    }\n}",
+    "code": "vector<int> topologicalSort() {\n    vector<int> indegree(V, 0), order;\n    for (int u = 0; u < V; u++)\n        for (int v : adj[u]) indegree[v]++;\n    queue<int> ready;\n    for (int v = 0; v < V; v++)\n        if (indegree[v] == 0) ready.push(v);\n    while (!ready.empty()) {\n        int u = ready.front(); ready.pop();\n        order.push_back(u);\n        for (int v : adj[u]) {\n            indegree[v]--;\n            if (indegree[v] == 0) ready.push(v);\n        }\n    }\n    if (order.size() != V) return {};\n    return order;\n}",
     "isSupported": false
   },
   {
@@ -186,7 +186,7 @@ const algorithmPresets: AlgorithmPreset[] = [
   {
     "id": "prefix-sum-array",
     "name": "Prefix Sum Array",
-    "code": "void fillPrefixSum(int arr[], int n, int prefixSum[]) {\n    prefixSum[0] = arr[0];\n    for (int i = 1; i < n; i++)\n        prefixSum[i] = prefixSum[i - 1] + arr[i];\n}",
+    "code": "void fillPrefixSum(int arr[], int n, int prefixSum[]) {\n    prefixSum[0] = arr[0];\n    for (int i = 1; i < n; i++)\n        prefixSum[i] = prefixSum[i - 1] + arr[i];\n}\nint rangeSum(int prefixSum[], int left, int right) {\n    return prefixSum[right] - (left > 0 ? prefixSum[left - 1] : 0);\n}",
     "isSupported": false
   },
   {
@@ -312,7 +312,7 @@ const algorithmPresets: AlgorithmPreset[] = [
   {
     "id": "coin-change",
     "name": "Coin Change",
-    "code": "int countWays(int coins[], int n, int sum) {\n    int table[sum + 1];\n    memset(table, 0, sizeof(table));\n    table[0] = 1;\n    for(int i=0; i<n; i++)\n        for(int j=coins[i]; j<=sum; j++)\n            table[j] += table[j-coins[i]];\n    return table[sum];\n}",
+    "code": "int minCoins(int coins[], int n, int amount) {\n    vector<int> dp(amount + 1, INT_MAX);\n    dp[0] = 0;\n    for (int i = 0; i < n; i++) {\n        for (int value = coins[i]; value <= amount; value++) {\n            if (dp[value - coins[i]] != INT_MAX)\n                dp[value] = min(dp[value], dp[value - coins[i]] + 1);\n        }\n    }\n    return dp[amount] == INT_MAX ? -1 : dp[amount];\n}",
     "isSupported": false
   },
   {

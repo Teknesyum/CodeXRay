@@ -1,9 +1,15 @@
 import type {
   ArrayVisualData,
+  BarVisualData,
   GraphDocumentV1,
   GraphVisualData,
+  IntervalVisualData,
+  MatrixCellHighlight,
+  MatrixVisualData,
+  RowsVisualData,
   SimulationInput,
   SimulationStep,
+  StringMatchVisualData,
   TraceValue,
   VariablesVisualData,
   VisualData,
@@ -769,6 +775,26 @@ const edgeRoleMatches = (
   return entries.some(([child, parent]) => typeof parent === 'string' && matches(parent, child));
 };
 
+const primitiveArray = (value: RuntimeValue | undefined): Array<string | number | boolean | null> =>
+  Array.isArray(value)
+    ? value.map((item) => toTraceValue(item)).filter((item): item is string | number | boolean | null =>
+      item === null || ['string', 'number', 'boolean'].includes(typeof item))
+    : [];
+
+const numericArray = (value: RuntimeValue | undefined): number[] =>
+  primitiveArray(value).filter((item): item is number => typeof item === 'number');
+
+const numericValue = (environment: RuntimeEnvironment, variable: string | undefined): number | undefined => {
+  if (!variable) return undefined;
+  const value = getVariableOrUndefined(environment, variable);
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+};
+
+const intervalArray = (value: RuntimeValue | undefined): Array<[number, number]> =>
+  Array.isArray(value) ? value.flatMap((item) =>
+    Array.isArray(item) && typeof item[0] === 'number' && typeof item[1] === 'number'
+      ? [[item[0], item[1]] as [number, number]] : []) : [];
+
 const buildVisualData = (environment: RuntimeEnvironment): VisualData => {
   const variables = allVariables(environment);
   const contract = environment.visualization;
@@ -845,6 +871,86 @@ const buildVisualData = (environment: RuntimeEnvironment): VisualData => {
         };
       }),
       vars: variables,
+    };
+    return visual;
+  }
+  if (contract.type === 'matrix') {
+    const config = contract.matrix;
+    const inferredVariable = ['matrix', 'dp', 'table', 'costs'].find((name) => {
+      const candidate = getVariableOrUndefined(environment, name);
+      return Array.isArray(candidate) && candidate.some(Array.isArray);
+    });
+    const raw = getVariableOrUndefined(environment, config?.valuesVariable ?? inferredVariable ?? 'matrix');
+    const values = Array.isArray(raw) ? raw.map((row) => primitiveArray(row)) : [];
+    const rawHighlights = config?.highlightsVariable
+      ? getVariableOrUndefined(environment, config.highlightsVariable) : undefined;
+    const highlights: MatrixCellHighlight[] = Array.isArray(rawHighlights) ? rawHighlights.flatMap((item) => {
+      if (!item || Array.isArray(item) || item instanceof Set || item instanceof Map || typeof item !== 'object') return [];
+      const row = item.row;
+      const column = item.column;
+      const role = item.role;
+      if (typeof row !== 'number' || typeof column !== 'number'
+        || !['empty', 'base', 'dependency', 'active', 'computed', 'result'].includes(String(role))) return [];
+      return [{ row, column, role: role as MatrixCellHighlight['role'], ...(typeof item.label === 'string' ? { label: item.label } : {}) }];
+    }) : [];
+    const visual: MatrixVisualData = {
+      type: 'matrix', values,
+      rowLabels: config?.rowLabels ?? values.map((_, index) => String(index)),
+      columnLabels: config?.columnLabels ?? values[0]?.map((_, index) => String(index)) ?? [],
+      highlights, fillDirection: config?.fillDirection ?? 'row', vars: variables,
+    };
+    return visual;
+  }
+  if (contract.type === 'string-match' && contract.stringMatch) {
+    const config = contract.stringMatch;
+    const text = getVariableOrUndefined(environment, config.textVariable);
+    const pattern = config.patternVariable ? getVariableOrUndefined(environment, config.patternVariable) : undefined;
+    const window = config.windowVariable ? numericArray(getVariableOrUndefined(environment, config.windowVariable)) : [];
+    const visual: StringMatchVisualData = {
+      type: 'string-match', text: typeof text === 'string' ? text : '',
+      ...(typeof pattern === 'string' ? { pattern } : {}),
+      alignment: numericValue(environment, config.alignmentVariable),
+      activeText: numericArray(config.activeTextVariable ? getVariableOrUndefined(environment, config.activeTextVariable) : undefined),
+      activePattern: numericArray(config.activePatternVariable ? getVariableOrUndefined(environment, config.activePatternVariable) : undefined),
+      matchedText: numericArray(config.matchedTextVariable ? getVariableOrUndefined(environment, config.matchedTextVariable) : undefined),
+      mismatchText: numericValue(environment, config.mismatchTextVariable),
+      window: window.length >= 2 ? [window[0], window[1]] : undefined,
+      vars: variables,
+    };
+    return visual;
+  }
+  if (contract.type === 'bars' && contract.bars) {
+    const values = numericArray(getVariableOrUndefined(environment, contract.bars.valuesVariable));
+    const water = contract.bars.waterVariable
+      ? numericArray(getVariableOrUndefined(environment, contract.bars.waterVariable)) : new Array(values.length).fill(0) as number[];
+    const pointers = Object.fromEntries((contract.bars.pointerVariables ?? []).flatMap((variable) => {
+      const value = numericValue(environment, variable);
+      return value === undefined ? [] : [[variable, value]];
+    }));
+    const visual: BarVisualData = { type: 'bars', values, water, pointers, vars: variables };
+    return visual;
+  }
+  if (contract.type === 'intervals' && contract.intervals) {
+    const current = contract.intervals.currentVariable
+      ? intervalArray([getVariableOrUndefined(environment, contract.intervals.currentVariable) as RuntimeValue])[0] : undefined;
+    const visual: IntervalVisualData = {
+      type: 'intervals', intervals: intervalArray(getVariableOrUndefined(environment, contract.intervals.intervalsVariable)),
+      merged: intervalArray(getVariableOrUndefined(environment, contract.intervals.mergedVariable)), current, vars: variables,
+    };
+    return visual;
+  }
+  if (contract.type === 'rows' && contract.rows) {
+    const rawActive = contract.rows.activeVariable ? getVariableOrUndefined(environment, contract.rows.activeVariable) : undefined;
+    const active: RowsVisualData['active'] = Array.isArray(rawActive) ? rawActive.flatMap((item) => {
+      if (!item || Array.isArray(item) || item instanceof Set || item instanceof Map || typeof item !== 'object') return [];
+      if (typeof item.row !== 'number' || typeof item.column !== 'number'
+        || !['active', 'dependency', 'result'].includes(String(item.role))) return [];
+      return [{ row: item.row, column: item.column, role: item.role as 'active' | 'dependency' | 'result' }];
+    }) : [];
+    const visual: RowsVisualData = {
+      type: 'rows', mode: contract.rows.mode,
+      rows: contract.rows.rowVariables.map((row) => ({ label: row.label, values: primitiveArray(getVariableOrUndefined(environment, row.variable)) })),
+      active, vars: variables,
     };
     return visual;
   }

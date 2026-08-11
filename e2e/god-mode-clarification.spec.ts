@@ -28,7 +28,7 @@ test('asks for missing algorithm requirements without mutation and resumes with 
   await expect(page.getByText(/code, input, and \d+-step simulation were applied/i)).toBeVisible();
 });
 
-test('asks for the concrete problem before creating a generic 2D DP simulation', async ({ page }) => {
+test('offers deterministic template, random, unique, and custom paths for a generic 2D DP request', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'tr');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
@@ -41,7 +41,13 @@ test('asks for the concrete problem before creating a generic 2D DP simulation',
   await question.fill('2d dp yaz simüle et');
   await question.press('Enter');
 
-  await expect(page.getByText(/LCS.*Düzenleme Mesafesi.*0\/1 Sırt Çantası/)).toBeVisible();
+  const chooser = page.locator('.dp-choice-panel');
+  await expect(chooser).toBeVisible();
+  await expect(chooser.getByRole('button')).toHaveCount(6);
+  await expect(chooser.getByRole('button', { name: 'LCS hazır şablonu' })).toBeVisible();
+  await expect(chooser.getByRole('button', { name: 'Rastgele şablon' })).toBeVisible();
+  await expect(chooser.getByRole('button', { name: 'Özgün soru üret' })).toBeVisible();
+  await expect(chooser.getByRole('button', { name: 'Kendi sorumu yazacağım' })).toBeVisible();
   await expect(page.locator('.god-mode-progress')).toHaveCount(0);
   await expect(question).toBeEnabled();
 });

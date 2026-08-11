@@ -86,6 +86,37 @@ describe('God Mode orchestrator', () => {
       stage: 'truncated',
     }));
   });
+
+  it('accepts complete specialized visual mappings and rejects incomplete ones fail-closed', () => {
+    const base = {
+      version: 1,
+      title: 'LCS',
+      purpose: 'Teach a two-dimensional recurrence.',
+      inputKind: 'string',
+      dataStructures: ['table'],
+      invariants: ['Dependencies are final.'],
+      termination: 'The table is complete.',
+      complexity: { time: 'O(mn)', space: 'O(mn)' },
+    };
+    expect(validateArchitectureContract(JSON.stringify({
+      ...base,
+      visualization: {
+        type: 'matrix',
+        matrix: { valuesVariable: 'dp', fillDirection: 'row' },
+      },
+    }))).toMatchObject({
+      ok: true,
+      value: { visualization: { type: 'matrix', matrix: { valuesVariable: 'dp' } } },
+    });
+    expect(validateArchitectureContract(JSON.stringify({
+      ...base,
+      visualization: { type: 'rows' },
+    }))).toEqual(expect.objectContaining({
+      ok: false,
+      stage: 'schema',
+      issues: expect.arrayContaining([expect.stringContaining('visualization.rows')]),
+    }));
+  });
   it('runs specialist jobs, compiles bidirectional BFS, and applies one package transaction', async () => {
     const applyPackage = vi.fn();
     const sourcePhases: string[] = [];
@@ -229,6 +260,59 @@ describe('God Mode orchestrator', () => {
     expect(result.package?.program.id).toBe('scan_array');
     expect(result.package?.tests.passed).toBe(true);
     expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('carries an Architect-authored specialized visual through compilation into trace data', async () => {
+    const calls: LocalAgentRequest[] = [];
+    const runner = (request: LocalAgentRequest): LocalAgentHandle => {
+      calls.push(request);
+      const text = request.role === 'architect'
+        ? JSON.stringify({
+          version: 1,
+          title: 'Heap Teaching Scan',
+          purpose: 'Expose the active heap row while scanning the input.',
+          inputKind: 'array',
+          dataStructures: ['array', 'heap row'],
+          invariants: ['The displayed row is trace-backed.'],
+          termination: 'The row has been emitted.',
+          complexity: { time: 'O(n)', space: 'O(n)' },
+          visualization: {
+            type: 'rows',
+            rows: { mode: 'heap', rowVariables: [{ label: 'Heap', variable: 'array' }] },
+          },
+        })
+        : request.role === 'code-author'
+          ? JSON.stringify(modelAuthoredProgram)
+          : request.role === 'critic'
+            ? JSON.stringify({ passed: true, issues: [], summary: 'Trace-backed row validated.' })
+            : `${request.role} completed.`;
+      return { requestId: calls.length, promise: Promise.resolve(text), cancel: vi.fn() };
+    };
+    const result = await startGodModeRun({
+      request: 'heap satırını gösteren özel bir tarama yaz',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'tr',
+      workspace,
+      activePackage: null,
+      onPlan: vi.fn(),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      agentRunner: runner,
+    }).promise as any;
+
+    expect(result.package.visualization).toMatchObject({
+      version: 2,
+      type: 'rows',
+      rows: { mode: 'heap', rowVariables: [{ label: 'Heap', variable: 'array' }] },
+    });
+    expect(result.package.steps.every((step: { visualData: { type: string } }) =>
+      step.visualData.type === 'rows')).toBe(true);
+    expect(result.package.steps.at(-1).visualData.rows[0]).toMatchObject({
+      label: 'Heap',
+      values: [3, 1, 2],
+    });
+    const codeAuthorCall = calls.find((request) => request.role === 'code-author');
+    expect(codeAuthorCall?.instructions).toContain('"variable":"array"');
   });
 
   it('retries one compact Architect contract after a length-truncated response', async () => {
@@ -384,7 +468,10 @@ describe('God Mode orchestrator', () => {
       agentRunner: delayedAgent,
     });
 
-    await Promise.resolve();
+    for (let attempt = 0; attempt < 10 && !resolveLate; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(resolveLate).toBeTypeOf('function');
     run.cancel();
     resolveLate(JSON.stringify({
       version: 1,

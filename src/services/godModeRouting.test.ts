@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { routeGodModeRequest, routeWebSourceRequest } from './godModeRouting';
+import { extractDpDimensions, requestsUniqueDpInput, routeGodModeRequest, routeWebSourceRequest } from './godModeRouting';
 
 describe('God Mode routing', () => {
   it('preserves platform and numeric ID from the catalog drawer command', () => {
@@ -45,6 +45,8 @@ describe('God Mode routing', () => {
   it('routes input adaptation as a multi-agent intent', () => {
     expect(routeGodModeRequest('bu kod için inputları düzenle', [], 0)).toEqual({ type: 'adapt-input' });
     expect(routeGodModeRequest('inputu genişlet', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeGodModeRequest('inputumuzu 2 kat karmaşıklaştır', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeGodModeRequest('17. nolu nodu kaldır', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
   it('keeps composite solve, author, input, and simulate requests on the creation pipeline', () => {
@@ -161,10 +163,29 @@ describe('God Mode routing', () => {
 
   it.each([
     '2d dp yaz simüle et',
+    'bir 2d dp sorusu yaz ve çöz inputunu 6*11 olacak şekilde simüle et',
     'dinamik programlama simüle et',
     '1d dp oluştur',
   ])('asks for a concrete problem before starting a generic DP graph: %s', (request) => {
     expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+  });
+
+  it('extracts explicit DP dimensions without asking the model to interpret them', () => {
+    expect(extractDpDimensions('input 6*11 olsun')).toEqual({ rows: 6, columns: 11 });
+    expect(extractDpDimensions('6×11 tablo')).toEqual({ rows: 6, columns: 11 });
+    expect(extractDpDimensions('6x11 matrix')).toEqual({ rows: 6, columns: 11 });
+  });
+
+  it('keeps a unique-input request separate from a unique-problem request', () => {
+    const request = 'bir 2d dp sorusu yaz ve 6*11 benzersiz input ile simüle et';
+    expect(requestsUniqueDpInput(request)).toBe(true);
+    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+  });
+
+  it('allows an explicit unique-problem choice to enter model-authored mode', () => {
+    expect(routeGodModeRequest('Özgün model-authored 2D DP sorusu yaz çöz ve simüle et', [], 0)).toEqual({
+      type: 'create-algorithm', template: 'model-authored',
+    });
   });
 
   it('keeps named 2D DP requests on deterministic templates', () => {

@@ -98,6 +98,59 @@ describe('GodModeProgress timing', () => {
     expect(screen.getByText('1.3s')).toBeVisible();
   });
 
+  it('keeps active agent timing live across streaming plan refreshes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-01T20:00:00.000Z'));
+    const startedAt = Date.now();
+    const createPlan = (): ManagerPlanV2 => ({
+      version: 2,
+      runId: 'streaming-timing',
+      request: 'solve',
+      intent: 'solve-web-problem',
+      createdAt: startedAt,
+      jobs: [{
+        version: 2,
+        id: 'manager',
+        role: 'manager',
+        label: 'Manager',
+        dependsOn: [],
+        consumes: [],
+        produces: [],
+        resourceLocks: ['webgpu'],
+        status: 'running',
+        attempt: 1,
+        maxAttempts: 2,
+        startedAt,
+        durationMs: 16_800,
+        promptTokens: 1_240,
+        contextWindow: 32_768,
+        promptTokensEstimated: true,
+        reasoning: `stream update ${Date.now()}`,
+      }],
+    });
+    const props = {
+      locale: 'tr' as const,
+      onCancel: () => undefined,
+      onDismiss: () => undefined,
+      onUndo: () => undefined,
+      onRedo: () => undefined,
+      onRetry: () => undefined,
+      canUndo: false,
+      canRedo: false,
+    };
+    const view = render(<GodModeProgress plan={createPlan()} {...props} />);
+
+    await vi.advanceTimersByTimeAsync(200);
+    view.rerender(<GodModeProgress plan={createPlan()} {...props} />);
+    await vi.advanceTimersByTimeAsync(200);
+    view.rerender(<GodModeProgress plan={createPlan()} {...props} />);
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(screen.getByText('0.3s')).toBeVisible();
+    expect(screen.getByText('≈1.2K/33K')).toBeVisible();
+    expect(screen.queryByText('16.8s')).not.toBeInTheDocument();
+  });
+
   it('keeps retry and dismiss controls available after a failed run', () => {
     const onRetry = vi.fn();
     const onDismiss = vi.fn();

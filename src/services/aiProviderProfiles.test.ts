@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  OPENAI_COMPATIBLE_ENDPOINT_PRESETS,
   AI_SELECTION_KEY,
   EXTERNAL_AI_PROFILES_KEY,
   invalidateExternalProfile,
@@ -7,6 +8,16 @@ import {
   loadExternalAiProfiles,
   saveExternalAiProfiles,
 } from './aiProviderProfiles';
+
+describe('OpenAI-compatible endpoint presets', () => {
+  it('provides loopback OpenAI-compatible defaults for the supported local apps', () => {
+    expect(OPENAI_COMPATIBLE_ENDPOINT_PRESETS).toEqual([
+      { name: 'LM Studio', baseUrl: 'http://127.0.0.1:1234/v1' },
+      { name: 'llama.cpp', baseUrl: 'http://127.0.0.1:8080/v1' },
+      { name: 'Unsloth', baseUrl: 'http://127.0.0.1:8001/v1' },
+    ]);
+  });
+});
 
 describe('AI provider profile persistence', () => {
   beforeEach(() => localStorage.clear());

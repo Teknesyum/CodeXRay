@@ -55,4 +55,15 @@ describe('natural-language input adaptation', () => {
     });
     expect(input.text).toBe('[[11,12],[13,14]]');
   });
+
+  it('doubles array complexity while preserving the active program contract', () => {
+    const input = adaptSimulationInputFromRequest({
+      request: 'inputumuzu 2 kat karmaşıklaştır',
+      current: { kind: 'array', text: '[2,3,1,4]', origin: 'user' },
+      kind: 'array', algorithmName: 'Jump Game', activeProgramId: 'jump_game_dp',
+    });
+    const values = JSON.parse(input.text) as number[];
+    expect(values).toHaveLength(8);
+    expect(values.every((value) => value >= 0)).toBe(true);
+  });
 });

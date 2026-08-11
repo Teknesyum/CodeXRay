@@ -20,6 +20,20 @@ export default defineConfig({
   base: process.env.CODEXRAY_BASE_PATH ?? '/',
   define: { __CODEXRAY_VERSION__: JSON.stringify(packageMetadata.version) },
   plugins: [react()],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'simulators-graph', test: /extendedGraphSimulators\.ts$/ },
+            { name: 'simulators-array', test: /extendedArraySimulators\.ts$/ },
+            { name: 'simulators-string', test: /extendedStringSimulators\.ts$/ },
+            { name: 'simulators-compound', test: /compoundSimulators\.ts$/ },
+          ],
+        },
+      },
+    },
+  },
   server: { proxy: webReaderProxy },
   preview: { proxy: webReaderProxy },
 })

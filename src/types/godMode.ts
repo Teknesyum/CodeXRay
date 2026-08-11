@@ -50,6 +50,9 @@ export interface ManagerJobV1 {
   firstTokenMs?: number | null;
   inferenceMs?: number;
   completionTokens?: number | null;
+  promptTokens?: number | null;
+  contextWindow?: number;
+  promptTokensEstimated?: boolean;
   finishReason?: string;
   summary?: string;
   reasoning?: string;
@@ -233,13 +236,37 @@ export interface InputContractV1 {
 
 export interface VisualizationContractV1 {
   version: 1;
-  type: 'array' | 'graph' | 'matrix' | 'variables';
+  type: 'array' | 'graph' | 'matrix' | 'string-match' | 'bars' | 'intervals' | 'rows' | 'variables';
   activeVariables: string[];
   queuedVariables: string[];
   visitedVariables: string[];
   pathVariable?: string;
   activeEdges?: Array<{ fromVariable: string; toVariable: string }>;
   traversedEdgeMapVariables?: string[];
+  matrix?: {
+    valuesVariable: string;
+    rowLabels?: string[];
+    columnLabels?: string[];
+    highlightsVariable?: string;
+    fillDirection: 'row' | 'column' | 'diagonal';
+  };
+  stringMatch?: {
+    textVariable: string;
+    patternVariable?: string;
+    alignmentVariable?: string;
+    activeTextVariable?: string;
+    activePatternVariable?: string;
+    matchedTextVariable?: string;
+    mismatchTextVariable?: string;
+    windowVariable?: string;
+  };
+  bars?: { valuesVariable: string; waterVariable?: string; pointerVariables?: string[] };
+  intervals?: { intervalsVariable: string; mergedVariable: string; currentVariable?: string };
+  rows?: {
+    mode: 'rows' | 'heap' | 'buckets';
+    rowVariables: Array<{ label: string; variable: string }>;
+    activeVariable?: string;
+  };
 }
 
 export type GraphLayoutStrategy =
@@ -418,6 +445,14 @@ export interface AlgorithmDesignV1 {
   invariants: string[];
   termination: string;
   complexity: { time: string; space: string };
+  visualization?: {
+    type: VisualizationContractV1['type'];
+    matrix?: VisualizationContractV1['matrix'];
+    stringMatch?: VisualizationContractV1['stringMatch'];
+    bars?: VisualizationContractV1['bars'];
+    intervals?: VisualizationContractV1['intervals'];
+    rows?: VisualizationContractV1['rows'];
+  };
 }
 
 export interface TraceReviewV1 {

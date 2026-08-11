@@ -29,6 +29,7 @@ import {
 import { isDesktopRuntime } from '../services/desktopAiService';
 import {
   EXTERNAL_AI_CONTEXT_WINDOWS,
+  OPENAI_COMPATIBLE_ENDPOINT_PRESETS,
   getExternalAiMaxOutputTokens,
   getRecommendedExternalOutputTokens,
   invalidateExternalProfile,
@@ -615,7 +616,9 @@ export const ControlBar = ({
                   {t('radioSettingsTab', locale)}
                 </button>
               </div>
-              <div className={`settings-modal-content ${activeTab === 'ai' ? 'ai-settings-layout' : ''}`}>
+              <div className={`settings-modal-content ${activeTab === 'ai'
+                ? `ai-settings-layout ${aiProvider === 'webllm' ? '' : 'external-provider-layout'}`
+                : ''}`}>
                 {activeTab === 'ai' && (
                   <>
                 <div className="settings-section ai-provider-settings">
@@ -628,9 +631,33 @@ export const ControlBar = ({
                   >
                     <option value="webllm">WebLLM</option>
                     <option value="ollama" disabled={!desktopRuntime}>Ollama</option>
-                    <option value="openai-compatible" disabled={!desktopRuntime}>OpenAI-compatible</option>
+                    <option value="openai-compatible" disabled={!desktopRuntime}>
+                      {locale === 'tr'
+                        ? 'LM Studio ve benzerleri (OpenAI-compatible)'
+                        : 'LM Studio & similar apps (OpenAI-compatible)'}
+                    </option>
                   </select>
                   {!desktopRuntime && <p className="local-ai-note">{t('desktopProvidersOnly', locale)}</p>}
+                  {desktopRuntime && aiProvider === 'openai-compatible' && (
+                    <div className="provider-preset-actions">
+                      {OPENAI_COMPATIBLE_ENDPOINT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          className="provider-preset-chip"
+                          title={preset.baseUrl}
+                          aria-label={t('applyEndpointPreset', locale, {
+                            name: preset.name,
+                            url: preset.baseUrl,
+                          })}
+                          disabled={externalBusy}
+                          onClick={() => updateExternalProfile({ baseUrl: preset.baseUrl })}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {aiProvider === 'webllm' ? (
                   <>
@@ -824,7 +851,11 @@ export const ControlBar = ({
                   <>
                     <div className="settings-section ai-model-settings">
                       <div className="settings-title">
-                        {aiProvider === 'ollama' ? 'Ollama' : 'Unsloth / llama.cpp'}
+                        {aiProvider === 'ollama'
+                          ? 'Ollama'
+                          : (locale === 'tr'
+                            ? 'LM Studio ve OpenAI-compatible uygulamalar'
+                            : 'LM Studio & OpenAI-compatible apps')}
                       </div>
                       <label className="local-ai-field">
                         <span>{t('endpointUrl', locale)}</span>

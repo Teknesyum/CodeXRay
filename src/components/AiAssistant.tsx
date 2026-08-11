@@ -15,7 +15,7 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
+import { extractDpDimensions, requestsUniqueDpInput, routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
 import type { GodModeRunHandle } from '../services/godModeOrchestrator';
 import { dispatchGodModeUiAction } from '../services/godModeUiControl';
 import {
@@ -120,6 +120,13 @@ interface AiAssistantProps {
   onToggleCollapse: () => void;
 }
 
+interface PendingDpSelection {
+  request: string;
+  rows: number;
+  columns: number;
+  uniqueInput: boolean;
+}
+
 export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) => {
   const {
     algorithmName,
@@ -199,8 +206,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
   const [webSourceSession, setWebSourceSession] = useState<BoundWebSourceSessionV1 | null>(loadBoundWebSource);
   const [webPlan, setWebPlan] = useState<ManagerPlanV2 | null>(null);
+  const [pendingDpSelection, setPendingDpSelection] = useState<PendingDpSelection | null>(null);
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const copyResetTimerRef = useRef<number | null>(null);
   const godModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -313,8 +322,17 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   }, [pause, setAlgorithmName, setAnalysis, setCode, setCurrentIndex, setInputError, setIsGodModeTypingSource, setSteps]);
 
   useEffect(() => {
-    if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    const chatBody = chatBodyRef.current;
+    if (chatBody && shouldAutoScrollRef.current) {
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
   }, [chatHistory, analysis, currentStep, isTyping, actionQueue, currentActionText, streamingResponse]);
+
+  const handleChatScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const chatBody = event.currentTarget;
+    const distanceFromBottom = chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom <= 32;
+  }, []);
 
   useEffect(() => {
     try {
@@ -598,6 +616,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       let workspaceIsPlaying = isPlaying;
 
       if (godModeIntent?.type === 'clarify-algorithm') {
+        const dimensions = extractDpDimensions(userMessage) ?? { rows: 6, columns: 11 };
+        setPendingDpSelection({
+          request: userMessage,
+          ...dimensions,
+          uniqueInput: requestsUniqueDpInput(userMessage),
+        });
         setChatHistory((previous) => [
           ...previous,
           { role: 'ai' as const, content: t('godModeClarifyAlgorithm', locale) },
@@ -716,6 +740,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           locale,
           workspace: workspaceSnapshot,
           activePackage: stateRef.current.activeSimulationPackage,
+          contextWindow: aiContextWindow,
           onPlan: (plan) => {
             persistGodModePlan(plan);
             if (!mountedRef.current || dismissedGodModeRunsRef.current.has(plan.runId)) return;
@@ -990,6 +1015,40 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setIsGodModeTypingSource,
     restoreSourcePreview,
   ]);
+
+  const chooseDpPath = useCallback((choice: 'lcs' | 'edit' | 'knapsack' | 'random' | 'unique' | 'own') => {
+    const pending = pendingDpSelection;
+    if (!pending) return;
+    if (choice === 'own') {
+      setPendingDpSelection(null);
+      setQuestion(locale === 'tr'
+        ? '2D DP problemimin amacı, inputu ve beklenen çıktısı: '
+        : 'Goal, input, and expected output of my 2D DP problem: ');
+      return;
+    }
+    const selected = choice === 'random'
+      ? (['lcs', 'edit', 'knapsack'] as const)[Math.floor(Math.random() * 3)]
+      : choice;
+    const salt = pending.uniqueInput
+      ? Math.floor(Date.now() + Math.random() * 1_000_000)
+      : 0;
+    const makeText = (length: number, offset: number) => Array.from({ length }, (_, index) =>
+      String.fromCharCode(97 + ((index * 11 + offset + salt) % 26))).join('');
+    const first = makeText(pending.rows, 3);
+    const second = makeText(pending.columns, 7);
+    const weights = Array.from({ length: pending.rows }, (_, index) =>
+      1 + ((index * 5 + salt) % Math.max(2, Math.min(9, pending.columns))));
+    const values = weights.map((weight, index) => weight + 1 + ((index * 7 + salt) % 13));
+    const inputOrigin = pending.uniqueInput ? 'Kullanıcının istediği benzersiz inputu yerel olarak üret;' : '';
+    const commands = {
+      lcs: `LCS 2D DP hazır şablonunu kullan. ${inputOrigin} Input metinleri "${first}" ve "${second}" olsun; uzunluklar ${pending.rows}x${pending.columns}. Deterministik simülasyonu oluştur.`,
+      edit: `Edit Distance 2D DP hazır şablonunu kullan. ${inputOrigin} Input metinleri "${first}" ve "${second}" olsun; uzunluklar ${pending.rows}x${pending.columns}. Deterministik simülasyonu oluştur.`,
+      knapsack: `0/1 Knapsack 2D DP hazır şablonunu kullan. ${inputOrigin} ${pending.rows} öğe için ağırlıklar ${JSON.stringify(weights)}, değerler ${JSON.stringify(values)}, kapasite ${pending.columns} olsun. Deterministik simülasyonu oluştur.`,
+      unique: `Özgün model-authored 2D DP sorusu yaz, çöz ve simüle et. Kullanıcının ${pending.rows}x${pending.columns} boyut isteğini kesin sözleşme kabul et. Hazır veya varsayılan input önerme; bu boyutlarda yeni ve doğrulanabilir input üret.`,
+    } as const;
+    setPendingDpSelection(null);
+    void submitQuestion(commands[selected]);
+  }, [locale, pendingDpSelection, submitQuestion]);
 
   useEffect(() => {
     const handleGodModeUserMessage = (event: Event) => {
@@ -1284,7 +1343,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         />
       )}
 
-      <div className="ai-body" ref={chatBodyRef}>
+      <div className="ai-body" ref={chatBodyRef} onScroll={handleChatScroll}>
         {analysis && (
           <section className="analysis-outline" aria-label={t('algorithmAnalysis', locale)}>
             <header>
@@ -1365,6 +1424,23 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             )}
           </div>
         ))}
+        {pendingDpSelection && (
+          <section className="dp-choice-panel" aria-label={t('dpChoiceTitle', locale)}>
+            <strong>{t('dpChoiceTitle', locale)}</strong>
+            <span>{t('dpChoiceDimensions', locale, {
+              rows: pendingDpSelection.rows,
+              columns: pendingDpSelection.columns,
+            })}</span>
+            <div className="dp-choice-actions">
+              <button type="button" onClick={() => chooseDpPath('lcs')}>{t('dpChoiceLcs', locale)}</button>
+              <button type="button" onClick={() => chooseDpPath('edit')}>{t('dpChoiceEditDistance', locale)}</button>
+              <button type="button" onClick={() => chooseDpPath('knapsack')}>{t('dpChoiceKnapsack', locale)}</button>
+              <button type="button" onClick={() => chooseDpPath('random')}>{t('dpChoiceRandom', locale)}</button>
+              <button type="button" onClick={() => chooseDpPath('unique')}>{t('dpChoiceUnique', locale)}</button>
+              <button type="button" onClick={() => chooseDpPath('own')}>{t('dpChoiceOwn', locale)}</button>
+            </div>
+          </section>
+        )}
         {isTyping && actionQueue.length === 0 && (
           <div className={`chat-message ai-msg typing ${streamingResponse ? 'live-stream' : ''}`}>
             <Bot size={14} className="msg-icon" />

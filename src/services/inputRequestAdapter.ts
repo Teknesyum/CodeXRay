@@ -10,6 +10,12 @@ import {
 const normalized = (request: string): string => request
   .normalize('NFKD')
   .replace(/[\u0300-\u036f]/g, '')
+  .replace(/ı/g, 'i')
+  .replace(/ş/g, 's')
+  .replace(/ğ/g, 'g')
+  .replace(/ü/g, 'u')
+  .replace(/ö/g, 'o')
+  .replace(/ç/g, 'c')
   .toLocaleLowerCase('en-US');
 
 const explicitArray = (request: string): number[] | null => {
@@ -80,11 +86,13 @@ export const adaptSimulationInputFromRequest = (options: {
   const text = normalized(options.request);
   const isExpand = /\b(genislet|buyut|uzat|expand|extend|grow)\w*\b/.test(text);
   const isEdit = /\b(duzenle|degistir|uyarla|edit|change|adapt)\w*\b/.test(text);
+  const doublesComplexity = /\b(?:2|iki|two)\s*(?:kat|x|times)\b.*\b(?:karmasik|complex|buyuk|genis|input|girdi)\w*\b/.test(text)
+    || /\b(?:twice|double)\b.*\b(?:complex|size|input|data)\w*\b/.test(text);
 
   // Graph edits are applied structurally by the graph request transaction. The
   // adapter must preserve the active document so a visual-only command cannot
   // replace it with an unrelated preset.
-  if (options.kind === 'graph' && options.current) return { ...options.current, origin: 'user' };
+  if ((options.kind === 'graph' || options.kind === 'tree') && options.current) return { ...options.current, origin: 'user' };
 
   if (options.activeProgramId === 'spiral_matrix') {
     const explicitSource = options.request.match(/\[\s*\[[\s\S]*?\]\s*\]/)?.[0];
@@ -126,9 +134,12 @@ export const adaptSimulationInputFromRequest = (options: {
       }
       return { kind: 'array', text: JSON.stringify(arrayCompatibleWithProgram(options.activeProgramId, deterministicArray(count))), origin: 'agent' };
     }
-    if (isExpand && options.current) {
+    if ((isExpand || doublesComplexity) && options.current) {
       const current = explicitArray(options.current.text) ?? [];
-      const targetCount = Math.min(options.activeProgramId ? 20 : 200, Math.max(current.length + 1, Math.ceil(current.length * 1.5)));
+      const targetCount = Math.min(
+        options.activeProgramId ? 20 : 200,
+        Math.max(current.length + 1, doublesComplexity ? current.length * 2 : Math.ceil(current.length * 1.5)),
+      );
       return {
         ...options.current,
         text: JSON.stringify(arrayCompatibleWithProgram(
@@ -143,6 +154,12 @@ export const adaptSimulationInputFromRequest = (options: {
   const quoted = options.request.match(/["“”']([^"“”']+)["“”']/)?.[1];
   if (options.kind === 'string' && quoted) {
     return { kind: 'string', text: quoted, origin: 'user' };
+  }
+  if (options.kind === 'string' && doublesComplexity && options.current) {
+    const targetLength = Math.min(200, Math.max(1, options.current.text.length * 2));
+    const suffix = Array.from({ length: targetLength - options.current.text.length }, (_, index) =>
+      String.fromCharCode(97 + ((index * 11 + options.current!.text.length) % 26))).join('');
+    return { ...options.current, text: `${options.current.text}${suffix}`, origin: 'agent' };
   }
 
   const preset = createInputPreset(options.kind, 2, options.algorithmName);

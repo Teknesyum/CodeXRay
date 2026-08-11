@@ -55,6 +55,59 @@ const PopulateMatrixTrace = () => {
   return null;
 };
 
+const PopulatePedagogicalGraphTrace = () => {
+  const { setAlgorithmName, setSteps } = useTimeline();
+  useEffect(() => {
+    setAlgorithmName("Kruskal's MST");
+    setSteps([{
+      lineNumber: null,
+      explanation: 'Reject A–C because it closes a cycle.',
+      visualData: {
+        type: 'graph',
+        directed: false,
+        nodes: [
+          { id: 'A', label: 'A', x: 20, y: 50, state: 'visited' },
+          { id: 'C', label: 'C', x: 80, y: 50, state: 'active' },
+        ],
+        edges: [{ id: 'ac', from: 'A', to: 'C', weight: 4, state: 'rejected' }],
+        vars: {
+          phase: 'Kruskal · reject cycle',
+          decision: 'A and C already share component A.',
+          components: { A: 'A', C: 'A' },
+        },
+      },
+    }]);
+  }, [setAlgorithmName, setSteps]);
+  return null;
+};
+
+const PopulateSpecializedVisualTrace = () => {
+  const { setSteps, setCurrentIndex } = useTimeline();
+  useEffect(() => {
+    setSteps([
+      { lineNumber: 1, explanation: 'Align pattern.', visualData: {
+        type: 'string-match', text: 'ABABA', pattern: 'ABA', alignment: 2, activeText: [2], activePattern: [0], mismatchText: 3,
+        window: [2, 4], vars: { phase: 'KMP · compare text character' },
+      } },
+      { lineNumber: 2, explanation: 'Fill water.', visualData: {
+        type: 'bars', values: [3, 0, 2], water: [0, 2, 0], pointers: { left: 0 }, vars: {},
+      } },
+      { lineNumber: 3, explanation: 'Merge spans.', visualData: {
+        type: 'intervals', intervals: [[1, 3], [2, 5]], merged: [[1, 5]], current: [1, 5], vars: {},
+      } },
+      { lineNumber: 4, explanation: 'Show dependencies.', visualData: {
+        type: 'rows', mode: 'rows', rows: [{ label: 'source', values: [3, 1] }, { label: 'prefix', values: [3, 4] }],
+        active: [{ row: 0, column: 1, role: 'dependency' }, { row: 1, column: 1, role: 'result' }], vars: {},
+      } },
+    ]);
+  }, [setSteps]);
+  return <>
+    <button type="button" onClick={() => setCurrentIndex(1)}>Show bars</button>
+    <button type="button" onClick={() => setCurrentIndex(2)}>Show intervals</button>
+    <button type="button" onClick={() => setCurrentIndex(3)}>Show rows</button>
+  </>;
+};
+
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem('codexray.locale', 'en');
@@ -109,5 +162,43 @@ describe('DynamicVisualizer pinned watch strip', () => {
       .toHaveAttribute('data-role', 'active');
     expect(within(table).getByRole('gridcell', { name: /dp\[1\]\[1\]: 5; dp\[1\]\[1\] = 5/ }))
       .toHaveAttribute('data-role', 'dependency');
+  });
+
+  it('renders graph phase, decision, node badges, and rejected edges without relying on color', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    render(
+      <TimelineProvider>
+        <PopulatePedagogicalGraphTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent('Kruskal · reject cycle');
+    expect(status).toHaveTextContent('A and C already share component A.');
+    expect(screen.getAllByText('C:A')).toHaveLength(2);
+    expect(screen.getByRole('img', { name: /Edge A → C: rejected/i })).toHaveClass('rejected');
+  });
+
+  it('renders every specialized typed visual with semantic accessible state', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    const user = userEvent.setup();
+    render(
+      <TimelineProvider>
+        <PopulateSpecializedVisualTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    expect(await screen.findByRole('region', { name: 'String matching view' })).toHaveTextContent('Text0A1B2A3B4A');
+    expect(screen.getByText('[2, 4]')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show bars' }));
+    expect(screen.getByRole('img', { name: 'Column 1: height 0, water 2' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show intervals' }));
+    expect(screen.getByRole('img', { name: 'Merged interval 1 to 5, current' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show rows' }));
+    expect(screen.getByRole('gridcell', { name: 'prefix[1]: 4; result' })).toHaveClass('rows-result');
+    expect(screen.getByRole('gridcell', { name: 'source[1]: 1; dependency' })).toHaveClass('rows-dependency');
   });
 });

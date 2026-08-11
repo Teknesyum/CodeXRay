@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tauri::{ipc::Channel, State};
+use tauri::{ipc::Channel, Manager, State};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use url::Url;
@@ -776,6 +776,15 @@ fn open_external_url(url: String) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            if let (Some(icon), Some(window)) = (
+                app.default_window_icon().cloned(),
+                app.get_webview_window("main"),
+            ) {
+                window.set_icon(icon)?;
+            }
+            Ok(())
+        })
         .plugin(
             tauri::plugin::Builder::<tauri::Wry>::new("navigation-guard")
                 .on_navigation(|_webview, url| {

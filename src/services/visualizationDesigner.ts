@@ -35,6 +35,9 @@ export const createVisualizationContractV2 = (
   const networkFlow = /flow|ak[ıi][sş]|residual|augment/.test(designText);
   const dependencyOrder = /topological|indegree|dependency|ba[gğ][ıi]ml[ıi]l[ıi]k/.test(designText);
   const graphType = Boolean(input.graph) || design.inputKind === 'graph' || design.inputKind === 'tree';
+  const requestedVisual = design.visualization;
+  const visualType = graphType ? 'graph' : requestedVisual?.type
+    ?? (design.inputKind === 'array' ? 'array' : 'variables');
   const nodeRoles: SemanticNodeRoleV1[] = graphType ? [
     { id: 'start', label: 'Start', source: { kind: 'input-start' }, priority: 70, style: nodeStyle('#00f3ff', 'rgba(0,243,255,.18)', 'circle', 0.9, 'outward') },
     { id: 'target', label: 'Target', source: { kind: 'input-target' }, priority: 70, style: nodeStyle('#ff35d3', 'rgba(255,0,255,.18)', 'diamond', 0.9, 'inward') },
@@ -95,7 +98,7 @@ export const createVisualizationContractV2 = (
 
   return {
     version: 2,
-    type: graphType ? 'graph' : design.inputKind === 'array' ? 'array' : 'variables',
+    type: visualType,
     activeVariables: bidirectional ? ['currentStart', 'currentTarget'] : ['current', 'node', 'i', 'j'],
     queuedVariables: bidirectional ? ['frontierStart', 'frontierTarget'] : ['queue', 'frontier'],
     visitedVariables: bidirectional ? ['visitedStart', 'visitedTarget'] : ['visited'],
@@ -105,6 +108,11 @@ export const createVisualizationContractV2 = (
       { fromVariable: 'currentTarget', toVariable: 'neighborFromTarget' },
     ] : undefined,
     traversedEdgeMapVariables: bidirectional ? ['parentFromStart', 'parentFromTarget'] : undefined,
+    matrix: visualType === 'matrix' ? requestedVisual?.matrix : undefined,
+    stringMatch: visualType === 'string-match' ? requestedVisual?.stringMatch : undefined,
+    bars: visualType === 'bars' ? requestedVisual?.bars : undefined,
+    intervals: visualType === 'intervals' ? requestedVisual?.intervals : undefined,
+    rows: visualType === 'rows' ? requestedVisual?.rows : undefined,
     nodeRoles,
     edgeRoles,
     frontierLayers: bidirectional ? [

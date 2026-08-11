@@ -69,6 +69,7 @@ export interface GodModeOrchestratorOptions {
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
   activePackage: CustomSimulationPackageV1 | null;
+  contextWindow?: number;
   onPlan: (plan: ManagerPlanV1) => void;
   onEvent?: (job: ManagerJobV1) => void;
   previewSource?: (code: string, title: string, runId: string) => Promise<void> | void;
@@ -175,6 +176,79 @@ const architectureSchema = {
       type: 'object',
       properties: { time: { type: 'string' }, space: { type: 'string' } },
       required: ['time', 'space'],
+      additionalProperties: false,
+    },
+    visualization: {
+      type: 'object',
+      properties: {
+        type: { enum: ['array', 'graph', 'matrix', 'string-match', 'bars', 'intervals', 'rows', 'variables'] },
+        matrix: {
+          type: 'object',
+          properties: {
+            valuesVariable: { type: 'string', minLength: 1 },
+            rowLabels: { type: 'array', items: { type: 'string' } },
+            columnLabels: { type: 'array', items: { type: 'string' } },
+            highlightsVariable: { type: 'string', minLength: 1 },
+            fillDirection: { enum: ['row', 'column', 'diagonal'] },
+          },
+          required: ['valuesVariable', 'fillDirection'],
+          additionalProperties: false,
+        },
+        stringMatch: {
+          type: 'object',
+          properties: {
+            textVariable: { type: 'string', minLength: 1 },
+            patternVariable: { type: 'string', minLength: 1 },
+            alignmentVariable: { type: 'string', minLength: 1 },
+            activeTextVariable: { type: 'string', minLength: 1 },
+            activePatternVariable: { type: 'string', minLength: 1 },
+            matchedTextVariable: { type: 'string', minLength: 1 },
+            mismatchTextVariable: { type: 'string', minLength: 1 },
+            windowVariable: { type: 'string', minLength: 1 },
+          },
+          required: ['textVariable'],
+          additionalProperties: false,
+        },
+        bars: {
+          type: 'object',
+          properties: {
+            valuesVariable: { type: 'string', minLength: 1 },
+            waterVariable: { type: 'string', minLength: 1 },
+            pointerVariables: { type: 'array', items: { type: 'string', minLength: 1 } },
+          },
+          required: ['valuesVariable'],
+          additionalProperties: false,
+        },
+        intervals: {
+          type: 'object',
+          properties: {
+            intervalsVariable: { type: 'string', minLength: 1 },
+            mergedVariable: { type: 'string', minLength: 1 },
+            currentVariable: { type: 'string', minLength: 1 },
+          },
+          required: ['intervalsVariable', 'mergedVariable'],
+          additionalProperties: false,
+        },
+        rows: {
+          type: 'object',
+          properties: {
+            mode: { enum: ['rows', 'heap', 'buckets'] },
+            rowVariables: {
+              type: 'array', minItems: 1,
+              items: {
+                type: 'object',
+                properties: { label: { type: 'string', minLength: 1 }, variable: { type: 'string', minLength: 1 } },
+                required: ['label', 'variable'],
+                additionalProperties: false,
+              },
+            },
+            activeVariable: { type: 'string', minLength: 1 },
+          },
+          required: ['mode', 'rowVariables'],
+          additionalProperties: false,
+        },
+      },
+      required: ['type'],
       additionalProperties: false,
     },
   },
@@ -288,6 +362,97 @@ const stripArchitectureWrappers = (text: string): string => {
   return (fenced?.[1] ?? withoutInternalBlocks).trim();
 };
 
+const isRecordValue = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const validateArchitectureVisualization = (candidate: unknown): string[] => {
+  if (candidate === undefined) return [];
+  if (!isRecordValue(candidate)) return ['$.visualization: expected an object'];
+  const issues: string[] = [];
+  const supported = ['array', 'graph', 'matrix', 'string-match', 'bars', 'intervals', 'rows', 'variables'];
+  const type = typeof candidate.type === 'string' ? candidate.type : '';
+  if (!supported.includes(type)) issues.push('$.visualization.type: unsupported visual type');
+  const configKey = type === 'string-match' ? 'stringMatch' : type;
+  const known = new Set(['type', 'matrix', 'stringMatch', 'bars', 'intervals', 'rows']);
+  Object.keys(candidate).filter((key) => !known.has(key)).forEach((key) =>
+    issues.push(`$.visualization.${key}: additional property is not allowed`));
+  for (const key of ['matrix', 'stringMatch', 'bars', 'intervals', 'rows']) {
+    if (candidate[key] !== undefined && key !== configKey) {
+      issues.push(`$.visualization.${key}: does not match visual type ${type || '(missing)'}`);
+    }
+  }
+  if (['array', 'graph', 'variables'].includes(type)) return issues;
+  const config = candidate[configKey];
+  if (!isRecordValue(config)) {
+    issues.push(`$.visualization.${configKey}: required for visual type ${type}`);
+    return issues;
+  }
+  const allowedConfigFields: Record<string, string[]> = {
+    matrix: ['valuesVariable', 'rowLabels', 'columnLabels', 'highlightsVariable', 'fillDirection'],
+    stringMatch: ['textVariable', 'patternVariable', 'alignmentVariable', 'activeTextVariable', 'activePatternVariable', 'matchedTextVariable', 'mismatchTextVariable', 'windowVariable'],
+    bars: ['valuesVariable', 'waterVariable', 'pointerVariables'],
+    intervals: ['intervalsVariable', 'mergedVariable', 'currentVariable'],
+    rows: ['mode', 'rowVariables', 'activeVariable'],
+  };
+  const allowedFields = new Set(allowedConfigFields[configKey] ?? []);
+  Object.keys(config).filter((key) => !allowedFields.has(key)).forEach((key) =>
+    issues.push(`$.visualization.${configKey}.${key}: additional property is not allowed`));
+  const stringField = (name: string, required = false) => {
+    const value = config[name];
+    if ((required || value !== undefined) && (typeof value !== 'string' || !value.trim())) {
+      issues.push(`$.visualization.${configKey}.${name}: expected a non-empty string`);
+    }
+  };
+  if (type === 'matrix') {
+    stringField('valuesVariable', true);
+    stringField('highlightsVariable');
+    if (!['row', 'column', 'diagonal'].includes(String(config.fillDirection))) {
+      issues.push('$.visualization.matrix.fillDirection: expected row, column, or diagonal');
+    }
+    for (const field of ['rowLabels', 'columnLabels']) {
+      if (config[field] !== undefined && (!Array.isArray(config[field])
+        || !config[field].every((item) => typeof item === 'string'))) {
+        issues.push(`$.visualization.matrix.${field}: expected string labels`);
+      }
+    }
+  } else if (type === 'string-match') {
+    stringField('textVariable', true);
+    ['patternVariable', 'alignmentVariable', 'activeTextVariable', 'activePatternVariable',
+      'matchedTextVariable', 'mismatchTextVariable', 'windowVariable'].forEach((field) => stringField(field));
+  } else if (type === 'bars') {
+    stringField('valuesVariable', true);
+    stringField('waterVariable');
+    if (config.pointerVariables !== undefined && (!Array.isArray(config.pointerVariables)
+      || !config.pointerVariables.every((item) => typeof item === 'string' && item.trim()))) {
+      issues.push('$.visualization.bars.pointerVariables: expected non-empty variable names');
+    }
+  } else if (type === 'intervals') {
+    stringField('intervalsVariable', true);
+    stringField('mergedVariable', true);
+    stringField('currentVariable');
+  } else if (type === 'rows') {
+    if (!['rows', 'heap', 'buckets'].includes(String(config.mode))) {
+      issues.push('$.visualization.rows.mode: expected rows, heap, or buckets');
+    }
+    stringField('activeVariable');
+    if (!Array.isArray(config.rowVariables) || !config.rowVariables.length) {
+      issues.push('$.visualization.rows.rowVariables: expected at least one row mapping');
+    } else {
+      const labels = new Set<string>();
+      for (const [index, row] of config.rowVariables.entries()) {
+        if (!isRecordValue(row) || typeof row.label !== 'string' || !row.label.trim()
+          || typeof row.variable !== 'string' || !row.variable.trim()) {
+          issues.push(`$.visualization.rows.rowVariables[${index}]: expected label and variable`);
+          continue;
+        }
+        if (labels.has(row.label)) issues.push(`$.visualization.rows.rowVariables[${index}].label: duplicate label`);
+        labels.add(row.label);
+      }
+    }
+  }
+  return issues;
+};
+
 export const validateArchitectureContract = (
   text: string,
   finishReason?: string,
@@ -311,7 +476,7 @@ export const validateArchitectureContract = (
   const value = parsed as Record<string, unknown>;
   const issues: string[] = [];
   const allowed = new Set([
-    'version', 'title', 'purpose', 'inputKind', 'dataStructures', 'invariants', 'termination', 'complexity',
+    'version', 'title', 'purpose', 'inputKind', 'dataStructures', 'invariants', 'termination', 'complexity', 'visualization',
   ]);
   Object.keys(value).filter((key) => !allowed.has(key)).forEach((key) =>
     issues.push(`$.${key}: additional property is not allowed`));
@@ -333,6 +498,8 @@ export const validateArchitectureContract = (
     if (typeof complexity.time !== 'string') issues.push('$.complexity.time: expected a string');
     if (typeof complexity.space !== 'string') issues.push('$.complexity.space: expected a string');
   }
+  const visualizationIssues = validateArchitectureVisualization(value.visualization);
+  issues.push(...visualizationIssues);
   if (issues.length) return { ok: false, stage: 'schema', issues };
 
   const inputKinds = ['array', 'string', 'tree', 'graph'];
@@ -498,6 +665,16 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     let pendingReasoning = '';
     let reasoningFlushTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
     let reasoningJobId: string | undefined;
+    const activeJobForContext = [...plan.jobs].reverse().find((candidate) =>
+      candidate.role === role && (candidate.status === 'running' || candidate.status === 'retrying'));
+    if (activeJobForContext) {
+      const schemaText = responseSchema ? JSON.stringify(responseSchema) : '';
+      setJob(activeJobForContext.id, {
+        promptTokens: Math.ceil((instructions.length + context.length + schemaText.length) / 4),
+        contextWindow: options.contextWindow ?? 4096,
+        promptTokensEstimated: true,
+      });
+    }
     const flushReasoning = () => {
       if (reasoningFlushTimer) globalThis.clearTimeout(reasoningFlushTimer);
       reasoningFlushTimer = undefined;
@@ -599,14 +776,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       }
 
       await runJob('manager-decompose-request', async () => {
-        const result = await callOptionalAgent(
-          'manager',
-          'Summarize the supplied bounded job graph in one sentence. Do not add or remove jobs.',
-          JSON.stringify({ request: options.request, jobs: plan.jobs.map(({ id, role, dependsOn }) => ({ id, role, dependsOn })) }),
-          options.locale === 'tr' ? 'Görev uzman ajanlara ayrıldı.' : 'The request was split into specialist jobs.',
-          undefined,
-          140,
-        );
+        const result = options.locale === 'tr'
+          ? 'Görev doğrulanmış uzman aşamalarına deterministik olarak ayrıldı.'
+          : 'The request was deterministically split into validated specialist stages.';
         setJob('manager-decompose-request', { summary: result.slice(0, 240) });
         return result;
       });
@@ -658,19 +830,10 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
               graph: applyStructuralGraphRequest(generated.graph, options.request),
             };
           }
-          const advice = await callOptionalAgent(
-            'input-engineer',
-            'Inspect the code and proposed input. Briefly state whether the input kind is compatible and name one useful edge case.',
-            JSON.stringify({
-              request: options.request,
-              code: options.workspace.code.slice(0, 4_000),
-              proposedInput: generated,
-            }),
-            options.locale === 'tr' ? 'Input türü doğrulandı ve deterministik trace için hazırlandı.' : 'The input kind was validated for the deterministic trace.',
-            undefined,
-            220,
-          );
-          setJob('input-engineer-build-compatible-input', { summary: advice.slice(0, 260) });
+          const advice = options.locale === 'tr'
+            ? `Input düzenleme komutu ${kind} sözleşmesine deterministik olarak uygulandı.`
+            : `The input edit was applied deterministically to the ${kind} contract.`;
+          setJob('input-engineer-build-compatible-input', { summary: advice });
           return generated;
         });
         let updatedPackage: CustomSimulationPackageV1 | null = null;
@@ -701,16 +864,11 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           }
           return generateSimulationSteps(options.workspace.algorithmName, options.workspace.code, parsed.input);
         });
-        await runJob('critic-validate-input-and-trace', async () => {
+        await runJob('critic-validate-input-and-trace', () => {
           if (!steps.length) throw new Error('The compatible input produced no trace.');
-          return callOptionalAgent(
-            'critic',
-            'Review whether this input and deterministic trace are compatible. The application validator is authoritative.',
-            JSON.stringify({ input, traceSteps: steps.length, finalStep: steps.at(-1) }),
-            JSON.stringify({ passed: true, issues: [], summary: 'Application validation passed.' }),
-            critiqueSchema,
-            260,
-          );
+          const summary = `Application validation passed for ${steps.length} deterministic trace steps.`;
+          setJob('critic-validate-input-and-trace', { summary });
+          return summary;
         });
         await runJob('manager-apply-workspace-transaction', () => updatedPackage
           ? visualOnly && options.applyVisualPackage
@@ -718,14 +876,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             : options.applyPackage(updatedPackage, runId)
           : options.applyInput(input, steps, runId));
         const tutorAnswer = await runJob('tutor-explain-updated-workspace', () =>
-          callOptionalAgent(
-            'tutor',
-            'Explain why the new input is compatible and what the first trace step will do.',
-            JSON.stringify({ request: options.request, input, firstStep: steps[0] }),
-            deterministicFiveLens(options.locale, steps[0], 0, steps.length),
-            undefined,
-            360,
-          ));
+          deterministicFiveLens(options.locale, steps[0], 0, steps.length));
         return {
           status: 'success',
           runId,
@@ -941,26 +1092,8 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       if (['house-robber-1d-dp', 'lcs-2d-dp', 'lcs-space-optimized-1d-dp', 'longest-palindrome-interval-dp', 'coin-change-1d-dp', 'edit-distance-2d-dp', 'knapsack-2d-dp'].includes(creationIntent.template)) {
         const template = creationIntent.template as DpTemplateId;
         let preparedPackage: CustomSimulationPackageV1 | null = null;
-        let problemSpec: ProblemSpecV2 | undefined;
-        let algorithmPlan: DpFamilyContractV2 | undefined;
         await runJob('architect-design-algorithm-contract', async () => {
-          const response = await callOptionalAgent(
-            'architect',
-            `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the ${template} dynamic programming algorithm. Output matching the megaDpUpdateSchema.`,
-            JSON.stringify({ request: options.request, workspace: options.workspace }),
-            '{}',
-            megaDpUpdateSchema,
-            1200,
-          );
-          const parsed = safeJsonObject(response) as any;
-          if (parsed?.problemSpec && parsed?.algorithmPlan) {
-            problemSpec = parsed.problemSpec;
-            algorithmPlan = parsed.algorithmPlan;
-            const summary = `Extracted ProblemSpecV2 and DpFamilyContractV2 for ${problemSpec?.title}.`;
-            setJob('architect-design-algorithm-contract', { summary });
-            return summary;
-          }
-          const summary = `Selected the validated deterministic ${template} contract fallback.`;
+          const summary = `Selected the validated deterministic ${template} contract.`;
           setJob('architect-design-algorithm-contract', { summary });
           return summary;
         });
@@ -973,9 +1106,6 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             request: options.request,
             locale: options.locale,
             workspace: options.workspace,
-            problemSpec,
-            algorithmPlan,
-            verification: problemSpec && algorithmPlan ? runVerificationGates(problemSpec, algorithmPlan, true, true, true, true, true, true, true, true, true, true) : undefined,
           });
           await options.previewSource?.(preparedPackage.source.code, preparedPackage.title, runId);
           return summary;
@@ -1005,9 +1135,6 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           request: options.request,
           locale: options.locale,
           workspace: options.workspace,
-          problemSpec,
-          algorithmPlan,
-          verification: problemSpec && algorithmPlan ? runVerificationGates(problemSpec, algorithmPlan, true, true, true, true, true, true, true, true, true, true) : undefined,
         }));
         await runJob('critic-test-visual-and-trace-alignment', () => {
           if (!packageValue.tests.passed || !packageValue.steps.length) throw new Error('DP template package failed validation.');
@@ -1031,14 +1158,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           return summary;
         });
         const groundedTour = deterministicPackageTour(options.locale, packageValue);
-        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () => callOptionalAgent(
-          'tutor',
-          'Explain this committed DP package through Code, Data, Visual, Reasoning, and Time. Mention exact active/dependency states and never invent a table value.',
-          fiveLensContext(options.workspace, options.request, packageValue),
-          groundedTour,
-          undefined,
-          700,
-        ));
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () => groundedTour);
         return {
           status: 'success',
           runId,
@@ -1068,6 +1188,8 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
             [
               'Design the requested algorithm contract using only SimLang-compatible data structures.',
               'inputKind describes the source input, not the visualization. A 2D table is a visual/state representation; inputKind must be array, string, tree, or graph, never matrix.',
+              'Select the most pedagogical visualization when useful: matrix for DP tables, string-match for aligned text/pattern scans, bars for height/water data, intervals for merging/scheduling, or rows for heap/bucket/multi-row state.',
+              'When selecting a specialized visualization, include its complete trace-variable mapping. Use array, graph, or variables only when no specialized metaphor teaches the state better.',
             ].join(' '),
             JSON.stringify({ request: options.request, workspace: options.workspace }),
             architectureSchema,
@@ -1087,6 +1209,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
               'The previous contract reached the output limit.',
               'Return one compact JSON object only. Use short strings and no reasoning.',
               'inputKind is the source input and must be array, string, tree, or graph; never matrix.',
+              'Preserve a complete visualization mapping if the algorithm uses matrix, string-match, bars, intervals, or rows.',
             ].join(' '),
             JSON.stringify({ request: options.request, workspace: options.workspace }),
             architectureSchema,
@@ -1144,6 +1267,9 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
                 [
                   SIMLANG_AUTHOR_INSTRUCTIONS,
                   `The required inputKind is ${design.inputKind}.`,
+                  design.visualization
+                    ? `The executable trace must declare and update every variable named by this visualization mapping: ${JSON.stringify(design.visualization)}.`
+                    : '',
                   attempt > 1 ? `Repair these validation errors: ${lastErrors.join(' ')}` : '',
                 ].filter(Boolean).join(' '),
                 JSON.stringify({

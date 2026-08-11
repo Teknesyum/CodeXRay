@@ -9,6 +9,29 @@ Last updated: 2026-08-11
   and produces the 2.3.4 Windows delivery. The pre-existing untracked
   `opencode.json` remains untouched.
 - Package version: `2.3.4`.
+- The OpenAI-compatible desktop provider is now presented explicitly as
+  `LM Studio / OpenAI-compatible` and defaults to LM Studio's loopback endpoint
+  `http://127.0.0.1:1234/v1`; the URL remains editable for llama.cpp/Unsloth
+  and other compatible local servers.
+- The provider selector now spells out that its OpenAI-compatible option covers
+  LM Studio and similar local apps. The accepted icon keeps the original
+  CodeXRay open-face geometry instead of the filled generated variant: only the
+  pale upper outlines change to cool blue-gray, while the textured purple base
+  retains its palette. `icon-blue-outline-v2.png` is the
+  transparent edit source. A single 512px canonical canvas now produces every
+  tracked Tauri PNG and ICO frame by plain Lanczos scaling only; no size-specific
+  crop, contrast, sharpening, or alternate micro artwork remains. The window
+  explicitly applies the bundled icon at runtime.
+- The OpenAI-compatible provider help exposes one-click bilingual endpoint
+  chips for LM Studio (`1234/v1`), llama.cpp (`8080/v1`), and the retained
+  Unsloth profile (`8001/v1`). Applying a chip uses the normal profile update
+  path, invalidating stale capability results while leaving the URL editable.
+  The three chips occupy one compact, non-wrapping row with no explanatory
+  card or duplicated URL text; the editable endpoint field below is the sole
+  visible URL display.
+- External-provider settings use a dedicated single-column, content-height grid
+  instead of inheriting WebLLM's seven-row desktop layout. This removes the
+  large reserved blank area below the loopback privacy note.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -155,6 +178,210 @@ The detailed evidence and model findings are in
 `docs/LEETCODE_CATEGORY_VALIDATION_REPORT.md`.
 
 ## Latest verification
+
+Strict typed-visual continuation on 2026-08-11:
+
+- `AlgorithmDesignV1` and the Architect JSON contract now carry an optional,
+  fail-closed specialized visualization intent for matrix, aligned string,
+  bars/water, intervals, and multi-row/heap/bucket teaching views.
+- The visual designer preserves that mapping in `VisualizationContractV2`, and
+  Code Author is explicitly required to declare/update every mapped trace
+  variable. Graph/tree input remains graph-native even if a conflicting visual
+  intent is supplied.
+- Architecture validation rejects missing, mismatched, duplicate-row, empty,
+  or unknown mapping fields. Existing compiler/interpreter validation remains
+  the authoritative pre-commit gate.
+- Focused orchestration/designer tests passed 35/35, including a complete
+  Architect -> Code Author -> compiler -> `RowsVisualData` trace path. Full
+  Vitest passed 88 files / 557 tests; lint and `git diff --check` passed; the
+  production build passed at 616.3/620 KiB initial JavaScript, nine lazy chunks
+  each <=100 KiB, 5930.8/6500 KiB worker, and 85.9/100 KiB styles.
+- A central 60-entry pedagogical coverage contract now fails if the registry
+  and audit manifest diverge, if an algorithm never emits its domain-specific
+  visual metaphor, if its passive timeline has fewer than initialization/core/
+  result phases, or if its final step lacks a grounded phase. This audit exposed
+  and fixed missing Dijkstra/A* initialization/completion frames and the generic
+  sorting completion phase.
+- The strict independent edge-case audit now covers registry entries 1–10 in
+  `pedagogicalEdgeCasesBatch01.test.ts` and `pedagogicalEdgeCasesBatch02.test.ts`.
+  It exposed and fixed missing DFS/BFS completion frames plus misleading
+  disconnected-graph completion claims in Kruskal and Prim. The new suites also
+  cover unreachable nodes/pairs, negative edges and cycles, partial topological
+  orders, isolated SCCs, directionality constraints, malformed graphs, and
+  visualization-budget rejection. Full Vitest passed 90 files / 569 tests;
+  the post-cleanup focused set passed 25/25, lint and `git diff --check` passed,
+  and production build passed at 618.1/620 KiB initial JavaScript.
+- Registry entries 11–15 are now covered by
+  `pedagogicalEdgeCasesBatch03.test.ts`: isolated Tarjan components, zero-flow
+  unreachable sinks in Edmonds-Karp/Dinic, free Hopcroft-Karp vertices, K4
+  coloring, and invalid direction/capacity/bipartition/self-loop domains. This
+  exposed and fixed missing final matching-edge emphasis in Hopcroft-Karp and a
+  false successful Graph Coloring result for self-loops. Full verification now
+  passes 91 Vitest files / 575 tests, lint, build, and `git diff --check`; initial
+  JavaScript remains 618.1/620 KiB.
+- Registry entries 16–30 now have three additional independent edge-case suites.
+  They exposed and fixed invalid Euler-trail acceptance, stale failed-Hamilton
+  result highlighting, parallel-edge low-link handling, incomplete astral
+  Unicode handling in Manacher/Trie, and the literal `root` trie-word collision.
+  String collision/overlap/no-match cases, no-result pointer behavior, singleton
+  prefix/window cases, disconnected Johnson matrices, and all relevant reject
+  paths are fixed assertions. Full Vitest passed 94 files / 593 tests; the final
+  focused cleanup passed 12/12, lint, build, and `git diff --check`; initial
+  JavaScript remains 618.1/620 KiB.
+- Registry entries 31–60 now complete the twelve-suite independent edge audit.
+  The new oracles cover partition/window/interval boundaries, singleton sorting
+  and search, DP base cases, Unicode LCS/Edit Distance, binary-tree arity,
+  number-theory residues, linked-list boundaries, and all relevant reject paths.
+  The audit added explicit singleton initialization to Bubble/Insertion/Selection,
+  made LCS and Edit Distance code-point safe, rejects binary nodes with a third
+  child, prevents duplicate Sieve crossings, and normalizes negative modular
+  bases. Focused batch 09–12 verification passed 24/24, 24/24, 32/32, and 24/24.
+- Final verification after all sixty edge oracles passed: lint is clean; Vitest
+  passes 100 files / 632 tests; production build passes at 619.9/620 KiB initial
+  JavaScript, nine lazy chunks each <=100 KiB, 5930.8/6500 KiB local-AI worker,
+  and 85.9/100 KiB styles; `git diff --check` passes. The external-server
+  Playwright run passes all 67 Chromium tests. Four obsolete browser assertions
+  were aligned with intentional current contracts: the six-choice 2D-DP panel,
+  manager-free optimized agent queue, collapsed reasoning disclosure whose copy
+  action excludes reasoning, and graph labels separated from metric badges.
+
+Algorithm-visualization audit, all 60 algorithms on 2026-08-11:
+
+- `docs/ALGORITHM_VISUALIZATION_AUDIT.md` is the ordered 60-algorithm audit and
+  implementation plan. It defines the teaching metaphor, deterministic phase
+  contract, visual oracle, bilingual requirements, reduced-motion behavior,
+  and typed/rollback-safe AI modification boundary for every five-item batch.
+- DFS now distinguishes edge inspection, recursive descent, and backtracking;
+  its visible recursion path grows and unwinds while accepted discovery edges
+  remain identifiable. BFS exposes FIFO dequeue/discovery phases, discovery
+  tree edges, and per-node distances.
+- Dijkstra and A* expose select/relax/reject decisions. Failed relaxations are
+  explicit trace steps and rejected edges use their own dashed red state;
+  Dijkstra distance and A* f-score badges remain visible on graph nodes.
+- Kruskal exposes sorted-edge, accept, reject-cycle, and completed-MST phases.
+  Accepted MST edges persist as the path, rejected cycle edges have a distinct
+  state, component identifiers appear on nodes, and total weight is traced.
+- The graph visualizer has a compact phase/decision teaching HUD, node metric
+  badges, a rejected-edge legend/marker, and reduced-motion coverage. The new
+  visual state is part of the typed `EdgeState` contract rather than inferred
+  from prose. Phase and decision text passes through the runtime localization
+  layer, so the new teaching HUD follows the active English/Turkish locale.
+- Focused simulator/visualizer/localization verification passed 26/26. Full
+  verification passed: lint, 76 Vitest files / 489 tests, and production build
+  (initial JavaScript 610.6/620 KiB; styles 82.4/100 KiB). The final bilingual
+  HUD correction additionally passed 13/13 focused tests, lint, and build.
+- In-app localhost acceptance selected Kruskal from the real preset UI, ran all
+  8 steps, and visually confirmed persistent MST edges, component badges, the
+  phase/decision HUD, and grounded total weight 13. The current Kruskal preset
+  reaches an MST without a rejected edge; rejected-cycle rendering is covered
+  by dedicated simulator and component tests, and a branch-richer preset is a
+  recorded follow-up rather than an unverified UI claim.
+- All twelve five-algorithm batches are implemented. Graph families now expose
+  their structural decisions; string matching uses aligned text/pattern views;
+  sorting uses partitions, buffers, heaps, buckets, frequency/prefix/output
+  rows; DP uses labelled matrices and dependency cells; tree traversals expose
+  recursive entry/descent/visit/return; Sieve renders every number from 2 to n
+  and crosses composites individually; linked-list algorithms use real nodes,
+  directed next edges, and pointer movement.
+- New typed visual contracts cover string matches, bars/water, intervals, and
+  multi-row teaching layouts. The main visualizer renders each contract with
+  localized phase/decision state, while graph nodes/edges additionally support
+  removed/rejected states, badges, labels, and teaching HUD data.
+- Twelve focused pedagogical suites cover the ordered 60-entry registry in
+  five-item batches. The full registry test runs three presets per algorithm
+  and checks source-line bounds plus bilingual explanations; the independent
+  final oracle continues to cover all supported algorithms.
+- Static simulator chunk groups keep the new deterministic teaching logic out
+  of the initial bundle. The latest production build passed at 607.1/620 KiB
+  initial JavaScript, nine lazy chunks each <=100 KiB, 5930.6/6500 KiB worker,
+  and 85.9/100 KiB styles.
+- In-app browser acceptance was attempted against the verified local Vite
+  listener, but localhost navigation was rejected by the browser's URL safety
+  policy. No policy workaround or alternate browser surface was used. DOM and
+  visual behavior remain covered by focused component and simulator tests.
+
+Generic 2D-DP fast-path run on 2026-08-11:
+
+- Ambiguous 2D-DP requests now pause before model-authored generation and offer
+  compact LCS, edit-distance, knapsack, random-template, unique-generation, and
+  user-authored choices. Explicit `6*11`, `6x11`, and `6×11` dimensions are
+  parsed deterministically and carried into the selected teaching input.
+- `benzersiz/özgün input` is now distinct from `özgün problem`: it no longer
+  forces model-authored routing. The app creates the requested bounded input
+  locally and passes the concrete value to a selected deterministic template;
+  the model is not asked to reinterpret dimensions or propose a default input.
+- Validated DP templates bypass the Manager, Architect, and Tutor model calls;
+  the queue keeps its auditable stages but resolves them from deterministic
+  contracts and the grounded package tour. Unique generation remains available
+  as an explicit user choice.
+- DFlash was investigated but not exposed as a CodeXRay toggle: it requires a
+  compatible draft/target setup managed by the local inference server, and the
+  active Muse Glimmer profile does not advertise a controllable draft model.
+- Focused routing/orchestrator/assistant tests passed 73/73. `npm run lint`
+  passed after removing obsolete contract variables, and `npm run build` passed
+  (initial JavaScript 605.2/620 KiB; styles 81.4/100 KiB).
+
+Aggressive input-editing run on 2026-08-11:
+
+- Natural-language input transactions now handle numbered node removal,
+  add-below-anchor with an atomic edge, and bounded `2x complexity` expansion
+  for graph, array, and string inputs. Node removal also removes incident edges
+  and repairs root/start/target references; tree children are reattached to the
+  removed node's parent when possible.
+- Input adaptation no longer calls Input Engineer, Critic, or Tutor models.
+  Parsing, compatibility normalization, trace regeneration, validation, apply,
+  and undo remain typed deterministic application transactions.
+- Focused graph/input/routing/orchestrator tests passed 84/84. Lint and the
+  production build passed (initial JavaScript 605.7/620 KiB; styles 81.4/100
+  KiB).
+
+LM Studio labeling and purple desktop-icon scope run on 2026-08-11:
+
+- `npm run lint`: passed.
+- `npm run test -- --run`: 75 files, 473/473 passed.
+- `npm run build`: passed; initial JavaScript 601.0/620 KiB, every lazy chunk
+  <=100 KiB, worker 5930.4/6500 KiB, styles 79.8/100 KiB.
+- `git diff --check`: passed.
+- After the small Windows-icon/runtime assignment correction,
+  `cargo fmt --check` and `cargo check` passed (208 crates checked); the Tauri
+  dev watcher restarted the application with the rebuilt executable.
+- After the one-click external endpoint presets, lint passed, focused provider/
+  lifecycle/translation tests passed 15/15, the production build passed
+  (initial JavaScript 601.9/620 KiB; styles 80.7/100 KiB), and
+  `git diff --check` passed.
+- After compacting the endpoint presets to one row, lint passed, focused
+  provider/translation tests passed 11/11, the production build passed
+  (initial JavaScript 601.2/620 KiB; styles 80.3/100 KiB), and
+  `git diff --check` passed.
+- After removing the external-provider grid gap, lint passed, the focused
+  ControlBar lifecycle suite passed 4/4, the production build passed (initial
+  JavaScript 601.2/620 KiB; styles 80.5/100 KiB), and `git diff --check` passed.
+- The generated filled/stacked icon was replaced with a deterministic recolor
+  of the repository's original transparent logo. Every PNG and every 16-256px
+  ICO frame was regenerated from that single canvas, `cargo build` passed, and
+  the Windows desktop shortcut now references the unified v3 ICO.
+- The external local-provider settings view now uses an explicit full-width
+  flex column at desktop sizes, preventing the former empty right-hand grid
+  column. Lint, the focused ControlBar suite (2/2), and `git diff --check`
+  passed after the layout correction.
+- Assistant messages now have additional bottom inset from their border. Chat
+  auto-scroll follows streaming output only while the viewport is within 32px
+  of the bottom; scrolling upward suspends follow mode until the user returns
+  to the bottom. Lint, all focused AiAssistant suites (13/13), and the production
+  build passed after this change.
+- Active God Mode job timers now ignore stale `durationMs` snapshots and derive
+  elapsed time from `startedAt`. Their 250ms clock is keyed by stable run/job
+  identity, so frequent reasoning/token plan refreshes no longer restart the
+  interval before it can tick. This applies to running and retrying manager and
+  specialist jobs. The focused progress suite passed 4/4, lint passed, and the
+  production build passed.
+- Model-backed God Mode stages now expose compact context usage directly in
+  each agent chip (for example `≈1.2K/32K`) and include the full token figures
+  in the chip tooltip. The configured context window is exact; prompt use is a
+  deterministic character-based estimate because WebLLM and some compatible
+  endpoints do not report prompt usage until completion. Reported completion
+  tokens are added when available. Focused progress/orchestrator tests passed
+  22/22, lint passed, and the production build passed.
 
 Desktop/local-provider scope run on 2026-08-11:
 

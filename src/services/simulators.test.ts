@@ -37,7 +37,7 @@ describe('deterministic simulators', () => {
         }
       }
     }
-    expect([...untranslated]).toEqual([]);
+    expect([...untranslated], `Untranslated simulation explanations: ${JSON.stringify([...untranslated])}`).toEqual([]);
   });
 
   it('replays identical inputs deterministically without mutating them', () => {

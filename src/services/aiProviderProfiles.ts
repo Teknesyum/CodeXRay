@@ -12,6 +12,12 @@ export const EXTERNAL_AI_PROFILES_KEY = 'codexray.ai-external-profiles.v1';
 export const EXTERNAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768, 65536, 131072] as const;
 export const EXTERNAL_AI_MAX_OUTPUT_TOKENS = 32768;
 
+export const OPENAI_COMPATIBLE_ENDPOINT_PRESETS = [
+  { name: 'LM Studio', baseUrl: 'http://127.0.0.1:1234/v1' },
+  { name: 'llama.cpp', baseUrl: 'http://127.0.0.1:8080/v1' },
+  { name: 'Unsloth', baseUrl: 'http://127.0.0.1:8001/v1' },
+] as const;
+
 export const getExternalAiMaxOutputTokens = (contextWindow: number): number =>
   Math.min(EXTERNAL_AI_MAX_OUTPUT_TOKENS, Math.floor(contextWindow / 2));
 
@@ -43,9 +49,9 @@ export const DEFAULT_EXTERNAL_AI_PROFILES: readonly AiConnectionProfileV1[] = [
   {
     version: 1,
     id: 'openai-compatible-default',
-    name: 'Unsloth / llama.cpp',
+    name: 'LM Studio / OpenAI-compatible',
     provider: 'openai-compatible',
-    baseUrl: 'http://127.0.0.1:8001/v1',
+    baseUrl: 'http://127.0.0.1:1234/v1',
     model: '',
     contextWindow: 4096,
     maxOutputTokens: 1024,

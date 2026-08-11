@@ -91,6 +91,20 @@ describe('visualization contracts', () => {
   });
 
   it.each([
+    ['matrix', { matrix: { valuesVariable: 'dp', fillDirection: 'diagonal' as const } }],
+    ['string-match', { stringMatch: { textVariable: 'text', patternVariable: 'pattern' } }],
+    ['bars', { bars: { valuesVariable: 'heights', waterVariable: 'water' } }],
+    ['intervals', { intervals: { intervalsVariable: 'inputIntervals', mergedVariable: 'merged' } }],
+    ['rows', { rows: { mode: 'heap' as const, rowVariables: [{ label: 'Heap', variable: 'heap' }] } }],
+  ] as const)('preserves an Architect-authored %s mapping in the executable V2 contract', (type, mapping) => {
+    const authored = design('Specialized teaching view', type === 'string-match' ? 'string' : 'array');
+    authored.visualization = structuredClone({ type, ...mapping }) as AlgorithmDesignV1['visualization'];
+    const contract = createVisualizationContractV2(authored, { kind: authored.inputKind, text: '' }, layout);
+    expect(contract.type).toBe(type);
+    expect(contract[type === 'string-match' ? 'stringMatch' : type]).toEqual(Object.values(mapping)[0]);
+  });
+
+  it.each([
     ['Custom shortest path', ['candidate', 'settled'], ['relax', 'shortest-tree']],
     ['Custom minimum spanning tree', ['component'], ['candidate-edge', 'tree-edge']],
     ['Custom maximum flow residual network', ['augment-frontier'], ['residual-edge', 'augmenting-path']],

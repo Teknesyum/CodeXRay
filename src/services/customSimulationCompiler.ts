@@ -111,6 +111,23 @@ interface CompilePackageOptions {
   invariants?: string[];
 }
 
+const validateTypedVisualization = (visualization: VisualizationContract): string[] => {
+  const issues: string[] = [];
+  if (visualization.type === 'string-match' && !visualization.stringMatch) issues.push('String-match visualization needs a stringMatch variable mapping.');
+  if (visualization.type === 'bars' && !visualization.bars) issues.push('Bars visualization needs a bars variable mapping.');
+  if (visualization.type === 'intervals' && !visualization.intervals) issues.push('Intervals visualization needs an intervals variable mapping.');
+  if (visualization.type === 'rows') {
+    if (!visualization.rows?.rowVariables.length) issues.push('Rows visualization needs at least one mapped row.');
+    const labels = visualization.rows?.rowVariables.map((row) => row.label.trim()) ?? [];
+    if (labels.some((label) => !label)) issues.push('Rows visualization labels cannot be empty.');
+    if (new Set(labels).size !== labels.length) issues.push('Rows visualization labels must be unique.');
+  }
+  if (visualization.type === 'matrix' && visualization.matrix) {
+    if (!visualization.matrix.valuesVariable.trim()) issues.push('Matrix valuesVariable cannot be empty.');
+  }
+  return issues;
+};
+
 export const compileCustomSimulationPackage = (
   options: CompilePackageOptions,
 ): CustomSimulationPackageV1 => {
@@ -124,6 +141,8 @@ export const compileCustomSimulationPackage = (
   if (options.visualization.version !== 1 && options.visualization.version !== 2) {
     throw new SimLangError('Visualization contract is invalid.');
   }
+  const typedVisualizationIssues = validateTypedVisualization(options.visualization);
+  if (typedVisualizationIssues.length) throw new SimLangError(typedVisualizationIssues.join(' '));
   const inputValidation = parseSimulationInput(
     options.input.value.kind,
     options.input.value.text,

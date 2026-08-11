@@ -47,7 +47,7 @@ const runGraph = async (page: Page, name: string) => {
   expect(inspectedEdge, `${name} must expose an inspected edge in its timeline`).toBe(true);
   await expect(page.getByTestId('variable-distances')).toContainText('goal7');
   await expect(page.getByTestId('variable-distances')).toContainText('isolated∞');
-  const pathNodes = await page.locator('.graph-node.node-path').allTextContents();
+  const pathNodes = await page.locator('.graph-node.node-path .graph-node-label').allTextContents();
   expect(pathNodes).toContain('Baş');
   expect(pathNodes).toContain('Middle');
   expect(pathNodes).toContain('Goal');

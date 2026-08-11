@@ -159,4 +159,59 @@ describe('SimLangV1', () => {
     expect(result.finalVariables.array).toEqual([2, 9]);
     expect(result.finalVariables.indices).toEqual([0, 1]);
   });
+
+  it('builds every typed pedagogical visual from validated model-authored variables', () => {
+    const program: ProgramSpecV1 = {
+      version: 1, id: 'typed_visuals', title: 'Typed visuals', locale: 'en', inputKind: 'array', functions: [],
+      budgets: { instructions: 100, traceSteps: 10, recursionDepth: 4, collectionSize: 100 },
+      entry: [
+        { id: 'matrix', type: 'declare', name: 'matrix', value: { type: 'literal', value: [[0, 1], [1, 2]] } },
+        { id: 'text', type: 'declare', name: 'text', value: { type: 'literal', value: 'ABABA' } },
+        { id: 'pattern', type: 'declare', name: 'pattern', value: { type: 'literal', value: 'ABA' } },
+        { id: 'alignment', type: 'declare', name: 'alignment', value: { type: 'literal', value: 2 } },
+        { id: 'heights', type: 'declare', name: 'heights', value: { type: 'literal', value: [3, 0, 2] } },
+        { id: 'water', type: 'declare', name: 'water', value: { type: 'literal', value: [0, 2, 0] } },
+        { id: 'intervals', type: 'declare', name: 'intervals', value: { type: 'literal', value: [[1, 3], [2, 5]] } },
+        { id: 'merged', type: 'declare', name: 'merged', value: { type: 'literal', value: [[1, 5]] } },
+        { id: 'rowA', type: 'declare', name: 'rowA', value: { type: 'literal', value: [1, 2, 3] } },
+        { id: 'rowB', type: 'declare', name: 'rowB', value: { type: 'literal', value: [1, 3, 6] } },
+        { id: 'trace', type: 'trace', at: 'matrix', explanation: 'Render typed visual.', category: 'result', importance: 1 },
+      ],
+    };
+    const base = { version: 1 as const, activeVariables: [], queuedVariables: [], visitedVariables: [] };
+    const input = { kind: 'array' as const, text: '[1,2,3]' };
+    expect(executeSimLang(program, input, { ...base, type: 'matrix', matrix: {
+      valuesVariable: 'matrix', rowLabels: ['a', 'b'], columnLabels: ['x', 'y'], fillDirection: 'row',
+    } }).steps.at(-1)?.visualData.type).toBe('matrix');
+    expect(executeSimLang(program, input, { ...base, type: 'matrix' }).steps.at(-1)?.visualData)
+      .toMatchObject({ type: 'matrix', values: [[0, 1], [1, 2]] });
+    expect(executeSimLang(program, input, { ...base, type: 'string-match', stringMatch: {
+      textVariable: 'text', patternVariable: 'pattern', alignmentVariable: 'alignment',
+    } }).steps.at(-1)?.visualData).toMatchObject({ type: 'string-match', text: 'ABABA', pattern: 'ABA', alignment: 2 });
+    expect(executeSimLang(program, input, { ...base, type: 'bars', bars: {
+      valuesVariable: 'heights', waterVariable: 'water',
+    } }).steps.at(-1)?.visualData).toMatchObject({ type: 'bars', values: [3, 0, 2], water: [0, 2, 0] });
+    expect(executeSimLang(program, input, { ...base, type: 'intervals', intervals: {
+      intervalsVariable: 'intervals', mergedVariable: 'merged',
+    } }).steps.at(-1)?.visualData).toMatchObject({ type: 'intervals', merged: [[1, 5]] });
+    expect(executeSimLang(program, input, { ...base, type: 'rows', rows: {
+      mode: 'rows', rowVariables: [{ label: 'input', variable: 'rowA' }, { label: 'prefix', variable: 'rowB' }],
+    } }).steps.at(-1)?.visualData).toMatchObject({ type: 'rows', rows: [
+      { label: 'input', values: [1, 2, 3] }, { label: 'prefix', values: [1, 3, 6] },
+    ] });
+  });
+
+  it('rejects incomplete specialized visual contracts before package execution', () => {
+    const program: ProgramSpecV1 = {
+      version: 1, id: 'invalid_visual', title: 'Invalid visual', locale: 'en', inputKind: 'array', functions: [],
+      budgets: { instructions: 20, traceSteps: 5, recursionDepth: 2, collectionSize: 20 },
+      entry: [{ id: 'trace', type: 'trace', at: 'trace', explanation: 'Trace.', category: 'result', importance: 1 }],
+    };
+    expect(() => compileCustomSimulationPackage({
+      id: 'invalid-visual-package', title: 'Invalid visual', locale: 'en', program,
+      input: { version: 1, kind: 'array', description: 'array', constraints: [], value: { kind: 'array', text: '[1]' } },
+      visualization: { version: 1, type: 'rows', activeVariables: [], queuedVariables: [], visitedVariables: [] },
+      analysis: 'Rejected before execution.',
+    })).toThrow('at least one mapped row');
+  });
 });

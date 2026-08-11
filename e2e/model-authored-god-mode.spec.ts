@@ -84,7 +84,8 @@ test('commits a validated model-authored algorithm and keeps its queue, source, 
   await expect(finalAnswer).toContainText('Code:');
   await expect(finalAnswer).toContainText('Time:');
   expect(await page.evaluate(() => (window as Window & { __agentRoles?: string[] }).__agentRoles)).toEqual(expect.arrayContaining([
-    'manager', 'architect', 'code-author', 'input-engineer', 'visual-designer', 'critic', 'trace-director', 'result-analyst', 'tutor',
+    'architect', 'code-author', 'input-engineer', 'visual-designer', 'critic', 'trace-director', 'result-analyst', 'tutor',
   ]));
+  expect(await page.evaluate(() => (window as Window & { __agentRoles?: string[] }).__agentRoles)).not.toContain('manager');
   await expect(page.locator('.god-mode-progress')).toHaveCount(0, { timeout: 4_000 });
 });

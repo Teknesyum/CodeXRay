@@ -1,7 +1,7 @@
 import { Pin } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import type { TraceValue } from '../types/simulation';
-import { t } from '../i18n/translations';
+import { t, translateRuntimeText } from '../i18n/translations';
 import './VariablesPanel.css';
 
 const isRecord = (value: TraceValue): value is Record<string, TraceValue> =>
@@ -47,7 +47,7 @@ const TraceValueView = ({
       </details>
     );
   }
-  return <span className="trace-primitive">{value === null ? 'null' : String(value)}</span>;
+  return <span className="trace-primitive">{value === null ? 'null' : typeof value === 'string' ? translateRuntimeText(value, locale) : String(value)}</span>;
 };
 
 interface VariablesPanelProps {

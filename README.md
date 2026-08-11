@@ -28,8 +28,10 @@ OpenAI-compatible server.
   with bounded local conversation memory and live code/input/trace context.
   Its Turkish persona is **Bilgiç Dede**; English keeps **Master Coder**.
 - The Windows app can use Ollama at `http://127.0.0.1:11434/v1` or an
-  Unsloth/llama.cpp-compatible server at `http://127.0.0.1:8001/v1`. CodeXRay
-  never installs, starts, scans for, or manages those runtimes.
+  OpenAI-compatible server such as LM Studio at `http://127.0.0.1:1234/v1`.
+  The endpoint remains editable for Unsloth/llama.cpp and other compatible
+  loopback runtimes. CodeXRay never installs, starts, scans for, or manages
+  those runtimes.
 - The assistant can safely control timeline playback: jump to a requested step,
   play, pause, move one step, or build an eight-stop guided tour of important
   deterministic trace moments. It cannot silently edit source code or input.

@@ -124,6 +124,9 @@ export interface ManagerJobV2 {
   firstTokenMs?: number | null;
   inferenceMs?: number;
   completionTokens?: number | null;
+  promptTokens?: number | null;
+  contextWindow?: number;
+  promptTokensEstimated?: boolean;
   finishReason?: string;
   summary?: string;
   reasoning?: string;

@@ -47,6 +47,22 @@ export const normalizeGodModeText = (value: string): string => value
   .replace(/\s+/g, ' ')
   .trim();
 
+export const extractDpDimensions = (request: string): { rows: number; columns: number } | null => {
+  const match = normalizeGodModeText(request).match(/\b(\d{1,2})\s*(?:x|\*)\s*(\d{1,2})\b/);
+  const rows = Number(match?.[1]);
+  const columns = Number(match?.[2]);
+  return Number.isInteger(rows) && Number.isInteger(columns)
+    && rows >= 1 && rows <= 18 && columns >= 1 && columns <= 40
+    ? { rows, columns }
+    : null;
+};
+
+export const requestsUniqueDpInput = (request: string): boolean => {
+  const text = normalizeGodModeText(request);
+  return /\b(?:benzersiz|ozgun|unique|original)\s+(?:bir\s+)?(?:input|girdi|ornek|sample)\b/.test(text)
+    || /\b(?:input|girdi|ornek|sample)\w*\s+(?:benzersiz|ozgun|unique|original)\b/.test(text);
+};
+
 export const canonicalCustomTitle = (request: string, locale: Locale): string => {
   const normalized = normalizeGodModeText(request);
   const dpTemplate = resolveDpTemplateFromRequest(request);
@@ -148,8 +164,12 @@ export const routeGodModeRequest = (
   }
   const requestsGenericDp = /\b(?:1d|2d|interval)?\s*(?:dp|dynamic programming|dinamik programlama)\b/.test(text);
   const requestsGenericIntervalDp = /\binterval\s*(?:dp|dynamic programming|dinamik programlama)\b/.test(text);
+  const requestsUniqueDp = /\b(?:model-authored|model authored)\b/.test(text)
+    || /\b(?:ozgun|unique)\s+(?:bir\s+)?(?:2d\s+dp\s+)?(?:soru|problem|question)\b/.test(text);
   if (requestsGenericDp
     && /\b(coz|cozum|yaz|olustur|kur|simule|goster|solve|write|create|simulate|show)\w*\b/.test(text)) {
+    if (/\b2d\b/.test(text) && !dpTemplate && !requestsUniqueDp) return { type: 'clarify-algorithm' };
+    if (requestsUniqueDp) return { type: 'create-algorithm', template: 'model-authored' };
     const ignored = new Set([
       '1d', '2d', 'interval', 'dp', 'dynamic', 'programming', 'dinamik', 'programlama', 'tablo', 'table',
       'coz', 'cozum', 'yaz', 'olustur', 'kur', 'simule', 'goster', 'solve', 'write', 'create', 'simulate',
@@ -201,11 +221,11 @@ export const routeGodModeRequest = (
   }
   if (!requestsCompositeCreation
     && /\b(input\w*|girdi\w*|veri\w*)\b/.test(text)
-    && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|genislet|buyut|uzat|adapt|create|prepare|change|expand|extend|grow)\b/.test(text)) {
+    && /\b(duzenle|uyarla|olustur|hazirla|degistir|parcala|genislet|buyut|uzat|karmasiklastir|adapt|create|prepare|change|expand|extend|grow|complexify)\w*\b/.test(text)) {
     return { type: 'adapt-input' };
   }
-  if (/\b(graph\w*|graf\w*|node\w*|dugum\w*|cephe\w*|frontier\w*|layout\w*|yerlesim\w*)\b/.test(text)
-    && /\b(duzenle|uyarla|degistir|ekle|sil|yay|genislet|yerlestir|renklendir|adapt|change|add|remove|spread|restyle|layout)\b/.test(text)) {
+  if (/\b(graph\w*|graf\w*|node\w*|nod\w*|dugum\w*|cephe\w*|frontier\w*|layout\w*|yerlesim\w*)\b/.test(text)
+    && /\b(duzenle|uyarla|degistir|ekle|sil|kaldir|yay|genislet|yerlestir|renklendir|adapt|change|add|remove|delete|spread|restyle|layout)\b/.test(text)) {
     return { type: 'adapt-input' };
   }
   if (/\b(bunu|burayi|bu adimi|mevcut adimi)\b/.test(text)

@@ -102,7 +102,10 @@ test('keeps hostile model Markdown inert, contained, copyable, and allows the ne
   const panelBounds = await page.locator('.ai-assistant').boundingBox();
   expect(codeBounds?.width ?? 0).toBeLessThanOrEqual(panelBounds?.width ?? 0);
   await expect(hostileMessage.locator('.markdown-code-block')).toContainText('x'.repeat(512));
-  await expect(hostileMessage).not.toContainText('private chain of thought');
+  const reasoning = hostileMessage.locator('.reasoning-disclosure');
+  await expect(reasoning).toHaveCount(1);
+  await expect(reasoning).not.toHaveAttribute('open', '');
+  await expect(reasoning.locator('.reasoning-body')).toContainText('private chain of thought');
   await expect(hostileMessage.locator('.markdown-table-scroll')).toBeVisible();
   await expect(hostileMessage.locator('li')).toHaveCount(2);
 

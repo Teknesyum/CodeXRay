@@ -5,8 +5,8 @@ export type TraceValue =
   | { [key: string]: TraceValue };
 
 export type InputKind = 'array' | 'string' | 'tree' | 'graph';
-export type NodeState = 'idle' | 'queued' | 'active' | 'visited' | 'path';
-export type EdgeState = 'idle' | 'active' | 'visited' | 'path';
+export type NodeState = 'idle' | 'queued' | 'active' | 'visited' | 'path' | 'removed';
+export type EdgeState = 'idle' | 'active' | 'visited' | 'path' | 'rejected' | 'removed';
 export type GraphNodeShape = 'circle' | 'rounded' | 'diamond' | 'hexagon' | 'star';
 
 export interface GraphNodeVisualStyle {
@@ -75,6 +75,7 @@ export interface GraphVisualNode extends GraphNode {
 
 export interface GraphVisualEdge extends GraphEdge {
   state?: EdgeState;
+  displayLabel?: string;
   semanticRoles?: string[];
   semanticStyle?: GraphEdgeVisualStyle;
 }
@@ -111,10 +112,51 @@ export interface MatrixVisualData {
   vars: Record<string, TraceValue>;
 }
 
+export interface StringMatchVisualData {
+  type: 'string-match';
+  text: string;
+  pattern?: string;
+  alignment?: number;
+  activeText?: number[];
+  activePattern?: number[];
+  matchedText?: number[];
+  mismatchText?: number;
+  window?: [number, number];
+  vars: Record<string, TraceValue>;
+}
+
+export interface BarVisualData {
+  type: 'bars';
+  values: number[];
+  water: number[];
+  pointers?: Record<string, number>;
+  vars: Record<string, TraceValue>;
+}
+
+export interface IntervalVisualData {
+  type: 'intervals';
+  intervals: Array<[number, number]>;
+  merged: Array<[number, number]>;
+  current?: [number, number];
+  vars: Record<string, TraceValue>;
+}
+
+export interface RowsVisualData {
+  type: 'rows';
+  mode: 'rows' | 'heap' | 'buckets';
+  rows: Array<{ label: string; values: TracePrimitive[] }>;
+  active?: Array<{ row: number; column: number; role: 'active' | 'dependency' | 'result' }>;
+  vars: Record<string, TraceValue>;
+}
+
 export type VisualData =
   | ArrayVisualData
   | GraphVisualData
   | MatrixVisualData
+  | StringMatchVisualData
+  | BarVisualData
+  | IntervalVisualData
+  | RowsVisualData
   | VariablesVisualData;
 
 export interface SimulationStep {

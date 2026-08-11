@@ -83,4 +83,32 @@ describe('natural-language graph edits', () => {
     ]));
     expect(graph.nodes).toHaveLength(3);
   });
+
+  it('removes a numbered node atomically with its incident edges and endpoint references', () => {
+    const graph: GraphDocumentV1 = {
+      ...source,
+      nodes: [...source.nodes, { id: '17', label: '17', x: 50, y: 50 }],
+      edges: [...source.edges, { id: 'to-17', from: 'named', to: '17', weight: 2 }],
+      targetId: '17',
+    };
+    const edited = applyStructuralGraphRequest(graph, '17. nolu nodu kaldır');
+    expect(edited.nodes.some((node) => node.id === '17')).toBe(false);
+    expect(edited.edges.some((edge) => edge.from === '17' || edge.to === '17')).toBe(false);
+    expect(edited.targetId).toBe('named');
+    expect(edited.nodes).toHaveLength(2);
+  });
+
+  it('adds and connects one node directly below the requested anchor', () => {
+    const edited = applyStructuralGraphRequest(source, "1 nolu node'un aşağısına bir node ekle");
+    const added = edited.nodes.find((node) => !source.nodes.some((original) => original.id === node.id));
+    expect(added).toBeDefined();
+    expect(added?.x).toBe(source.nodes[0].x);
+    expect(added?.y).toBeGreaterThan(source.nodes[0].y);
+    expect(edited.edges).toContainEqual(expect.objectContaining({ from: '1', to: added?.id }));
+  });
+
+  it('doubles graph size without exceeding the interactive bound', () => {
+    const edited = applyStructuralGraphRequest(source, 'inputumuzu 2 kat karmaşıklaştır');
+    expect(edited.nodes).toHaveLength(source.nodes.length * 2);
+  });
 });

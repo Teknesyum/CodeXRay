@@ -4,11 +4,11 @@ Last updated: 2026-08-11
 
 ## Repository state
 
-- Branch: `main`; synchronized base before this scope: `b163757`.
-- The current scope fixes pre-connection provider switching, removes arbitrary
-  answer-length instructions, and streams subagent reasoning in the 2.3.3
-  Windows delivery. The pre-existing untracked `opencode.json` remains untouched.
-- Package version: `2.3.3`.
+- Branch: `main`; synchronized base before this scope: `c287e76`.
+- The current scope fixes the active-stream timeout reported after 715.4 seconds
+  and produces the 2.3.4 Windows delivery. The pre-existing untracked
+  `opencode.json` remains untouched.
+- Package version: `2.3.4`.
 - The repository uses runtime catalog shards under `public/data/catalog/` so the
   22,027-record multi-platform database does not enter JavaScript bundles.
 - `src-tauri` now packages the Vite app as a Tauri 2 Windows x64 application.
@@ -265,6 +265,16 @@ Desktop/local-provider scope run on 2026-08-11:
   Playwright acceptance passed 1/1 in 11.1 seconds, lint/build passed, Rust
   fmt/clippy plus 6/6 tests passed, and the 2.3.3 Windows build completed. The
   refreshed portable/NSIS artifacts and hashes are under `release-artifacts/`.
+- Version 2.3.4 corrects the external absolute-time formula exposed by a
+  continuously active Code Author stream ending after 715.4 seconds. The former
+  `300 + max_tokens / 16` seconds formula made a 6656-token profile terminate at
+  roughly 716 seconds even while output was still arriving. Native and frontend
+  external-agent limits now scale from 30 to 60 minutes. The independent
+  90-second inactivity timeout, selected output limit, response-size boundary,
+  cancellation, and loopback-only endpoint policy remain enforced. Full
+  frontend tests passed 473/473, lint/build passed, Rust fmt/clippy plus 6/6
+  tests passed, and the 2.3.4 Windows build completed. Refreshed portable/NSIS
+  artifacts and hashes are under `release-artifacts/`.
 
 Run on 2026-08-02 from the current working tree:
 

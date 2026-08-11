@@ -237,7 +237,11 @@ fn parse_usage(value: &Value) -> (Option<u64>, Option<u64>, Option<u64>) {
 }
 
 fn absolute_timeout_seconds(max_tokens: u32) -> u64 {
-    (300 + u64::from(max_tokens) / 16).clamp(300, 1_800)
+    // Active token production is already bounded by max_tokens, response size,
+    // cancellation, and the 90-second inactivity timeout. Give slow local
+    // reasoning models enough wall time to finish instead of cutting a healthy
+    // stream near the end of a medium output budget.
+    (900 + u64::from(max_tokens) / 8).clamp(1_800, 3_600)
 }
 
 fn is_retryable_reasoning_only(answer: &str, reasoning: &str, finish_reason: &str) -> bool {
@@ -837,10 +841,11 @@ mod tests {
 
     #[test]
     fn completion_timeout_scales_with_the_requested_output_budget() {
-        assert!(absolute_timeout_seconds(512) >= 300);
+        assert_eq!(absolute_timeout_seconds(512), 1_800);
+        assert_eq!(absolute_timeout_seconds(6_656), 1_800);
         assert!(absolute_timeout_seconds(16_384) > 1_200);
-        assert_eq!(absolute_timeout_seconds(32_768), 1_800);
-        assert_eq!(absolute_timeout_seconds(u32::MAX), 1_800);
+        assert_eq!(absolute_timeout_seconds(32_768), 3_600);
+        assert_eq!(absolute_timeout_seconds(u32::MAX), 3_600);
     }
 
     #[test]

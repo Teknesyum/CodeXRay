@@ -176,8 +176,8 @@ export const DEFAULT_AGENT_LONG_ABSOLUTE_TIMEOUT_MS = 90_000;
 const EXTERNAL_AGENT_QUEUE_TIMEOUT_MS = 30_000;
 const EXTERNAL_AGENT_FIRST_TOKEN_TIMEOUT_MS = 90_000;
 const EXTERNAL_AGENT_INACTIVITY_TIMEOUT_MS = 90_000;
-const EXTERNAL_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS = 300_000;
-const EXTERNAL_AGENT_LONG_ABSOLUTE_TIMEOUT_MS = 1_800_000;
+const externalAgentAbsoluteTimeoutMs = (maxTokens: number): number =>
+  Math.min(3_600_000, Math.max(1_800_000, (900 + Math.floor(maxTokens / 8)) * 1_000));
 /** @deprecated Prefer the phase-specific timeout constants. */
 export const DEFAULT_AGENT_INFERENCE_TIMEOUT_MS = DEFAULT_AGENT_FIRST_TOKEN_TIMEOUT_MS;
 const LOCAL_MODEL_BUSY_ERROR = 'Local model files are busy in another tab.';
@@ -613,9 +613,7 @@ const runExternalAgentDetailed = (
     Math.max(maxTokens * 2, 4_096),
   );
   const absoluteTimeoutMs = request.absoluteTimeoutMs ?? request.inferenceTimeoutMs
-    ?? (maxTokens <= 260
-      ? EXTERNAL_AGENT_SHORT_ABSOLUTE_TIMEOUT_MS
-      : EXTERNAL_AGENT_LONG_ABSOLUTE_TIMEOUT_MS);
+    ?? externalAgentAbsoluteTimeoutMs(maxTokens);
   let settled = false;
   let phaseTimer: ReturnType<typeof globalThis.setTimeout>;
   let absoluteTimer: ReturnType<typeof globalThis.setTimeout> | undefined;

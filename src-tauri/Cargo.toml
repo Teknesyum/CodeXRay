@@ -1,6 +1,6 @@
 [package]
 name = "codexray"
-version = "2.3.3"
+version = "2.3.4"
 description = "Deterministic algorithm visualization with optional local AI"
 authors = ["Serkan Ozel"]
 edition = "2021"

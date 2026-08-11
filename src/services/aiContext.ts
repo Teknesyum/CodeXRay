@@ -233,6 +233,7 @@ export const buildAssistantContext = (
     )
     .join('\n');
   const complexityFocus = isComplexityQuestion(question);
+  const hasSelectedWorkspace = code.trim().length > 0 || steps.length > 0;
 
   const commonContext = [
     'LIVE WORKSPACE SNAPSHOT — this block is newer and more authoritative than conversation history.',
@@ -250,10 +251,10 @@ export const buildAssistantContext = (
     `Analysis: ${analysis ?? 'not generated'}`,
   ];
   const executionContext = complexityFocus ? [] : [
-    `Simulation input:\n${formatInput(
+    ...(hasSelectedWorkspace ? [`Simulation input:\n${formatInput(
       simulationInput,
       Math.round(MAX_INPUT_CHARACTERS * contextScale),
-    )}`,
+    )}`] : []),
     `Current visual and variable state:\n${currentStep
       ? formatVisualState(
         currentStep,

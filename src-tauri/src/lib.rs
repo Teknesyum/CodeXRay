@@ -4,11 +4,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{ipc::Channel, Manager, State};
-use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
@@ -32,6 +31,16 @@ impl RuntimeState {
         Self {
             client,
             requests: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn cancel_all(&self) {
+        let requests = self
+            .requests
+            .lock()
+            .expect("local AI request lock poisoned");
+        for token in requests.values() {
+            token.cancel();
         }
     }
 }
@@ -682,7 +691,7 @@ async fn run_completion(
     state
         .requests
         .lock()
-        .await
+        .expect("local AI request lock poisoned")
         .insert(request.request_id, token.clone());
     send_event(
         Some(&on_event),
@@ -698,7 +707,11 @@ async fn run_completion(
         },
     );
     let result = collect_streaming(&state, &request, token, Some(&on_event)).await;
-    state.requests.lock().await.remove(&request.request_id);
+    state
+        .requests
+        .lock()
+        .expect("local AI request lock poisoned")
+        .remove(&request.request_id);
     if let Ok(completion) = &result {
         send_event(
             Some(&on_event),
@@ -719,10 +732,20 @@ async fn run_completion(
 
 #[tauri::command]
 async fn cancel_completion(request_id: u64, state: State<'_, RuntimeState>) -> Result<(), String> {
-    if let Some(token) = state.requests.lock().await.get(&request_id) {
+    if let Some(token) = state
+        .requests
+        .lock()
+        .expect("local AI request lock poisoned")
+        .get(&request_id)
+    {
         token.cancel();
     }
     Ok(())
+}
+
+#[tauri::command]
+fn cancel_all_completions(state: State<'_, RuntimeState>) {
+    state.cancel_all();
 }
 
 #[tauri::command]
@@ -789,8 +812,7 @@ pub fn run() {
             tauri::plugin::Builder::<tauri::Wry>::new("navigation-guard")
                 .on_navigation(|_webview, url| {
                     let host = url.host_str().unwrap_or_default();
-                    (url.scheme() == "http" && host == "tauri.localhost")
-                        || (url.scheme() == "https" && host == "tauri.localhost")
+                    (url.scheme() == "http" || url.scheme() == "https") && host == "tauri.localhost"
                         || (cfg!(debug_assertions)
                             && url.scheme() == "http"
                             && host == "127.0.0.1"
@@ -799,11 +821,17 @@ pub fn run() {
                 .build(),
         )
         .manage(RuntimeState::new())
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                window.state::<RuntimeState>().cancel_all();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             list_models,
             probe_model,
             run_completion,
             cancel_completion,
+            cancel_all_completions,
             read_web_source,
             open_external_url,
         ])

@@ -18,6 +18,7 @@ vi.mock('./desktopAiService', () => ({
 import {
   connectExternalAi,
   getActiveAiProvider,
+  reconnectExternalAi,
   resetLocalAi,
   runLocalAgentDetailed,
 } from './localAiService';
@@ -127,5 +128,26 @@ describe('external reasoning agent budgets', () => {
 
     await expect(connection).rejects.toThrow('discarded because the provider changed');
     expect(getActiveAiProvider()).toBe('webllm');
+  });
+
+  it('reconnects a previously verified model without discovery or an inference probe', async () => {
+    resetLocalAi();
+    desktop.probe.mockClear();
+    const verifiedProfile = {
+      ...profile,
+      capabilities: {
+        chat: true,
+        streaming: true,
+        structuredOutput: 'native' as const,
+        advancedWorkflows: true,
+        checkedAt: 1,
+        probeVersion: 1 as const,
+      },
+    };
+
+    expect(reconnectExternalAi(verifiedProfile)).toEqual(verifiedProfile);
+    expect(desktop.list).not.toHaveBeenCalled();
+    expect(desktop.probe).not.toHaveBeenCalled();
+    expect(getActiveAiProvider()).toBe('openai-compatible');
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, Bot, BrainCircuit, Check, ChevronDown, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestionDetailed, generateSimulationSteps } from '../services/aiService';
@@ -41,6 +41,8 @@ import { t, translateRuntimeText } from '../i18n/translations';
 import { GodModeProgress } from './GodModeProgress';
 import { MarkdownPreview } from './MarkdownPreview';
 import './AiAssistant.css';
+
+const QuestionTaxonomyTree = lazy(() => import('./QuestionTaxonomyTree'));
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
 const MAX_STORED_MESSAGES = 24;
@@ -201,12 +203,17 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [godModePlan, setGodModePlan] = useState<ManagerPlanV1 | null>(() => {
     const latest = loadLatestGodModePlan();
     if (!latest?.jobs.length) return null;
+    if (latest.jobs.some((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')) {
+      removeGodModePlan(latest.runId);
+      return null;
+    }
     return latest.jobs.some((job) => job.status === 'failed') ? latest : null;
   });
   const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
   const [webSourceSession, setWebSourceSession] = useState<BoundWebSourceSessionV1 | null>(loadBoundWebSource);
   const [webPlan, setWebPlan] = useState<ManagerPlanV2 | null>(null);
   const [pendingDpSelection, setPendingDpSelection] = useState<PendingDpSelection | null>(null);
+  const [taxonomyView, setTaxonomyView] = useState<Awaited<ReturnType<typeof import('../services/questionTaxonomy').default>>>(null);
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -219,6 +226,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const dismissedGodModeRunsRef = useRef(new Set<string>());
   const sourcePreviewRunRef = useRef<string | null>(null);
   const sourcePreviewSnapshotRef = useRef<WorkspaceSnapshotV1 | null>(null);
+  const selectedCatalogProblemRef = useRef<{ id: string; source: string; title: string } | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
   const responseEpochRef = useRef(0);
   const panelTitle = t('masterCoder', locale);
@@ -265,6 +273,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      cancelLocalResponse();
       sourcePreviewRunRef.current = null;
       godModeRunRef.current?.cancel();
       webRunRef.current?.cancel();
@@ -466,6 +475,19 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     if (isExecutingQueue) return;
     const responseEpoch = ++responseEpochRef.current;
     const history = [...chatHistory];
+    const selectedCatalogProblem = selectedCatalogProblemRef.current;
+    selectedCatalogProblemRef.current = null;
+    const selectedTitle = selectedCatalogProblem?.title ?? '';
+    const includesSelectedTitle = userMessage.toLocaleLowerCase().includes(selectedTitle.toLocaleLowerCase());
+    const catalogSimulationRequest = selectedCatalogProblem
+      && includesSelectedTitle
+      && (userMessage.trim().localeCompare(selectedTitle, undefined, { sensitivity: 'base' }) === 0
+        || /sim(?:ü|u)le|simulation|simulate|çöz|coz|çalıştır|calistir|run/i.test(userMessage))
+      ? `Create catalog problem: ${selectedCatalogProblem.source}/${selectedCatalogProblem.id}`
+      : userMessage;
+    const selectedCatalogIntent = catalogSimulationRequest !== userMessage
+      ? routeGodModeRequest(catalogSimulationRequest, stateRef.current.steps, currentIndex, stateRef.current.algorithmName)
+      : null;
     setQuestion('');
     setChatHistory((previous) =>
       [...previous, { role: 'user' as const, content: userMessage }]
@@ -476,6 +498,15 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     streamingResponseRef.current = null;
 
     try {
+      const taxonomyAnswer = await (await import('../services/questionTaxonomy')).default(userMessage, locale);
+      if (taxonomyAnswer) {
+        setTaxonomyView(taxonomyAnswer);
+        setChatHistory((previous) => [
+          ...previous,
+          { role: 'ai' as const, content: taxonomyAnswer.content },
+        ].slice(-MAX_STORED_MESSAGES));
+        return;
+      }
       const webIntent = routeWebSourceRequest(userMessage, Boolean(webSourceSession));
       let activeWebSession = webSourceSession;
       let webProblemForSimulation: WebProblemSpecV1 | null = null;
@@ -585,29 +616,44 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             ];
         modelQuestion = [
           locale === 'tr'
-            ? 'Yalnız bağlı çözümü doğal Türkçe ile anlat. Problem metnini, örnekleri veya kodu tekrar etme. Problemden bağımsız genel talimatlara uy; özel terim veya sonuç uydurma. Yanıt yalnız şu yapıda olsun: en fazla dört numaralı kısa adım, “Doğruluk:” ile başlayan bir cümle ve “Karmaşıklık:” ile başlayan bir cümle.'
-            : 'Explain only the bound solution in clear English. Do not repeat the problem statement, examples, or code. Follow problem-independent instructions and do not invent terminology or results. Output only: at most four short numbered steps, one sentence starting “Correctness:”, and one sentence starting “Complexity:”.',
+            ? 'Bağlı çözümü Türkçe anlat: en fazla 4 kısa adım, “Doğruluk:” ve “Karmaşıklık:”. Metni tekrarlama veya bilgi uydurma.'
+            : 'Explain the bound solution in at most 4 short steps, then “Correctness:” and “Complexity:”. Do not repeat or invent.',
           `User follow-up: ${userMessage.slice(0, 1_500)}`,
           ...boundSolutionSummary,
         ].join('\n');
         historyForModel = [];
       }
 
-      const godModeIntent = webProblemForSimulation
+      let godModeIntent = webProblemForSimulation
         ? routeGodModeRequest(
           modelQuestion,
           stateRef.current.steps,
           currentIndex,
           stateRef.current.algorithmName,
         )
-        : godModeEnabled
+        : selectedCatalogIntent ?? (godModeEnabled
         ? routeGodModeRequest(
-          userMessage,
+          catalogSimulationRequest,
           stateRef.current.steps,
           currentIndex,
           stateRef.current.algorithmName,
         )
-        : null;
+        : null);
+      let godModeRequest = userMessage;
+
+      if (godModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {
+        const { preflightCatalogProblem } = await import('../services/godModeEntry');
+        const support = await preflightCatalogProblem(
+          selectedCatalogProblem.source,
+          selectedCatalogProblem.id,
+          selectedCatalogProblem.title,
+          locale,
+        );
+        if (!support.exact) {
+          godModeIntent = { type: 'create-algorithm', template: 'model-authored' };
+          godModeRequest = support.request;
+        }
+      }
       let actionsToExecute: DeterministicWorkspaceCommand[] | null =
         godModeIntent?.type === 'deterministic'
           ? godModeIntent.actions
@@ -718,7 +764,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           window.clearTimeout(godModeDismissTimerRef.current);
           godModeDismissTimerRef.current = null;
         }
-        setLastGodModeRequest(userMessage);
+        setLastGodModeRequest(godModeRequest);
         if (godModeIntent.type === 'discuss-current-step') pause();
         const workspaceSnapshot: WorkspaceSnapshotV1 = {
           version: 1,
@@ -735,7 +781,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         const { startGodModeRun } = await import('../services/godModeEntry');
         sourcePreviewSnapshotRef.current = workspaceSnapshot;
         const run = startGodModeRun({
-          request: userMessage,
+          request: godModeRequest,
           intent: godModeIntent,
           locale,
           workspace: workspaceSnapshot,
@@ -936,6 +982,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
 
       const cleanedAnswer = stripThinkBlock(answer.content);
+      const guidedTaxonomy = await (await import('../services/questionTaxonomy')).default(`${userMessage}\n${cleanedAnswer}`, locale);
+      if (guidedTaxonomy?.selectedNodeId) setTaxonomyView(guidedTaxonomy);
 
       setChatHistory((previous) =>
         [...previous, {
@@ -1141,6 +1189,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   };
   const clearConversationAndRuns = () => {
     setChatHistory([]);
+    setQuestion('');
+    setTaxonomyView(null);
+    setPendingDpSelection(null);
     setAnalysis(null);
     setTourSteps([]);
     setLastGodModeRequest(null);
@@ -1218,7 +1269,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             ? t('clearAnalysis', locale)
             : t('memoryCount', locale, { count: conversationTurnCount })}
           onClick={clearConversationAndRuns}
-          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan && !analysis)
+          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan && !analysis && !taxonomyView && !pendingDpSelection)
             || isTyping || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
         >
           <Trash2 size={13} />
@@ -1441,6 +1492,20 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             </div>
           </section>
         )}
+        {taxonomyView && (
+          <Suspense fallback={<p><Loader size={14} className="spin-icon" /></p>}>
+            <QuestionTaxonomyTree
+              key={taxonomyView.selectedNodeId ?? 'root'}
+              groups={taxonomyView.groups}
+              initialNodeId={taxonomyView.selectedNodeId}
+              locale={locale}
+              onProblemSelect={(problem) => {
+                selectedCatalogProblemRef.current = problem;
+                setQuestion(problem.title);
+              }}
+            />
+          </Suspense>
+        )}
         {isTyping && actionQueue.length === 0 && (
           <div className={`chat-message ai-msg typing ${streamingResponse ? 'live-stream' : ''}`}>
             <Bot size={14} className="msg-icon" />
@@ -1517,7 +1582,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           maxLength={2048}
           placeholder={aiStatus === 'ready' || godModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (selectedCatalogProblemRef.current && !next.startsWith(selectedCatalogProblemRef.current.title)) {
+              selectedCatalogProblemRef.current = null;
+            }
+            setQuestion(next);
+          }}
           disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
         />
         {isTyping ? (

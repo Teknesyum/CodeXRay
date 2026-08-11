@@ -6,7 +6,7 @@ import { TimelineProvider, useTimeline } from '../context/TimelineContext';
 import { DynamicVisualizer } from './DynamicVisualizer';
 
 const ModelLoadHarness = () => {
-  const { setAiProgressPercent, setAiStatus } = useTimeline();
+  const { aiModel, setAiProgressPercent, setAiStatus } = useTimeline();
 
   useEffect(() => {
     const startLoading = () => {
@@ -17,11 +17,10 @@ const ModelLoadHarness = () => {
     return () => window.removeEventListener('codexray:loadModel', startLoading);
   }, [setAiProgressPercent, setAiStatus]);
 
-  return (
-    <button type="button" onClick={() => setAiStatus('ready')}>
-      Complete model load
-    </button>
-  );
+  return <>
+    <span data-testid="selected-model">{aiModel}</span>
+    <button type="button" onClick={() => setAiStatus('ready')}>Complete model load</button>
+  </>;
 };
 
 const PseudoProgressHarness = () => {
@@ -65,6 +64,7 @@ describe('DynamicVisualizer model loading notice', () => {
 
     await user.click(screen.getByRole('button', { name: 'Yükle' }));
     const loadingNotice = await screen.findByRole('status');
+    expect(loadingNotice).toHaveTextContent(screen.getByTestId('selected-model').textContent ?? '');
     expect(loadingNotice).toHaveTextContent('Model yükleniyor…');
     expect(loadingNotice).toHaveTextContent('42%');
     expect(loadingNotice).toHaveClass('loading');
@@ -94,5 +94,19 @@ describe('DynamicVisualizer model loading notice', () => {
 
     act(() => vi.advanceTimersByTime(10_000));
     expect(screen.getByRole('status')).toHaveTextContent('35%');
+  });
+
+  it('opens AI settings from the warning banner', async () => {
+    const user = userEvent.setup();
+    const openSettings = vi.fn();
+    window.addEventListener('codexray:openAiSettings', openSettings);
+    render(
+      <TimelineProvider>
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Yerel Yapay Zekâ Ayarları' }));
+    expect(openSettings).toHaveBeenCalledOnce();
+    window.removeEventListener('codexray:openAiSettings', openSettings);
   });
 });

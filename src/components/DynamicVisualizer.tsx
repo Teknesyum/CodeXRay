@@ -1,5 +1,5 @@
 import { CheckCircle2, LoaderCircle, Maximize2, Minimize2, PinOff } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTimeline } from '../context/TimelineContext';
 import type {
@@ -18,6 +18,8 @@ import { GraphInputEditor } from './GraphInputEditor';
 import { isVisualizationV2 } from '../services/visualizationDesigner';
 import { calculateVisualAutoFitScale } from '../services/visualAutoFit';
 import './DynamicVisualizer.css';
+
+const TopologicalOutput = lazy(() => import('./TopologicalOutput'));
 
 const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
 
@@ -155,8 +157,10 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
   };
   const phase = typeof data.vars.phase === 'string' ? data.vars.phase : null;
   const decision = typeof data.vars.decision === 'string' ? data.vars.decision : null;
+  const isTopological = phase?.startsWith('Topological Sort') ?? false;
   return (
-    <div className="visual-graph">
+    <div className={`visual-graph ${isTopological ? 'topological-graph' : ''}`}>
+      <div className="graph-stage">
       <svg className="graph-edges" aria-label={t('graphEdges', locale)}>
         <defs>
           <marker id="arrow-idle" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
@@ -230,6 +234,10 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
           {nodeBadge(node.id) && <small className="graph-node-badge">{nodeBadge(node.id)}</small>}
         </div>
       ))}
+      </div>
+      {isTopological && (
+        <Suspense fallback={null}><TopologicalOutput locale={locale} nodeCount={data.nodes.length} vars={data.vars} /></Suspense>
+      )}
       {(phase || decision) && (
         <div className="graph-teaching-hud" role="status">
           {phase && <strong>{translateRuntimeText(phase, locale)}</strong>}
@@ -448,6 +456,7 @@ export const DynamicVisualizer = ({
     pinnedVariables,
     togglePinnedVariable,
     aiStatus,
+    aiModel,
     aiProgressPercent,
     showAiLoadWarning,
     setShowAiLoadWarning,
@@ -461,6 +470,8 @@ export const DynamicVisualizer = ({
     setModelLoadNotice('loading');
     window.dispatchEvent(new Event('codexray:loadModel'));
   };
+
+  const handleOpenAiSettings = () => window.dispatchEvent(new Event('codexray:openAiSettings'));
 
   useEffect(() => {
     if (modelLoadNotice !== 'loading') return;
@@ -563,7 +574,7 @@ export const DynamicVisualizer = ({
             : <CheckCircle2 size={16} />}
           <span>
             {modelLoadNotice === 'loading'
-              ? t('modelLoadingNotice', locale)
+              ? `${t('modelLoadingNotice', locale)} ${aiModel}`
               : t('modelLoadedNotice', locale)}
           </span>
           {modelLoadNotice === 'loading' && (
@@ -580,6 +591,7 @@ export const DynamicVisualizer = ({
               <button type="button" className="action-btn load-btn" onClick={handleLoadModel}>{t('load', locale)}</button>
             )}
             <button type="button" className="action-btn hide-btn" onClick={() => setShowAiLoadWarning(false)}>{t('hide', locale)}</button>
+            <button type="button" className="action-btn" aria-label={t('localAiSettings', locale)} onClick={handleOpenAiSettings}>{t('settings', locale)}</button>
           </div>
         </div>
       )}

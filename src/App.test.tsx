@@ -141,11 +141,12 @@ describe('application workspace', () => {
       .toBeInTheDocument();
   });
 
-  it('opens the requested YouTube Music playlist in a compact radio player', async () => {
+  it('preloads the requested YouTube Music playlist before the first play gesture', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.queryByTitle('CodeXRay YouTube playlist player')).not.toBeInTheDocument();
+    expect(screen.getByTitle('CodeXRay YouTube playlist player')).toBeInTheDocument();
+    expect(screen.getByLabelText('Radio')).toHaveStyle({ display: 'none' });
     await user.click(screen.getByRole('button', { name: 'Play radio without opening' }));
     expect(screen.getByRole('button', { name: 'Open CodeXRay Radio' })).toBeInTheDocument();
     expect(screen.getByLabelText('Radio')).toHaveStyle({ display: 'none' });

@@ -13,7 +13,7 @@ import { useTimeline } from '../context/TimelineContext';
 import { generateQuestions } from '../services/aiService';
 import {
   deleteLocalModel,
-  connectExternalAi,
+  reconnectExternalAi,
   listExternalAiModels,
   getCachedLocalModels,
   getPersistentStorageStatus,
@@ -209,7 +209,7 @@ export const ControlBar = ({
     }
   };
 
-  const connectSelectedExternal = async () => {
+  const connectSelectedExternal = useCallback(async () => {
     if (!externalProfile || !externalProfile.model.trim()) {
       setAiStatus('error');
       setAiProgress(t('externalModelRequired', locale));
@@ -221,7 +221,7 @@ export const ControlBar = ({
     setAiProgress(t('testingExternalModel', locale));
     setAiProgressPercent(null);
     try {
-      const connected = await connectExternalAi(externalProfile, aiBearerToken);
+      const connected = reconnectExternalAi(externalProfile, aiBearerToken);
       if (operationGeneration !== providerOperationGenerationRef.current) return;
       setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
       setAiModel(connected.model);
@@ -237,7 +237,7 @@ export const ControlBar = ({
     } finally {
       if (operationGeneration === providerOperationGenerationRef.current) setExternalBusy(false);
     }
-  };
+  }, [aiBearerToken, externalProfile, locale, setAiContextWindow, setAiModel, setAiProfiles, setAiProgress, setAiProgressPercent, setAiStatus]);
 
   useEffect(() => {
     if (showSettings) settingsDialogRef.current?.focus();
@@ -364,24 +364,14 @@ export const ControlBar = ({
     const loadKey = `external:${externalProfile.id}:${externalProfile.model}:${externalProfile.baseUrl}`;
     if (autoLoadAttempts.current.has(loadKey)) return;
     autoLoadAttempts.current.add(loadKey);
-    let active = true;
     setAiStatus('loading');
     setAiProgress(t('testingExternalModel', locale));
-    void connectExternalAi(externalProfile).then((connected) => {
-      if (!active) return;
-      setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
-      setAiStatus('ready');
-      setAiProgress(connected.capabilities?.advancedWorkflows
-        ? t('externalModelAdvancedReady', locale)
-        : t('externalModelChatReady', locale));
-    }).catch((error) => {
-      if (!active) return;
-      setAiStatus('error');
-      setAiProgress(error instanceof Error ? error.message : t('externalConnectionFailed', locale));
-    });
-    return () => {
-      active = false;
-    };
+    const connected = reconnectExternalAi(externalProfile);
+    setAiProfiles((profiles) => profiles.map((profile) => profile.id === connected.id ? connected : profile));
+    setAiStatus('ready');
+    setAiProgress(connected.capabilities?.advancedWorkflows
+      ? t('externalModelAdvancedReady', locale)
+      : t('externalModelChatReady', locale));
   }, [
     aiBearerToken,
     aiProvider,
@@ -398,10 +388,19 @@ export const ControlBar = ({
   useEffect(() => {
     const handleLoadModel = () => {
       if (aiProvider === 'webllm') void activateModel(aiModel, aiContextWindow);
+      else void connectSelectedExternal();
+    };
+    const handleOpenSettings = () => {
+      setActiveTab('ai');
+      setShowSettings(true);
     };
     window.addEventListener('codexray:loadModel', handleLoadModel);
-    return () => window.removeEventListener('codexray:loadModel', handleLoadModel);
-  }, [activateModel, aiContextWindow, aiModel, aiProvider]);
+    window.addEventListener('codexray:openAiSettings', handleOpenSettings);
+    return () => {
+      window.removeEventListener('codexray:loadModel', handleLoadModel);
+      window.removeEventListener('codexray:openAiSettings', handleOpenSettings);
+    };
+  }, [activateModel, aiContextWindow, aiModel, aiProvider, connectSelectedExternal]);
 
   useEffect(() => {
     if (!showSettings || aiProvider !== 'webllm') return;

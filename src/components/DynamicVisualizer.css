@@ -464,6 +464,19 @@
   stroke-width: 4;
 }
 
+.graph-stage { position: relative; width: 100%; height: 100%; }
+.topological-graph .graph-stage { height: calc(100% - 78px); }
+.topological-graph .graph-node.node-queued { animation: topo-wave-breathe 1.35s ease-in-out infinite; }
+.topological-output { position: absolute; right: 8px; bottom: 24px; left: 8px; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 10px; border: 1px solid rgba(0, 243, 255, 0.45); border-radius: 8px; background: linear-gradient(90deg, rgba(0, 18, 28, 0.94), rgba(25, 0, 31, 0.92)); box-shadow: inset 0 0 18px rgba(0, 243, 255, 0.08); }
+.topological-output > strong { flex: 0 0 auto; color: var(--neon-cyan); font: 0.68rem var(--font-mono); }
+.topological-output-track { display: flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
+.topological-output-track span,.topological-output-track i { display: grid; width: 34px; height: 30px; place-items: center; border: 1px solid rgba(0, 243, 255, 0.48); border-radius: 5px; color: var(--text-primary); background: rgba(0, 243, 255, 0.1); font: 700 0.72rem var(--font-mono); }
+.topological-output-track i { border-style: dashed; opacity: 0.3; }
+.topological-output-track span.newest { border-color: var(--neon-lime); color: var(--neon-lime); box-shadow: 0 0 14px rgba(57, 255, 20, 0.48); animation: topo-drop-in 0.55s cubic-bezier(.2,.9,.25,1.25); }
+@keyframes topo-drop-in { from { opacity: 0; transform: translateY(-34px) scale(0.65); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes topo-wave-breathe { 50% { box-shadow: 0 0 28px rgba(0, 243, 255, 0.95); transform: translate(-50%, -50%) scale(1.08); } }
+.topological-graph .graph-legend { bottom: 3px; }
+
 .matrix-teaching-hud {
   display: flex;
   max-width: 680px;
@@ -669,6 +682,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .topological-graph .graph-node.node-queued,.topological-output-track span.newest { animation: none; }
   .graph-edge.active line[style*="stroke"],
   .graph-edge.rejected line,
   .graph-node.pulse-outward::after,

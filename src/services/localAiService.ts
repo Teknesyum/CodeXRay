@@ -129,6 +129,19 @@ export const isActiveAiAdvancedCapable = (modelId: string): boolean =>
 
 export const listExternalAiModels = listDesktopModels;
 
+const activateExternalSession = (
+  profile: AiConnectionProfileV1,
+  bearerToken: string,
+): AiConnectionProfileV1 => {
+  worker?.terminate();
+  worker = undefined;
+  readyModel = profile.model;
+  readyContextWindow = profile.contextWindow;
+  selectedProvider = profile.provider;
+  externalSession = { profile, bearerToken };
+  return profile;
+};
+
 export const connectExternalAi = async (
   profile: AiConnectionProfileV1,
   bearerToken = '',
@@ -143,18 +156,31 @@ export const connectExternalAi = async (
   if (!probe.capabilities.chat || !probe.capabilities.streaming) {
     throw new Error('The local endpoint did not pass the chat and streaming compatibility checks.');
   }
-  worker?.terminate();
-  worker = undefined;
-  readyModel = profile.model;
-  readyContextWindow = profile.contextWindow;
-  selectedProvider = profile.provider;
   const connected = {
     ...profile,
     baseUrl: probe.normalizedBaseUrl,
     capabilities: probe.capabilities,
   };
-  externalSession = { profile: connected, bearerToken };
-  return connected;
+  return activateExternalSession(connected, bearerToken);
+};
+
+export const reconnectExternalAi = (
+  profile: AiConnectionProfileV1,
+  bearerToken = '',
+): AiConnectionProfileV1 => {
+  externalGeneration += 1;
+  const connected = profile.capabilities ? profile : {
+    ...profile,
+    capabilities: {
+      chat: true,
+      streaming: true,
+      structuredOutput: 'prompt-only' as const,
+      advancedWorkflows: true,
+      checkedAt: Date.now(),
+      probeVersion: 1 as const,
+    },
+  };
+  return activateExternalSession(connected, bearerToken);
 };
 
 export const disconnectExternalAi = (): void => {

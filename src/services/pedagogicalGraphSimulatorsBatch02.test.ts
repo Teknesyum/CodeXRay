@@ -117,6 +117,8 @@ describe('batch 02 pedagogical graph simulations', () => {
     expect(steps.some((step) => graphVisual(step).nodes.some((node) => node.state === 'queued'))).toBe(true);
     expect(steps.some((step) => graphVisual(step).nodes.some((node) => node.state === 'removed'))).toBe(true);
     expect(steps.some((step) => graphVisual(step).edges.some((edge) => edge.state === 'removed'))).toBe(true);
+    expect(steps.filter((step) => graphVisual(step).vars.phase === 'Topological Sort · peel node')
+      .map((step) => graphVisual(step).vars.wave)).toEqual([1, 2, 2, 3]);
     const final = graphVisual(steps.at(-1)!);
     expect(final.vars.order).toEqual(['plan', 'design', 'data', 'code']);
     expect(final.vars.hasCycle).toBe(false);

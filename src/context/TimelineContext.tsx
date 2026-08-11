@@ -8,7 +8,6 @@ import {
 } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { GraphDocumentV1, SimulationInput, SimulationStep } from '../types/simulation';
-import { createInputPreset } from '../services/inputPresets';
 import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
 import type { CustomSimulationPackageV1 } from '../types/godMode';
@@ -344,7 +343,7 @@ const loadInput = (): SimulationInput => {
   } catch {
     // Ignore invalid or unavailable browser storage.
   }
-  return createInputPreset('array', 1);
+  return { kind: 'array', text: '' };
 };
 
 const loadPinnedVariables = (): string[] => {

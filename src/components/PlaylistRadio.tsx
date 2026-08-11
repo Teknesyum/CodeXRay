@@ -120,7 +120,9 @@ export const PlaylistRadio = () => {
   const initialPlaylistId = useRef(extractListId(radioPlaylistId));
   const embeddedInitialPlaylist = getEmbeddedRadioPlaylist(initialPlaylistId.current);
   const [minimized, setMinimized] = useState(!radioAutoplay);
-  const [hasStarted, setHasStarted] = useState(radioAutoplay);
+  // Warm the external player at application startup so the user's first play
+  // gesture can start audio immediately. Playback itself remains opt-in.
+  const [hasStarted, setHasStarted] = useState(true);
   const [volume, setVolume] = useState(25);
   const [muted, setMuted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);

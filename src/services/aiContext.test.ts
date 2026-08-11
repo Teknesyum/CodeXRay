@@ -35,6 +35,15 @@ const steps: SimulationStep[] = [
 ];
 
 describe('local assistant context', () => {
+  it('does not send the blank starter input before a workspace is selected', () => {
+    const context = buildAssistantContext({
+      algorithmName: 'Custom Code', code: '', simulationInput: { kind: 'array', text: '' }, steps: [], currentIndex: 0,
+      analysis: null, inputError: null, isPlaying: false, pinnedVariables: [], locale: 'tr',
+    });
+    expect(context).not.toContain('Simulation input:');
+    expect(context).not.toContain('"kind":"array"');
+  });
+
   it('describes the live input, execution stage, complete variables and nearby trace', () => {
     const context = buildAssistantContext({
       algorithmName: 'Depth First Search (DFS)',

@@ -476,18 +476,39 @@ const topologicalSort = (graph: GraphDocumentV1): SimulationStep[] => {
   const queue = graph.nodes.map((node) => node.id).filter((id) => indegree[id] === 0);
   const order: string[] = [];
   const removedEdges = new Set<string>();
+  const waveByNode: Record<string, number> = {};
+  {
+    const remaining = { ...indegree };
+    let frontier = queue.slice();
+    let wave = 1;
+    while (frontier.length > 0) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        waveByNode[id] = wave;
+        for (const edge of adj.get(id) ?? []) {
+          remaining[edge.to] -= 1;
+          if (remaining[edge.to] === 0) next.push(edge.to);
+        }
+      }
+      frontier = next;
+      wave += 1;
+    }
+  }
+  const waveNodes = (wave: number) => graph.nodes.map((node) => node.id).filter((id) => waveByNode[id] === wave);
   addStep(graph, steps, 'Queue every node whose indegree is zero.', {
     phase: 'Topological Sort · find outer layer',
+    wave: 1, waveNodes: waveNodes(1),
     indegree: { ...indegree },
     queue: [...queue],
     order, visitedEdges: [],
   });
   while (queue.length > 0) {
     const current = queue.shift() as string;
+    const wave = waveByNode[current] ?? 1;
     order.push(current);
     addStep(graph, steps, `Remove indegree-zero node ${current}.`, {
       phase: 'Topological Sort · peel node',
-      indegree: { ...indegree }, queue: [...queue], order: [...order],
+      wave, waveNodes: waveNodes(wave), indegree: { ...indegree }, queue: [...queue], order: [...order],
       visitedEdges: [...removedEdges], removedEdges: [...removedEdges], removedNodes: [...order],
     }, new Set(order), current);
     for (const edge of adj.get(current) ?? []) {
@@ -497,7 +518,7 @@ const topologicalSort = (graph: GraphDocumentV1): SimulationStep[] => {
       addStep(graph, steps, `Remove ${current} → ${edge.to}; ${edge.to}'s indegree becomes ${indegree[edge.to]}.`, {
         phase: 'Topological Sort · release edge',
         decision: `remove ${current}→${edge.to}; indegree[${edge.to}]=${indegree[edge.to]}`,
-        indegree: { ...indegree }, queue: [...queue], order: [...order],
+        wave, waveNodes: waveNodes(wave), indegree: { ...indegree }, queue: [...queue], order: [...order],
         visitedEdges: [...removedEdges], removedEdges: [...removedEdges], removedNodes: [...order],
       }, new Set(order), edge.to, edge.edgeId);
     }
@@ -505,7 +526,7 @@ const topologicalSort = (graph: GraphDocumentV1): SimulationStep[] => {
   const hasCycle = order.length !== graph.nodes.length;
   addStep(graph, steps, hasCycle ? 'The graph contains a cycle; no topological order exists.' : 'Topological ordering is complete.', {
     phase: hasCycle ? 'Topological Sort · cycle detected' : 'Topological Sort · complete',
-    order, hasCycle, indegree: { ...indegree }, queue: [],
+    order, hasCycle, wave: Math.max(0, ...Object.values(waveByNode)), waveNodes: [], indegree: { ...indegree }, queue: [],
     visitedEdges: [...removedEdges], removedEdges: [...removedEdges], removedNodes: [...order],
   }, new Set(order), undefined, undefined, new Set(order));
   return steps;

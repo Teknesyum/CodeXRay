@@ -7,6 +7,30 @@ import {
 } from './godModeOrchestrator';
 import { checkProblemSupport } from './catalogSupportRegistry';
 import { compileExactCatalogProblem } from './catalogProblemCompiler';
+import { getProblem } from './algorithmCatalog';
+
+export const preflightCatalogProblem = async (
+  source: string,
+  problemId: string,
+  title: string,
+  locale: 'en' | 'tr',
+): Promise<{ exact: true } | { exact: false; request: string }> => {
+  const support = await checkProblemSupport(source, problemId, locale);
+  if (support.type === 'exact-simulation') return { exact: true };
+  const problem = await getProblem({ source, id: problemId });
+  return {
+    exact: false,
+    request: [
+      locale === 'tr'
+        ? 'Yerel model ile yeni, doğrulanabilir ve öğretici bir SimLang simülasyonu üret.'
+        : 'Use the local model to create a new verifiable, educational SimLang simulation.',
+      `Catalog problem: ${source}/${problemId} — ${title}`,
+      `Category: ${problem?.category ?? 'unknown'}`,
+      `Tags: ${problem?.tags.join(', ') || 'unknown'}`,
+      'Generate source, a representative input, semantic visuals, deterministic trace, tests, and a teaching tour. Do not claim the original statement is known when it is absent.',
+    ].join('\n'),
+  };
+};
 
 const catalogJob = (
   id: string,
@@ -138,7 +162,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
         .filter((job) => job.status === 'waiting' || job.status === 'running')
         .forEach((job) => setJob(job.id, {
           status: 'cancelled',
-          error: cancelled ? undefined : 'Blocked by an earlier failed job.',
+          error: undefined,
           finishedAt: Date.now(),
         }));
       throw error;

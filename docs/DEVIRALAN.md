@@ -6,7 +6,7 @@ Last updated: 2026-08-14
 
 - Titan Mode packages T1 and T2 are complete. Their contracts are
   `docs/tasks/T1-repository-hygiene.md` and
-  `docs/tasks/T2-titan-type-module.md`; no T3 work has started.
+  `docs/tasks/T2-titan-type-module.md`.
 - Root-only local artifacts `page.html`, `ytInitialData.json`,
   `vite-debug-error.log`, `vite-debug.log`, `test-results/`, and `scratch/`
   were removed. Existing `.gitignore` rules already cover every required
@@ -22,6 +22,43 @@ Last updated: 2026-08-14
 - T2 verification on 2026-08-14: `npm run lint` passed; `npm run test` passed
   105 files / 654 tests. Radio code and the protected regression suites were
   not modified.
+- A production TypeScript build later exposed two same-directory imports that
+  the original T2 search pattern missed: `src/types/events.ts` and
+  `src/types/webSource.ts` still targeted `./godMode`. Commit `7570885` fixes
+  both and strengthens the T2 contract search. The corrected gate passed
+  project TypeScript compilation, lint, and 107 files / 694 tests.
+- T3 is in progress and uncommitted. Its contract is
+  `docs/tasks/T3-tracer-core.md`. `acorn` and `acorn-walk` were added as runtime
+  dependencies. `src/services/trace/` now contains the raw contracts, Acorn
+  parser/forbidden-API gate, closed AST interpreter, synchronous tracer facade,
+  Worker client, and focused tests; `src/workers/tracer.worker.ts` removes the
+  network/script-loading surface before processing requests.
+- The interpreter currently covers declarations/assignment, required control
+  flow including labels, functions/closures/arrows/recursion, arrays/objects,
+  destructuring/spread/templates, Map/Set, the roadmap array/string methods,
+  JSON/Math/console, and try/catch/finally/throw. It uses seeded xorshift32,
+  fixed `Date.now()`, the 200,000-step / 100,000-node / 3,000-ms defaults,
+  partial traces on budget exhaustion, and visible runtime/source errors. It
+  never executes source via `eval` or `new Function`.
+- T3 focused acceptance currently passes 40/40, including 20 real LeetCode-style
+  JavaScript solutions, forbidden API cases, ten-run seeded determinism,
+  200-frame recursion, heap/step budgets, partial runtime errors, and the core
+  phase-one syntax families. The full suite passes 107 files / 694 tests; lint,
+  project TypeScript compilation, `git diff --check`, and production build pass.
+  The build remains at 619.9/620 KiB initial JavaScript, so Acorn did not enter
+  the initial bundle.
+- The user directed work to complete T3 and then proceed to T4. The two
+  repository conflicts were therefore resolved without fabricated evidence.
+  The roadmap requires comparing tracer counts for the 60
+  curated algorithms' JavaScript source, but `src/services/codeRegistry.ts`
+  stores those curated sources primarily as C++ (the first DFS entry begins
+  `void DFS(int v)`, for example), which Acorn correctly cannot parse; the T3
+  contract now records the 20-real-JS acceptance instead. The
+  roadmap also requires a separately emitted lazy tracer chunk during T3, but
+  the first production consumer is assigned to T4; Vite tree-shakes the unused
+  Worker client and therefore emits no tracer chunk yet. T3 proves source-level
+  Worker isolation and unchanged initial bundle size; T4 must prove the emitted
+  lazy Worker chunk when it adds the real fallback consumer.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

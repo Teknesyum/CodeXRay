@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AlgorithmDesignV1, GraphLayoutSpecV1 } from '../types/godMode';
+import type { AlgorithmDesignV1, GraphLayoutSpecV1 } from '../types/titan';
 import type { SimulationInput } from '../types/simulation';
 import { createVisualizationContractV2, isVisualizationV2, validateVisualizationContractV2 } from './visualizationDesigner';
 

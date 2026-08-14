@@ -1,4 +1,4 @@
-import type { ProblemSpecV2, DpFamilyContractV2, VerificationGatesV1 } from '../types/godMode';
+import type { ProblemSpecV2, DpFamilyContractV2, VerificationGatesV1 } from '../types/titan';
 
 export const validateProblemSpec = (spec: ProblemSpecV2): boolean => {
   if (!spec.title || !spec.family || !spec.statement || !spec.signature) {

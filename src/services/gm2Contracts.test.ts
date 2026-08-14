@@ -8,7 +8,7 @@ import { classifyGraphChange, patchPackageGraphLayout } from './graphTransaction
 import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
 import { createBidirectionalBfsProgram } from './simLangBuiltins';
 import { createVisualizationContractV2 } from './visualizationDesigner';
-import type { AlgorithmDesignV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { AlgorithmDesignV1, WorkspaceSnapshotV1 } from '../types/titan';
 
 const workspace: WorkspaceSnapshotV1 = {
   version: 1,

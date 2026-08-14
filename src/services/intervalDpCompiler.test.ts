@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkspaceSnapshotV1 } from '../types/godMode';
+import type { WorkspaceSnapshotV1 } from '../types/titan';
 import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './intervalDpCompiler';
 
 const workspace: WorkspaceSnapshotV1 = {

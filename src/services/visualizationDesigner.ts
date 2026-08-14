@@ -5,7 +5,7 @@ import type {
   SemanticNodeRoleV1,
   VisualizationContract,
   VisualizationContractV2,
-} from '../types/godMode';
+} from '../types/titan';
 import type { SimulationInput } from '../types/simulation';
 
 const nodeStyle = (

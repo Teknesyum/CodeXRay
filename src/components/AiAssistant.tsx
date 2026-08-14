@@ -24,7 +24,7 @@ import {
   persistGodModePlan,
   removeGodModePlan,
 } from '../services/godModeRunStore';
-import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { BoundWebSourceSessionV1, ManagerPlanV2, SolutionArtifactV1, WebProblemSpecV1 } from '../types/webSource';
 import {
   clearBoundWebSource,

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { ManagerPlanV1 } from '../types/godMode';
+import type { ManagerPlanV1 } from '../types/titan';
 import type { ManagerPlanV2 } from '../types/webSource';
 import type { Locale } from '../i18n/translations';
 import { t } from '../i18n/translations';

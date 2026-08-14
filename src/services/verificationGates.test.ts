@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateProblemSpec, validateDpFamilyContract, runVerificationGates } from './verificationGates';
-import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/godMode';
+import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
 
 describe('Verification Gates for Mega Update', () => {
   const validProblem: ProblemSpecV2 = {

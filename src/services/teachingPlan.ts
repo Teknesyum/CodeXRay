@@ -2,7 +2,7 @@ import type {
   DiscussionCheckpointV1,
   StepNarrationV1,
   TeachingPlanV1,
-} from '../types/godMode';
+} from '../types/titan';
 import type { Locale, SimulationInput, SimulationStep, TraceValue } from '../types/simulation';
 
 const same = (left: TraceValue | undefined, right: TraceValue | undefined) =>

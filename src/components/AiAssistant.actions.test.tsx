@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TimelineProvider, useTimeline } from '../context/TimelineContext';
 import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
-import type { ManagerPlanV1 } from '../types/godMode';
+import type { ManagerPlanV1 } from '../types/titan';
 import { AiAssistant } from './AiAssistant';
 
 const mocks = vi.hoisted(() => ({

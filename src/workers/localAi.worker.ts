@@ -14,7 +14,7 @@ import { buildPlannerInstructions, buildTutorInstructions } from '../services/ai
 import type { AssistantMessage } from '../services/aiContext';
 import { buildPlannerCompletionOptions } from '../services/aiPlanner';
 import { getLocalAiModelDefinition, resolveLocalAgentOutputTokens } from '../services/localAiModels';
-import type { GodModeAgentRole } from '../types/godMode';
+import type { GodModeAgentRole } from '../types/titan';
 import type { LocalAgentResultV2 } from '../types/webSource';
 
 interface InitializeMessage {

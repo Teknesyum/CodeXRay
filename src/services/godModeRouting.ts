@@ -4,7 +4,7 @@ import { findImportantStepIndices } from './aiTimelineControl';
 import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
 import { resolveDpTemplateFromRequest } from './dpTemplateCompiler';
-import type { GodModeIntent } from '../types/godMode';
+import type { GodModeIntent } from '../types/titan';
 import { extractFirstPublicHttpsUrl } from './webSource';
 
 export type WebSourceIntent =

@@ -5,7 +5,7 @@ import type {
   RenderedSourceV1,
   VisualizationContractV1,
   WorkspaceSnapshotV1,
-} from '../types/godMode';
+} from '../types/titan';
 import type {
   Locale,
   MatrixCellHighlight,
@@ -264,9 +264,9 @@ export const compilePredictWinnerPackage = (options: {
   request: string;
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
-  problemSpec?: import('../types/godMode').ProblemSpecV2;
-  algorithmPlan?: import('../types/godMode').AlgorithmPlanV2;
-  verification?: import('../types/godMode').VerificationGatesV1;
+  problemSpec?: import('../types/titan').ProblemSpecV2;
+  algorithmPlan?: import('../types/titan').AlgorithmPlanV2;
+  verification?: import('../types/titan').VerificationGatesV1;
 }): CustomSimulationPackageV1 => {
   const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
   const inputValue: SimulationInput = {

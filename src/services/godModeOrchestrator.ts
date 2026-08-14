@@ -9,7 +9,7 @@ import type {
   ProgramSpecV1,
   VisualizationContract,
   WorkspaceSnapshotV1,
-} from '../types/godMode';
+} from '../types/titan';
 import type { SimulationInput, SimulationStep } from '../types/simulation';
 import { generateSimulationSteps } from './aiService';
 import { compileCustomSimulationPackage } from './customSimulationCompiler';
@@ -27,7 +27,7 @@ import {
   createBidirectionalBfsProgram,
 } from './simLangBuiltins';
 import { canonicalCustomTitle } from './godModeRouting';
-import type { GodModeIntent } from '../types/godMode';
+import type { GodModeIntent } from '../types/titan';
 import { createAgentInputContract } from './agentInputGenerator';
 import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
 import { createVisualizationContractV2 } from './visualizationDesigner';
@@ -36,7 +36,7 @@ import { patchPackageGraphLayout } from './graphTransactions';
 import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './intervalDpCompiler';
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { runVerificationGates } from './verificationGates';
-import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/godMode';
+import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
 import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';

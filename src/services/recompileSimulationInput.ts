@@ -1,5 +1,5 @@
 import type { Locale } from '../i18n/translations';
-import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { SimulationInput } from '../types/simulation';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 import { compileBacktrackingTemplatePackage, type BacktrackingTemplateId } from './backtrackingCompiler';

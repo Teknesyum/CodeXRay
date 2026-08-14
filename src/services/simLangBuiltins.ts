@@ -4,7 +4,7 @@ import type {
   SimLangExpression,
   SimLangStatement,
   VisualizationContractV1,
-} from '../types/godMode';
+} from '../types/titan';
 import type { Locale } from '../i18n/translations';
 import { createInputPreset } from './inputPresets';
 

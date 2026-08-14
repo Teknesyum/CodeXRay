@@ -1,4 +1,4 @@
-import type { AlgorithmDesignV1, InputContractV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { AlgorithmDesignV1, InputContractV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { GraphDocumentV1, SimulationInput } from '../types/simulation';
 import { parseSimulationInput } from './inputParsers';
 import { createInputPreset } from './inputPresets';

@@ -1,4 +1,4 @@
-import type { ManagerPlanV1 } from '../types/godMode';
+import type { ManagerPlanV1 } from '../types/titan';
 
 const INDEX_KEY = 'codexray.god-mode.runs.v1';
 const RUN_PREFIX = 'codexray.god-mode.run.v1.';

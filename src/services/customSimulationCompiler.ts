@@ -7,7 +7,7 @@ import type {
   PackageTestReportV1,
   ProgramSpecV1,
   VisualizationContract,
-} from '../types/godMode';
+} from '../types/titan';
 import type { Locale, SimulationStep, TraceValue } from '../types/simulation';
 import { parseSimulationInput } from './inputParsers';
 import {

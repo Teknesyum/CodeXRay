@@ -4,8 +4,9 @@ Last updated: 2026-08-14
 
 ## Repository state
 
-- Titan Mode package T1 is complete. Its contract is
-  `docs/tasks/T1-repository-hygiene.md`; no T2 work has started.
+- Titan Mode packages T1 and T2 are complete. Their contracts are
+  `docs/tasks/T1-repository-hygiene.md` and
+  `docs/tasks/T2-titan-type-module.md`; no T3 work has started.
 - Root-only local artifacts `page.html`, `ytInitialData.json`,
   `vite-debug-error.log`, `vite-debug.log`, `test-results/`, and `scratch/`
   were removed. Existing `.gitignore` rules already cover every required
@@ -14,6 +15,13 @@ Last updated: 2026-08-14
   `randomizedRegression`, and `robustnessFuzz` regression suites.
 - T1 verification on 2026-08-14: `npm run lint` passed; `npm run test` passed
   105 files / 654 tests. The package must remain a dedicated commit before T2.
+- T2 mechanically renamed `src/types/godMode.ts` to `src/types/titan.ts` and
+  updated all 47 importing source/test modules. The old and new module blob
+  hashes matched exactly, so exported contracts and runtime behavior did not
+  change. `rg "types/godMode" src` returns no matches.
+- T2 verification on 2026-08-14: `npm run lint` passed; `npm run test` passed
+  105 files / 654 tests. Radio code and the protected regression suites were
+  not modified.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

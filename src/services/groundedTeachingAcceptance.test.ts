@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/titan';
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { compilePredictWinnerPackage } from './intervalDpCompiler';
 import { routeGodModeRequest } from './godModeRouting';

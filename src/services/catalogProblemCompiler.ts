@@ -1,4 +1,4 @@
-import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { Locale } from '../i18n/translations';
 import type { ExactCatalogTemplate } from './catalogSupportRegistry';
 import { compilePredictWinnerPackage } from './intervalDpCompiler';

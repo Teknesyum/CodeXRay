@@ -1,4 +1,4 @@
-import type { CustomSimulationPackageV1, InputContractV1, ProgramSpecV1, RenderedSourceV1, VisualizationContractV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1, InputContractV1, ProgramSpecV1, RenderedSourceV1, VisualizationContractV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { GraphDocumentV1, Locale, SimulationStep, TraceValue } from '../types/simulation';
 import { reviewTrace } from './customSimulationCompiler';
 import { createTeachingPlan } from './teachingPlan';

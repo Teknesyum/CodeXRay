@@ -23,7 +23,7 @@ import type {
   SemanticEdgeRoleV1,
   SemanticNodeRoleV1,
   VisualizationContract,
-} from '../types/godMode';
+} from '../types/titan';
 import { isVisualizationV2 } from './visualizationDesigner';
 
 type RuntimeScalar = string | number | boolean | null;

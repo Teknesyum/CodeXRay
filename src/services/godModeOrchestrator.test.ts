@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { LocalAgentHandle, LocalAgentProgress, LocalAgentRequest } from './localAiService';
-import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/godMode';
+import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
 import { startGodModeRun, validateArchitectureContract } from './godModeOrchestrator';
 import { compileMatrixTemplatePackage } from './matrixCompiler';
 

@@ -10,7 +10,7 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { GraphDocumentV1, SimulationInput, SimulationStep } from '../types/simulation';
 import { LOCAL_AI_MODELS } from '../services/localAiService';
 import type { Locale } from '../i18n/translations';
-import type { CustomSimulationPackageV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1 } from '../types/titan';
 import { compileCustomSimulationPackage } from '../services/customSimulationCompiler';
 import { classifyGraphChange, patchPackageGraphLayout } from '../services/graphTransactions';
 import { parseSimulationInput } from '../services/inputParsers';

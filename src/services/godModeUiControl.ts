@@ -1,4 +1,4 @@
-import type { UiActionV1 } from '../types/godMode';
+import type { UiActionV1 } from '../types/titan';
 
 export const GOD_MODE_UI_EVENT = 'codexray:god-mode-ui-action';
 

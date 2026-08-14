@@ -1,4 +1,4 @@
-import type { CustomSimulationPackageV1 } from '../types/godMode';
+import type { CustomSimulationPackageV1 } from '../types/titan';
 import type { GraphDocumentV1, SimulationStep } from '../types/simulation';
 import { createGraphLayoutSpec } from './graphLayout';
 import { isVisualizationV2 } from './visualizationDesigner';

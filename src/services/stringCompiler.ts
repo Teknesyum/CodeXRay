@@ -5,7 +5,7 @@ import type {
   RenderedSourceV1,
   VisualizationContractV1,
   WorkspaceSnapshotV1,
-} from '../types/godMode';
+} from '../types/titan';
 import type { Locale, SimulationStep } from '../types/simulation';
 import { reviewTrace } from './customSimulationCompiler';
 import { createTeachingPlan } from './teachingPlan';

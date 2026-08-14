@@ -1,4 +1,4 @@
-import type { ManagerJobV1, ManagerPlanV1 } from '../types/godMode';
+import type { ManagerJobV1, ManagerPlanV1 } from '../types/titan';
 import {
   startGodModeRun as startLegacyGodModeRun,
   type GodModeOrchestratorOptions,

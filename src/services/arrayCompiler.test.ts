@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkspaceSnapshotV1 } from '../types/godMode';
+import type { WorkspaceSnapshotV1 } from '../types/titan';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 
 const workspace: WorkspaceSnapshotV1 = {

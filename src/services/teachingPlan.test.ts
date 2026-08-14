@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DiscussionCheckpointV1 } from '../types/godMode';
+import type { DiscussionCheckpointV1 } from '../types/titan';
 import type { SimulationStep } from '../types/simulation';
 import { reviewTrace } from './customSimulationCompiler';
 import { createStepNarration, createTeachingPlan } from './teachingPlan';

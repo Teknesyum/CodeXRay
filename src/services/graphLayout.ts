@@ -1,5 +1,5 @@
 import type { GraphDocumentV1, GraphNode } from '../types/simulation';
-import type { GraphLayoutSpecV1, GraphLayoutStrategy } from '../types/godMode';
+import type { GraphLayoutSpecV1, GraphLayoutStrategy } from '../types/titan';
 
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(maximum, Math.max(minimum, value));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProgramSpecV1, VisualizationContractV1 } from '../types/godMode';
+import type { ProgramSpecV1, VisualizationContractV1 } from '../types/titan';
 import { compileCustomSimulationPackage } from './customSimulationCompiler';
 import {
   BIDIRECTIONAL_BFS_VISUALIZATION,

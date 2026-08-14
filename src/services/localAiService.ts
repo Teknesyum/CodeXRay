@@ -8,7 +8,7 @@ import {
   LOCAL_AI_MODELS,
   resolveLocalAgentOutputTokens,
 } from './localAiModels';
-import type { GodModeAgentRole } from '../types/godMode';
+import type { GodModeAgentRole } from '../types/titan';
 import type { LocalAgentResultV2 } from '../types/webSource';
 import type {
   AiConnectionProfileV1,

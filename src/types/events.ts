@@ -1,4 +1,4 @@
-import type { GodModeIntent } from './godMode';
+import type { GodModeIntent } from './titan';
 
 export type GodModeUserMessagePayload =
   | { text: string }

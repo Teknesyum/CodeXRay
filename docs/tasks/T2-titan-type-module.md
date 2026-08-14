@@ -28,7 +28,8 @@ without changing runtime behavior.
 ## Acceptance Criteria
 
 1. `src/types/titan.ts` exists and `src/types/godMode.ts` does not.
-2. No file under `src/` imports or references the `types/godMode` module path.
+2. No file under `src/` imports or references either the `types/godMode` module
+   path or the same-directory `./godMode` type-module path.
 3. The renamed module content is unchanged apart from its path in Git.
 4. TypeScript and lint checks report no unresolved imports.
 5. `npm run lint` passes.
@@ -41,7 +42,7 @@ Run the following before the T2 commit:
 
 ```powershell
 git diff --summary
-rg "types/godMode" src
+rg "types/godMode|from ['\"]\\./godMode['\"]" src
 npm run lint
 npm run test
 ```

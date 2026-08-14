@@ -1,4 +1,4 @@
-import type { GodModeAgentRole } from './godMode';
+import type { GodModeAgentRole } from './titan';
 
 export type WebReaderErrorCode =
   | 'invalid_url'

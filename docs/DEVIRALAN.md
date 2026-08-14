@@ -91,6 +91,17 @@ Last updated: 2026-08-14
   without any explanation-text input. Focused tests pass 3/3; lint, project
   TypeScript compilation, the full 110-file / 702-test suite, and production
   build pass at the unchanged T4 size budgets.
+- T5 was committed as `e25a4b1` after all gates passed.
+- T6 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T6-deterministic-semantics.md`. Typed scope heuristics now select
+  rectangular matrices before flat arrays, validated adjacency objects as
+  deterministic radial graphs, and flat arrays with two or more in-range
+  numeric variables as pointer visuals. Ambiguous, empty, ragged, or invalid
+  values remain variables. Tracer metadata is excluded from semantic candidates
+  but remains present in visual variables.
+- T6 focused tests pass 7/7; lint, project TypeScript compilation, the full
+  111-file / 706-test suite, and production build pass with unchanged bundle
+  budgets. No model or explanation text participates in semantic selection.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

@@ -1,6 +1,7 @@
 import type { SimulationInput, SimulationStep, TraceValue } from '../../types/simulation';
 import { parseArrayInput } from '../inputParsers';
 import type { RawTrace, TraceEntry } from './types';
+import { inferTraceVisual } from './semantics';
 
 const firstFunctionName = (source: string): string | undefined =>
   /(?:^|\s)(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(source)?.[1];
@@ -29,7 +30,7 @@ export const buildTraceEntry = (source: string, input: SimulationInput): TraceEn
 
 const statusStep = (message: string, lineNumber: number | null, vars: Record<string, TraceValue>): SimulationStep => ({
   lineNumber,
-  visualData: { type: 'variables', vars },
+  visualData: inferTraceVisual(vars),
   explanation: message,
 });
 

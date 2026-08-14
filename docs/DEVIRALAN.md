@@ -1,8 +1,21 @@
 # CodeXRay Handoff Snapshot
 
-Last updated: 2026-08-11
+Last updated: 2026-08-14
 
 ## Repository state
+
+- Titan Mode package T1 is complete. Its contract is
+  `docs/tasks/T1-repository-hygiene.md`; no T2 work has started.
+- Root-only local artifacts `page.html`, `ytInitialData.json`,
+  `vite-debug-error.log`, `vite-debug.log`, `test-results/`, and `scratch/`
+  were removed. Existing `.gitignore` rules already cover every required
+  artifact family, and none of the removed paths was tracked.
+- T1 did not modify the radio feature or the protected `pedagogical*`,
+  `randomizedRegression`, and `robustnessFuzz` regression suites.
+- T1 verification on 2026-08-14: `npm run lint` passed; `npm run test` passed
+  105 files / 654 tests. The package must remain a dedicated commit before T2.
+- `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
+  deliberately preserved outside the T1 commit.
 
 - Branch: `main`; synchronized base before this scope: `c287e76`.
 - The current scope fixes the active-stream timeout reported after 715.4 seconds

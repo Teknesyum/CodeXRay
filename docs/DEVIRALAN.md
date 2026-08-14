@@ -80,6 +80,17 @@ Last updated: 2026-08-14
   initial JavaScript at 620.0/620.0 KiB. The general thresholds were not raised;
   only the measured Acorn-backed tracer Worker received its roadmap-authorized
   dedicated 150 KiB budget.
+- T4 was committed as `6ae2194` after all gates passed.
+- T5 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T5-trace-intelligence.md`. Structural event/kind weights, numeric
+  mutation deltas, same-line/event repetition penalties, deterministic phase
+  construction/ID resolution, a 40-row bounded model outline, and the closed
+  `first`/`last`/`nth`/`max`/`min`/`line`/`error` query language are implemented
+  under `src/services/trace/`.
+- T5's synthetic 520-step acceptance selects the structural result at index 259
+  without any explanation-text input. Focused tests pass 3/3; lint, project
+  TypeScript compilation, the full 110-file / 702-test suite, and production
+  build pass at the unchanged T4 size budgets.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

@@ -9,6 +9,7 @@ const budgets = {
   // keeping the initial application chunk smaller than before.
   initialJavaScript: 620 * 1024,
   lazyJavaScriptChunk: 100 * 1024,
+  tracerWorker: 150 * 1024,
   localAiWorker: 6_500 * 1024,
   styles: 100 * 1024,
 };
@@ -39,10 +40,12 @@ const assertIndividualBudget = (label, entries, budget) => {
 };
 
 const workerAssets = assets.filter((name) => /^localAi\.worker-.*\.js$/.test(name));
+const tracerWorkerAssets = assets.filter((name) => /^tracer\.worker-.*\.js$/.test(name));
 const indexHtml = await readFile(path.join(distRoot, 'index.html'), 'utf8');
 const initialAssets = [...indexHtml.matchAll(/<script\b[^>]*\bsrc=["']([^"']+\.js)["'][^>]*>/g)]
   .map((match) => path.basename(match[1]));
-const applicationJavaScript = assets.filter((name) => name.endsWith('.js') && !workerAssets.includes(name));
+const applicationJavaScript = assets.filter((name) =>
+  name.endsWith('.js') && !workerAssets.includes(name) && !tracerWorkerAssets.includes(name));
 const lazyAssets = applicationJavaScript.filter((name) => !initialAssets.includes(name));
 assertBudget(
   'Initial JavaScript',
@@ -50,5 +53,6 @@ assertBudget(
   budgets.initialJavaScript,
 );
 assertIndividualBudget('Lazy JavaScript', lazyAssets, budgets.lazyJavaScriptChunk);
+assertBudget('Tracer worker', tracerWorkerAssets, budgets.tracerWorker);
 assertBudget('Local AI worker', workerAssets, budgets.localAiWorker);
 assertBudget('Styles', assets.filter((name) => name.endsWith('.css')), budgets.styles);

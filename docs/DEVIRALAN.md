@@ -47,6 +47,7 @@ Last updated: 2026-08-14
   project TypeScript compilation, `git diff --check`, and production build pass.
   The build remains at 619.9/620 KiB initial JavaScript, so Acorn did not enter
   the initial bundle.
+- T3 was committed as `fe5ba6d` after its corrected acceptance gate passed.
 - The user directed work to complete T3 and then proceed to T4. The two
   repository conflicts were therefore resolved without fabricated evidence.
   The roadmap requires comparing tracer counts for the 60
@@ -59,6 +60,26 @@ Last updated: 2026-08-14
   Worker client and therefore emits no tracer chunk yet. T3 proves source-level
   Worker isolation and unchanged initial bundle size; T4 must prove the emitted
   lazy Worker chunk when it adds the real fallback consumer.
+- T4 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T4-trace-adapter.md`. Unknown custom JavaScript now routes from the
+  asynchronous application-facing generation API through a lazy
+  `customSimulation` module and `tracer.worker.ts`; curated simulator dispatch
+  remains synchronous and unchanged. `RawTrace` is converted one-for-one to
+  variable-based `SimulationStep[]`, with structured scopes, mutations, call
+  depth, console output, return value, budget data, truncation, and runtime or
+  parse errors preserved visibly.
+- The legacy unmatched-custom-code placeholder branch and runtime translation
+  strings were removed. Historical validation notes were reworded without
+  changing their evidence. Structural trace explanations currently use stable
+  machine terms (`assign`, `loop-iter`, `execution-budget-exceeded`); their
+  English/Turkish presentation mapping belongs to the planned T13 i18n package
+  and remains explicitly pending.
+- T4 focused tests pass 18/18 and the full suite passes 109 files / 699 tests.
+  Lint and production build pass. The build emits `tracer.worker` separately at
+  141.0/150.0 KiB, keeps all ordinary lazy chunks at or below 100 KiB, and keeps
+  initial JavaScript at 620.0/620.0 KiB. The general thresholds were not raised;
+  only the measured Acorn-backed tracer Worker received its roadmap-authorized
+  dedicated 150 KiB budget.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

@@ -553,7 +553,7 @@
             "visual": false,
             "finalResult": false
           },
-          "notes": "No source was applied. Input lacked target. Workspace reported: No deterministic simulator matches this custom code yet. Chat incorrectly claimed compatible input and trace were applied."
+          "notes": "No source was applied. Input lacked target. The legacy workspace returned its custom-code placeholder. Chat incorrectly claimed compatible input and trace were applied."
         },
         {
           "problemId": "1",
@@ -7582,7 +7582,7 @@
             "visual": false,
             "finalResult": false
           },
-          "notes": "No source was applied. Input lacked target. Workspace reported: No deterministic simulator matches this custom code yet. Chat incorrectly claimed compatible input and trace were applied."
+          "notes": "No source was applied. Input lacked target. The legacy workspace returned its custom-code placeholder. Chat incorrectly claimed compatible input and trace were applied."
         },
         {
           "attemptedAt": "2026-08-02T09:49:47.633Z",

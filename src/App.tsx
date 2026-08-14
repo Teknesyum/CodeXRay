@@ -232,7 +232,7 @@ const CodeRayApp = () => {
         setIsEditingInput(false);
         return;
       }
-      const generatedSteps = generateSimulationSteps(algorithmName, code, validation.input);
+      const generatedSteps = await generateSimulationSteps(algorithmName, code, validation.input);
       setSteps(generatedSteps);
       setCurrentIndex(0);
       pause();

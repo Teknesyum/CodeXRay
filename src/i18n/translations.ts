@@ -1305,8 +1305,6 @@ const runtimeReplacements: Array<[RegExp, string]> = [
   [/Transpose every edge before the second DFS\./g, 'İkinci DFS öncesinde bütün kenarların yönünü tersine çevir.'],
   [/Pop (.+) as the next second-pass root\./g, '$1 düğümünü ikinci turun sıradaki kökü olarak yığından çıkar.'],
   [/Collect (.+) in component (\d+)\./g, '$1 düğümünü $2. bileşene ekle.'],
-  [/No deterministic simulator matches this custom code yet\./g, 'Bu özel kodla henüz eşleşen deterministik simülatör yok.'],
-  [/Select a supported preset or use the local assistant to discuss custom code\./g, 'Desteklenen bir hazır algoritma seçin veya özel kodu yerel asistanla tartışın.'],
   [/Sort every edge by non-decreasing weight\./g, 'Tüm kenarları azalmayan ağırlığa göre sırala.'],
   [/Accept edge (.+)\./g, '$1 kenarını kabul et.'],
   [/Reject edge (.+); it closes a cycle\./g, '$1 kenarını reddet; bir döngü oluşturuyor.'],

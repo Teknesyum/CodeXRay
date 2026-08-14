@@ -834,12 +834,20 @@ const identifyAlgorithm = (name: string, code: string): string => {
   return 'unknown';
 };
 
+export class UnsupportedCustomSimulationError extends Error {
+  constructor() {
+    super('Custom source requires deterministic tracer execution.');
+    this.name = 'UnsupportedCustomSimulationError';
+  }
+}
+
 export const simulateAlgorithm = (
   algorithmName: string,
   code: string,
   input: SimulationInput,
 ): SimulationStep[] => {
   const algorithm = identifyAlgorithm(algorithmName, code);
+  if (algorithm === 'unknown') throw new UnsupportedCustomSimulationError();
   if (algorithm === 'z') return zAlgorithm(parseStringInput(input.text));
   if (algorithm === 'manacher') return manacher(parseStringInput(input.text));
   if (compoundSimulators[algorithm]) return compoundSimulators[algorithm](input);
@@ -867,12 +875,5 @@ export const simulateAlgorithm = (
   if (algorithm === 'insertion') return insertionSort(values);
   if (algorithm === 'selection') return selectionSort(values);
   if (extendedArraySimulators[algorithm]) return extendedArraySimulators[algorithm](values);
-  return [{
-    lineNumber: 1,
-    visualData: {
-      type: 'variables',
-      vars: { message: 'No deterministic simulator matches this custom code yet.' },
-    },
-    explanation: 'Select a supported preset or use the local assistant to discuss custom code.',
-  }];
+  throw new Error(`No curated simulator is registered for '${algorithm}'.`);
 };

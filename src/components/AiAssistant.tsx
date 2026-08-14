@@ -415,7 +415,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             if (!validation.input) {
               throw new Error(validation.error ?? t('aiPresetLoadFailed', locale));
             }
-            const newSteps = generateSimulationSteps(
+            const newSteps = await generateSimulationSteps(
               preset.name,
               preset.code,
               validation.input,

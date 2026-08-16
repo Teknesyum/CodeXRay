@@ -176,8 +176,10 @@ export const reconnectExternalAi = (
       streaming: true,
       structuredOutput: 'prompt-only' as const,
       advancedWorkflows: true,
+      reasoningOverhead: 0,
+      usableOutputTokens: profile.maxOutputTokens,
       checkedAt: Date.now(),
-      probeVersion: 1 as const,
+      probeVersion: 2 as const,
     },
   };
   return activateExternalSession(connected, bearerToken);

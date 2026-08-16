@@ -11,8 +11,16 @@ export interface AiProviderCapabilities {
   streaming: boolean;
   structuredOutput: AiStructuredOutputMode;
   advancedWorkflows: boolean;
+  reasoningOverhead: number;
+  usableOutputTokens: number;
   checkedAt: number;
-  probeVersion: 1;
+  probeVersion: 2;
+}
+
+export interface AiRoleProfileSelectionV1 {
+  version: 1;
+  narrativeProfileId: string | null;
+  commandProfileId: string | null;
 }
 
 export interface AiConnectionProfileV1 {

@@ -24,21 +24,18 @@ export interface AssistantWorkspace {
   locale: Locale;
 }
 
-const MAX_CONTEXT_CHARACTERS = 4_800;
-const MAX_CODE_CHARACTERS = 1_600;
-const MAX_INPUT_CHARACTERS = 1_000;
-const MAX_VISUAL_STATE_CHARACTERS = 1_400;
-const MAX_TRACE_STEP_CHARACTERS = 600;
-const MAX_HISTORY_MESSAGES = 8;
-const MAX_HISTORY_CHARACTERS = 1_000;
+export const MAX_ASSISTANT_PROMPT_TOKENS = 4_200;
+const MAX_CONTEXT_CHARACTERS = 8_400;
+const MAX_CODE_CHARACTERS = 4_800;
+const MAX_INPUT_CHARACTERS = 1_600;
+const MAX_VISUAL_STATE_CHARACTERS = 1_800;
+const MAX_TRACE_STEP_CHARACTERS = 400;
+const MAX_HISTORY_MESSAGES = 4;
+const MAX_HISTORY_CHARACTERS = 3_200;
 const RECENT_TRACE_STEPS = 3;
 
-const contextScaleFor = (contextWindow = 4096): number => {
-  if (contextWindow >= 32768) return 6;
-  if (contextWindow >= 16384) return 3.25;
-  if (contextWindow >= 8192) return 1.75;
-  return 1;
-};
+export const estimatePromptTokens = (parts: string[]): number =>
+  Math.ceil(parts.reduce((total, part) => total + part.length, 0) / 4);
 
 const serialize = (value: unknown): string => JSON.stringify(value);
 
@@ -192,8 +189,8 @@ export const buildAssistantContext = (
     pinnedVariables,
     locale,
   } = workspace;
-  const contextScale = contextScaleFor(workspace.contextWindow);
-  const contextCharacterLimit = Math.round(MAX_CONTEXT_CHARACTERS * contextScale);
+  const contextScale = 1;
+  const contextCharacterLimit = MAX_CONTEXT_CHARACTERS;
   const safeIndex = steps.length
     ? Math.max(0, Math.min(workspace.currentIndex, steps.length - 1))
     : 0;
@@ -210,11 +207,7 @@ export const buildAssistantContext = (
       : isPlaying
         ? 'Playback is running.'
         : 'Playback is paused at the selected step.';
-  const recentTraceStepCount = workspace.contextWindow && workspace.contextWindow >= 32768
-    ? 10
-    : workspace.contextWindow && workspace.contextWindow >= 16384
-      ? 6
-      : RECENT_TRACE_STEPS;
+  const recentTraceStepCount = RECENT_TRACE_STEPS;
   const recentStart = Math.max(0, safeIndex - (recentTraceStepCount - 1));
   const recentTrace = steps.length
     ? steps

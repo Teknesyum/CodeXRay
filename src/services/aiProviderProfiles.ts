@@ -4,11 +4,13 @@ import type {
   AiProviderCapabilities,
   AiProviderKind,
   AiRuntimeSelection,
+  AiRoleProfileSelectionV1,
 } from '../types/aiProvider';
 import { LOCAL_AI_MODELS, parseLocalAiContextWindow } from './localAiModels';
 
 export const AI_SELECTION_KEY = 'codexray.ai-selection.v2';
 export const EXTERNAL_AI_PROFILES_KEY = 'codexray.ai-external-profiles.v1';
+export const AI_ROLE_PROFILE_SELECTION_KEY = 'codexray.ai-role-profiles.v1';
 export const EXTERNAL_AI_CONTEXT_WINDOWS = [4096, 8192, 16384, 32768, 65536, 131072] as const;
 export const EXTERNAL_AI_MAX_OUTPUT_TOKENS = 32768;
 
@@ -65,10 +67,50 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const parseCapabilities = (value: unknown): AiProviderCapabilities | null => {
   if (!isRecord(value) || typeof value.chat !== 'boolean' || typeof value.streaming !== 'boolean'
     || !['none', 'native', 'prompt-only'].includes(String(value.structuredOutput))
-    || typeof value.advancedWorkflows !== 'boolean' || typeof value.checkedAt !== 'number'
-    || value.probeVersion !== 1) return null;
+    || typeof value.advancedWorkflows !== 'boolean'
+    || typeof value.reasoningOverhead !== 'number' || value.reasoningOverhead < 0
+    || typeof value.usableOutputTokens !== 'number' || value.usableOutputTokens < 0
+    || typeof value.checkedAt !== 'number' || value.probeVersion !== 2) return null;
   return value as unknown as AiProviderCapabilities;
 };
+
+const normalizeAiRoleProfileSelection = (
+  value: unknown,
+  profiles: AiConnectionProfileV1[],
+): AiRoleProfileSelectionV1 => {
+  if (isRecord(value) && value.version === 1) {
+    const ids = new Set(profiles.map((profile) => profile.id));
+    return {
+      version: 1,
+      narrativeProfileId: typeof value.narrativeProfileId === 'string' && ids.has(value.narrativeProfileId)
+        ? value.narrativeProfileId : null,
+      commandProfileId: typeof value.commandProfileId === 'string' && ids.has(value.commandProfileId)
+        ? value.commandProfileId : null,
+    };
+  }
+  return { version: 1, narrativeProfileId: null, commandProfileId: null };
+};
+
+export const loadAiRoleProfileSelection = (
+  profiles: AiConnectionProfileV1[],
+  storage: Storage = localStorage,
+): AiRoleProfileSelectionV1 => {
+  try {
+    const parsed: unknown = JSON.parse(storage.getItem(AI_ROLE_PROFILE_SELECTION_KEY) ?? 'null');
+    return normalizeAiRoleProfileSelection(parsed, profiles);
+  } catch {
+    return { version: 1, narrativeProfileId: null, commandProfileId: null };
+  }
+};
+
+export const saveAiRoleProfileSelection = (
+  selection: AiRoleProfileSelectionV1,
+  profiles: AiConnectionProfileV1[],
+  storage: Storage = localStorage,
+): void => storage.setItem(
+  AI_ROLE_PROFILE_SELECTION_KEY,
+  JSON.stringify(normalizeAiRoleProfileSelection(selection, profiles)),
+);
 
 const parseProfile = (value: unknown): AiConnectionProfileV1 | null => {
   if (!isRecord(value) || value.version !== 1 || typeof value.id !== 'string'

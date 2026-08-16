@@ -113,30 +113,16 @@ export const askQuestion = async (
   workspace: AssistantWorkspace,
   chatHistory: AssistantMessage[] = [],
 ): Promise<string> => {
-  const contextWindow = workspace.contextWindow ?? 4096;
-  const profile = contextWindow >= 32768
-    ? { question: 2_400, history: 9_600, total: 50_000, system: 3_200, messages: 24 }
-    : contextWindow >= 16384
-      ? { question: 1_800, history: 4_800, total: 26_000, system: 2_600, messages: 16 }
-      : contextWindow >= 8192
-        ? { question: 1_200, history: 2_400, total: 13_000, system: 2_200, messages: 8 }
-        : { question: 800, history: 1_000, total: 7_200, system: 1_800, messages: 8 };
-  const questionLimit = profile.question;
+  const questionLimit = 1_600;
   const boundedQuestion = question.length > questionLimit
     ? `${question.slice(0, questionLimit - 40)}\n[Question shortened for the local model context window.]`
     : question;
   const context = buildAssistantContext(workspace, boundedQuestion);
-  const historyBudget = Math.max(
-    0,
-    Math.min(
-      profile.history,
-      profile.total - profile.system - context.length - boundedQuestion.length,
-    ),
-  );
+  const historyBudget = 3_200;
   return askLocalModel(
     boundedQuestion,
     context,
-    selectAssistantHistory(chatHistory, historyBudget, profile.messages),
+    selectAssistantHistory(chatHistory, historyBudget, 4),
     workspace.locale,
   );
 };
@@ -147,14 +133,13 @@ export const askQuestionDetailed = async (
   chatHistory: AssistantMessage[] = [],
   onStream?: (update: LocalModelStreamUpdate) => void,
 ): Promise<LocalModelAnswer> => {
-  const contextWindow = workspace.contextWindow ?? 4096;
-  const questionLimit = contextWindow >= 32768 ? 2_400 : contextWindow >= 16384 ? 1_800 : contextWindow >= 8192 ? 1_200 : 800;
+  const questionLimit = 1_600;
   const boundedQuestion = question.length > questionLimit
     ? `${question.slice(0, questionLimit - 40)}\n[Question shortened for the local model context window.]`
     : question;
   const context = buildAssistantContext(workspace, boundedQuestion);
-  const historyBudget = contextWindow >= 32768 ? 9_600 : contextWindow >= 16384 ? 4_800 : contextWindow >= 8192 ? 2_400 : 1_000;
-  const messageLimit = contextWindow >= 16384 ? 16 : 8;
+  const historyBudget = 3_200;
+  const messageLimit = 4;
   return askLocalModelDetailed(
     boundedQuestion,
     context,

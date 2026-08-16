@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   OPENAI_COMPATIBLE_ENDPOINT_PRESETS,
   AI_SELECTION_KEY,
+  AI_ROLE_PROFILE_SELECTION_KEY,
   EXTERNAL_AI_PROFILES_KEY,
   invalidateExternalProfile,
   loadAiRuntimeSelection,
+  loadAiRoleProfileSelection,
   loadExternalAiProfiles,
   saveExternalAiProfiles,
+  saveAiRoleProfileSelection,
 } from './aiProviderProfiles';
 
 describe('OpenAI-compatible endpoint presets', () => {
@@ -54,8 +57,10 @@ describe('AI provider profile persistence', () => {
         streaming: true,
         structuredOutput: 'native' as const,
         advancedWorkflows: true,
+        reasoningOverhead: 456,
+        usableOutputTokens: 568,
         checkedAt: 1,
-        probeVersion: 1 as const,
+        probeVersion: 2 as const,
       },
     };
 
@@ -113,5 +118,25 @@ describe('AI provider profile persistence', () => {
     }));
 
     expect(loadAiRuntimeSelection(loadExternalAiProfiles()).provider).toBe('webllm');
+  });
+
+  it('persists narrative and command profiles independently and clears missing IDs', () => {
+    const profiles = loadExternalAiProfiles();
+    saveAiRoleProfileSelection({
+      version: 1,
+      narrativeProfileId: profiles[0].id,
+      commandProfileId: profiles[1].id,
+    }, profiles);
+    expect(loadAiRoleProfileSelection(profiles)).toEqual({
+      version: 1,
+      narrativeProfileId: profiles[0].id,
+      commandProfileId: profiles[1].id,
+    });
+    localStorage.setItem(AI_ROLE_PROFILE_SELECTION_KEY, JSON.stringify({
+      version: 1,
+      narrativeProfileId: profiles[0].id,
+      commandProfileId: 'removed-profile',
+    }));
+    expect(loadAiRoleProfileSelection(profiles).commandProfileId).toBeNull();
   });
 });

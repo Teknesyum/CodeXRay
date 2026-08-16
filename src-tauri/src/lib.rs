@@ -119,6 +119,8 @@ struct Capabilities {
     streaming: bool,
     structured_output: &'static str,
     advanced_workflows: bool,
+    reasoning_overhead: u32,
+    usable_output_tokens: u32,
     checked_at: u64,
     probe_version: u8,
 }
@@ -621,29 +623,52 @@ async fn probe_model(
         return Err("Streaming compatibility check returned no text.".to_string());
     }
 
-    let json_messages = vec![ChatMessage {
-        role: "user".to_string(),
-        content: "Return exactly this JSON object and nothing else: {\"ok\":true}".to_string(),
-    }];
-    let native_request = CompletionRequest {
-        messages: json_messages.clone(),
-        json_mode: true,
-        ..base
-    };
-    let native = collect_non_streaming(&state, &native_request).await;
-    let (structured_output, structured_ok) = match native {
-        Ok(result) if parse_json_object(&result.text).is_ok() => ("native", true),
-        _ => {
-            let prompt_request = CompletionRequest {
-                messages: json_messages,
-                json_mode: false,
-                ..native_request
+    let mut native_valid = 0_u8;
+    let mut prompt_valid = 0_u8;
+    let mut reasoning_samples = Vec::new();
+    for json_mode in [true, false] {
+        for _ in 0..3 {
+            let trial = CompletionRequest {
+                request_id: 0,
+                base_url: normalized.clone(),
+                model: request.model.clone(),
+                bearer_token: (!request.bearer_token.is_empty())
+                    .then_some(request.bearer_token.clone()),
+                messages: vec![ChatMessage {
+                    role: "user".to_string(),
+                    content: "Return exactly this JSON object and nothing else: {\"ok\":true}"
+                        .to_string(),
+                }],
+                temperature: 0.0,
+                max_tokens: request.max_output_tokens.clamp(256, 512),
+                json_mode,
+                context_window: request.context_window,
+                locale: "en".to_string(),
             };
-            match collect_non_streaming(&state, &prompt_request).await {
-                Ok(result) if parse_json_object(&result.text).is_ok() => ("prompt-only", true),
-                _ => ("none", false),
+            if let Ok(result) = collect_non_streaming(&state, &trial).await {
+                if let Some(tokens) = result.reasoning_tokens {
+                    reasoning_samples.push(tokens);
+                }
+                if probe_schema_matches(&result.text) {
+                    if json_mode {
+                        native_valid += 1;
+                    } else {
+                        prompt_valid += 1;
+                    }
+                }
             }
         }
+        if native_valid == 3 {
+            break;
+        }
+    }
+    let structured_output = classify_structured_output(native_valid, prompt_valid);
+    let structured_ok = structured_output != "none";
+    let reasoning_overhead = if reasoning_samples.is_empty() {
+        0
+    } else {
+        (reasoning_samples.iter().sum::<u64>() / reasoning_samples.len() as u64)
+            .min(u32::MAX as u64) as u32
     };
     let checked_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -656,14 +681,16 @@ async fn probe_model(
             streaming: true,
             structured_output,
             advanced_workflows: structured_ok,
+            reasoning_overhead,
+            usable_output_tokens: request.max_output_tokens.saturating_sub(reasoning_overhead),
             checked_at,
-            probe_version: 1,
+            probe_version: 2,
         },
     })
 }
 
 fn parse_json_object(text: &str) -> Result<Value, String> {
-    let cleaned = text
+    let trimmed = text
         .trim()
         .strip_prefix("```json")
         .or_else(|| text.trim().strip_prefix("```"))
@@ -672,12 +699,64 @@ fn parse_json_object(text: &str) -> Result<Value, String> {
         .strip_suffix("```")
         .unwrap_or(text.trim())
         .trim();
+    let cleaned = extract_balanced_object(trimmed).unwrap_or(trimmed);
     let value: Value = serde_json::from_str(cleaned)
         .map_err(|_| "Probe did not return valid JSON.".to_string())?;
     if !value.is_object() {
         return Err("Probe did not return a JSON object.".to_string());
     }
     Ok(value)
+}
+
+fn extract_balanced_object(text: &str) -> Option<&str> {
+    let mut start = None;
+    let mut depth = 0_u32;
+    let mut quoted = false;
+    let mut escaped = false;
+    for (index, character) in text.char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        if character == '"' {
+            quoted = true;
+        } else if character == '{' {
+            if start.is_none() {
+                start = Some(index);
+            }
+            depth += 1;
+        } else if character == '}' && depth > 0 {
+            depth -= 1;
+            if depth == 0 {
+                return start.map(|value| &text[value..=index]);
+            }
+        }
+    }
+    None
+}
+
+fn probe_schema_matches(text: &str) -> bool {
+    matches!(
+        parse_json_object(text),
+        Ok(Value::Object(object))
+            if object.len() == 1 && object.get("ok") == Some(&Value::Bool(true))
+    )
+}
+
+fn classify_structured_output(native_valid: u8, prompt_valid: u8) -> &'static str {
+    if native_valid == 3 {
+        "native"
+    } else if prompt_valid >= 1 {
+        "prompt-only"
+    } else {
+        "none"
+    }
 }
 
 #[tauri::command]
@@ -866,7 +945,18 @@ mod tests {
     fn probe_json_parser_accepts_plain_or_fenced_objects() {
         assert!(parse_json_object("{\"ok\":true}").is_ok());
         assert!(parse_json_object("```json\n{\"ok\":true}\n```").is_ok());
+        assert!(parse_json_object("answer: {\"ok\":true} trailing").is_ok());
         assert!(parse_json_object("[]").is_err());
+        assert!(probe_schema_matches("{\"ok\":true}"));
+        assert!(!probe_schema_matches("{\"ok\":false}"));
+        assert!(!probe_schema_matches("{\"ok\":true,\"extra\":1}"));
+    }
+
+    #[test]
+    fn structured_output_requires_three_native_trials() {
+        assert_eq!(classify_structured_output(3, 0), "native");
+        assert_eq!(classify_structured_output(2, 1), "prompt-only");
+        assert_eq!(classify_structured_output(0, 0), "none");
     }
 
     #[test]

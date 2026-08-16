@@ -121,6 +121,28 @@ Last updated: 2026-08-16
   representative Lite program is under 60% of formatted JSON size. The latest
   full suite passes 112 files / 709 tests; lint, forced TypeScript validation,
   and production build pass with unchanged size budgets.
+- T7 was committed as `85a573f` after all gates passed.
+- T8 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T8-local-model-layer.md`. Tolerant structured extraction is
+  fail-closed and schema-validated; command resolution always starts from a
+  deterministic result and reports model rejection or prompt-only extraction.
+  Role budgets are 120/120/160/600/900 usable tokens and add measured reasoning
+  overhead within the selected profile limit.
+- Desktop capability probe v2 performs three real native schema trials and, if
+  needed, three prompt-only trials. It validates the exact `{ "ok": true }`
+  shape, persists average `reasoningOverhead` and `usableOutputTokens`, and
+  invalidates old v1 probe evidence. Narrative and command profile IDs persist
+  independently; missing command IDs normalize to explicit deterministic-only
+  state. Low usable output produces an actionable warning value.
+- Assistant requests are bounded to 4,200 estimated tokens across system,
+  question, four history messages, current source/state, bounded recent trace,
+  and structural outline. The 500-step acceptance proves the oldest trace
+  payload is absent. GBNF was recorded as skipped because no controllable live
+  llama.cpp grammar endpoint was available; no native-support claim was made.
+- T8 verification on 2026-08-16: lint passed, 114 Vitest files / 719 tests
+  passed, seven Rust tests passed, forced TypeScript validation passed, and the
+  production build passed at 619.9/620 KiB initial JS, 141/150 KiB tracer
+  Worker, 5930.8/6500 KiB local-AI Worker, and 90.1/100 KiB styles.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

@@ -63,8 +63,10 @@ describe('external reasoning agent budgets', () => {
         streaming: true,
         structuredOutput: 'native',
         advancedWorkflows: true,
+        reasoningOverhead: 456,
+        usableOutputTokens: 15928,
         checkedAt: 1,
-        probeVersion: 1,
+        probeVersion: 2,
       },
     });
     await connectExternalAi(profile, 'session-only-token');
@@ -121,8 +123,10 @@ describe('external reasoning agent budgets', () => {
         streaming: true,
         structuredOutput: 'native',
         advancedWorkflows: true,
+        reasoningOverhead: 456,
+        usableOutputTokens: 15928,
         checkedAt: 1,
-        probeVersion: 1,
+        probeVersion: 2,
       },
     });
 
@@ -140,8 +144,10 @@ describe('external reasoning agent budgets', () => {
         streaming: true,
         structuredOutput: 'native' as const,
         advancedWorkflows: true,
+        reasoningOverhead: 456,
+        usableOutputTokens: 15928,
         checkedAt: 1,
-        probeVersion: 1 as const,
+        probeVersion: 2 as const,
       },
     };
 

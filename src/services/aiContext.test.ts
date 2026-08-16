@@ -3,6 +3,7 @@ import type { SimulationStep } from '../types/simulation';
 import {
   buildAssistantContext,
   buildTutorInstructions,
+  estimatePromptTokens,
   selectAssistantHistory,
   type AssistantMessage,
 } from './aiContext';
@@ -116,8 +117,8 @@ describe('local assistant context', () => {
 
     const selected = selectAssistantHistory(messages);
 
-    expect(selected).toHaveLength(8);
-    expect(selected[0].content).toBe('message-4');
+    expect(selected).toHaveLength(4);
+    expect(selected[0].content).toBe('message-8');
     expect(selected.at(-1)?.content).toBe('message-11');
     expect(selected.every((message) => message.role !== 'system')).toBe(true);
   });
@@ -136,7 +137,7 @@ describe('local assistant context', () => {
     expect(instructions).not.toMatch(/under \d+ tokens/i);
   });
 
-  it('scales prompt capacity across the stable and experimental engine profiles', () => {
+  it('keeps one prompt budget across all engine context profiles', () => {
     const workspace = {
       algorithmName: 'Custom Code',
       code: `function demo() {\n${'process(value);'.repeat(500)}\n}`,
@@ -158,10 +159,10 @@ describe('local assistant context', () => {
     expect(context8k).toContain('Local model context window: 8192 tokens');
     expect(context16k).toContain('Local model context window: 16384 tokens');
     expect(context32k).toContain('Local model context window: 32768 tokens');
-    expect(context8k.length).toBeGreaterThan(stable.length);
-    expect(context16k.length).toBeGreaterThan(context8k.length);
-    expect(context32k.length).toBeGreaterThanOrEqual(context16k.length);
-    expect(context32k.length).toBeLessThanOrEqual(28_800);
+    expect(context8k.length).toBe(stable.length);
+    expect(context16k.length).toBe(stable.length);
+    expect(context32k.length).toBe(stable.length);
+    expect(context32k.length).toBeLessThanOrEqual(8_400);
   });
 
   it('keeps oversized code and graph data within the local model context budget', () => {
@@ -214,9 +215,42 @@ describe('local assistant context', () => {
       locale: 'en',
     });
 
-    expect(context.length).toBeLessThanOrEqual(6_200);
+    expect(context.length).toBeLessThanOrEqual(8_400);
     expect(context).toContain('Current glowing source line (Active Step): 300');
     expect(context).toContain('"nodeCount":200');
     expect(context).toContain('Focused source excerpt');
+  });
+
+  it('keeps the complete composed request below the 4200 estimated-token gate', () => {
+    const context = buildAssistantContext({
+      algorithmName: 'Large source',
+      code: 'process(value);'.repeat(4_000),
+      simulationInput: { kind: 'array', text: `[${'1,'.repeat(2_000)}2]` },
+      steps: Array.from({ length: 500 }, (_, index) => ({
+        lineNumber: index + 1,
+        explanation: `Executed deterministic step ${index}.`,
+        visualData: { type: 'variables' as const, vars: { index, values: Array(50).fill(index) } },
+      })),
+      currentIndex: 499,
+      analysis: 'A'.repeat(2_000),
+      inputError: null,
+      isPlaying: false,
+      pinnedVariables: ['index'],
+      contextWindow: 131072,
+      locale: 'en',
+    });
+    const instructions = buildTutorInstructions('en');
+    const question = 'Q'.repeat(1_600);
+    const history = selectAssistantHistory(Array.from({ length: 10 }, (_, index) => ({
+      role: index % 2 ? 'ai' as const : 'user' as const,
+      content: `History ${index} ${'H'.repeat(1_000)}`,
+    })));
+    expect(estimatePromptTokens([
+      instructions,
+      ...history.map((message) => message.content),
+      context,
+      question,
+    ])).toBeLessThanOrEqual(4_200);
+    expect(context).not.toContain('Executed deterministic step 0.');
   });
 });

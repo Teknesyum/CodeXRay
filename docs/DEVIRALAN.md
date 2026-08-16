@@ -1,6 +1,6 @@
 # CodeXRay Handoff Snapshot
 
-Last updated: 2026-08-14
+Last updated: 2026-08-16
 
 ## Repository state
 
@@ -102,6 +102,25 @@ Last updated: 2026-08-14
 - T6 focused tests pass 7/7; lint, project TypeScript compilation, the full
   111-file / 706-test suite, and production build pass with unchanged bundle
   budgets. No model or explanation text participates in semantic selection.
+- T6 was committed as `bb74e3f` after all gates passed.
+- A forced TypeScript project rebuild exposed seven stale incremental-cache
+  narrowing errors across the assistant, orchestrator, Markdown test, SimLang,
+  tracer client/interpreter, and web-source parser. Commit `c8acc57` fixes them;
+  `tsc -b --force` is clean and the full suite passed afterward. Commit
+  `16e2071` replaces the T4 custom-fallback error class with the same closed
+  internal error code, recovering the few minified bytes required to keep the
+  unchanged 620 KiB initial bundle limit.
+- T7 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T7-simlang-lite.md`. `src/services/simLangLite.ts` implements a
+  closed line-oriented grammar with canonical program/budget/function blocks,
+  every current statement variant, prefix expressions, and recursive literal
+  arrays/objects. `parseLite` reports exact line numbers and validates the
+  reconstructed AST through `validateProgramSpec`; `renderLite` is canonical.
+- T7 focused tests pass 3/3: every expression/statement variant round-trips,
+  parse-render-parse is stable, malformed input exposes its line, and the
+  representative Lite program is under 60% of formatted JSON size. The latest
+  full suite passes 112 files / 709 tests; lint, forced TypeScript validation,
+  and production build pass with unchanged size budgets.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

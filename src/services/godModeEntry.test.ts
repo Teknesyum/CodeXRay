@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
-import { startGodModeRun } from './godModeEntry';
+import { startTitanModeRun as startGodModeRun } from './titan/titanPipeline';
 
 const workspace: WorkspaceSnapshotV1 = {
   version: 1,

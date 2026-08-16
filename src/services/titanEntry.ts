@@ -4,7 +4,7 @@ import {
   type GodModeOrchestratorOptions,
   type GodModeRunHandle,
   type GodModeRunResult,
-} from './godModeOrchestrator';
+} from './titanEngine';
 import { checkProblemSupport } from './catalogSupportRegistry';
 import { compileExactCatalogProblem } from './catalogProblemCompiler';
 import { getProblem } from './algorithmCatalog';
@@ -176,4 +176,4 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   };
 };
 
-export type { GodModeRunHandle } from './godModeOrchestrator';
+export type { GodModeRunHandle } from './titanEngine';

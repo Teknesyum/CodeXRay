@@ -16,7 +16,7 @@ import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import { extractDpDimensions, requestsUniqueDpInput, routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
-import type { GodModeRunHandle } from '../services/godModeOrchestrator';
+import type { GodModeRunHandle } from '../services/titan/titanPipeline';
 import { dispatchGodModeUiAction } from '../services/godModeUiControl';
 import {
   clearGodModePlans,
@@ -642,7 +642,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       let godModeRequest = userMessage;
 
       if (godModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {
-        const { preflightCatalogProblem } = await import('../services/godModeEntry');
+        const { preflightCatalogProblem } = await import('../services/titan/titanPipeline');
         const support = await preflightCatalogProblem(
           selectedCatalogProblem.source,
           selectedCatalogProblem.id,
@@ -778,9 +778,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
           packageOutOfSync: stateRef.current.packageOutOfSync,
         };
-        const { startGodModeRun } = await import('../services/godModeEntry');
+        const { startTitanModeRun } = await import('../services/titan/titanPipeline');
         sourcePreviewSnapshotRef.current = workspaceSnapshot;
-        const run = startGodModeRun({
+        const run = startTitanModeRun({
           request: godModeRequest,
           intent: godModeIntent,
           locale,

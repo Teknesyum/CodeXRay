@@ -177,6 +177,21 @@ Last updated: 2026-08-16
   TypeScript validation passed, and production build passed. T5 intelligence
   is a 2.95 KiB production chunk; the threshold was not raised and initial JS
   is 619.4/620 KiB.
+- T10 was committed as `4d65c41` after all gates passed.
+- T11 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T11-titan-pipeline.md`. The live assistant imports only
+  `titan/titanPipeline`; `godModeEntry.ts` and `godModeOrchestrator.ts` were
+  deleted. Existing deterministic compiler capabilities remain in renamed
+  engine/entry modules until T13 removes their legacy exported vocabulary.
+- `executeTitanPipeline` owns the ordered route, produce, semantics, verify,
+  and apply gates. It emits explicit skipped semantics, blocks apply after any
+  failed verification, exposes cancellation, and mutates only during apply.
+  The live compatibility plan is collapsed to exactly five real stage rows.
+- T11 focused acceptance passes 27 tests across the pipeline and preserved
+  deterministic engines. Full verification on 2026-08-16: lint passed, 117
+  Vitest files / 737 tests passed, forced TypeScript validation passed, and
+  production build passed at 619.4/620 KiB initial JS with the lazy
+  `titanPipeline` chunk at 76.13 KiB.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

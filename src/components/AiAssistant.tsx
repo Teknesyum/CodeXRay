@@ -17,7 +17,7 @@ import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from '../services/titanModeRouting';
 import type { TitanModeRunHandle } from '../services/titan/titanPipeline';
-import { dispatchTitanModeUiAction } from '../services/titanModeUiControl';
+import { dispatchTitanUiAction } from '../services/titanUiControl';
 import {
   clearTitanModePlans,
   loadLatestTitanModePlan,
@@ -735,7 +735,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         } else if (titanModeIntent.command === 'radio-open') {
           requestRadioOpen();
         } else if (titanModeIntent.command === 'radio-play' || titanModeIntent.command === 'radio-pause') {
-          dispatchTitanModeUiAction({
+          dispatchTitanUiAction({
             type: 'set-radio-state',
             state: titanModeIntent.command === 'radio-play' ? 'play' : 'pause',
           });
@@ -745,7 +745,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             | 'focus-simulation'
             | 'focus-assistant'
             | 'balanced';
-          dispatchTitanModeUiAction({
+          dispatchTitanUiAction({
             type: 'set-workspace-layout',
             layout: layoutCommand,
           });

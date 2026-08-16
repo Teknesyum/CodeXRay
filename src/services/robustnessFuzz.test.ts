@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphDocumentV1, InputKind, SimulationStep } from '../types/simulation';
 import { parseSimulationInput } from './inputParsers';
-import { routeGodModeRequest } from './godModeRouting';
+import { routeTitanModeRequest } from './titanModeRouting';
 import { validateProgramSpec } from './simLang';
 
 const seeded = (initial: number) => {
@@ -35,7 +35,7 @@ describe('fixed-seed robustness fuzzing', () => {
       const kind = kinds[iteration % kinds.length];
       expect(() => parseSimulationInput(kind, input), `seed=${seed}; iteration=${iteration}; input=${JSON.stringify(input)}`)
         .not.toThrow();
-      expect(() => routeGodModeRequest(input, steps, iteration % steps.length), `seed=${seed}; iteration=${iteration}; input=${JSON.stringify(input)}`)
+      expect(() => routeTitanModeRequest(input, steps, iteration % steps.length), `seed=${seed}; iteration=${iteration}; input=${JSON.stringify(input)}`)
         .not.toThrow();
     }
   });

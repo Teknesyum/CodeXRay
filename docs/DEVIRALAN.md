@@ -6,6 +6,10 @@ Last updated: 2026-08-16
 
 ### Current Titan completion status
 
+- T18 removes the final God Mode source aliases. The shared UI event module is
+  now `titanUiControl.ts` with Titan-only symbols, the routing alias is deleted,
+  and case-insensitive `godmode` search under `src/` returns zero results. The
+  radio and robustness-fuzz changes are identifier-only; all 747 tests pass.
 - T17 completes the binding T6B bundle requirement. `App.tsx` now loads
   `CodeEditor`, `DynamicVisualizer`, `AiAssistant`, and `PlaylistRadio` through
   application-level `React.lazy` boundaries with localized, geometry-preserving

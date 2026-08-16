@@ -1,7 +1,7 @@
 import { ExternalLink, Music2, Radio, Volume2, VolumeX, Minus, Play, Pause, SkipBack, SkipForward, Repeat, Shuffle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTimeline } from '../context/TimelineContext';
-import { GOD_MODE_UI_EVENT, isGodModeUiEvent } from '../services/godModeUiControl';
+import { TITAN_UI_EVENT, isTitanUiEvent } from '../services/titanUiControl';
 import { t } from '../i18n/translations';
 import {
   getEmbeddedRadioPlaylist,
@@ -225,8 +225,8 @@ export const PlaylistRadio = () => {
   }, [radioOpenRequest]);
 
   useEffect(() => {
-    const handleGodModeRadioAction = (event: Event) => {
-      if (!isGodModeUiEvent(event) || event.detail.type !== 'set-radio-state') return;
+    const handleTitanRadioAction = (event: Event) => {
+      if (!isTitanUiEvent(event) || event.detail.type !== 'set-radio-state') return;
       if (event.detail.state === 'open') {
         setMinimized(false);
         setHasStarted(true);
@@ -242,8 +242,8 @@ export const PlaylistRadio = () => {
       setPlayRequested(false);
       playerRef.current?.pauseVideo();
     };
-    window.addEventListener(GOD_MODE_UI_EVENT, handleGodModeRadioAction);
-    return () => window.removeEventListener(GOD_MODE_UI_EVENT, handleGodModeRadioAction);
+    window.addEventListener(TITAN_UI_EVENT, handleTitanRadioAction);
+    return () => window.removeEventListener(TITAN_UI_EVENT, handleTitanRadioAction);
   }, []);
 
   useEffect(() => {

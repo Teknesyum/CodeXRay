@@ -15,9 +15,9 @@ import {
   RIGHT_PANEL_LIMITS,
 } from './services/workspaceLayout';
 import {
-  TITAN_MODE_UI_EVENT,
-  isTitanModeUiEvent,
-} from './services/titanModeUiControl';
+  TITAN_UI_EVENT,
+  isTitanUiEvent,
+} from './services/titanUiControl';
 import './App.css';
 
 const CodeEditor = lazy(() => import('./components/CodeEditor').then((module) => ({ default: module.CodeEditor })));
@@ -157,7 +157,7 @@ const CodeRayApp = () => {
 
   useEffect(() => {
     const handleTitanModeUiAction = (event: Event) => {
-      if (!isTitanModeUiEvent(event)) return;
+      if (!isTitanUiEvent(event)) return;
       const action = event.detail;
       if (action.type === 'set-workspace-layout') {
         if (action.layout === 'focus-assistant') {
@@ -198,8 +198,8 @@ const CodeRayApp = () => {
         }));
       }
     };
-    window.addEventListener(TITAN_MODE_UI_EVENT, handleTitanModeUiAction);
-    return () => window.removeEventListener(TITAN_MODE_UI_EVENT, handleTitanModeUiAction);
+    window.addEventListener(TITAN_UI_EVENT, handleTitanModeUiAction);
+    return () => window.removeEventListener(TITAN_UI_EVENT, handleTitanModeUiAction);
   }, [setIsAiMaximized]);
 
   const handleSimulate = async () => {

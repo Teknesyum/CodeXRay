@@ -4,7 +4,7 @@ test('asks for missing algorithm requirements without mutation and resumes with 
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -16,8 +16,8 @@ test('asks for missing algorithm requirements without mutation and resumes with 
 
   await question.fill('write an algorithm');
   await question.press('Enter');
-  await expect(page.getByText(/Which problem should I simulate/)).toBeVisible();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.getByText(/Choose LCS, Edit Distance, 0\/1 Knapsack, or describe your problem/)).toBeVisible();
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(source).toHaveValue(sourceBefore);
   await expect(input).toHaveValue(inputBefore);
   await expect(question).toBeEnabled();
@@ -32,7 +32,7 @@ test('offers deterministic template, random, unique, and custom paths for a gene
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'tr');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -48,6 +48,6 @@ test('offers deterministic template, random, unique, and custom paths for a gene
   await expect(chooser.getByRole('button', { name: 'Rastgele şablon' })).toBeVisible();
   await expect(chooser.getByRole('button', { name: 'Özgün soru üret' })).toBeVisible();
   await expect(chooser.getByRole('button', { name: 'Kendi sorumu yazacağım' })).toBeVisible();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(question).toBeEnabled();
 });

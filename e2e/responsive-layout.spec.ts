@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
 });

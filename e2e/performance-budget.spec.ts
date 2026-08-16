@@ -4,7 +4,7 @@ test('keeps startup, catalog switching, simulation, timeline, and DP rendering i
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   const started = performance.now();
@@ -41,7 +41,7 @@ test('survives repeated cross-subsystem use without stale state, overflow, or lo
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -64,7 +64,7 @@ test('survives repeated cross-subsystem use without stale state, overflow, or lo
     await expect(chat).toBeEnabled();
   }
   await expect(page.locator('.input-error')).toHaveCount(0);
-  await expect(page.locator('.god-mode-agent.failed')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-agent.failed')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(await page.evaluate(() => document.documentElement.clientWidth + 2));
 });

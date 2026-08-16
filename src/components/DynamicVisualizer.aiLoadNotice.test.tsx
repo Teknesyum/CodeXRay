@@ -105,7 +105,7 @@ describe('DynamicVisualizer model loading notice', () => {
         <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
       </TimelineProvider>,
     );
-    await user.click(screen.getByRole('button', { name: 'Yerel Yapay Zekâ Ayarları' }));
+    await user.click(screen.getByRole('button', { name: 'Yerel yapay zekâyı yapılandır' }));
     expect(openSettings).toHaveBeenCalledOnce();
     window.removeEventListener('codexray:openAiSettings', openSettings);
   });

@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-test('cancels the visible God Mode queue and ignores a late specialist response', async ({ page }) => {
+test('cancels the visible Titan Mode queue and ignores a late specialist response', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
     Object.defineProperty(navigator, 'gpu', {
       configurable: true,
@@ -48,7 +48,7 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
           queueMicrotask(() => this.emit({
             id: message.id,
             type: 'error',
-            text: 'God Mode agent was cancelled.',
+            text: 'Titan Mode agent was cancelled.',
           }));
           window.setTimeout(() => this.emit({
             id: message.id,
@@ -86,14 +86,14 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
   await question.fill('write bidirectional BFS for me');
   await question.press('Enter');
 
-  await expect(page.locator('.god-mode-progress')).toBeVisible();
-  await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
+  await expect(page.locator('.titan-mode-progress')).toBeVisible();
+  await expect(page.locator('.titan-mode-agent.running')).toHaveCount(1);
   const cancelRun = page.getByRole('button', { name: 'Cancel agent run' });
   await cancelRun.hover();
   await expect(page.getByRole('tooltip')).toContainText('Cancel agent run');
   await cancelRun.click();
 
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(question).toBeEnabled();
   await expect(source).toHaveValue(sourceBefore);
   await expect(input).toHaveValue(inputBefore);
@@ -101,7 +101,7 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
   await expect(page.locator('.visualizer-header h2')).toHaveText(algorithmBefore ?? 'Simulation View');
   await expect(page.getByLabel(/Bidirectional BFS.*Custom execution/i)).toHaveCount(0);
   await expect(page.getByRole('paragraph').filter({
-    hasText: 'God Mode run was cancelled.',
+    hasText: 'Titan Mode run was cancelled.',
   })).toBeVisible();
 
   await page.waitForTimeout(250);
@@ -110,14 +110,14 @@ test('cancels the visible God Mode queue and ignores a late specialist response'
   await expect(page.getByText('Late package that must be ignored')).toHaveCount(0);
 
   await page.reload();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
 });
 
 test('shows the failing specialist after bounded SimLang retries and preserves the committed workspace', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
     Object.defineProperty(navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({}) } });
     Object.defineProperty(navigator, 'storage', {
@@ -186,8 +186,8 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   const question = page.getByPlaceholder('Type your question here...');
   await question.fill('Write a custom BFS algorithm');
   await question.press('Enter');
-  await expect(page.locator('.god-mode-agent.failed')).toContainText('Code');
-  await expect(page.locator('.god-mode-agent.failed')).toContainText('could not produce valid SimLang');
+  await expect(page.locator('.titan-mode-agent.failed')).toContainText('Code');
+  await expect(page.locator('.titan-mode-agent.failed')).toContainText('could not produce valid SimLang');
   await expect(page.getByRole('button', { name: 'Retry failed agent run' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dismiss agent run' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as Window & { __codeAuthorAttempts?: number }).__codeAuthorAttempts)).toBe(2);
@@ -200,7 +200,7 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   await expect(question).toBeEnabled();
 
   await page.getByRole('button', { name: 'Clear conversation memory' }).click();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('codexray.god-mode.runs.v1')))
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('codexray.titan-mode.runs.v1')))
     .toBeNull();
 });

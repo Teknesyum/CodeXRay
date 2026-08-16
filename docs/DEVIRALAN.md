@@ -4,6 +4,29 @@ Last updated: 2026-08-16
 
 ## Repository state
 
+### Current Titan completion status
+
+- Titan packages T1 through T14 are committed. T15 is ready for its dedicated
+  commit; T16 has not started, preserving the roadmap dependency order.
+- T15 currently adds its contract, executable-evidence matrix, focused Titan
+  browser smoke, persisted preference migration, deterministic-before-taxonomy
+  routing, and refreshed non-radio browser naming/assertions.
+- T15 gates passed: lint, forced TypeScript, 119 Vitest files / 747 tests,
+  production build budgets, and `desktop:check` including seven Rust tests. The
+  final full Playwright run passed 67/68 under eight-worker load; its only miss
+  was the unchanged one-second timeline threshold at 1.193 seconds. The same
+  performance spec passed with one worker, so this is recorded as the explicit
+  environment-only retry allowed by the T15 contract. All other 67 scenarios,
+  including the updated radio expectations, passed in the full run.
+- The radio implementation and `real-radio.spec.ts` were not changed. Two stale
+  non-real assertions now match the existing implementation: the visible
+  autoplay-blocked message and the non-iframe deferred player shell.
+- `PlaylistRadio.tsx` and `robustnessFuzz.test.ts` remain byte-identical at
+  `b5e8cb0e8cc07c4aa4354774c712c3353e09fea6` and
+  `ba07291eb0031308ddf48bb579c4da906dd5a25d`, respectively. The pre-existing
+  untracked Turkish roadmap remains preserved and must not be swept into a
+  package commit implicitly.
+
 - Titan Mode packages T1 and T2 are complete. Their contracts are
   `docs/tasks/T1-repository-hygiene.md` and
   `docs/tasks/T2-titan-type-module.md`.

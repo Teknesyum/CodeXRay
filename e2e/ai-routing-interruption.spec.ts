@@ -4,7 +4,7 @@ test('separates BFS questions from commands and discards interrupted narration',
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'false');
+    localStorage.setItem('codexray.ai.titanMode', 'false');
     localStorage.setItem('codexray.radio.autoplay', 'false');
     Object.defineProperty(navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({}) } });
     Object.defineProperty(navigator, 'storage', {

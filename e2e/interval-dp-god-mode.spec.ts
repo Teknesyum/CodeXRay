@@ -16,7 +16,7 @@ test('authors and simulates LeetCode 486 as a dependency-grounded 2D interval-DP
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -28,7 +28,7 @@ test('authors and simulates LeetCode 486 as a dependency-grounded 2D interval-DP
   await expect(page.locator('.code-display')).toContainText('dp[i][j] = max(takeLeft, takeRight);');
   await expect(page.getByRole('grid', { name: 'DP table' })).toBeVisible();
   await expect(page.locator('.matrix-cell')).toHaveCount(16);
-  await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.locator('.titan-mode-percent')).toHaveText('100%');
 
   const messageLayout = await page.locator('.ai-body > .chat-message').evaluateAll((messages) =>
     messages.map((message) => {

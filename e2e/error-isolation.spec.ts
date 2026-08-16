@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-test('isolates corrupt layout, invalid input, AI, radio, and God Mode failures without reset', async ({ page }) => {
+test('isolates corrupt layout, invalid input, AI, radio, and Titan Mode failures without reset', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.layout.v2', '{broken-json');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'true');
     localStorage.setItem('codexray.radio.minimizeSeconds', '16');
     Object.defineProperty(navigator, 'gpu', {
@@ -118,9 +118,9 @@ test('isolates corrupt layout, invalid input, AI, radio, and God Mode failures w
 
   await question.fill('write bidirectional BFS for me');
   await question.press('Enter');
-  await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
+  await expect(page.locator('.titan-mode-agent.running')).toHaveCount(1);
   await page.getByRole('button', { name: 'Cancel agent run' }).click();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(page.getByLabel('Quick Sort execution')).toBeVisible();
   await expect(progress).toHaveText(/^3 \/ \d+$/);
   await expect(question).toBeEnabled();

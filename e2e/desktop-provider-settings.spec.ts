@@ -34,5 +34,5 @@ test('shows desktop AI providers and the Ollama connection form', async ({ page 
   await expect(outputLimit).toHaveAttribute('max', '32768');
   await outputLimit.fill('32768');
   await expect(outputLimit).toHaveValue('32768');
-  await expect(page.getByRole('button', { name: 'Test et ve bağlan' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Bağlan' })).toBeVisible();
 });

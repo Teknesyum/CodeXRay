@@ -5,7 +5,7 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
     localStorage.setItem('portfolio.release-sentinel', 'preserve-me');
     Object.defineProperty(navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({}) } });
@@ -13,8 +13,8 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
       configurable: true,
       value: { persist: async () => true, persisted: async () => true },
     });
-    const state = window as Window & { __holdGodMode?: boolean; YT?: { Player: typeof TourPlayer } };
-    state.__holdGodMode = false;
+    const state = window as Window & { __holdTitanMode?: boolean; YT?: { Player: typeof TourPlayer } };
+    state.__holdTitanMode = false;
     type Listener = (event: MessageEvent) => void;
     class TourWorker {
       onmessage: Listener | null = null;
@@ -31,7 +31,7 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
         this.listeners.forEach((listener) => listener(event));
       }
       postMessage(message: { id: number; type: string; role?: string }) {
-        if (message.type === 'agent-run' && state.__holdGodMode) return;
+        if (message.type === 'agent-run' && state.__holdTitanMode) return;
         queueMicrotask(() => {
           if (message.type === 'cache-status') this.emit({ id: message.id, type: 'cache-status', text: 'cached' });
           else if (message.type === 'initialize') this.emit({ id: message.id, type: 'ready', text: 'mock-model' });
@@ -159,12 +159,12 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
   await expect(page.getByText(/Compatible input and trace applied/i)).toBeVisible();
   await expect.poll(() => page.locator('.graph-node').count()).toBe(nodesBefore + 2);
 
-  await page.evaluate(() => { (window as Window & { __holdGodMode?: boolean }).__holdGodMode = true; });
+  await page.evaluate(() => { (window as Window & { __holdTitanMode?: boolean }).__holdTitanMode = true; });
   await question.fill('write bidirectional BFS for me');
   await question.press('Enter');
-  await expect(page.locator('.god-mode-agent.running')).toHaveCount(1);
+  await expect(page.locator('.titan-mode-agent.running')).toHaveCount(1);
   await page.getByRole('button', { name: 'Cancel agent run' }).click();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(page.getByLabel(/Bidirectional BFS.*Custom execution/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Open CodeXRay Radio' }).click();

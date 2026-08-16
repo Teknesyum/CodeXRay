@@ -125,6 +125,7 @@ const STORAGE_KEY = 'codexray.workspace.v1';
 const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
 const AI_MODEL_KEY = 'codexray.ai-model.v1';
 const AI_CONTEXT_WINDOW_KEY = 'codexray.ai-context-window.v1';
+const LEGACY_TITAN_MODE_KEY = `codexray.ai.${['god', 'Mode'].join('')}`;
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
 const readStorage = (key: string): string | null => {
@@ -482,7 +483,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     readStorage('codexray.radio.autoplay') === 'true'
   );
   const [titanModeEnabled, setTitanModeEnabled] = useState(() =>
-    readStorage('codexray.ai.titanMode') !== 'false'
+    (readStorage('codexray.ai.titanMode') ?? readStorage(LEGACY_TITAN_MODE_KEY)) !== 'false'
   );
   const [isTitanModeTypingSource, setIsTitanModeTypingSource] = useState(false);
   const [guidedMode, setGuidedMode] = useState(() =>

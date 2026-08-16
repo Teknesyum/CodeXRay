@@ -4,7 +4,7 @@ const prepare = async (page: Page) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'tr');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');

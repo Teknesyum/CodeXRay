@@ -4,7 +4,7 @@ test('commits a validated model-authored algorithm and keeps its queue, source, 
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
     Object.defineProperty(navigator, 'gpu', { configurable: true, value: { requestAdapter: async () => ({}) } });
     Object.defineProperty(navigator, 'storage', {
@@ -87,5 +87,5 @@ test('commits a validated model-authored algorithm and keeps its queue, source, 
     'architect', 'code-author', 'input-engineer', 'visual-designer', 'critic', 'trace-director', 'result-analyst', 'tutor',
   ]));
   expect(await page.evaluate(() => (window as Window & { __agentRoles?: string[] }).__agentRoles)).not.toContain('manager');
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0, { timeout: 4_000 });
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0, { timeout: 4_000 });
 });

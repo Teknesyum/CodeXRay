@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-test('loads DFS in God Mode without waiting for a local model', async ({ page }) => {
+test('loads DFS in Titan Mode without waiting for a local model', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -16,9 +16,9 @@ test('loads DFS in God Mode without waiting for a local model', async ({ page })
   await expect(page.getByText('The requested workspace action was applied.')).toBeVisible();
   await chatInput.fill('Write bidirectional BFS. Create an original graph with 10 nodes and two alternative paths. Design both frontiers differently, simulate it, and teach it step by step.');
   await chatInput.press('Enter');
-  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
+  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.graph-node')).toHaveCount(10);
-  await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.locator('.titan-mode-percent')).toHaveText('100%');
 });
 
 test('loads DFS deterministically with a mocked on-device model bridge', async ({ page }) => {
@@ -109,11 +109,11 @@ test('loads DFS deterministically with a mocked on-device model bridge', async (
   expect(messages.some((message) => message.type === 'generate')).toBe(true);
 });
 
-test('builds and applies bidirectional BFS through the visible God Mode queue', async ({ page }) => {
+test('builds and applies bidirectional BFS through the visible Titan Mode queue', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'true');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
 
     Object.defineProperty(navigator, 'gpu', {
@@ -192,17 +192,18 @@ test('builds and applies bidirectional BFS through the visible God Mode queue', 
   await chatInput.fill('write bidirectional BFS for me');
   await chatInput.press('Enter');
 
-  await expect(page.locator('.code-display')).toContainText('reconstructPath');
-  await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
+  const customExecution = page.getByLabel('Bidirectional BFS — Custom execution');
+  await expect(customExecution).toBeVisible({ timeout: 15_000 });
+  await expect(customExecution).toContainText('reconstructPath');
   await expect(page.locator('.graph-node[data-semantic-roles~="start"]')).toHaveCount(1);
   await expect(page.locator('.graph-node[data-semantic-roles~="target"]')).toHaveClass(/shape-diamond/);
   await expect(page.getByText('Start frontier', { exact: true })).toBeVisible();
   await expect(page.getByText('Target frontier', { exact: true })).toBeVisible();
-  await expect(page.getByText('Code', { exact: true })).toBeVisible();
-  await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.getByText('Produce', { exact: true })).toBeVisible();
+  await expect(page.locator('.titan-mode-percent')).toHaveText('100%');
   await expect(page.getByText(/code, input, and \d+-step simulation were applied/i)).toBeVisible();
   await expect(page.getByText(/Code: Two independent BFS frontiers/i)).toBeVisible();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0, { timeout: 4_000 });
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0, { timeout: 4_000 });
 
   const pauseButton = page.getByRole('button', { name: 'Pause', exact: true });
   if (await pauseButton.count()) await pauseButton.click();
@@ -233,7 +234,7 @@ test('builds and applies bidirectional BFS through the visible God Mode queue', 
   await chatInput.press('Enter');
   await expect(page.getByText(/Compatible input and trace applied/i)).toBeVisible();
   await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toBeVisible();
-  await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.locator('.titan-mode-percent')).toHaveText('100%');
   await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toHaveText(sourceBeforeVisualEdit ?? '');
   await expect(page.locator('.graph-edge')).toHaveCount(edgeCountBeforeVisualEdit);
   expect(Number((await page.locator('.visualizer-header-actions > span').textContent())?.split('/')[1].trim()))

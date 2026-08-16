@@ -591,7 +591,7 @@ export const DynamicVisualizer = ({
               <button type="button" className="action-btn load-btn" onClick={handleLoadModel}>{t('load', locale)}</button>
             )}
             <button type="button" className="action-btn hide-btn" onClick={() => setShowAiLoadWarning(false)}>{t('hide', locale)}</button>
-            <button type="button" className="action-btn" aria-label={t('localAiSettings', locale)} onClick={handleOpenAiSettings}>{t('settings', locale)}</button>
+            <button type="button" className="action-btn" aria-label={t('localAiConfigure', locale)} onClick={handleOpenAiSettings}>{t('settings', locale)}</button>
           </div>
         </div>
       )}

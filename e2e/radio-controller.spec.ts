@@ -106,7 +106,7 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
   await expect.poll(() => page.evaluate(() => (window as Window & { __radioCalls: { play: number } }).__radioCalls.play)).toBeGreaterThan(0);
   const callsBeforeRetry = await page.evaluate(() => (window as Window & { __radioCalls: { play: number } }).__radioCalls.play);
   await page.evaluate(() => (window as Window & { __blockAutoplay: () => void }).__blockAutoplay());
-  await expect(radio.getByRole('status')).toContainText('blocked by the browser');
+  await expect(radio.getByRole('status')).toContainText('Playback blocked. Press Play again.');
   await expect(radio.locator('button[title="Play"]')).toBeVisible();
   await page.mouse.click(2, 2);
   await expect.poll(() => page.evaluate(() => (window as Window & { __radioCalls: { play: number } }).__radioCalls.play)).toBeGreaterThan(callsBeforeRetry);

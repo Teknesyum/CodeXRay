@@ -26,7 +26,7 @@ test('requires a missing target, then builds on the exact user graph without rep
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -39,8 +39,8 @@ test('requires a missing target, then builds on the exact user graph without rep
   const question = page.getByPlaceholder('Type your question here...');
   await question.fill('Write bidirectional BFS on my graph');
   await question.press('Enter');
-  await expect(page.getByText(/needs an explicit target/i)).toBeVisible();
-  await expect(page.locator('.god-mode-progress')).toHaveCount(0);
+  await expect(page.getByText(/Choose a graph target, then retry bidirectional BFS/i)).toBeVisible();
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'Source code' })).toHaveValue(sourceBefore);
 
   await page.getByLabel('Target').selectOption('right');

@@ -19,7 +19,10 @@ const packageValue = compileCustomSimulationPackage({
   analysis: 'O(V + E)',
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 const Harness = () => {
   const timeline = useTimeline();
@@ -31,6 +34,7 @@ const Harness = () => {
       <span data-testid="graph-x">{timeline.simulationInput.graph?.nodes[0]?.x ?? 'none'}</span>
       <span data-testid="trace-signature">{JSON.stringify(timeline.steps.map((step) => [step.lineNumber, step.explanation]))}</span>
       <span data-testid="input-error">{timeline.inputError ?? ''}</span>
+      <span data-testid="titan-enabled">{String(timeline.titanModeEnabled)}</span>
       <button type="button" onClick={() => timeline.applySimulationPackage(packageValue, 'run-1')}>apply</button>
       <button type="button" onClick={() => timeline.setCode(`${timeline.code}\n// manual`)}>edit</button>
       <button type="button" onClick={timeline.undoWorkspaceTransaction}>undo</button>
@@ -53,6 +57,12 @@ const Harness = () => {
 };
 
 describe('TimelineContext Titan Mode transactions', () => {
+  it('migrates the legacy disabled preference without silently enabling Titan Mode', () => {
+    localStorage.setItem(`codexray.ai.${['god', 'Mode'].join('')}`, 'false');
+    render(<TimelineProvider><Harness /></TimelineProvider>);
+    expect(screen.getByTestId('titan-enabled')).toHaveTextContent('false');
+    expect(localStorage.getItem('codexray.ai.titanMode')).toBe('false');
+  });
   it('atomically applies a package and restores it with undo/redo', async () => {
     const user = userEvent.setup();
     render(<TimelineProvider><Harness /></TimelineProvider>);

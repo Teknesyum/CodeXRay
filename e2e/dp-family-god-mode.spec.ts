@@ -4,7 +4,7 @@ const prepare = async (page: Page) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -31,7 +31,7 @@ test('authors, visualizes, and teaches a 1D House Robber DP recurrence', async (
   await expect(page.locator('.code-display')).toContainText('int[] dp = new int[n]');
   await expect(page.locator('.code-display')).toContainText('dp[i] = Math.max(take, skip);');
   await expect(page.locator('.code-display')).not.toContainText('vector<int>');
-  await expect(page.locator('.god-mode-percent')).toHaveText('100%');
+  await expect(page.locator('.titan-mode-percent')).toHaveText('100%');
   await pauseAndRewind(page);
   await advanceToEnd(page);
   await expect(page.locator('.step-explanation')).toContainText('final 1D DP result is 12');
@@ -137,7 +137,7 @@ test('routes the exact Turkish palindrome request through agents, types source, 
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'tr');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
-    localStorage.setItem('codexray.ai.godMode', 'true');
+    localStorage.setItem('codexray.ai.titanMode', 'true');
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
@@ -145,11 +145,11 @@ test('routes the exact Turkish palindrome request through agents, types source, 
   await chat.fill('en uzun palindromik dizi sorusu yaz çöz simüle et');
   await chat.press('Enter');
 
-  const liveSource = page.locator('.god-mode-code-typing');
+  const liveSource = page.locator('.titan-mode-code-typing');
   await expect(liveSource).toBeVisible();
   await expect.poll(async () => liveSource.textContent().then((value) => value?.length ?? 0))
     .toBeGreaterThan(0);
-  await expect(page.locator('.god-mode-agent.running')).toContainText('Kod');
+  await expect(page.locator('.titan-mode-agent.running')).toContainText('Üret');
 
   await expect(page.getByLabel('LeetCode 516 — En Uzun Palindromik Alt Dizi çalışması')).toBeVisible();
   await expect(page.locator('.code-display')).toContainText('dp[i][j]');

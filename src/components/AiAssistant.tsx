@@ -489,6 +489,14 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     const selectedCatalogIntent = catalogSimulationRequest !== userMessage
       ? routeTitanModeRequest(catalogSimulationRequest, stateRef.current.steps, currentIndex, stateRef.current.algorithmName)
       : null;
+    const preliminaryTitanModeIntent = selectedCatalogIntent ?? (titanModeEnabled
+      ? routeTitanModeRequest(
+        catalogSimulationRequest,
+        stateRef.current.steps,
+        currentIndex,
+        stateRef.current.algorithmName,
+      )
+      : null);
     setQuestion('');
     setChatHistory((previous) =>
       [...previous, { role: 'user' as const, content: userMessage }]
@@ -499,7 +507,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     streamingResponseRef.current = null;
 
     try {
-      const taxonomyAnswer = await (await import('../services/questionTaxonomy')).default(userMessage, locale);
+      const taxonomyAnswer = preliminaryTitanModeIntent
+        ? null
+        : await (await import('../services/questionTaxonomy')).default(userMessage, locale);
       if (taxonomyAnswer) {
         setTaxonomyView(taxonomyAnswer);
         setChatHistory((previous) => [
@@ -632,14 +642,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           currentIndex,
           stateRef.current.algorithmName,
         )
-        : selectedCatalogIntent ?? (titanModeEnabled
-        ? routeTitanModeRequest(
-          catalogSimulationRequest,
-          stateRef.current.steps,
-          currentIndex,
-          stateRef.current.algorithmName,
-        )
-        : null);
+        : preliminaryTitanModeIntent;
       let titanModeRequest = userMessage;
 
       if (titanModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {

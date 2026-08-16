@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('keeps startup, catalog switching, simulation, timeline, and DP rendering inside interaction budgets', async ({ page }) => {
+test('keeps startup, catalog switching, simulation, timeline, and DP rendering inside interaction budgets', { tag: '@performance' }, async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');
@@ -37,7 +37,7 @@ test('keeps startup, catalog switching, simulation, timeline, and DP rendering i
   expect(performance.now() - dpStarted, '70-cell matrix package and render').toBeLessThan(4_000);
 });
 
-test('survives repeated cross-subsystem use without stale state, overflow, or locked controls', async ({ page }) => {
+test('survives repeated cross-subsystem use without stale state, overflow, or locked controls', { tag: '@performance' }, async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.ai.autoLoad', 'false');

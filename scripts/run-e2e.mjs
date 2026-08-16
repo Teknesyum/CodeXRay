@@ -44,24 +44,31 @@ const waitForServer = async () => {
 
 try {
   await waitForServer();
-  const testArgs = realAi
-    ? [playwrightCli, 'test', 'e2e/real-ai.spec.ts']
-    : realRadio
-      ? [playwrightCli, 'test', 'e2e/real-radio.spec.ts']
-      : [playwrightCli, 'test'];
-  const test = spawn(process.execPath, testArgs, {
-    cwd: root,
-    env: {
-      ...process.env,
-      PLAYWRIGHT_EXTERNAL_SERVER: '1',
-      ...(realAi ? { CODEXRAY_REAL_AI: '1' } : {}),
-      ...(realRadio ? { CODEXRAY_REAL_RADIO: '1' } : {}),
-    },
-    stdio: 'inherit',
-    shell: false,
-  });
-  const exitCode = await new Promise((resolve) => test.once('exit', resolve));
-  process.exitCode = typeof exitCode === 'number' ? exitCode : 1;
+  const runPlaywright = async (args) => {
+    const test = spawn(process.execPath, args, {
+      cwd: root,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_EXTERNAL_SERVER: '1',
+        ...(realAi ? { CODEXRAY_REAL_AI: '1' } : {}),
+        ...(realRadio ? { CODEXRAY_REAL_RADIO: '1' } : {}),
+      },
+      stdio: 'inherit',
+      shell: false,
+    });
+    const exitCode = await new Promise((resolve) => test.once('exit', resolve));
+    return typeof exitCode === 'number' ? exitCode : 1;
+  };
+  if (realAi) {
+    process.exitCode = await runPlaywright([playwrightCli, 'test', 'e2e/real-ai.spec.ts']);
+  } else if (realRadio) {
+    process.exitCode = await runPlaywright([playwrightCli, 'test', 'e2e/real-radio.spec.ts']);
+  } else {
+    const parallelExitCode = await runPlaywright([playwrightCli, 'test', '--grep-invert', '@performance']);
+    process.exitCode = parallelExitCode === 0
+      ? await runPlaywright([playwrightCli, 'test', '--grep', '@performance', '--workers=1'])
+      : parallelExitCode;
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

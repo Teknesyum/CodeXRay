@@ -434,6 +434,16 @@ export interface CustomSimulationPackageV1 {
   problemSpec?: ProblemSpecV2;
   algorithmPlan?: AlgorithmPlanV2;
   verification?: VerificationGatesV1;
+  translation?: TranslationProvenanceV1;
+}
+
+export interface TranslationProvenanceV1 {
+  version: 1;
+  originalLanguage: 'cpp' | 'java' | 'python';
+  originalSource: string;
+  generatedFormat: 'simlang-lite';
+  deterministicTrace: true;
+  verifiedAt: number;
 }
 
 export interface AlgorithmDesignV1 {

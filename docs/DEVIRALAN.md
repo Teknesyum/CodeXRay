@@ -229,6 +229,20 @@ Last updated: 2026-08-16
   exposed stale requirements-manifest paths after test-file renames; both were
   corrected, focused manifest coverage passed 2/2, and the final full suite
   passed 118 files / 740 tests.
+- T13 was committed as `8b5274a` after all gates passed.
+- T14 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T14-language-translation.md`. `translateToVerifiedPackage`
+  accepts C++, Java, or Python only as inert original-source provenance, merges
+  function-sized SimLang-Lite fragments deterministically, and permits one
+  initial attempt plus at most two repairs with exact parser/compiler feedback.
+- Translation succeeds only after schema validation, SimLang interpreter
+  execution, a non-empty deterministic trace, and package tests. Original
+  source is never executed and model text never supplies trace. Successful
+  packages carry typed translation provenance; CodeEditor displays an EN/TR
+  translated-and-deterministically-verified badge.
+- T14 verification on 2026-08-16: lint passed, 119 Vitest files / 746 tests
+  passed, forced TypeScript validation passed, and production build passed at
+  613.5/620 KiB initial JS and 90.5/100 KiB styles.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

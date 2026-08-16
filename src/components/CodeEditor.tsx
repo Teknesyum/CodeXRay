@@ -138,6 +138,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
     setIsEditingInput,
     isTitanModeTypingSource,
     packageOutOfSync,
+    activeSimulationPackage,
   } = useTimeline();
   const currentStep = steps[currentIndex];
   const panelTitle = t('sourceCode', locale);
@@ -224,6 +225,13 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
             <BookOpen size={14} />
             {locale === 'tr' ? 'Örnekler' : 'Examples'}
           </button>
+        )}
+        {activeSimulationPackage?.translation && (
+          <span className="translation-provenance" title={locale === 'tr' ? 'İz adımları doğrulanmış SimLang yürütmesinden gelir.' : 'Trace steps come from verified SimLang execution.'}>
+            {locale === 'tr'
+              ? `${activeSimulationPackage.translation.originalLanguage.toUpperCase()} kaynağından çevrildi · deterministik doğrulandı`
+              : `Translated from ${activeSimulationPackage.translation.originalLanguage.toUpperCase()} · deterministically verified`}
+          </span>
         )}
         <button
           type="button"

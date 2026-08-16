@@ -24,6 +24,18 @@
   letter-spacing: 2px;
 }
 
+.translation-provenance {
+  max-width: 280px;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  border-radius: 999px;
+  color: var(--neon-lime);
+  font: 0.62rem var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .registry-select {
   background: rgba(0, 243, 255, 0.1);
   border: 1px solid var(--neon-cyan);

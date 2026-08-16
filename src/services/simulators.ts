@@ -834,20 +834,13 @@ const identifyAlgorithm = (name: string, code: string): string => {
   return 'unknown';
 };
 
-export class UnsupportedCustomSimulationError extends Error {
-  constructor() {
-    super('Custom source requires deterministic tracer execution.');
-    this.name = 'UnsupportedCustomSimulationError';
-  }
-}
-
 export const simulateAlgorithm = (
   algorithmName: string,
   code: string,
   input: SimulationInput,
 ): SimulationStep[] => {
   const algorithm = identifyAlgorithm(algorithmName, code);
-  if (algorithm === 'unknown') throw new UnsupportedCustomSimulationError();
+  if (algorithm === 'unknown') throw new Error('CUSTOM_TRACE_REQUIRED');
   if (algorithm === 'z') return zAlgorithm(parseStringInput(input.text));
   if (algorithm === 'manacher') return manacher(parseStringInput(input.text));
   if (compoundSimulators[algorithm]) return compoundSimulators[algorithm](input);

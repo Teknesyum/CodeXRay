@@ -1,5 +1,5 @@
 import type { SimulationInput, SimulationStep } from '../types/simulation';
-import { simulateAlgorithm, UnsupportedCustomSimulationError } from './simulators';
+import { simulateAlgorithm } from './simulators';
 import {
   askLocalModel,
   askLocalModelDetailed,
@@ -81,7 +81,7 @@ export const generateSimulationSteps = (
   try {
     return Promise.resolve(simulateAlgorithm(algorithmName, code, input));
   } catch (error) {
-    if (!(error instanceof UnsupportedCustomSimulationError)) throw error;
+    if (!(error instanceof Error) || error.message !== 'CUSTOM_TRACE_REQUIRED') throw error;
     return import('./trace/customSimulation')
       .then(({ traceCustomSimulation }) => traceCustomSimulation(code, input));
   }

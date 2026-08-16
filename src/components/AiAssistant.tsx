@@ -649,7 +649,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           selectedCatalogProblem.title,
           locale,
         );
-        if (!support.exact) {
+        if ('request' in support) {
           godModeIntent = { type: 'create-algorithm', template: 'model-authored' };
           godModeRequest = support.request;
         }

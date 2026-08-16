@@ -1197,7 +1197,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
           );
         let architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
         let validation = validateArchitectureContract(response, architectJob?.finishReason);
-        if (creationIntent.template === 'model-authored' && !validation.ok && validation.stage === 'truncated') {
+        if (creationIntent.template === 'model-authored' && 'stage' in validation && validation.stage === 'truncated') {
           setJob('architect-design-algorithm-contract', {
             status: 'retrying',
             attempt: (architectJob?.attempt ?? 1) + 1,

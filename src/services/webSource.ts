@@ -75,7 +75,7 @@ export const parseExternalDocumentV1 = (value: unknown): ExternalDocumentV1 => {
     return {
       id: segment.id,
       kind: segment.kind as WebSourceSegmentKind,
-      ...(segment.heading ? { heading: segment.heading } : {}),
+      ...(segment.heading ? { heading: segment.heading as string } : {}),
       text: segment.text,
     };
   });

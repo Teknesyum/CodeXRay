@@ -12,7 +12,7 @@ const getWorker = () => {
     const request = pending.get(response.id);
     if (!request) return;
     pending.delete(response.id);
-    if (response.ok) request.resolve(response.trace);
+    if ('trace' in response) request.resolve(response.trace);
     else request.reject(new Error(response.reason));
   });
   worker.addEventListener('error', (event) => {

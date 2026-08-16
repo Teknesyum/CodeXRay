@@ -100,7 +100,7 @@ const unfinished = "${'x'.repeat(512)}";`} />);
       const { container, unmount } = render(<MarkdownPreview content={content} />);
       expect(container.textContent?.length).toBeGreaterThan(0);
       expect(container.querySelector('script, iframe, svg, object, embed, style')).toBeNull();
-      expect([...container.querySelectorAll('a')].every((link) =>
+      expect(Array.from(container.querySelectorAll('a')).every((link) =>
         /^(?:https?:|mailto:)/i.test(link.getAttribute('href') ?? ''))).toBe(true);
       unmount();
     });

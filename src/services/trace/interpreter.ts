@@ -224,7 +224,7 @@ export class Interpreter {
 
   private toTraceValue(value: RuntimeValue, seen = new Set<object>()): TraceValue {
     if (value === undefined) return null;
-    if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return value as TraceValue;
     if (typeof value === 'number') return Number.isFinite(value) ? value : String(value);
     if (typeof value === 'bigint') return value.toString();
     if (isCallable(value)) return `[Function ${value.name}]`;

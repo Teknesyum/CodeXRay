@@ -512,7 +512,7 @@ const cloneRuntimeValue = (value: RuntimeValue): RuntimeValue => {
 };
 
 const toTraceValue = (value: RuntimeValue, seen = new WeakSet<object>()): TraceValue => {
-  if (value === null || typeof value !== 'object') return value;
+  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value as TraceValue;
   if (seen.has(value)) return '[Circular]';
   seen.add(value);
   if (value instanceof Set) return [...value].map((item) => toTraceValue(item, seen));

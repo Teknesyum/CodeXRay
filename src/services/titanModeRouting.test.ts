@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { extractDpDimensions, requestsUniqueDpInput, routeGodModeRequest, routeWebSourceRequest } from './godModeRouting';
+import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from './titanModeRouting';
 
-describe('God Mode routing', () => {
+describe('Titan Mode routing', () => {
   it('preserves platform and numeric ID from the catalog drawer command', () => {
-    expect(routeGodModeRequest('Create catalog problem: leetcode/486', [], 0)).toEqual({
+    expect(routeTitanModeRequest('Create catalog problem: leetcode/486', [], 0)).toEqual({
       type: 'create-catalog-problem',
       source: 'leetcode',
       problemId: '486',
     });
-    expect(routeGodModeRequest('Create catalog problem: cses/1192', [], 0)).toEqual({
+    expect(routeTitanModeRequest('Create catalog problem: cses/1192', [], 0)).toEqual({
       type: 'create-catalog-problem',
       source: 'cses',
       problemId: '1192',
@@ -28,7 +28,7 @@ describe('God Mode routing', () => {
     'DFS sayfasını açar mısın?',
     'open the DFS page',
   ])('loads DFS for explicit workspace request: %s', (request) => {
-    expect(routeGodModeRequest(request, [], 0)).toEqual({
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({
       type: 'deterministic',
       actions: [{ type: 'load-preset', presetId: 'depth-first-search-dfs' }],
     });
@@ -39,18 +39,18 @@ describe('God Mode routing', () => {
     'DFS nasıl çalışır?',
     'DFS ile BFS farkını anlat',
   ])('does not mutate for a knowledge-only question: %s', (request) => {
-    expect(routeGodModeRequest(request, [], 0)).toBeNull();
+    expect(routeTitanModeRequest(request, [], 0)).toBeNull();
   });
 
   it('routes input adaptation as a multi-agent intent', () => {
-    expect(routeGodModeRequest('bu kod için inputları düzenle', [], 0)).toEqual({ type: 'adapt-input' });
-    expect(routeGodModeRequest('inputu genişlet', [], 0)).toEqual({ type: 'adapt-input' });
-    expect(routeGodModeRequest('inputumuzu 2 kat karmaşıklaştır', [], 0)).toEqual({ type: 'adapt-input' });
-    expect(routeGodModeRequest('17. nolu nodu kaldır', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('bu kod için inputları düzenle', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('inputu genişlet', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('inputumuzu 2 kat karmaşıklaştır', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('17. nolu nodu kaldır', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
   it('keeps composite solve, author, input, and simulate requests on the creation pipeline', () => {
-    expect(routeGodModeRequest(
+    expect(routeTitanModeRequest(
       'LeetCode 1 Two Sum solve: write code, create original input, simulate every step, and verify the final result',
       [],
       0,
@@ -67,51 +67,51 @@ describe('God Mode routing', () => {
     'girdiyi 10x10 yapabilir misin',
     'gridi 8*15 yap',
   ])('routes sized follow-up simulations through input adaptation: %s', (request) => {
-    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
   });
 
   it('does not mutate the workspace for a size-only knowledge question', () => {
-    expect(routeGodModeRequest('10x10 interval DP tablosu nedir?', [], 0)).toBeNull();
-    expect(routeGodModeRequest('10x10 input yapısı nedir?', [], 0)).toBeNull();
+    expect(routeTitanModeRequest('10x10 interval DP tablosu nedir?', [], 0)).toBeNull();
+    expect(routeTitanModeRequest('10x10 input yapısı nedir?', [], 0)).toBeNull();
   });
 
   it('routes bidirectional BFS creation to the validated template', () => {
-    expect(routeGodModeRequest('bana iki yönlü BFS yaz', [], 0)).toEqual({
+    expect(routeTitanModeRequest('bana iki yönlü BFS yaz', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'bidirectional-bfs',
     });
   });
 
   it('routes the exact Coin Exchange request to the deterministic Coin Change agent', () => {
-    expect(routeGodModeRequest('bana coin exchange problemi yaz ve simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('bana coin exchange problemi yaz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'coin-change-1d-dp',
     });
   });
 
   it('distinguishes opening a preset, authoring code, using the current graph, and asking a question', () => {
-    expect(routeGodModeRequest('BFS sayfasını aç', [], 0)).toEqual({
+    expect(routeTitanModeRequest('BFS sayfasını aç', [], 0)).toEqual({
       type: 'deterministic',
       actions: [{ type: 'load-preset', presetId: 'breadth-first-search-bfs' }],
     });
-    expect(routeGodModeRequest('BFS kodu yaz', [], 0)).toEqual({
+    expect(routeTitanModeRequest('BFS kodu yaz', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'model-authored',
     });
-    expect(routeGodModeRequest('Elimdeki graph için BFS oluştur', [], 0)).toEqual({
+    expect(routeTitanModeRequest('Elimdeki graph için BFS oluştur', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'model-authored',
     });
-    expect(routeGodModeRequest('BFS nedir?', [], 0)).toBeNull();
+    expect(routeTitanModeRequest('BFS nedir?', [], 0)).toBeNull();
   });
 
   it('routes structural and visual-only graph changes through input transactions', () => {
-    expect(routeGodModeRequest('Bu grapha iki node ekle, hedefi değiştir', [], 0)).toEqual({ type: 'adapt-input' });
-    expect(routeGodModeRequest('Nodeları daha geniş yay, iki cepheyi farklı şekillerle göster', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('Bu grapha iki node ekle, hedefi değiştir', [], 0)).toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('Nodeları daha geniş yay, iki cepheyi farklı şekillerle göster', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
   it('resolves a follow-up memory optimization against the committed LCS workspace', () => {
-    expect(routeGodModeRequest(
+    expect(routeTitanModeRequest(
       'bellek O(m*n) olmasına gerek yok O(min(m,n)) yap; kodu yaz ve simüle et',
       [],
       0,
@@ -120,22 +120,22 @@ describe('God Mode routing', () => {
   });
 
   it('routes the documented Jump Game optimization path', () => {
-    expect(routeGodModeRequest('Jump Game DP çöz ve simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('Jump Game DP çöz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm', template: 'jump-game-dp',
     });
-    expect(routeGodModeRequest('aynı soruyu greedy yap, kodu yaz ve simüle et', [], 0, 'LeetCode 55 — Jump Game (DP)')).toEqual({
+    expect(routeTitanModeRequest('aynı soruyu greedy yap, kodu yaz ve simüle et', [], 0, 'LeetCode 55 — Jump Game (DP)')).toEqual({
       type: 'create-algorithm', template: 'jump-game-greedy',
     });
   });
 
   it('routes the documented LIS optimization path', () => {
-    expect(routeGodModeRequest('LIS sorusunu anlat', [], 0)).toEqual({
+    expect(routeTitanModeRequest('LIS sorusunu anlat', [], 0)).toEqual({
       type: 'create-algorithm', template: 'lis-quadratic-dp',
     });
-    expect(routeGodModeRequest('LIS DP çöz ve simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('LIS DP çöz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm', template: 'lis-quadratic-dp',
     });
-    expect(routeGodModeRequest('O(n log n) binary search uygula, kodu yaz ve simüle et', [], 0, 'LeetCode 300 — Longest Increasing Subsequence (O(n²) DP)')).toEqual({
+    expect(routeTitanModeRequest('O(n log n) binary search uygula, kodu yaz ve simüle et', [], 0, 'LeetCode 300 — Longest Increasing Subsequence (O(n²) DP)')).toEqual({
       type: 'create-algorithm', template: 'lis-binary-search',
     });
   });
@@ -146,7 +146,7 @@ describe('God Mode routing', () => {
     'interval dp sorusu yaz ve simüle et',
     'write and simulate an interval DP problem',
   ])('routes Predict the Winner to the deterministic interval-DP template: %s', (request) => {
-    expect(routeGodModeRequest(request, [], 0)).toEqual({
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'predict-winner-interval-dp',
     });
@@ -158,7 +158,7 @@ describe('God Mode routing', () => {
     ['LeetCode 516 longest palindromic subsequence çöz', 'longest-palindrome-interval-dp'],
     ['en uzun palindromik dizi sorusu yaz çöz simüle et', 'longest-palindrome-interval-dp'],
   ] as const)('routes representative DP families without model-format dependence: %s', (request, template) => {
-    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'create-algorithm', template });
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'create-algorithm', template });
   });
 
   it.each([
@@ -167,7 +167,7 @@ describe('God Mode routing', () => {
     'dinamik programlama simüle et',
     '1d dp oluştur',
   ])('asks for a concrete problem before starting a generic DP graph: %s', (request) => {
-    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
   });
 
   it('extracts explicit DP dimensions without asking the model to interpret them', () => {
@@ -179,26 +179,26 @@ describe('God Mode routing', () => {
   it('keeps a unique-input request separate from a unique-problem request', () => {
     const request = 'bir 2d dp sorusu yaz ve 6*11 benzersiz input ile simüle et';
     expect(requestsUniqueDpInput(request)).toBe(true);
-    expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
   });
 
   it('allows an explicit unique-problem choice to enter model-authored mode', () => {
-    expect(routeGodModeRequest('Özgün model-authored 2D DP sorusu yaz çöz ve simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('Özgün model-authored 2D DP sorusu yaz çöz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm', template: 'model-authored',
     });
   });
 
   it('keeps named 2D DP requests on deterministic templates', () => {
-    expect(routeGodModeRequest('LCS için 2D DP yaz simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('LCS için 2D DP yaz simüle et', [], 0)).toEqual({
       type: 'create-algorithm', template: 'lcs-2d-dp',
     });
-    expect(routeGodModeRequest('edit distance 2D tablo oluştur', [], 0)).toEqual({
+    expect(routeTitanModeRequest('edit distance 2D tablo oluştur', [], 0)).toEqual({
       type: 'create-algorithm', template: 'edit-distance-2d-dp',
     });
   });
 
   it('never sends a concrete author-and-simulate request to ordinary chat', () => {
-    expect(routeGodModeRequest('asal çarpanlara ayırma sorusu yaz, çöz ve simüle et', [], 0)).toEqual({
+    expect(routeTitanModeRequest('asal çarpanlara ayırma sorusu yaz, çöz ve simüle et', [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'model-authored',
     });
@@ -210,10 +210,10 @@ describe('God Mode routing', () => {
       explanation: index === 6 ? 'A critical meeting is found.' : `Step ${index + 1}`,
       visualData: { type: 'variables' as const, vars: { index } },
     }));
-    expect(routeGodModeRequest('devam', steps, 0)).toEqual({
+    expect(routeTitanModeRequest('devam', steps, 0)).toEqual({
       type: 'deterministic', actions: [{ type: 'next-important' }],
     });
-    expect(routeGodModeRequest('önceki önemli adıma dön', steps, 8)).toEqual({
+    expect(routeTitanModeRequest('önceki önemli adıma dön', steps, 8)).toEqual({
       type: 'deterministic', actions: [{ type: 'previous-important' }],
     });
   });
@@ -221,7 +221,7 @@ describe('God Mode routing', () => {
   it.each(['write an algorithm', 'bana bir algoritma yaz', 'create a program']) (
     'asks for missing requirements without starting an agent graph: %s',
     (request) => {
-      expect(routeGodModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
+      expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
     },
   );
 });

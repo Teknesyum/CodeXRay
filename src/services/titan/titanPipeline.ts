@@ -1,6 +1,6 @@
-import type { GodModeOrchestratorOptions, GodModeRunHandle, GodModeRunResult } from '../titanEngine';
-import { startGodModeRun as startTitanEngineRun, preflightCatalogProblem } from '../titanEntry';
-import type { AgentJobStatus, GodModeAgentRole, ManagerJobV1, ManagerPlanV1 } from '../../types/titan';
+import type { TitanModeOrchestratorOptions, TitanModeRunHandle, TitanModeRunResult } from '../titanEngine';
+import { startTitanModeRun as startTitanEngineRun, preflightCatalogProblem } from '../titanEntry';
+import type { AgentJobStatus, TitanModeAgentRole, ManagerJobV1, ManagerPlanV1 } from '../../types/titan';
 
 export type TitanStageId = 'route' | 'produce' | 'semantics' | 'verify' | 'apply';
 export type TitanStageStatus = 'waiting' | 'running' | 'completed' | 'skipped' | 'failed' | 'cancelled';
@@ -83,7 +83,7 @@ const stagePatterns: Record<TitanStageId, RegExp> = {
   apply: /manager-apply|manager-atomic-apply|tutor-/,
 };
 
-const stageRole: Record<TitanStageId, GodModeAgentRole> = {
+const stageRole: Record<TitanStageId, TitanModeAgentRole> = {
   route: 'manager',
   produce: 'compiler',
   semantics: 'visual-designer',
@@ -124,7 +124,7 @@ export const collapseTitanPlan = (plan: ManagerPlanV1): ManagerPlanV1 => ({
   }),
 });
 
-export const startTitanModeRun = (options: GodModeOrchestratorOptions): GodModeRunHandle =>
+export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanModeRunHandle =>
   startTitanEngineRun({
     ...options,
     onPlan: (plan) => options.onPlan(collapseTitanPlan(plan)),
@@ -132,4 +132,4 @@ export const startTitanModeRun = (options: GodModeOrchestratorOptions): GodModeR
   });
 
 export { preflightCatalogProblem };
-export type { GodModeOrchestratorOptions, GodModeRunHandle, GodModeRunResult };
+export type { TitanModeOrchestratorOptions, TitanModeRunHandle, TitanModeRunResult };

@@ -1,11 +1,11 @@
-import type { GodModeIntent } from './titan';
+import type { TitanModeIntent } from './titan';
 
-export type GodModeUserMessagePayload =
+export type TitanModeUserMessagePayload =
   | { text: string }
-  | GodModeIntent;
+  | TitanModeIntent;
 
 declare global {
   interface WindowEventMap {
-    'god-mode-user-message': CustomEvent<GodModeUserMessagePayload>;
+    'titan-mode-user-message': CustomEvent<TitanModeUserMessagePayload>;
   }
 }

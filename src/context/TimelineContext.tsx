@@ -93,10 +93,10 @@ interface TimelineContextType {
   requestRadioOpen: () => void;
   radioAutoplay: boolean;
   setRadioAutoplay: (autoplay: boolean) => void;
-  godModeEnabled: boolean;
-  setGodModeEnabled: (enabled: boolean) => void;
-  isGodModeTypingSource: boolean;
-  setIsGodModeTypingSource: (typing: boolean) => void;
+  titanModeEnabled: boolean;
+  setTitanModeEnabled: (enabled: boolean) => void;
+  isTitanModeTypingSource: boolean;
+  setIsTitanModeTypingSource: (typing: boolean) => void;
   activeSimulationPackage: CustomSimulationPackageV1 | null;
   packageOutOfSync: boolean;
   applySimulationPackage: (value: CustomSimulationPackageV1, runId: string) => void;
@@ -481,10 +481,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   const [radioAutoplay, setRadioAutoplay] = useState(() => 
     readStorage('codexray.radio.autoplay') === 'true'
   );
-  const [godModeEnabled, setGodModeEnabled] = useState(() =>
-    readStorage('codexray.ai.godMode') !== 'false'
+  const [titanModeEnabled, setTitanModeEnabled] = useState(() =>
+    readStorage('codexray.ai.titanMode') !== 'false'
   );
-  const [isGodModeTypingSource, setIsGodModeTypingSource] = useState(false);
+  const [isTitanModeTypingSource, setIsTitanModeTypingSource] = useState(false);
   const [guidedMode, setGuidedMode] = useState(() =>
     readStorage('codexray.ai.guidedMode') !== 'false'
   );
@@ -660,8 +660,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, [radioAutoplay]);
 
   useEffect(() => {
-    writeStorage('codexray.ai.godMode', String(godModeEnabled));
-  }, [godModeEnabled]);
+    writeStorage('codexray.ai.titanMode', String(titanModeEnabled));
+  }, [titanModeEnabled]);
 
   useEffect(() => {
     writeStorage('codexray.ai.guidedMode', String(guidedMode));
@@ -779,10 +779,10 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       requestRadioOpen,
       radioAutoplay,
       setRadioAutoplay,
-      godModeEnabled,
-      setGodModeEnabled,
-      isGodModeTypingSource,
-      setIsGodModeTypingSource,
+      titanModeEnabled,
+      setTitanModeEnabled,
+      isTitanModeTypingSource,
+      setIsTitanModeTypingSource,
       activeSimulationPackage: workspace.activePackage,
       packageOutOfSync: workspace.packageOutOfSync,
       applySimulationPackage,

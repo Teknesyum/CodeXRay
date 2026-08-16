@@ -210,6 +210,25 @@ Last updated: 2026-08-16
   Progress and role settings are lazy chunks; initial JS decreased to
   612.6/620 KiB, all ordinary lazy chunks remain below 100 KiB, and styles are
   90.2/100 KiB.
+- T12 was committed as `d39da65` after all gates passed.
+- T13 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T13-titan-i18n.md`. Active types, events, services, stores,
+  components, CSS selectors, worker messages, tests, and EN/TR translations now
+  use Titan Mode naming. Legacy session plan keys migrate without data loss.
+- The explicit no-touch rules create four enumerated source grep exceptions:
+  unchanged `PlaylistRadio.tsx`, unchanged `robustnessFuzz.test.ts`, and the two
+  minimal compatibility shims they import (`godModeUiControl.ts` and
+  `godModeRouting.ts`). All other `src` files have zero case-insensitive legacy
+  matches. The immutable file hashes remain respectively
+  `b5e8cb0e8cc07c4aa4354774c712c3353e09fea6` and
+  `ba07291eb0031308ddf48bb579c4da906dd5a25d`.
+- T13 verification on 2026-08-16: lint and forced TypeScript validation passed;
+  focused localization/routing/store/progress plus protected fuzz tests passed
+  63/63; production build passed at 613.0/620 KiB initial JS; desktop check,
+  Clippy, formatting, and seven Rust tests passed. Two successive full runs
+  exposed stale requirements-manifest paths after test-file renames; both were
+  corrected, focused manifest coverage passed 2/2, and the final full suite
+  passed 118 files / 740 tests.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

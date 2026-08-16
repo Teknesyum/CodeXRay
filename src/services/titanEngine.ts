@@ -2,7 +2,7 @@ import type { Locale } from '../i18n/translations';
 import type {
   AlgorithmDesignV1,
   CustomSimulationPackageV1,
-  GodModeAgentRole,
+  TitanModeAgentRole,
   InputContractV1,
   ManagerJobV1,
   ManagerPlanV1,
@@ -26,8 +26,8 @@ import { PROGRAM_SPEC_V1_SCHEMA, SIMLANG_AUTHOR_INSTRUCTIONS } from './simLangSc
 import {
   createBidirectionalBfsProgram,
 } from './simLangBuiltins';
-import { canonicalCustomTitle } from './godModeRouting';
-import type { GodModeIntent } from '../types/titan';
+import { canonicalCustomTitle } from './titanModeRouting';
+import type { TitanModeIntent } from '../types/titan';
 import { createAgentInputContract } from './agentInputGenerator';
 import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
 import { createVisualizationContractV2 } from './visualizationDesigner';
@@ -40,7 +40,7 @@ import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
 import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
-export type GodModeRunResult = {
+export type TitanModeRunResult = {
   status: 'success';
   runId: string;
   plan: ManagerPlanV1;
@@ -60,10 +60,10 @@ interface AgentRunner {
   (request: LocalAgentRequest, onProgress?: (status: LocalAgentProgress) => void): LocalAgentHandle;
 }
 
-export interface GodModeOrchestratorOptions {
+export interface TitanModeOrchestratorOptions {
   request: string;
   intent: Exclude<
-    GodModeIntent,
+    TitanModeIntent,
     { type: 'deterministic' } | { type: 'ui-control' } | { type: 'clarify-algorithm' }
   >;
   locale: Locale;
@@ -83,9 +83,9 @@ export interface GodModeOrchestratorOptions {
   agentRunner?: AgentRunner;
 }
 
-export interface GodModeRunHandle {
+export interface TitanModeRunHandle {
   runId: string;
-  promise: Promise<GodModeRunResult>;
+  promise: Promise<TitanModeRunResult>;
   cancel: () => void;
 }
 
@@ -93,7 +93,7 @@ const createRunId = (): string =>
   `gm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const job = (
-  role: GodModeAgentRole,
+  role: TitanModeAgentRole,
   label: string,
   weight: number,
   dependsOn: string[] = [],
@@ -108,7 +108,7 @@ const job = (
   maxAttempts: role === 'code-author' || role === 'input-engineer' ? 2 : 1,
 });
 
-const createJobs = (intent: GodModeOrchestratorOptions['intent']): ManagerJobV1[] => {
+const createJobs = (intent: TitanModeOrchestratorOptions['intent']): ManagerJobV1[] => {
   if (intent.type === 'adapt-input') return [
     job('manager', 'Decompose request', 8),
     job('scout', 'Inspect live workspace', 12, ['manager-decompose-request']),
@@ -150,7 +150,7 @@ const createJobs = (intent: GodModeOrchestratorOptions['intent']): ManagerJobV1[
 const createPlan = (
   runId: string,
   request: string,
-  intent: GodModeOrchestratorOptions['intent'],
+  intent: TitanModeOrchestratorOptions['intent'],
 ): ManagerPlanV1 => ({
   version: 1,
   runId,
@@ -608,7 +608,7 @@ const deterministicPackageTour = (
   return deterministicFiveLens(locale, packageValue.steps[0], 0, packageValue.steps.length);
 };
 
-export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRunHandle => {
+export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanModeRunHandle => {
   const runId = createRunId();
   const plan = createPlan(runId, options.request, options.intent);
   let cancelled = false;
@@ -622,18 +622,18 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   const publish = () => options.onPlan({ ...plan, jobs: plan.jobs.map((value) => ({ ...value })) });
   const setJob = (id: string, changes: Partial<ManagerJobV1>) => {
     const target = plan.jobs.find((value) => value.id === id);
-    if (!target) throw new Error(`Unknown God Mode job ${id}.`);
+    if (!target) throw new Error(`Unknown Titan Mode job ${id}.`);
     Object.assign(target, changes);
     options.onEvent?.({ ...target });
     publish();
   };
   const ensureActive = () => {
-    if (cancelled) throw new Error('God Mode run was cancelled.');
+    if (cancelled) throw new Error('Titan Mode run was cancelled.');
   };
   const runJob = async <T>(id: string, task: () => Promise<T> | T): Promise<T> => {
     ensureActive();
     const target = plan.jobs.find((value) => value.id === id);
-    if (!target) throw new Error(`Unknown God Mode job ${id}.`);
+    if (!target) throw new Error(`Unknown Titan Mode job ${id}.`);
     const unmet = target.dependsOn.filter((dependency) =>
       plan.jobs.find((candidate) => candidate.id === dependency)?.status !== 'completed');
     if (unmet.length) throw new Error(`Job ${id} has unmet dependencies: ${unmet.join(', ')}`);
@@ -644,7 +644,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
       setJob(id, { status: 'completed', finishedAt: Date.now() });
       return value;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'God Mode job failed.';
+      const message = error instanceof Error ? error.message : 'Titan Mode job failed.';
       setJob(id, {
         status: cancelled ? 'cancelled' : 'failed',
         error: message,
@@ -654,7 +654,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     }
   };
   const callAgent = async (
-    role: GodModeAgentRole,
+    role: TitanModeAgentRole,
     instructions: string,
     context: string,
     responseSchema?: Record<string, unknown>,
@@ -727,7 +727,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
     }
   };
   const callOptionalAgent = async (
-    role: GodModeAgentRole,
+    role: TitanModeAgentRole,
     instructions: string,
     context: string,
     fallback: string,
@@ -744,7 +744,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   };
 
   publish();
-  const promise = (async (): Promise<GodModeRunResult> => {
+  const promise = (async (): Promise<TitanModeRunResult> => {
     try {
       if (options.intent.type === 'discuss-current-step') {
         await runJob('manager-freeze-and-route-discussion', () => 'Playback frozen.');
@@ -890,7 +890,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
 
       const creationIntent = options.intent;
       if (creationIntent.type !== 'create-algorithm') {
-        throw new Error(`Unsupported God Mode intent: ${creationIntent.type}`);
+        throw new Error(`Unsupported Titan Mode intent: ${creationIntent.type}`);
       }
       if (creationIntent.template === 'predict-winner-interval-dp') {
         const resolved = resolvePredictWinnerNumbers(options.request, options.workspace);
@@ -1489,7 +1489,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   };
 };
 
-export const godModePlanProgress = (plan: ManagerPlanV1): number => {
+export const titanModePlanProgress = (plan: ManagerPlanV1): number => {
   const total = plan.jobs.reduce((sum, current) => sum + current.weight, 0);
   if (!total) return 0;
   const completed = plan.jobs.reduce((sum, current) =>

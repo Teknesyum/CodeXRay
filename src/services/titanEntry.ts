@@ -1,9 +1,9 @@
 import type { ManagerJobV1, ManagerPlanV1 } from '../types/titan';
 import {
-  startGodModeRun as startLegacyGodModeRun,
-  type GodModeOrchestratorOptions,
-  type GodModeRunHandle,
-  type GodModeRunResult,
+  startTitanModeRun as startLegacyTitanModeRun,
+  type TitanModeOrchestratorOptions,
+  type TitanModeRunHandle,
+  type TitanModeRunResult,
 } from './titanEngine';
 import { checkProblemSupport } from './catalogSupportRegistry';
 import { compileExactCatalogProblem } from './catalogProblemCompiler';
@@ -61,8 +61,8 @@ const createCatalogJobs = (): ManagerJobV1[] => [
   catalogJob('tutor-grounded-tour', 'tutor', 'Teaching', 5),
 ];
 
-export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRunHandle => {
-  if (options.intent.type !== 'create-catalog-problem') return startLegacyGodModeRun(options);
+export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanModeRunHandle => {
+  if (options.intent.type !== 'create-catalog-problem') return startLegacyTitanModeRun(options);
 
   const runId = `gm-catalog-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const plan: ManagerPlanV1 = {
@@ -77,25 +77,25 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   const publish = () => options.onPlan({ ...plan, jobs: plan.jobs.map((job) => ({ ...job })) });
   const setJob = (id: string, changes: Partial<ManagerJobV1>) => {
     const target = plan.jobs.find((job) => job.id === id);
-    if (!target) throw new Error(`Unknown catalog God Mode job ${id}.`);
+    if (!target) throw new Error(`Unknown catalog Titan Mode job ${id}.`);
     Object.assign(target, changes);
     options.onEvent?.({ ...target });
     publish();
   };
   const runJob = async <T>(id: string, task: () => T | Promise<T>): Promise<T> => {
-    if (cancelled) throw new Error('God Mode run was cancelled.');
+    if (cancelled) throw new Error('Titan Mode run was cancelled.');
     const target = plan.jobs.find((job) => job.id === id);
-    if (!target) throw new Error(`Unknown catalog God Mode job ${id}.`);
+    if (!target) throw new Error(`Unknown catalog Titan Mode job ${id}.`);
     setJob(id, { status: 'running', attempt: target.attempt + 1, startedAt: Date.now() });
     try {
       const result = await task();
-      if (cancelled) throw new Error('God Mode run was cancelled.');
+      if (cancelled) throw new Error('Titan Mode run was cancelled.');
       setJob(id, { status: 'completed', finishedAt: Date.now() });
       return result;
     } catch (error) {
       setJob(id, {
         status: cancelled ? 'cancelled' : 'failed',
-        error: error instanceof Error ? error.message : 'Catalog God Mode job failed.',
+        error: error instanceof Error ? error.message : 'Catalog Titan Mode job failed.',
         finishedAt: Date.now(),
       });
       throw error;
@@ -103,7 +103,7 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   };
 
   publish();
-  const promise = (async (): Promise<GodModeRunResult> => {
+  const promise = (async (): Promise<TitanModeRunResult> => {
     try {
       const problemRef = `${(options.intent as any).source}/${(options.intent as any).problemId}`;
       await runJob('manager-catalog-request', () => problemRef);
@@ -176,4 +176,4 @@ export const startGodModeRun = (options: GodModeOrchestratorOptions): GodModeRun
   };
 };
 
-export type { GodModeRunHandle } from './titanEngine';
+export type { TitanModeRunHandle } from './titanEngine';

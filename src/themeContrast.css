@@ -121,7 +121,7 @@
   background: rgba(164, 15, 76, 0.09);
 }
 
-:root[data-theme="light"] .god-mode-toggle.active,
+:root[data-theme="light"] .titan-mode-toggle.active,
 :root[data-theme="light"] .ai-tour button.active,
 :root[data-theme="light"] .example-tab {
   color: var(--neon-magenta);
@@ -181,7 +181,7 @@
    dark panels are intentionally luminous and lose contrast against white. */
 :root[data-theme="light"] .code-highlight-overlay,
 :root[data-theme="light"] .code-line pre,
-:root[data-theme="light"] .god-mode-code-typing {
+:root[data-theme="light"] .titan-mode-code-typing {
   color: #172033;
 }
 

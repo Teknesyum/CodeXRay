@@ -136,7 +136,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
     pause,
     locale,
     setIsEditingInput,
-    isGodModeTypingSource,
+    isTitanModeTypingSource,
     packageOutOfSync,
   } = useTimeline();
   const currentStep = steps[currentIndex];
@@ -323,17 +323,17 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
 
       <div className="editor-content" tabIndex={0} aria-label={t('sourceCodeLabel', locale)}>
         {steps.length === 0 ? (
-          isGodModeTypingSource ? (
+          isTitanModeTypingSource ? (
             <pre
-              className="god-mode-code-typing"
+              className="titan-mode-code-typing"
               aria-label={t('sourceCodeLabel', locale)}
               aria-live="polite"
             >
               <span>{renderHighlightedCode(code.slice(0, neonTypingStart), 'typed')}</span>
-              <span key={code.length} className="god-mode-code-new-text">
+              <span key={code.length} className="titan-mode-code-new-text">
                 {renderHighlightedCode(code.slice(neonTypingStart), 'new')}
               </span>
-              <span className="god-mode-code-caret" aria-hidden="true" />
+              <span className="titan-mode-code-caret" aria-hidden="true" />
             </pre>
           ) : (
             <div className="code-edit-layer">

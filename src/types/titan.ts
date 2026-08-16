@@ -10,7 +10,7 @@ import type {
   GraphNodeVisualStyle,
 } from './simulation';
 
-export type GodModeAgentRole =
+export type TitanModeAgentRole =
   | 'manager'
   | 'scout'
   | 'architect'
@@ -37,7 +37,7 @@ export type AgentJobStatus =
 
 export interface ManagerJobV1 {
   id: string;
-  role: GodModeAgentRole;
+  role: TitanModeAgentRole;
   label: string;
   dependsOn: string[];
   weight: number;
@@ -63,7 +63,7 @@ export interface ManagerPlanV1 {
   version: 1;
   runId: string;
   request: string;
-  intent: GodModeIntent['type'];
+  intent: TitanModeIntent['type'];
   jobs: ManagerJobV1[];
   createdAt: number;
 }
@@ -72,7 +72,7 @@ export interface AgentRunEventV1 {
   version: 1;
   runId: string;
   jobId: string;
-  role: GodModeAgentRole;
+  role: TitanModeAgentRole;
   status: AgentJobStatus;
   timestamp: number;
   summary?: string;
@@ -532,7 +532,7 @@ export interface VerificationGatesV1 {
   transactionSafe: boolean;
 }
 
-export type GodModeIntent =
+export type TitanModeIntent =
   | { type: 'create-algorithm'; template: 'bidirectional-bfs' | 'predict-winner-interval-dp' | DpTemplateId | 'jump-game-dp' | 'jump-game-greedy' | 'lis-quadratic-dp' | 'lis-binary-search' | 'model-authored' }
   | { type: 'create-catalog-problem'; source: string; problemId: string }
   | { type: 'clarify-algorithm' }

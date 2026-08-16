@@ -24,22 +24,22 @@ const focusableElements = (element: HTMLElement): HTMLElement[] => Array.from(
 );
 
 const labels = (locale: 'en' | 'tr') => locale === 'tr' ? {
-  title: 'Örnekler', subtitle: 'Algoritma problemlerini incele, filtrele ve doğrulanmış olanları God Mode ile simüle et.',
+  title: 'Örnekler', subtitle: 'Algoritma problemlerini incele, filtrele ve doğrulanmış olanları Titan Mode ile simüle et.',
   close: 'Örnekleri kapat', platform: 'Platform', search: 'Başlık, ID veya etiket ara…',
   difficulty: 'Zorluk', category: 'Problem tipi', all: 'Tümü', easy: 'Kolay', medium: 'Orta', hard: 'Zor',
   loading: 'Örnekler yükleniyor…', error: 'Katalog yüklenemedi.', retry: 'Tekrar dene',
   empty: 'Bu filtrelerle eşleşen problem bulunamadı.', select: 'Ayrıntılarını görmek için bir problem seç.',
-  verified: 'Simülasyonu doğrulandı', simulate: 'God Mode ile Simüle Et', unavailable: 'Exact simülasyon henüz doğrulanmadı; God Mode problem kaynağını okuyarak deneyecek.',
+  verified: 'Simülasyonu doğrulandı', simulate: 'Titan Mode ile Simüle Et', unavailable: 'Exact simülasyon henüz doğrulanmadı; Titan Mode problem kaynağını okuyarak deneyecek.',
   tags: 'Etiketler', types: 'Problem tipleri', details: 'Problem ayrıntıları', open: 'Problem sayfasını aç', results: 'problem',
   statement: 'Problem açıklaması', inputFormat: 'Girdi biçimi', outputFormat: 'Çıktı biçimi', constraints: 'Kısıtlar', examples: 'Örnekler', notes: 'İpuçları ve notlar', signature: 'Fonksiyon imzası',
   loadingDetails: 'Problem ayrıntıları güvenli kaynaktan yükleniyor…', detailError: 'Problem ayrıntıları şu anda alınamadı.', retryDetails: 'Ayrıntıları yeniden dene', sourceWarning: 'İçerik kaynak sayfadan temizlenip doğrulanarak yüklenir.',
 } : {
-  title: 'Examples', subtitle: 'Explore and filter algorithm problems, then simulate verified entries with God Mode.',
+  title: 'Examples', subtitle: 'Explore and filter algorithm problems, then simulate verified entries with Titan Mode.',
   close: 'Close examples', platform: 'Platform', search: 'Search title, ID, or tag…',
   difficulty: 'Difficulty', category: 'Problem type', all: 'All', easy: 'Easy', medium: 'Medium', hard: 'Hard',
   loading: 'Loading examples…', error: 'The catalog could not be loaded.', retry: 'Try again',
   empty: 'No problems match these filters.', select: 'Select a problem to inspect its details.',
-  verified: 'Simulation verified', simulate: 'Simulate with God Mode', unavailable: 'No exact simulation is verified yet; God Mode will attempt it from the problem source.',
+  verified: 'Simulation verified', simulate: 'Simulate with Titan Mode', unavailable: 'No exact simulation is verified yet; Titan Mode will attempt it from the problem source.',
   tags: 'Tags', types: 'Problem types', details: 'Problem details', open: 'Open problem page', results: 'problems',
   statement: 'Problem statement', inputFormat: 'Input format', outputFormat: 'Output format', constraints: 'Constraints', examples: 'Examples', notes: 'Hints and notes', signature: 'Function signature',
   loadingDetails: 'Loading problem details from the validated source…', detailError: 'Problem details are currently unavailable.', retryDetails: 'Retry details', sourceWarning: 'Content is cleaned and validated from the source page.',
@@ -188,7 +188,7 @@ export const LeetCodeDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
     const text = canSimulate
       ? `Create catalog problem: ${source}/${selected.id}`
       : `Solve and simulate this catalog problem: ${selectedProblemUrl}`;
-    window.dispatchEvent(new CustomEvent('god-mode-user-message', {
+    window.dispatchEvent(new CustomEvent('titan-mode-user-message', {
       detail: { text },
     }));
     onClose();

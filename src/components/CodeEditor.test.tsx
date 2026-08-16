@@ -5,13 +5,13 @@ import { TimelineProvider, useTimeline } from '../context/TimelineContext';
 import { CodeEditor } from './CodeEditor';
 
 const TypingEditor = () => {
-  const { setCode, setIsGodModeTypingSource, setSteps } = useTimeline();
+  const { setCode, setIsTitanModeTypingSource, setSteps } = useTimeline();
 
   useEffect(() => {
     setSteps([]);
     setCode('class Solution { return true; }');
-    setIsGodModeTypingSource(true);
-  }, [setCode, setIsGodModeTypingSource, setSteps]);
+    setIsTitanModeTypingSource(true);
+  }, [setCode, setIsTitanModeTypingSource, setSteps]);
 
   return <CodeEditor collapsed={false} onToggleCollapse={() => undefined} onSaveInput={() => undefined} />;
 };
@@ -19,17 +19,17 @@ const TypingEditor = () => {
 afterEach(() => cleanup());
 
 describe('CodeEditor visual continuity', () => {
-  it('keeps syntax highlighting while God Mode types new neon text', async () => {
+  it('keeps syntax highlighting while Titan Mode types new neon text', async () => {
     const { container } = render(
       <TimelineProvider>
         <TypingEditor />
       </TimelineProvider>,
     );
 
-    await waitFor(() => expect(container.querySelector('.god-mode-code-typing')).not.toBeNull());
-    expect(container.querySelector('.god-mode-code-typing .code-token.keyword'))
+    await waitFor(() => expect(container.querySelector('.titan-mode-code-typing')).not.toBeNull());
+    expect(container.querySelector('.titan-mode-code-typing .code-token.keyword'))
       .toHaveTextContent('class');
-    expect(container.querySelector('.god-mode-code-new-text .code-token.keyword'))
+    expect(container.querySelector('.titan-mode-code-new-text .code-token.keyword'))
       .toHaveTextContent('return');
     expect(container.querySelector('.code-edit-layer')).toBeNull();
   });

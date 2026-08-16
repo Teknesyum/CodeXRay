@@ -678,7 +678,7 @@
   box-shadow: 0 0 8px var(--neon-magenta);
 }
 
-.god-mode-progress {
+.titan-mode-progress {
   position: relative;
   z-index: 3;
   display: flex;
@@ -696,13 +696,13 @@
   backdrop-filter: blur(14px) saturate(140%);
 }
 
-.god-mode-progress.has-reasoning {
+.titan-mode-progress.has-reasoning {
   align-items: stretch;
   flex-direction: column;
   max-height: 180px;
 }
 
-.god-mode-progress-main {
+.titan-mode-progress-main {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -710,7 +710,7 @@
   min-height: 23px;
 }
 
-.god-mode-agent-reasoning {
+.titan-mode-agent-reasoning {
   min-height: 22px;
   max-height: 138px;
   overflow: hidden;
@@ -721,11 +721,11 @@
   font: 0.62rem/1.5 var(--font-mono);
 }
 
-.god-mode-agent-reasoning.live {
+.titan-mode-agent-reasoning.live {
   border-color: rgba(0, 243, 255, 0.22);
 }
 
-.god-mode-agent-reasoning summary {
+.titan-mode-agent-reasoning summary {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -736,11 +736,11 @@
   user-select: none;
 }
 
-.god-mode-agent-reasoning summary::marker {
+.titan-mode-agent-reasoning summary::marker {
   color: rgba(0, 243, 255, 0.55);
 }
 
-.god-mode-agent-reasoning pre {
+.titan-mode-agent-reasoning pre {
   max-height: 108px;
   margin: 0;
   padding: 5px 8px 8px;
@@ -752,7 +752,7 @@
   scrollbar-width: thin;
 }
 
-.god-mode-thinking-live {
+.titan-mode-thinking-live {
   margin-left: auto;
   color: rgba(0, 243, 255, 0.7);
   font-size: 0.54rem;
@@ -760,7 +760,7 @@
   text-transform: uppercase;
 }
 
-.god-mode-thinking-live::before {
+.titan-mode-thinking-live::before {
   display: inline-block;
   width: 5px;
   height: 5px;
@@ -772,7 +772,7 @@
   animation: reasoning-pulse 1.2s ease-in-out infinite;
 }
 
-.god-mode-progress::before {
+.titan-mode-progress::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -782,22 +782,22 @@
   animation: god-scan 3.2s ease-in-out infinite;
 }
 
-.god-mode-progress.completed {
+.titan-mode-progress.completed {
   border-bottom-color: rgba(57, 255, 20, 0.42);
 }
 
-.god-mode-progress.failed {
+.titan-mode-progress.failed {
   border-bottom-color: rgba(255, 73, 108, 0.6);
 }
 
-.god-mode-progress-header {
+.titan-mode-progress-header {
   display: flex;
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
 }
 
-.god-mode-title {
+.titan-mode-title {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -809,13 +809,13 @@
   text-shadow: 0 0 9px rgba(0, 243, 255, 0.52);
 }
 
-.god-mode-percent {
+.titan-mode-percent {
   margin-left: 3px;
   color: var(--neon-lime);
   font: 700 0.62rem var(--font-mono);
 }
 
-.god-mode-mini-btn {
+.titan-mode-mini-btn {
   display: grid;
   place-items: center;
   width: 19px;
@@ -830,24 +830,24 @@
   transition: 160ms ease;
 }
 
-.god-mode-mini-btn:hover:not(:disabled) {
+.titan-mode-mini-btn:hover:not(:disabled) {
   border-color: var(--neon-cyan);
   color: white;
   box-shadow: 0 0 9px rgba(0, 243, 255, 0.3);
   transform: translateY(-1px);
 }
 
-.god-mode-mini-btn.danger {
+.titan-mode-mini-btn.danger {
   border-color: rgba(255, 73, 108, 0.4);
   color: #ff6480;
 }
 
-.god-mode-mini-btn:disabled {
+.titan-mode-mini-btn:disabled {
   opacity: 0.28;
   cursor: default;
 }
 
-.god-mode-real-progress {
+.titan-mode-real-progress {
   position: absolute;
   right: 8px;
   bottom: 1px;
@@ -860,7 +860,7 @@
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.72);
 }
 
-.god-mode-real-progress > div {
+.titan-mode-real-progress > div {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--neon-cyan), #7286ff 58%, var(--neon-magenta));
@@ -868,7 +868,7 @@
   transition: width 320ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
-.god-mode-agent-list {
+.titan-mode-agent-list {
   display: flex;
   flex: 1 1 auto;
   gap: 4px;
@@ -878,11 +878,11 @@
   scrollbar-width: none;
 }
 
-.god-mode-agent-list::-webkit-scrollbar {
+.titan-mode-agent-list::-webkit-scrollbar {
   display: none;
 }
 
-.god-mode-agent {
+.titan-mode-agent {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -896,22 +896,22 @@
   font: 0.55rem var(--font-mono);
 }
 
-.god-mode-agent.running,
-.god-mode-agent.retrying {
+.titan-mode-agent.running,
+.titan-mode-agent.retrying {
   border-color: rgba(0, 243, 255, 0.38);
   color: #e6fdff;
   background: rgba(0, 243, 255, 0.08);
   box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.07), 0 0 8px rgba(0, 243, 255, 0.12);
 }
 
-.god-mode-agent.completed,
-.god-mode-agent.completed_with_fallback {
+.titan-mode-agent.completed,
+.titan-mode-agent.completed_with_fallback {
   border-color: rgba(57, 255, 20, 0.22);
   color: #dfffd9;
 }
 
-.god-mode-agent.failed,
-.god-mode-agent.cancelled {
+.titan-mode-agent.failed,
+.titan-mode-agent.cancelled {
   border-color: rgba(255, 73, 108, 0.38);
   color: #ffafbd;
 }
@@ -925,14 +925,14 @@
   line-height: 0;
 }
 
-.god-mode-agent.running .agent-state-icon,
-.god-mode-agent.retrying .agent-state-icon {
+.titan-mode-agent.running .agent-state-icon,
+.titan-mode-agent.retrying .agent-state-icon {
   color: var(--neon-cyan);
   filter: drop-shadow(0 0 4px rgba(0, 243, 255, 0.9));
 }
 
-.god-mode-agent.running .agent-state-icon svg,
-.god-mode-agent.retrying .agent-state-icon svg {
+.titan-mode-agent.running .agent-state-icon svg,
+.titan-mode-agent.retrying .agent-state-icon svg {
   display: block;
   animation: god-gear-spin 2.1s linear infinite;
   transform-box: fill-box;
@@ -943,12 +943,12 @@
   to { transform: rotate(360deg); }
 }
 
-.god-mode-agent.completed .agent-state-icon,
-.god-mode-agent.completed_with_fallback .agent-state-icon {
+.titan-mode-agent.completed .agent-state-icon,
+.titan-mode-agent.completed_with_fallback .agent-state-icon {
   color: var(--neon-lime);
 }
 
-.god-mode-agent:focus-visible {
+.titan-mode-agent:focus-visible {
   outline: 1px solid var(--neon-cyan);
   outline-offset: 1px;
   box-shadow: 0 0 10px rgba(0, 243, 255, 0.34);
@@ -965,7 +965,7 @@
   display: none;
 }
 
-.god-mode-agent.skipped {
+.titan-mode-agent.skipped {
   border-color: rgba(255, 255, 255, 0.12);
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.025);
@@ -986,7 +986,7 @@
   white-space: nowrap;
 }
 
-.god-mode-agent-tooltip {
+.titan-mode-agent-tooltip {
   position: fixed;
   z-index: 10000;
   width: max-content;
@@ -1008,7 +1008,7 @@
   animation: god-tooltip-in 130ms ease-out both;
 }
 
-.god-mode-agent-tooltip::before {
+.titan-mode-agent-tooltip::before {
   position: absolute;
   top: -5px;
   left: 50%;
@@ -1059,7 +1059,7 @@
   }
 }
 
-.god-mode-toggle {
+.titan-mode-toggle {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1073,7 +1073,7 @@
   letter-spacing: 0.04em;
 }
 
-.god-mode-toggle.active {
+.titan-mode-toggle.active {
   border-color: rgba(255, 0, 255, 0.72);
   color: #fff;
   background: linear-gradient(120deg, rgba(0, 243, 255, 0.12), rgba(255, 0, 255, 0.2));

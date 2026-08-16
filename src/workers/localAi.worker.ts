@@ -14,7 +14,7 @@ import { buildPlannerInstructions, buildTutorInstructions } from '../services/ai
 import type { AssistantMessage } from '../services/aiContext';
 import { buildPlannerCompletionOptions } from '../services/aiPlanner';
 import { getLocalAiModelDefinition, resolveLocalAgentOutputTokens } from '../services/localAiModels';
-import type { GodModeAgentRole } from '../types/titan';
+import type { TitanModeAgentRole } from '../types/titan';
 import type { LocalAgentResultV2 } from '../types/webSource';
 
 interface InitializeMessage {
@@ -55,7 +55,7 @@ interface DeleteModelMessage {
 interface AgentRunMessage {
   id: number;
   type: 'agent-run';
-  role: GodModeAgentRole;
+  role: TitanModeAgentRole;
   instructions: string;
   context: string;
   locale: Locale;
@@ -144,7 +144,7 @@ const scheduleInference = (id: number, task: () => Promise<string | LocalAgentRe
     .catch(() => undefined)
     .then(async () => {
       if (cancelledRequests.delete(id)) {
-        throw new Error('God Mode agent was cancelled.');
+        throw new Error('Titan Mode agent was cancelled.');
       }
       postAgentEvent(id, 'running', 'Waiting for the first token from WebGPU.');
       try {
@@ -152,7 +152,7 @@ const scheduleInference = (id: number, task: () => Promise<string | LocalAgentRe
         const inferenceStartedAt = performance.now();
         const output = await task();
         if (cancelledRequests.delete(id)) {
-          throw new Error('God Mode agent was cancelled.');
+          throw new Error('Titan Mode agent was cancelled.');
         }
         if (typeof output === 'string') {
           return { output };

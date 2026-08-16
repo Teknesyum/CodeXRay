@@ -15,15 +15,15 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { extractDpDimensions, requestsUniqueDpInput, routeGodModeRequest, routeWebSourceRequest } from '../services/godModeRouting';
-import type { GodModeRunHandle } from '../services/titan/titanPipeline';
-import { dispatchGodModeUiAction } from '../services/godModeUiControl';
+import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from '../services/titanModeRouting';
+import type { TitanModeRunHandle } from '../services/titan/titanPipeline';
+import { dispatchTitanModeUiAction } from '../services/titanModeUiControl';
 import {
-  clearGodModePlans,
-  loadLatestGodModePlan,
-  persistGodModePlan,
-  removeGodModePlan,
-} from '../services/godModeRunStore';
+  clearTitanModePlans,
+  loadLatestTitanModePlan,
+  persistTitanModePlan,
+  removeTitanModePlan,
+} from '../services/titanModeRunStore';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
 import type { BoundWebSourceSessionV1, ManagerPlanV2, SolutionArtifactV1, WebProblemSpecV1 } from '../types/webSource';
 import {
@@ -42,7 +42,7 @@ import { MarkdownPreview } from './MarkdownPreview';
 import './AiAssistant.css';
 
 const QuestionTaxonomyTree = lazy(() => import('./QuestionTaxonomyTree'));
-const GodModeProgress = lazy(() => import('./GodModeProgress').then((module) => ({ default: module.GodModeProgress })));
+const TitanModeProgress = lazy(() => import('./TitanModeProgress').then((module) => ({ default: module.TitanModeProgress })));
 const TitanProgress = lazy(() => import('./TitanProgress').then((module) => ({ default: module.TitanProgress })));
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
@@ -162,9 +162,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     isAiMaximized,
     setIsAiMaximized,
     locale,
-    godModeEnabled,
-    setGodModeEnabled,
-    setIsGodModeTypingSource,
+    titanModeEnabled,
+    setTitanModeEnabled,
+    setIsTitanModeTypingSource,
     activeSimulationPackage,
     packageOutOfSync,
     applySimulationPackage,
@@ -201,16 +201,16 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const [isPlanningActions, setIsPlanningActions] = useState(false);
   const [currentActionText, setCurrentActionText] = useState<string>('');
   const [queueProgress, setQueueProgress] = useState(0);
-  const [godModePlan, setGodModePlan] = useState<ManagerPlanV1 | null>(() => {
-    const latest = loadLatestGodModePlan();
+  const [titanModePlan, setTitanModePlan] = useState<ManagerPlanV1 | null>(() => {
+    const latest = loadLatestTitanModePlan();
     if (!latest?.jobs.length) return null;
     if (latest.jobs.some((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')) {
-      removeGodModePlan(latest.runId);
+      removeTitanModePlan(latest.runId);
       return null;
     }
     return latest.jobs.some((job) => job.status === 'failed') ? latest : null;
   });
-  const [lastGodModeRequest, setLastGodModeRequest] = useState<string | null>(null);
+  const [lastTitanModeRequest, setLastTitanModeRequest] = useState<string | null>(null);
   const [webSourceSession, setWebSourceSession] = useState<BoundWebSourceSessionV1 | null>(loadBoundWebSource);
   const [webPlan, setWebPlan] = useState<ManagerPlanV2 | null>(null);
   const [pendingDpSelection, setPendingDpSelection] = useState<PendingDpSelection | null>(null);
@@ -219,12 +219,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
   const copyResetTimerRef = useRef<number | null>(null);
-  const godModeDismissTimerRef = useRef<number | null>(null);
+  const titanModeDismissTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
-  const godModeRunRef = useRef<GodModeRunHandle | null>(null);
+  const titanModeRunRef = useRef<TitanModeRunHandle | null>(null);
   const webRunRef = useRef<JavaFallbackRun | null>(null);
   const webFetchRef = useRef<AbortController | null>(null);
-  const dismissedGodModeRunsRef = useRef(new Set<string>());
+  const dismissedTitanModeRunsRef = useRef(new Set<string>());
   const sourcePreviewRunRef = useRef<string | null>(null);
   const sourcePreviewSnapshotRef = useRef<WorkspaceSnapshotV1 | null>(null);
   const selectedCatalogProblemRef = useRef<{ id: string; source: string; title: string } | null>(null);
@@ -276,11 +276,11 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       mountedRef.current = false;
       cancelLocalResponse();
       sourcePreviewRunRef.current = null;
-      godModeRunRef.current?.cancel();
+      titanModeRunRef.current?.cancel();
       webRunRef.current?.cancel();
       webFetchRef.current?.abort();
       if (copyResetTimerRef.current) window.clearTimeout(copyResetTimerRef.current);
-      if (godModeDismissTimerRef.current) window.clearTimeout(godModeDismissTimerRef.current);
+      if (titanModeDismissTimerRef.current) window.clearTimeout(titanModeDismissTimerRef.current);
       if (streamFlushTimerRef.current) window.clearTimeout(streamFlushTimerRef.current);
     };
   }, []);
@@ -328,8 +328,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setCurrentIndex(snapshot.currentIndex);
     setAnalysis(snapshot.analysis);
     setInputError(snapshot.inputError);
-    setIsGodModeTypingSource(false);
-  }, [pause, setAlgorithmName, setAnalysis, setCode, setCurrentIndex, setInputError, setIsGodModeTypingSource, setSteps]);
+    setIsTitanModeTypingSource(false);
+  }, [pause, setAlgorithmName, setAnalysis, setCode, setCurrentIndex, setInputError, setIsTitanModeTypingSource, setSteps]);
 
   useEffect(() => {
     const chatBody = chatBodyRef.current;
@@ -487,7 +487,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       ? `Create catalog problem: ${selectedCatalogProblem.source}/${selectedCatalogProblem.id}`
       : userMessage;
     const selectedCatalogIntent = catalogSimulationRequest !== userMessage
-      ? routeGodModeRequest(catalogSimulationRequest, stateRef.current.steps, currentIndex, stateRef.current.algorithmName)
+      ? routeTitanModeRequest(catalogSimulationRequest, stateRef.current.steps, currentIndex, stateRef.current.algorithmName)
       : null;
     setQuestion('');
     setChatHistory((previous) =>
@@ -625,24 +625,24 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         historyForModel = [];
       }
 
-      let godModeIntent = webProblemForSimulation
-        ? routeGodModeRequest(
+      let titanModeIntent = webProblemForSimulation
+        ? routeTitanModeRequest(
           modelQuestion,
           stateRef.current.steps,
           currentIndex,
           stateRef.current.algorithmName,
         )
-        : selectedCatalogIntent ?? (godModeEnabled
-        ? routeGodModeRequest(
+        : selectedCatalogIntent ?? (titanModeEnabled
+        ? routeTitanModeRequest(
           catalogSimulationRequest,
           stateRef.current.steps,
           currentIndex,
           stateRef.current.algorithmName,
         )
         : null);
-      let godModeRequest = userMessage;
+      let titanModeRequest = userMessage;
 
-      if (godModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {
+      if (titanModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {
         const { preflightCatalogProblem } = await import('../services/titan/titanPipeline');
         const support = await preflightCatalogProblem(
           selectedCatalogProblem.source,
@@ -651,18 +651,18 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           locale,
         );
         if ('request' in support) {
-          godModeIntent = { type: 'create-algorithm', template: 'model-authored' };
-          godModeRequest = support.request;
+          titanModeIntent = { type: 'create-algorithm', template: 'model-authored' };
+          titanModeRequest = support.request;
         }
       }
       let actionsToExecute: DeterministicWorkspaceCommand[] | null =
-        godModeIntent?.type === 'deterministic'
-          ? godModeIntent.actions
+        titanModeIntent?.type === 'deterministic'
+          ? titanModeIntent.actions
           : routeDeterministicCommand(userMessage, stateRef.current.steps, currentIndex);
       let targetIndex = currentIndex;
       let workspaceIsPlaying = isPlaying;
 
-      if (godModeIntent?.type === 'clarify-algorithm') {
+      if (titanModeIntent?.type === 'clarify-algorithm') {
         const dimensions = extractDpDimensions(userMessage) ?? { rows: 6, columns: 11 };
         setPendingDpSelection({
           request: userMessage,
@@ -671,26 +671,26 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         });
         setChatHistory((previous) => [
           ...previous,
-          { role: 'ai' as const, content: t('godModeClarifyAlgorithm', locale) },
+          { role: 'ai' as const, content: t('titanModeClarifyAlgorithm', locale) },
         ].slice(-MAX_STORED_MESSAGES));
         return;
       }
 
       if (
-        godModeIntent?.type === 'create-algorithm'
-        && godModeIntent.template === 'bidirectional-bfs'
+        titanModeIntent?.type === 'create-algorithm'
+        && titanModeIntent.template === 'bidirectional-bfs'
         && /(?:benim|bu|mevcut|current|my)\s+(?:graph|graf)/i.test(userMessage)
         && stateRef.current.simulationInput.graph
         && !stateRef.current.simulationInput.graph.targetId
       ) {
         setChatHistory((previous) => [
           ...previous,
-          { role: 'ai' as const, content: t('godModeMissingGraphEndpoints', locale) },
+          { role: 'ai' as const, content: t('titanModeMissingGraphEndpoints', locale) },
         ].slice(-MAX_STORED_MESSAGES));
         return;
       }
 
-      if (godModeIntent?.type === 'ui-control') {
+      if (titanModeIntent?.type === 'ui-control') {
         const now = Date.now();
         const uiPlan: ManagerPlanV1 = {
           version: 1,
@@ -725,24 +725,24 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             },
           ],
         };
-        setGodModePlan(uiPlan);
-        persistGodModePlan(uiPlan);
-        if (godModeIntent.command.startsWith('theme-')) {
-          setTheme(godModeIntent.command.slice('theme-'.length) as 'neon' | 'dark' | 'light');
-        } else if (godModeIntent.command === 'radio-open') {
+        setTitanModePlan(uiPlan);
+        persistTitanModePlan(uiPlan);
+        if (titanModeIntent.command.startsWith('theme-')) {
+          setTheme(titanModeIntent.command.slice('theme-'.length) as 'neon' | 'dark' | 'light');
+        } else if (titanModeIntent.command === 'radio-open') {
           requestRadioOpen();
-        } else if (godModeIntent.command === 'radio-play' || godModeIntent.command === 'radio-pause') {
-          dispatchGodModeUiAction({
+        } else if (titanModeIntent.command === 'radio-play' || titanModeIntent.command === 'radio-pause') {
+          dispatchTitanModeUiAction({
             type: 'set-radio-state',
-            state: godModeIntent.command === 'radio-play' ? 'play' : 'pause',
+            state: titanModeIntent.command === 'radio-play' ? 'play' : 'pause',
           });
         } else {
-          const layoutCommand = godModeIntent.command as
+          const layoutCommand = titanModeIntent.command as
             | 'focus-code'
             | 'focus-simulation'
             | 'focus-assistant'
             | 'balanced';
-          dispatchGodModeUiAction({
+          dispatchTitanModeUiAction({
             type: 'set-workspace-layout',
             layout: layoutCommand,
           });
@@ -758,15 +758,15 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       }
 
       if (
-        godModeIntent
-        && godModeIntent.type !== 'deterministic'
+        titanModeIntent
+        && titanModeIntent.type !== 'deterministic'
       ) {
-        if (godModeDismissTimerRef.current) {
-          window.clearTimeout(godModeDismissTimerRef.current);
-          godModeDismissTimerRef.current = null;
+        if (titanModeDismissTimerRef.current) {
+          window.clearTimeout(titanModeDismissTimerRef.current);
+          titanModeDismissTimerRef.current = null;
         }
-        setLastGodModeRequest(godModeRequest);
-        if (godModeIntent.type === 'discuss-current-step') pause();
+        setLastTitanModeRequest(titanModeRequest);
+        if (titanModeIntent.type === 'discuss-current-step') pause();
         const workspaceSnapshot: WorkspaceSnapshotV1 = {
           version: 1,
           algorithmName: stateRef.current.algorithmName,
@@ -782,22 +782,22 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         const { startTitanModeRun } = await import('../services/titan/titanPipeline');
         sourcePreviewSnapshotRef.current = workspaceSnapshot;
         const run = startTitanModeRun({
-          request: godModeRequest,
-          intent: godModeIntent,
+          request: titanModeRequest,
+          intent: titanModeIntent,
           locale,
           workspace: workspaceSnapshot,
           activePackage: stateRef.current.activeSimulationPackage,
           contextWindow: aiContextWindow,
           onPlan: (plan) => {
-            persistGodModePlan(plan);
-            if (!mountedRef.current || dismissedGodModeRunsRef.current.has(plan.runId)) return;
-            setGodModePlan(plan);
+            persistTitanModePlan(plan);
+            if (!mountedRef.current || dismissedTitanModeRunsRef.current.has(plan.runId)) return;
+            setTitanModePlan(plan);
             const completed = plan.jobs.length > 0
               && plan.jobs.every((job) => job.status === 'completed');
             if (completed) {
-              godModeDismissTimerRef.current = window.setTimeout(() => {
-                setGodModePlan((current) => current?.runId === plan.runId ? null : current);
-                godModeDismissTimerRef.current = null;
+              titanModeDismissTimerRef.current = window.setTimeout(() => {
+                setTitanModePlan((current) => current?.runId === plan.runId ? null : current);
+                titanModeDismissTimerRef.current = null;
               }, 1_200);
             }
           },
@@ -812,7 +812,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             setInputError(null);
             setCode('');
             const chunkSize = Math.max(2, Math.ceil(draftCode.length / 180));
-            setIsGodModeTypingSource(true);
+            setIsTitanModeTypingSource(true);
             try {
               for (let end = chunkSize; end < draftCode.length + chunkSize; end += chunkSize) {
                 if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;
@@ -821,7 +821,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               }
             } finally {
               if (mountedRef.current && sourcePreviewRunRef.current === runId) {
-                setIsGodModeTypingSource(false);
+                setIsTitanModeTypingSource(false);
               }
             }
           },
@@ -864,12 +864,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             };
           },
         });
-        godModeRunRef.current = run;
+        titanModeRunRef.current = run;
         sourcePreviewRunRef.current = run.runId;
         const result = await run.promise;
-        godModeRunRef.current = null;
+        titanModeRunRef.current = null;
         sourcePreviewRunRef.current = null;
-        setIsGodModeTypingSource(false);
+        setIsTitanModeTypingSource(false);
         if (!mountedRef.current) return;
         const content = (result as any).tutorAnswer
           ? `${(result as any).summary}\n\n${stripThinkBlock((result as any).tutorAnswer)}`
@@ -939,8 +939,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           );
         if (aiStatus !== 'ready') {
           const content = execution.failure
-            ? t('godModeActionFailed', locale, { error: execution.failure })
-            : t('godModeActionApplied', locale);
+            ? t('titanModeActionFailed', locale, { error: execution.failure })
+            : t('titanModeActionApplied', locale);
           setChatHistory((previous) => [
             ...previous,
             { role: execution.failure ? 'system' as const : 'ai' as const, content },
@@ -999,7 +999,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     } catch (error) {
       restoreSourcePreview();
       sourcePreviewRunRef.current = null;
-      godModeRunRef.current = null;
+      titanModeRunRef.current = null;
       webFetchRef.current = null;
       webRunRef.current = null;
       if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
@@ -1021,7 +1021,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       );
     } finally {
       if (mountedRef.current && responseEpoch === responseEpochRef.current) {
-        setIsGodModeTypingSource(false);
+        setIsTitanModeTypingSource(false);
         setIsPlanningActions(false);
         setIsTyping(false);
         setIsExecutingQueue(false);
@@ -1045,7 +1045,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     applyInputTransaction,
     applySimulationPackage,
     applyVisualPackageTransaction,
-    godModeEnabled,
+    titanModeEnabled,
     webSourceSession,
     pause,
     play,
@@ -1061,7 +1061,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setCurrentIndex,
     setAnalysis,
     setInputError,
-    setIsGodModeTypingSource,
+    setIsTitanModeTypingSource,
     restoreSourcePreview,
   ]);
 
@@ -1100,22 +1100,22 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   }, [locale, pendingDpSelection, submitQuestion]);
 
   useEffect(() => {
-    const handleGodModeUserMessage = (event: Event) => {
+    const handleTitanModeUserMessage = (event: Event) => {
       const customEvent = event as CustomEvent<{ text: string }>;
       if (customEvent.detail?.text) {
         submitQuestion(customEvent.detail.text);
       }
     };
-    window.addEventListener('god-mode-user-message', handleGodModeUserMessage);
-    return () => window.removeEventListener('god-mode-user-message', handleGodModeUserMessage);
+    window.addEventListener('titan-mode-user-message', handleTitanModeUserMessage);
+    return () => window.removeEventListener('titan-mode-user-message', handleTitanModeUserMessage);
   }, [submitQuestion]);
 
 
   useEffect(() => {
     if (!selectedExampleQuestion) return;
-    if (aiStatus === 'ready' || godModeEnabled) void submitQuestion(selectedExampleQuestion);
+    if (aiStatus === 'ready' || titanModeEnabled) void submitQuestion(selectedExampleQuestion);
     setSelectedExampleQuestion(null);
-  }, [aiStatus, godModeEnabled, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
+  }, [aiStatus, titanModeEnabled, selectedExampleQuestion, setSelectedExampleQuestion, submitQuestion]);
 
   useEffect(() => {
     narratedCheckpointsRef.current.clear();
@@ -1123,7 +1123,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   useEffect(() => {
     if (!guidedMode || isPlaying || !activeSimulationPackage) return;
-    if (godModePlan?.jobs.some((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')) return;
+    if (titanModePlan?.jobs.some((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying')) return;
     const teachingCheckpoint = activeSimulationPackage.teachingPlan.checkpoints.find(
       ({ checkpoint }) => checkpoint.stepIndex === currentIndex,
     );
@@ -1152,7 +1152,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       ...previous,
       { role: 'ai' as const, content: content.join('\n') },
     ].slice(-MAX_STORED_MESSAGES));
-  }, [activeSimulationPackage, currentIndex, godModePlan, guidedMode, isPlaying, locale]);
+  }, [activeSimulationPackage, currentIndex, titanModePlan, guidedMode, isPlaying, locale]);
 
   const systemMessage = translateRuntimeText(currentStep?.explanation
     ?? (aiStatus === 'ready'
@@ -1172,21 +1172,21 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const contextLabel = steps.length
     ? t('contextStep', locale, { current: currentIndex + 1, total: steps.length })
     : t('contextCodeOnly', locale);
-  const isGodModeRunning = Boolean(godModePlan?.jobs.some((job) =>
+  const isTitanModeRunning = Boolean(titanModePlan?.jobs.some((job) =>
     job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
   const isWebRunning = Boolean(webPlan?.jobs.some((job) =>
     job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'));
   const canSubmitWithoutModel = Boolean(extractFirstPublicHttpsUrl(question) || webSourceSession);
-  const dismissGodModePlan = () => {
-    if (godModeDismissTimerRef.current) {
-      window.clearTimeout(godModeDismissTimerRef.current);
-      godModeDismissTimerRef.current = null;
+  const dismissTitanModePlan = () => {
+    if (titanModeDismissTimerRef.current) {
+      window.clearTimeout(titanModeDismissTimerRef.current);
+      titanModeDismissTimerRef.current = null;
     }
-    if (godModePlan) {
-      dismissedGodModeRunsRef.current.add(godModePlan.runId);
-      removeGodModePlan(godModePlan.runId);
+    if (titanModePlan) {
+      dismissedTitanModeRunsRef.current.add(titanModePlan.runId);
+      removeTitanModePlan(titanModePlan.runId);
     }
-    setGodModePlan(null);
+    setTitanModePlan(null);
   };
   const clearConversationAndRuns = () => {
     setChatHistory([]);
@@ -1195,9 +1195,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
     setPendingDpSelection(null);
     setAnalysis(null);
     setTourSteps([]);
-    setLastGodModeRequest(null);
-    dismissGodModePlan();
-    clearGodModePlans();
+    setLastTitanModeRequest(null);
+    dismissTitanModePlan();
+    clearTitanModePlans();
     setWebPlan(null);
   };
 
@@ -1228,24 +1228,24 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <span className="context-chip" title={t('contextHelp', locale)}>{contextLabel}</span>
         <button
           type="button"
-          className={`god-mode-toggle ${godModeEnabled ? 'active' : ''}`}
-          aria-pressed={godModeEnabled}
-          aria-label={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
-          title={t(godModeEnabled ? 'godModeEnabled' : 'godModeDisabled', locale)}
+          className={`titan-mode-toggle ${titanModeEnabled ? 'active' : ''}`}
+          aria-pressed={titanModeEnabled}
+          aria-label={t(titanModeEnabled ? 'titanModeEnabled' : 'titanModeDisabled', locale)}
+          title={t(titanModeEnabled ? 'titanModeEnabled' : 'titanModeDisabled', locale)}
           onClick={() => {
-            if (godModeEnabled) {
+            if (titanModeEnabled) {
               sourcePreviewRunRef.current = null;
-              godModeRunRef.current?.cancel();
+              titanModeRunRef.current?.cancel();
               restoreSourcePreview();
             }
-            setGodModeEnabled(!godModeEnabled);
+            setTitanModeEnabled(!titanModeEnabled);
           }}
         >
-          <Crown size={11} /> {t('godMode', locale)}
+          <Crown size={11} /> {t('titanMode', locale)}
         </button>
         <button
           type="button"
-          className={`god-mode-toggle ${guidedMode ? 'active' : ''}`}
+          className={`titan-mode-toggle ${guidedMode ? 'active' : ''}`}
           aria-pressed={guidedMode}
           aria-label={t(guidedMode ? 'guidedModeEnabled' : 'guidedModeDisabled', locale)}
           title={t(guidedMode ? 'guidedModeEnabled' : 'guidedModeDisabled', locale)}
@@ -1270,8 +1270,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             ? t('clearAnalysis', locale)
             : t('memoryCount', locale, { count: conversationTurnCount })}
           onClick={clearConversationAndRuns}
-          disabled={(conversationTurnCount === 0 && !godModePlan && !webPlan && !analysis && !taxonomyView && !pendingDpSelection)
-            || isTyping || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
+          disabled={(conversationTurnCount === 0 && !titanModePlan && !webPlan && !analysis && !taxonomyView && !pendingDpSelection)
+            || isTyping || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}
         >
           <Trash2 size={13} />
         </button>
@@ -1337,39 +1337,39 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           </div>
         </div>
       )}
-      {godModePlan && (
+      {titanModePlan && (
         <Suspense fallback={null}>
         <TitanProgress
-          plan={godModePlan}
+          plan={titanModePlan}
           locale={locale}
           onCancel={() => {
-            const dismissedPlan = godModePlan;
-            if (dismissedPlan) dismissedGodModeRunsRef.current.add(dismissedPlan.runId);
+            const dismissedPlan = titanModePlan;
+            if (dismissedPlan) dismissedTitanModeRunsRef.current.add(dismissedPlan.runId);
             sourcePreviewRunRef.current = null;
-            godModeRunRef.current?.cancel();
+            titanModeRunRef.current?.cancel();
             restoreSourcePreview();
-            godModeRunRef.current = null;
+            titanModeRunRef.current = null;
             if (dismissedPlan) {
-              persistGodModePlan({
+              persistTitanModePlan({
                 ...dismissedPlan,
                 jobs: dismissedPlan.jobs.map((job) =>
                   job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'
                     ? { ...job, status: 'cancelled', error: undefined, finishedAt: Date.now() }
                     : job),
               });
-              removeGodModePlan(dismissedPlan.runId);
+              removeTitanModePlan(dismissedPlan.runId);
             }
-            setGodModePlan(null);
-            setIsGodModeTypingSource(false);
+            setTitanModePlan(null);
+            setIsTitanModeTypingSource(false);
             setIsPlanningActions(false);
             setIsExecutingQueue(false);
             setIsTyping(false);
           }}
-          onDismiss={dismissGodModePlan}
+          onDismiss={dismissTitanModePlan}
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}
           onRetry={() => {
-            if (lastGodModeRequest && !isGodModeRunning) void submitQuestion(lastGodModeRequest);
+            if (lastTitanModeRequest && !isTitanModeRunning) void submitQuestion(lastTitanModeRequest);
           }}
           canUndo={canUndoWorkspace}
           canRedo={canRedoWorkspace}
@@ -1378,7 +1378,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       )}
       {webPlan && (
         <Suspense fallback={null}>
-        <GodModeProgress
+        <TitanModeProgress
           plan={webPlan}
           locale={locale}
           onCancel={() => {
@@ -1391,7 +1391,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           onUndo={undoWorkspaceTransaction}
           onRedo={redoWorkspaceTransaction}
           onRetry={() => {
-            if (!isWebRunning) void submitQuestion(lastGodModeRequest ?? (locale === 'tr' ? 'Bu problemi çöz' : 'Solve this problem'));
+            if (!isWebRunning) void submitQuestion(lastTitanModeRequest ?? (locale === 'tr' ? 'Bu problemi çöz' : 'Solve this problem'));
           }}
           canUndo={false}
           canRedo={false}
@@ -1562,7 +1562,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 type="button"
                 className={index === currentIndex ? 'active' : ''}
                 aria-label={t('goToKeyMoment', locale, { step: index + 1 })}
-                disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
+                disabled={isTyping || (!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}
                 onClick={() => void submitQuestion(
                   locale === 'tr'
                     ? `${index + 1}. adıma git ve bu önemli noktayı anlat`
@@ -1585,7 +1585,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         <input
           type="text"
           maxLength={2048}
-          placeholder={aiStatus === 'ready' || godModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
+          placeholder={aiStatus === 'ready' || titanModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
           value={question}
           onChange={(event) => {
             const next = event.target.value;
@@ -1594,7 +1594,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             }
             setQuestion(next);
           }}
-          disabled={isTyping || (!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}
+          disabled={isTyping || (!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}
         />
         {isTyping ? (
           <button
@@ -1607,7 +1607,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               webFetchRef.current?.abort();
               webRunRef.current?.cancel();
               sourcePreviewRunRef.current = null;
-              godModeRunRef.current?.cancel();
+              titanModeRunRef.current?.cancel();
               restoreSourcePreview();
               setIsPlanningActions(false);
               setIsExecutingQueue(false);
@@ -1621,7 +1621,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             <Square size={13} fill="currentColor" />
           </button>
         ) : (
-          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!godModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isGodModeRunning || isWebRunning}>
+          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}>
             <Send size={14} />
           </button>
         )}

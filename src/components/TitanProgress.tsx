@@ -1,3 +1,3 @@
-import { GodModeProgress } from './GodModeProgress';
+import { TitanModeProgress } from './TitanModeProgress';
 
-export const TitanProgress = GodModeProgress;
+export const TitanProgress = TitanModeProgress;

@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TimelineProvider, useTimeline } from '../context/TimelineContext';
-import { loadLatestGodModePlan, persistGodModePlan } from '../services/godModeRunStore';
+import { loadLatestTitanModePlan, persistTitanModePlan } from '../services/titanModeRunStore';
 import type { ManagerPlanV1 } from '../types/titan';
 import { AiAssistant } from './AiAssistant';
 
@@ -226,7 +226,7 @@ describe('AiAssistant safe action pipeline', () => {
     expect(await screen.findByText('AI cevabı kopyalandı')).toHaveClass('copy-response-feedback');
   });
 
-  it('clears a persisted failed God Mode bar with the conversation trash button', async () => {
+  it('clears a persisted failed Titan Mode bar with the conversation trash button', async () => {
     const plan: ManagerPlanV1 = {
       version: 1,
       runId: 'failed-architect',
@@ -245,13 +245,13 @@ describe('AiAssistant safe action pipeline', () => {
         error: 'Invalid contract',
       }],
     };
-    persistGodModePlan(plan);
+    persistTitanModePlan(plan);
     const user = userEvent.setup();
     renderReadyAssistant();
 
     expect(await screen.findByText('Invalid contract')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Konuşma hafızasını temizle' }));
     await waitFor(() => expect(screen.queryByText('Invalid contract')).not.toBeInTheDocument());
-    expect(loadLatestGodModePlan()).toBeNull();
+    expect(loadLatestTitanModePlan()).toBeNull();
   });
 });

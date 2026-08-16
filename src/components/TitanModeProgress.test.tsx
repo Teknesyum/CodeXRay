@@ -1,14 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManagerPlanV2 } from '../types/webSource';
-import { GodModeProgress } from './GodModeProgress';
+import { TitanModeProgress } from './TitanModeProgress';
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
 
-describe('GodModeProgress timing', () => {
+describe('TitanModeProgress timing', () => {
   it('shows live subagent reasoning in a muted collapsible disclosure', () => {
     const plan: ManagerPlanV2 = {
       version: 2,
@@ -33,7 +33,7 @@ describe('GodModeProgress timing', () => {
     };
 
     render(
-      <GodModeProgress
+      <TitanModeProgress
         plan={plan}
         locale="en"
         onCancel={() => undefined}
@@ -80,7 +80,7 @@ describe('GodModeProgress timing', () => {
     };
 
     render(
-      <GodModeProgress
+      <TitanModeProgress
         plan={plan}
         locale="tr"
         onCancel={() => undefined}
@@ -138,12 +138,12 @@ describe('GodModeProgress timing', () => {
       canUndo: false,
       canRedo: false,
     };
-    const view = render(<GodModeProgress plan={createPlan()} {...props} />);
+    const view = render(<TitanModeProgress plan={createPlan()} {...props} />);
 
     await vi.advanceTimersByTimeAsync(200);
-    view.rerender(<GodModeProgress plan={createPlan()} {...props} />);
+    view.rerender(<TitanModeProgress plan={createPlan()} {...props} />);
     await vi.advanceTimersByTimeAsync(200);
-    view.rerender(<GodModeProgress plan={createPlan()} {...props} />);
+    view.rerender(<TitanModeProgress plan={createPlan()} {...props} />);
     await vi.advanceTimersByTimeAsync(200);
 
     expect(screen.getByText('0.3s')).toBeVisible();
@@ -176,7 +176,7 @@ describe('GodModeProgress timing', () => {
       }],
     };
     render(
-      <GodModeProgress
+      <TitanModeProgress
         plan={plan}
         locale="tr"
         onCancel={() => undefined}

@@ -240,7 +240,7 @@
   background: color-mix(in srgb, var(--neon-magenta) 28%, transparent);
 }
 
-.god-mode-code-typing {
+.titan-mode-code-typing {
   width: 100%;
   min-width: max-content;
   min-height: 100%;
@@ -254,23 +254,23 @@
   background: transparent;
 }
 
-.god-mode-code-new-text {
+.titan-mode-code-new-text {
   color: var(--neon-cyan);
   font-weight: 650;
   text-shadow:
     0 0 4px currentColor,
     0 0 10px color-mix(in srgb, currentColor 78%, transparent),
     0 0 15px color-mix(in srgb, currentColor 48%, transparent);
-  animation: god-mode-new-code 420ms ease-out both;
+  animation: titan-mode-new-code 420ms ease-out both;
 }
 
-.god-mode-code-new-text .code-token {
+.titan-mode-code-new-text .code-token {
   color: inherit;
   text-shadow: inherit;
   filter: brightness(1.08) saturate(1.08);
 }
 
-.god-mode-code-caret {
+.titan-mode-code-caret {
   display: inline-block;
   width: 0.62em;
   height: 1.08em;
@@ -279,10 +279,10 @@
   border-radius: 2px;
   background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta));
   box-shadow: 0 0 7px var(--neon-cyan), 0 0 14px var(--neon-magenta);
-  animation: god-mode-code-caret 620ms steps(2, jump-none) infinite;
+  animation: titan-mode-code-caret 620ms steps(2, jump-none) infinite;
 }
 
-@keyframes god-mode-new-code {
+@keyframes titan-mode-new-code {
   from {
     filter: brightness(1.8);
     opacity: 0.72;
@@ -295,13 +295,13 @@
   }
 }
 
-@keyframes god-mode-code-caret {
+@keyframes titan-mode-code-caret {
   50% { opacity: 0.25; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .god-mode-code-new-text,
-  .god-mode-code-caret {
+  .titan-mode-code-new-text,
+  .titan-mode-code-caret {
     animation: none;
   }
 }

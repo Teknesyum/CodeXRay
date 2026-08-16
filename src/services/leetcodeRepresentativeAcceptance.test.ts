@@ -10,7 +10,7 @@ import { compileMatrixTemplatePackage } from './matrixCompiler';
 import { compileStringTemplatePackage } from './stringCompiler';
 import { compileAdvancedGraphPackage, type AdvancedGraphTemplateId } from './advancedGraphCompiler';
 import { compileAdvancedStructurePackage, type AdvancedStructureTemplateId } from './advancedStructureCompiler';
-import { routeGodModeRequest } from './godModeRouting';
+import { routeTitanModeRequest } from './titanModeRouting';
 
 const workspace: WorkspaceSnapshotV1 = {
   version: 1,
@@ -28,7 +28,7 @@ const workspace: WorkspaceSnapshotV1 = {
 describe('LeetCode representative acceptance', () => {
   it('passes all five acceptance gates for 486 Predict the Winner', () => {
     const request = 'LeetCode 486 Predict the Winner sorusunu çöz ve simüle et';
-    expect(routeGodModeRequest(request, [], 0)).toEqual({
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({
       type: 'create-algorithm',
       template: 'predict-winner-interval-dp',
     });
@@ -130,7 +130,7 @@ describe('LeetCode representative acceptance', () => {
   ] as const)(
     'passes all five acceptance gates for LeetCode $id',
     ({ id, template, request, title, sourceFragment, visualType, result }) => {
-      expect(routeGodModeRequest(request, [], 0)).toEqual({
+      expect(routeTitanModeRequest(request, [], 0)).toEqual({
         type: 'create-algorithm',
         template,
       });

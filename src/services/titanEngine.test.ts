@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { LocalAgentHandle, LocalAgentProgress, LocalAgentRequest } from './localAiService';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
-import { startGodModeRun, validateArchitectureContract } from './titanEngine';
+import { startTitanModeRun, validateArchitectureContract } from './titanEngine';
 import { compileMatrixTemplatePackage } from './matrixCompiler';
 
 const modelAuthoredProgram = {
@@ -50,7 +50,7 @@ const successfulAgent = (request: LocalAgentRequest): LocalAgentHandle => {
   return { requestId: 1, promise: Promise.resolve(text), cancel: vi.fn() };
 };
 
-describe('God Mode orchestrator', () => {
+describe('Titan Mode orchestrator', () => {
   it('validates a fenced Architect contract after removing private reasoning', () => {
     const validation = validateArchitectureContract(`<think>private reasoning</think>\n\`\`\`json\n${JSON.stringify({
       version: 1,
@@ -125,7 +125,7 @@ describe('God Mode orchestrator', () => {
       sourcePhases.push('preview');
     });
     let latestPlan: ManagerPlanV1 | null = null;
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'bana iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -160,7 +160,7 @@ describe('God Mode orchestrator', () => {
       cancel: vi.fn(),
     });
     const applyPackage = vi.fn();
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'bana iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -181,7 +181,7 @@ describe('God Mode orchestrator', () => {
   it('does not block a verified interval-DP run on advisory model inference', async () => {
     const applyPackage = vi.fn();
     const previewSource = vi.fn();
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'interval dp yaz simüle et',
       intent: { type: 'create-algorithm', template: 'predict-winner-interval-dp' },
       locale: 'tr',
@@ -239,7 +239,7 @@ describe('God Mode orchestrator', () => {
       return { requestId: calls.length, promise: Promise.resolve(text), cancel: vi.fn() };
     };
     const applyPackage = vi.fn();
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'diziyi tarayan özel bir algoritma yaz',
       intent: { type: 'create-algorithm', template: 'model-authored' },
       locale: 'tr',
@@ -288,7 +288,7 @@ describe('God Mode orchestrator', () => {
             : `${request.role} completed.`;
       return { requestId: calls.length, promise: Promise.resolve(text), cancel: vi.fn() };
     };
-    const result = await startGodModeRun({
+    const result = await startTitanModeRun({
       request: 'heap satırını gösteren özel bir tarama yaz',
       intent: { type: 'create-algorithm', template: 'model-authored' },
       locale: 'tr',
@@ -363,7 +363,7 @@ describe('God Mode orchestrator', () => {
           : `${request.role} completed.`;
       return { requestId: calls.length, promise: Promise.resolve(text), cancel: vi.fn() };
     };
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'diziyi tarayan özel bir algoritma yaz',
       intent: { type: 'create-algorithm', template: 'model-authored' },
       locale: 'tr',
@@ -404,7 +404,7 @@ describe('God Mode orchestrator', () => {
       return { requestId: 20, promise: Promise.resolve(text), cancel: vi.fn() };
     };
     const applyPackage = vi.fn();
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'diziyi tarayan özel bir algoritma yaz',
       intent: { type: 'create-algorithm', template: 'model-authored' },
       locale: 'en',
@@ -424,10 +424,10 @@ describe('God Mode orchestrator', () => {
     const blockingAgent = (): LocalAgentHandle => ({
       requestId: 2,
       promise: new Promise((_resolve, reject) => { rejectActive = reject; }),
-      cancel: () => rejectActive?.(new Error('God Mode agent was cancelled.')),
+      cancel: () => rejectActive?.(new Error('Titan Mode agent was cancelled.')),
     });
     let latestPlan: ManagerPlanV1 | null = null;
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'bana iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -456,7 +456,7 @@ describe('God Mode orchestrator', () => {
     const applyPackage = vi.fn();
     const applyInput = vi.fn();
     let latestPlan: ManagerPlanV1 | null = null;
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'bana iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -493,7 +493,7 @@ describe('God Mode orchestrator', () => {
   });
 
   it('builds the complete original ten-node bidirectional BFS artifact and grounded final report', async () => {
-    const run = startGodModeRun({
+    const run = startTitanModeRun({
       request: 'Bana iki yönlü BFS yaz. 10 node ve iki alternatif yol oluştur, simüle et ve öğretmen gibi anlat.',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -566,7 +566,7 @@ describe('God Mode orchestrator', () => {
       algorithmName: 'Breadth First Search (BFS)',
       simulationInput: { kind: 'graph', text: '', graph, origin: 'user' },
     };
-    const result = await startGodModeRun({
+    const result = await startTitanModeRun({
       request: 'Benim graphım üzerinde iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -588,7 +588,7 @@ describe('God Mode orchestrator', () => {
   });
 
   it('keeps visual-only edits trace-stable and recompiles named structural graph edits', async () => {
-    const created = await startGodModeRun({
+    const created = await startTitanModeRun({
       request: 'bana iki yönlü BFS yaz',
       intent: { type: 'create-algorithm', template: 'bidirectional-bfs' },
       locale: 'tr',
@@ -609,7 +609,7 @@ describe('God Mode orchestrator', () => {
       activePackageId: activePackage.id,
     };
     const applyVisualPackage = vi.fn();
-    await startGodModeRun({
+    await startTitanModeRun({
       request: 'Nodeları daha geniş yay. Başlangıç ve hedef tarafını farklı şekillerle göster.',
       intent: { type: 'adapt-input' },
       locale: 'tr',
@@ -635,7 +635,7 @@ describe('God Mode orchestrator', () => {
 
     const applyPackage = vi.fn();
     const connectorId = activePackage.input.value.graph?.nodes[1]?.id ?? 'S';
-    await startGodModeRun({
+    await startTitanModeRun({
       request: `X node'unu ekle, ${connectorId} ile X ve X ile hedef arasında bağlantı kur ve tekrar çalıştır`,
       intent: { type: 'adapt-input' },
       locale: 'tr',
@@ -665,7 +665,7 @@ describe('God Mode orchestrator', () => {
     ['lis-binary-search', 'LIS O(n log n) çöz', 'O(n log n)'],
   ] as const)('applies the deterministic %s optimization package', async (template, request, complexity) => {
     const applyPackage = vi.fn();
-    const result = await startGodModeRun({
+    const result = await startTitanModeRun({
       request,
       intent: { type: 'create-algorithm', template },
       locale: 'tr', workspace, activePackage: null, onPlan: vi.fn(),
@@ -689,7 +689,7 @@ describe('God Mode orchestrator', () => {
       activePackageId: activePackage.id,
     };
     const applyPackage = vi.fn();
-    await startGodModeRun({
+    await startTitanModeRun({
       request: 'gridi 8*15 yap', intent: { type: 'adapt-input' }, locale: 'tr',
       workspace: matrixWorkspace, activePackage, onPlan: vi.fn(), applyPackage,
       applyInput: vi.fn(), agentRunner: successfulAgent,

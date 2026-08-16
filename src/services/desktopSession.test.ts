@@ -14,13 +14,13 @@ describe('desktop session lifecycle', () => {
     for (const key of TRANSIENT_LOCAL_KEYS) localStorage.setItem(key, 'old-session');
     localStorage.setItem('codexray.ai-profile.v1', 'lm-studio');
     localStorage.setItem('codexray.theme', 'dark');
-    sessionStorage.setItem('codexray.god-mode.run-index.v1', '["stale"]');
+    sessionStorage.setItem('codexray.titan-mode.run-index.v1', '["stale"]');
 
     expect(beginDesktopSession(true)).toBe(true);
     for (const key of TRANSIENT_LOCAL_KEYS) expect(localStorage.getItem(key)).toBeNull();
     expect(localStorage.getItem('codexray.ai-profile.v1')).toBe('lm-studio');
     expect(localStorage.getItem('codexray.theme')).toBe('dark');
-    expect(sessionStorage.getItem('codexray.god-mode.run-index.v1')).toBeNull();
+    expect(sessionStorage.getItem('codexray.titan-mode.run-index.v1')).toBeNull();
     expect(sessionStorage.getItem(SESSION_MARKER_KEY)).toBe('1');
   });
 

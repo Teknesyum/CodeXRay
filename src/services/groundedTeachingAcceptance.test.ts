@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CustomSimulationPackageV1, WorkspaceSnapshotV1 } from '../types/titan';
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { compilePredictWinnerPackage } from './intervalDpCompiler';
-import { routeGodModeRequest } from './godModeRouting';
+import { routeTitanModeRequest } from './titanModeRouting';
 
 const workspace: WorkspaceSnapshotV1 = {
   version: 1,
@@ -69,16 +69,16 @@ describe('grounded teaching acceptance corpus', () => {
       ['Predict the Winner çöz, dp tablosunu show', 'predict-winner-interval-dp'],
     ] as const;
     for (const [request, template] of corpus) {
-      expect(routeGodModeRequest(request, [], 0), request).toEqual({ type: 'create-algorithm', template });
+      expect(routeTitanModeRequest(request, [], 0), request).toEqual({ type: 'create-algorithm', template });
     }
   });
 
   it('never lets a navigation request inherit an older discussion destination', () => {
     const steps = packages()[0].steps;
-    expect(routeGodModeRequest('7. adıma git', steps, 1)).toEqual({
+    expect(routeTitanModeRequest('7. adıma git', steps, 1)).toEqual({
       type: 'deterministic', actions: [{ type: 'jump', index: 6 }],
     });
-    expect(routeGodModeRequest('önceki önemli checkpointe dön', steps, 6)).toEqual({
+    expect(routeTitanModeRequest('önceki önemli checkpointe dön', steps, 6)).toEqual({
       type: 'deterministic', actions: [{ type: 'previous-important' }],
     });
   });

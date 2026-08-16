@@ -19,9 +19,9 @@ import {
   RIGHT_PANEL_LIMITS,
 } from './services/workspaceLayout';
 import {
-  GOD_MODE_UI_EVENT,
-  isGodModeUiEvent,
-} from './services/godModeUiControl';
+  TITAN_MODE_UI_EVENT,
+  isTitanModeUiEvent,
+} from './services/titanModeUiControl';
 import './App.css';
 
 type PanelName = 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls';
@@ -139,8 +139,8 @@ const CodeRayApp = () => {
   }, [viewportHeight]);
 
   useEffect(() => {
-    const handleGodModeUiAction = (event: Event) => {
-      if (!isGodModeUiEvent(event)) return;
+    const handleTitanModeUiAction = (event: Event) => {
+      if (!isTitanModeUiEvent(event)) return;
       const action = event.detail;
       if (action.type === 'set-workspace-layout') {
         if (action.layout === 'focus-assistant') {
@@ -181,8 +181,8 @@ const CodeRayApp = () => {
         }));
       }
     };
-    window.addEventListener(GOD_MODE_UI_EVENT, handleGodModeUiAction);
-    return () => window.removeEventListener(GOD_MODE_UI_EVENT, handleGodModeUiAction);
+    window.addEventListener(TITAN_MODE_UI_EVENT, handleTitanModeUiAction);
+    return () => window.removeEventListener(TITAN_MODE_UI_EVENT, handleTitanModeUiAction);
   }, [setIsAiMaximized]);
 
   const handleSimulate = async () => {

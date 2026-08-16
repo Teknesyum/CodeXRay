@@ -8,7 +8,7 @@ import {
   LOCAL_AI_MODELS,
   resolveLocalAgentOutputTokens,
 } from './localAiModels';
-import type { GodModeAgentRole } from '../types/titan';
+import type { TitanModeAgentRole } from '../types/titan';
 import type { LocalAgentResultV2 } from '../types/webSource';
 import type {
   AiConnectionProfileV1,
@@ -72,7 +72,7 @@ export interface LocalModelStreamUpdate {
 }
 
 export interface LocalAgentRequest {
-  role: GodModeAgentRole;
+  role: TitanModeAgentRole;
   instructions: string;
   context: string;
   locale: Locale;
@@ -833,7 +833,7 @@ export const runLocalAgent = (
   if (!worker || !readyModel) {
     return {
       requestId: -1,
-      promise: Promise.reject(new Error('Load a local AI model from Settings before running God Mode agents.')),
+      promise: Promise.reject(new Error('Load a local AI model from Settings before running Titan Mode agents.')),
       cancel: () => undefined,
     };
   }
@@ -876,7 +876,7 @@ export const runLocalAgent = (
   const armInactivityTimeout = () => {
     globalThis.clearTimeout(phaseTimeout);
     phaseTimeout = globalThis.setTimeout(() => {
-      cancelRequest(`God Mode ${request.role} agent stopped producing output for ${Math.round(inactivityTimeoutMs / 1_000)} seconds.`);
+      cancelRequest(`Titan Mode ${request.role} agent stopped producing output for ${Math.round(inactivityTimeoutMs / 1_000)} seconds.`);
     }, inactivityTimeoutMs);
   };
   const basePromise = new Promise<string>((resolve, reject) => {
@@ -891,10 +891,10 @@ export const runLocalAgent = (
           phase = 'first-token';
           globalThis.clearTimeout(phaseTimeout);
           phaseTimeout = globalThis.setTimeout(() => {
-            cancelRequest(`God Mode ${request.role} agent produced no first token within ${Math.round(firstTokenTimeoutMs / 1_000)} seconds.`);
+            cancelRequest(`Titan Mode ${request.role} agent produced no first token within ${Math.round(firstTokenTimeoutMs / 1_000)} seconds.`);
           }, firstTokenTimeoutMs);
           absoluteTimeout = globalThis.setTimeout(() => {
-            cancelRequest(`God Mode ${request.role} agent reached its ${Math.round(absoluteTimeoutMs / 1_000)} second absolute limit.`);
+            cancelRequest(`Titan Mode ${request.role} agent reached its ${Math.round(absoluteTimeoutMs / 1_000)} second absolute limit.`);
           }, absoluteTimeoutMs);
           targetTimeout = globalThis.setTimeout(() => {
             onProgress?.({
@@ -915,13 +915,13 @@ export const runLocalAgent = (
     worker?.postMessage({ id, type: 'agent-run', ...request });
   });
   phaseTimeout = globalThis.setTimeout(() => {
-    cancelRequest(`God Mode ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
+    cancelRequest(`Titan Mode ${request.role} agent timed out in the WebGPU queue after ${Math.round(queueTimeoutMs / 1_000)} seconds.`);
   }, queueTimeoutMs);
   const promise = basePromise.finally(clearTimers);
   return {
     requestId: id,
     promise,
-    cancel: () => cancelRequest('God Mode agent was cancelled.'),
+    cancel: () => cancelRequest('Titan Mode agent was cancelled.'),
   };
 };
 

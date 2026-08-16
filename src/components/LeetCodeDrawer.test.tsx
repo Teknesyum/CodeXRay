@@ -67,7 +67,7 @@ afterEach(() => cleanup());
 describe('Problem catalog drawer', () => {
   it('renders one page, selects details, marks verified entries, and emits source plus ID', async () => {
     const eventListener = vi.fn();
-    window.addEventListener('god-mode-user-message', eventListener);
+    window.addEventListener('titan-mode-user-message', eventListener);
     const user = userEvent.setup();
     render(
       <TimelineProvider>
@@ -84,14 +84,14 @@ describe('Problem catalog drawer', () => {
     expect(screen.getByRole('math', { name: '1 \\le n \\le 10^4' })).toBeInTheDocument();
     expect(document.querySelector('.examples-problem-content')).not.toHaveTextContent('$$$');
     expect(screen.getAllByLabelText('Simulation verified').length).toBeGreaterThan(0);
-    const simulate = screen.getByRole('button', { name: 'Simulate with God Mode' });
+    const simulate = screen.getByRole('button', { name: 'Simulate with Titan Mode' });
     expect(simulate).toBeEnabled();
     await user.click(simulate);
     expect(eventListener).toHaveBeenCalledOnce();
     expect((eventListener.mock.calls[0][0] as CustomEvent).detail).toEqual({
       text: 'Create catalog problem: leetcode/1',
     });
-    window.removeEventListener('god-mode-user-message', eventListener);
+    window.removeEventListener('titan-mode-user-message', eventListener);
   });
 
   it('closes on Escape and keeps keyboard focus inside the dialog', async () => {
@@ -148,7 +148,7 @@ describe('Problem catalog drawer', () => {
 
   it('routes unverified problems through their source instead of claiming exact support', async () => {
     const eventListener = vi.fn();
-    window.addEventListener('god-mode-user-message', eventListener);
+    window.addEventListener('titan-mode-user-message', eventListener);
     const user = userEvent.setup();
     render(
       <TimelineProvider>
@@ -161,14 +161,14 @@ describe('Problem catalog drawer', () => {
     await user.click(screen.getByRole('button', { name: '#2Problem 2Medium' }));
 
     expect(await screen.findByRole('heading', { name: 'Problem 2' })).toBeInTheDocument();
-    expect(screen.getByText('No exact simulation is verified yet; God Mode will attempt it from the problem source.')).toBeInTheDocument();
-    const simulate = screen.getByRole('button', { name: 'Simulate with God Mode' });
+    expect(screen.getByText('No exact simulation is verified yet; Titan Mode will attempt it from the problem source.')).toBeInTheDocument();
+    const simulate = screen.getByRole('button', { name: 'Simulate with Titan Mode' });
     expect(simulate).toBeEnabled();
     await user.click(simulate);
     expect((eventListener.mock.calls[0][0] as CustomEvent).detail).toEqual({
       text: 'Solve and simulate this catalog problem: https://leetcode.com/problems/problem-2/',
     });
-    window.removeEventListener('god-mode-user-message', eventListener);
+    window.removeEventListener('titan-mode-user-message', eventListener);
   });
 
   it('loads only the selected platform catalog', async () => {

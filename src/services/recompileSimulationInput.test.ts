@@ -17,7 +17,7 @@ const workspace: WorkspaceSnapshotV1 = {
   packageOutOfSync: false,
 };
 
-describe('manual God Mode input recompilation', () => {
+describe('manual Titan Mode input recompilation', () => {
   it('rebuilds an interval-DP matrix from the exact edited array', () => {
     const activePackage = compilePredictWinnerPackage({
       id: 'predict-original', request: 'Predict the Winner', locale: 'tr', workspace,

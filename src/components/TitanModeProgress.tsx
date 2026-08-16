@@ -16,7 +16,7 @@ import type { ManagerPlanV2 } from '../types/webSource';
 import type { Locale } from '../i18n/translations';
 import { t } from '../i18n/translations';
 
-interface GodModeProgressProps {
+interface TitanModeProgressProps {
   plan: ManagerPlanV1 | ManagerPlanV2;
   locale: Locale;
   onCancel: () => void;
@@ -89,7 +89,7 @@ interface AgentTooltip {
   y: number;
 }
 
-export const GodModeProgress = ({
+export const TitanModeProgress = ({
   plan,
   locale,
   onCancel,
@@ -99,7 +99,7 @@ export const GodModeProgress = ({
   onRetry,
   canUndo,
   canRedo,
-}: GodModeProgressProps) => {
+}: TitanModeProgressProps) => {
   const [tooltip, setTooltip] = useState<AgentTooltip | null>(null);
   const [now, setNow] = useState(Date.now());
   const [reasoningOpen, setReasoningOpen] = useState(true);
@@ -158,33 +158,33 @@ export const GodModeProgress = ({
   ) => positionTooltip(event.currentTarget.getBoundingClientRect(), label);
 
   return (
-    <section className={`god-mode-progress ${failed ? 'failed' : ''} ${completed ? 'completed' : ''} ${reasoningJob ? 'has-reasoning' : ''}`}>
-      <div className="god-mode-progress-main">
-      <div className="god-mode-progress-header">
-        <span className="god-mode-title"><Zap size={14} /> {t('godModeRun', locale)}</span>
-        <span className="god-mode-percent">{progress}%</span>
+    <section className={`titan-mode-progress ${failed ? 'failed' : ''} ${completed ? 'completed' : ''} ${reasoningJob ? 'has-reasoning' : ''}`}>
+      <div className="titan-mode-progress-main">
+      <div className="titan-mode-progress-header">
+        <span className="titan-mode-title"><Zap size={14} /> {t('titanModeRun', locale)}</span>
+        <span className="titan-mode-percent">{progress}%</span>
         <button
           type="button"
-          className="god-mode-mini-btn"
+          className="titan-mode-mini-btn"
           onClick={onUndo}
           disabled={!canUndo || Boolean(running)}
-          aria-label={t('godModeUndo', locale)}
-          onMouseEnter={(event) => showControlTooltip(event, t('godModeUndo', locale))}
+          aria-label={t('titanModeUndo', locale)}
+          onMouseEnter={(event) => showControlTooltip(event, t('titanModeUndo', locale))}
           onMouseLeave={() => setTooltip(null)}
-          onFocus={(event) => showControlTooltip(event, t('godModeUndo', locale))}
+          onFocus={(event) => showControlTooltip(event, t('titanModeUndo', locale))}
           onBlur={() => setTooltip(null)}
         >
           <Undo2 size={13} />
         </button>
         <button
           type="button"
-          className="god-mode-mini-btn"
+          className="titan-mode-mini-btn"
           onClick={onRedo}
           disabled={!canRedo || Boolean(running)}
-          aria-label={t('godModeRedo', locale)}
-          onMouseEnter={(event) => showControlTooltip(event, t('godModeRedo', locale))}
+          aria-label={t('titanModeRedo', locale)}
+          onMouseEnter={(event) => showControlTooltip(event, t('titanModeRedo', locale))}
           onMouseLeave={() => setTooltip(null)}
-          onFocus={(event) => showControlTooltip(event, t('godModeRedo', locale))}
+          onFocus={(event) => showControlTooltip(event, t('titanModeRedo', locale))}
           onBlur={() => setTooltip(null)}
         >
           <RotateCcw size={13} />
@@ -192,17 +192,17 @@ export const GodModeProgress = ({
         {!completed && !failed && !cancelled && (
           <button
             type="button"
-            className="god-mode-mini-btn danger"
+            className="titan-mode-mini-btn danger"
             onPointerDown={(event) => {
               if (event.button === 0) onCancel();
             }}
             onClick={(event) => {
               if (event.detail === 0) onCancel();
             }}
-            aria-label={t('godModeCancel', locale)}
-            onMouseEnter={(event) => showControlTooltip(event, t('godModeCancel', locale))}
+            aria-label={t('titanModeCancel', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('titanModeCancel', locale))}
             onMouseLeave={() => setTooltip(null)}
-            onFocus={(event) => showControlTooltip(event, t('godModeCancel', locale))}
+            onFocus={(event) => showControlTooltip(event, t('titanModeCancel', locale))}
             onBlur={() => setTooltip(null)}
           >
             <X size={13} />
@@ -211,12 +211,12 @@ export const GodModeProgress = ({
         {failed && (
           <button
             type="button"
-            className="god-mode-mini-btn"
+            className="titan-mode-mini-btn"
             onClick={onRetry}
-            aria-label={t('godModeRetry', locale)}
-            onMouseEnter={(event) => showControlTooltip(event, t('godModeRetry', locale))}
+            aria-label={t('titanModeRetry', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('titanModeRetry', locale))}
             onMouseLeave={() => setTooltip(null)}
-            onFocus={(event) => showControlTooltip(event, t('godModeRetry', locale))}
+            onFocus={(event) => showControlTooltip(event, t('titanModeRetry', locale))}
             onBlur={() => setTooltip(null)}
           >
             <RefreshCw size={13} />
@@ -225,25 +225,25 @@ export const GodModeProgress = ({
         {(completed || failed || cancelled) && (
           <button
             type="button"
-            className="god-mode-mini-btn"
+            className="titan-mode-mini-btn"
             onClick={onDismiss}
-            aria-label={t('godModeDismiss', locale)}
-            onMouseEnter={(event) => showControlTooltip(event, t('godModeDismiss', locale))}
+            aria-label={t('titanModeDismiss', locale)}
+            onMouseEnter={(event) => showControlTooltip(event, t('titanModeDismiss', locale))}
             onMouseLeave={() => setTooltip(null)}
-            onFocus={(event) => showControlTooltip(event, t('godModeDismiss', locale))}
+            onFocus={(event) => showControlTooltip(event, t('titanModeDismiss', locale))}
             onBlur={() => setTooltip(null)}
           >
             <X size={13} />
           </button>
         )}
       </div>
-      <div className="god-mode-real-progress" aria-label={t('godModeProgress', locale)}>
+      <div className="titan-mode-real-progress" aria-label={t('titanModeProgress', locale)}>
         <div style={{ width: `${progress}%` }} />
       </div>
-      <div className="god-mode-agent-list">
+      <div className="titan-mode-agent-list">
         {plan.jobs.map((job) => (
           <div
-            className={`god-mode-agent ${job.summary?.startsWith('Skipped') ? 'skipped' : job.status}`}
+            className={`titan-mode-agent ${job.summary?.startsWith('Skipped') ? 'skipped' : job.status}`}
             key={job.id}
             aria-label={`${stageLabel(job.id, t(agentKey(job.role), locale), locale)}: ${job.summary?.startsWith('Skipped') ? (locale === 'tr' ? 'atlandı (gerekmedi)' : 'skipped (not required)') : t(`godStatus_${job.status}`, locale)}`}
             tabIndex={0}
@@ -294,7 +294,7 @@ export const GodModeProgress = ({
       </div>
       {reasoningJob && (
         <details
-          className={`god-mode-agent-reasoning ${liveReasoningJob?.id === reasoningJob.id ? 'live' : ''}`}
+          className={`titan-mode-agent-reasoning ${liveReasoningJob?.id === reasoningJob.id ? 'live' : ''}`}
           open={reasoningOpen}
           onToggle={(event) => setReasoningOpen(event.currentTarget.open)}
         >
@@ -302,7 +302,7 @@ export const GodModeProgress = ({
             <span>{t(agentKey(reasoningJob.role), locale)}</span>
             <span>{t('godAgentThinking', locale)}</span>
             {liveReasoningJob?.id === reasoningJob.id && (
-              <span className="god-mode-thinking-live">{t('godAgentThinkingLive', locale)}</span>
+              <span className="titan-mode-thinking-live">{t('godAgentThinkingLive', locale)}</span>
             )}
           </summary>
           <pre>{reasoningJob.reasoning}</pre>
@@ -310,7 +310,7 @@ export const GodModeProgress = ({
       )}
       {tooltip && createPortal(
         <div
-          className="god-mode-agent-tooltip"
+          className="titan-mode-agent-tooltip"
           role="tooltip"
           style={{ left: tooltip.x, top: tooltip.y }}
         >

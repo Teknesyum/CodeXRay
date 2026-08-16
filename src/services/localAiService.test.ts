@@ -188,7 +188,7 @@ describe('local AI worker bridge', () => {
       status: 'running',
       text: 'Working',
     });
-    const cancelled = expect(handle.promise).rejects.toThrow('God Mode agent was cancelled.');
+    const cancelled = expect(handle.promise).rejects.toThrow('Titan Mode agent was cancelled.');
     handle.cancel();
     expect(worker.posted.at(-1)).toMatchObject({ id: handle.requestId, type: 'agent-cancel' });
     await cancelled;

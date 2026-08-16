@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
-import { startTitanModeRun as startGodModeRun } from './titan/titanPipeline';
+import { startTitanModeRun } from './titan/titanPipeline';
 
 const workspace: WorkspaceSnapshotV1 = {
   version: 1,
@@ -17,7 +17,7 @@ const workspace: WorkspaceSnapshotV1 = {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('God Mode catalog entry', () => {
+describe('Titan Mode catalog entry', () => {
   it('compiles and atomically applies verified LeetCode 54 without entering the legacy unknown-job path', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -31,7 +31,7 @@ describe('God Mode catalog entry', () => {
     const previewSource = vi.fn();
     let latestPlan: ManagerPlanV1 | null = null;
 
-    const result = await startGodModeRun({
+    const result = await startTitanModeRun({
       request: 'Create catalog problem: leetcode/54',
       intent: { type: 'create-catalog-problem', source: 'leetcode', problemId: '54' },
       locale: 'tr',

@@ -1,4 +1,4 @@
-import type { GodModeAgentRole } from './titan';
+import type { TitanModeAgentRole } from './titan';
 
 export type WebReaderErrorCode =
   | 'invalid_url'
@@ -108,7 +108,7 @@ export type WebAgentResourceLock = 'webgpu' | 'network' | 'workspace';
 export interface ManagerJobV2 {
   version: 2;
   id: string;
-  role: GodModeAgentRole | 'fetcher' | 'extractor';
+  role: TitanModeAgentRole | 'fetcher' | 'extractor';
   label: string;
   dependsOn: string[];
   consumes: WebArtifactKind[];
@@ -146,7 +146,7 @@ export interface AgentAttemptV1 {
   version: 1;
   runId: string;
   jobId: string;
-  role: GodModeAgentRole;
+  role: TitanModeAgentRole;
   attempt: number;
   model: string;
   contextWindow: number;

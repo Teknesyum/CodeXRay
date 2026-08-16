@@ -52,7 +52,7 @@ const Harness = () => {
   );
 };
 
-describe('TimelineContext God Mode transactions', () => {
+describe('TimelineContext Titan Mode transactions', () => {
   it('atomically applies a package and restores it with undo/redo', async () => {
     const user = userEvent.setup();
     render(<TimelineProvider><Harness /></TimelineProvider>);

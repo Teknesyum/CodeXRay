@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   FastForward,
   Pause,
@@ -48,6 +48,8 @@ import {
   resetCodeXRaySiteState,
 } from '../services/siteReset';
 import './ControlBar.css';
+
+const ExternalAiRoleSettings = lazy(() => import('./ExternalAiRoleSettings').then((module) => ({ default: module.ExternalAiRoleSettings })));
 
 interface ControlBarProps {
   onSimulate: () => void;
@@ -948,18 +950,9 @@ export const ControlBar = ({
                       </label>
                     </div>
                     <p className="local-ai-note ai-privacy-note">{t('externalAiPrivacy', locale)}</p>
-                    {externalProfile?.capabilities && (
-                      <div className="local-storage-status">
-                        <span className={externalProfile.capabilities.chat ? 'ready' : ''}>
-                          {t('externalChatCompatible', locale)}
-                        </span>
-                        <span className={externalProfile.capabilities.advancedWorkflows ? 'ready' : ''}>
-                          {externalProfile.capabilities.advancedWorkflows
-                            ? t('externalAdvancedCompatible', locale)
-                            : t('externalAdvancedUnavailable', locale)}
-                        </span>
-                      </div>
-                    )}
+                    <Suspense fallback={null}>
+                      <ExternalAiRoleSettings profiles={aiProfiles} activeProfile={externalProfile} locale={locale} />
+                    </Suspense>
                     <div className="ai-load-actions">
                       <button
                         type="button"

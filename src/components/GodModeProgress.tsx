@@ -30,6 +30,18 @@ interface GodModeProgressProps {
 
 const agentKey = (role: string) => `godAgent_${role}`;
 
+const stageLabel = (id: string, label: string, locale: Locale): string => {
+  if (!id.startsWith('titan-')) return label;
+  const values: Record<string, [string, string]> = {
+    route: ['Route', 'Yönlendir'],
+    produce: ['Produce', 'Üret'],
+    semantics: ['Semantics', 'Anlamlandır'],
+    verify: ['Verify', 'Doğrula'],
+    apply: ['Apply', 'Uygula'],
+  };
+  return values[id.slice(6)]?.[locale === 'tr' ? 1 : 0] ?? label;
+};
+
 const jobElapsed = (
   job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number],
   now: number,
@@ -231,9 +243,9 @@ export const GodModeProgress = ({
       <div className="god-mode-agent-list">
         {plan.jobs.map((job) => (
           <div
-            className={`god-mode-agent ${job.status}`}
+            className={`god-mode-agent ${job.summary?.startsWith('Skipped') ? 'skipped' : job.status}`}
             key={job.id}
-            aria-label={`${t(agentKey(job.role), locale)}: ${t(`godStatus_${job.status}`, locale)}`}
+            aria-label={`${stageLabel(job.id, t(agentKey(job.role), locale), locale)}: ${job.summary?.startsWith('Skipped') ? (locale === 'tr' ? 'atlandı (gerekmedi)' : 'skipped (not required)') : t(`godStatus_${job.status}`, locale)}`}
             tabIndex={0}
             onMouseEnter={(event) => showAgentTooltip(
               event,
@@ -259,7 +271,7 @@ export const GodModeProgress = ({
                     ? <Ban size={12} />
                     : <Circle size={9} />}
             </span>
-            <span className="agent-role">{t(agentKey(job.role), locale)}</span>
+            <span className="agent-role">{stageLabel(job.id, t(agentKey(job.role), locale), locale)}</span>
             {jobElapsed(job, now) !== null && (
               <span className="agent-duration">
                 {(jobElapsed(job, now)! / 1_000).toFixed(1)}s

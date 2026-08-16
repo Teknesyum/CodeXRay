@@ -192,6 +192,24 @@ Last updated: 2026-08-16
   Vitest files / 737 tests passed, forced TypeScript validation passed, and
   production build passed at 619.4/620 KiB initial JS with the lazy
   `titanPipeline` chunk at 76.13 KiB.
+- T11 was committed as `ae2dd7e` after all gates passed.
+- T12 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T12-titan-ui.md`. Titan runs render exactly five ordered stage
+  rows through `TitanProgress`; unneeded stages use a distinct skipped state.
+  The existing detailed progress renderer was shared and lazily loaded so the
+  control surface, timing, reasoning, cancel/dismiss, undo/redo, and retry
+  accessibility remain intact. Web-problem progress remains behaviorally
+  unchanged.
+- Desktop local-AI settings now expose independently persisted narrative and
+  command profiles. An empty command profile visibly states deterministic-only
+  navigation/input behavior. Probe badges show real structured-output mode,
+  reasoning overhead, usable output, and the actionable 2048/non-reasoning
+  warning when usable output is below 250 tokens. All new text has EN/TR output.
+- T12 verification on 2026-08-16: lint passed, 118 Vitest files / 739 tests
+  passed, forced TypeScript validation passed, and production build passed.
+  Progress and role settings are lazy chunks; initial JS decreased to
+  612.6/620 KiB, all ordinary lazy chunks remain below 100 KiB, and styles are
+  90.2/100 KiB.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

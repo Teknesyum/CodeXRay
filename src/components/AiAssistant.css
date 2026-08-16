@@ -965,6 +965,12 @@
   display: none;
 }
 
+.god-mode-agent.skipped {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.025);
+}
+
 .agent-context-usage {
   flex: 0 0 auto;
   color: var(--neon-lime);

@@ -38,11 +38,12 @@ import {
 } from '../services/webSource';
 import type { JavaFallbackRun } from '../services/webProblemOrchestrator';
 import { t, translateRuntimeText } from '../i18n/translations';
-import { GodModeProgress } from './GodModeProgress';
 import { MarkdownPreview } from './MarkdownPreview';
 import './AiAssistant.css';
 
 const QuestionTaxonomyTree = lazy(() => import('./QuestionTaxonomyTree'));
+const GodModeProgress = lazy(() => import('./GodModeProgress').then((module) => ({ default: module.GodModeProgress })));
+const TitanProgress = lazy(() => import('./TitanProgress').then((module) => ({ default: module.TitanProgress })));
 
 const CHAT_STORAGE_KEY = 'codexray.ai-chat.v1';
 const MAX_STORED_MESSAGES = 24;
@@ -1337,7 +1338,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         </div>
       )}
       {godModePlan && (
-        <GodModeProgress
+        <Suspense fallback={null}>
+        <TitanProgress
           plan={godModePlan}
           locale={locale}
           onCancel={() => {
@@ -1372,8 +1374,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           canUndo={canUndoWorkspace}
           canRedo={canRedoWorkspace}
         />
+        </Suspense>
       )}
       {webPlan && (
+        <Suspense fallback={null}>
         <GodModeProgress
           plan={webPlan}
           locale={locale}
@@ -1392,6 +1396,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           canUndo={false}
           canRedo={false}
         />
+        </Suspense>
       )}
 
       <div className="ai-body" ref={chatBodyRef} onScroll={handleChatScroll}>

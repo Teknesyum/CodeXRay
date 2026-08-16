@@ -54,6 +54,7 @@ export const adaptRawTrace = (trace: RawTrace): SimulationStep[] => {
       _traceKind: step.kind,
       _callDepth: step.callDepth,
       _mutated: step.mutated,
+      _traceEvent: step.event ? JSON.parse(JSON.stringify(step.event)) as TraceValue : null,
     };
     if (isLast) {
       vars._returnValue = trace.returnValue;

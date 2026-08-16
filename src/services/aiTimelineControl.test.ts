@@ -3,7 +3,7 @@ import type { SimulationStep } from '../types/simulation';
 import {
   routeDeterministicCommand,
   validateActionPlan,
-  findImportantStepIndices,
+  structuralCheckpointIndices,
   resolveTimelineTarget,
 } from './aiTimelineControl';
 
@@ -14,7 +14,15 @@ const steps: SimulationStep[] = Array.from({ length: 40 }, (_, index) => ({
     : index === 39
       ? 'Simulation completed.'
       : `Compare values at step ${index + 1}.`,
-  visualData: { type: 'variables', vars: { index } },
+  visualData: {
+    type: 'variables',
+    vars: {
+      index,
+      _traceEvent: index === 29 ? { t: 'result-write', name: 'match' } : null,
+      _traceKind: index === 29 ? 'assign' : 'statement',
+      _mutated: index === 29 ? ['match'] : [],
+    },
+  },
 }));
 
 describe('AI timeline control', () => {
@@ -40,7 +48,7 @@ describe('AI timeline control', () => {
   });
 
   it('builds a short chronological guided tour containing key events', () => {
-    const important = findImportantStepIndices(steps);
+    const important = structuralCheckpointIndices(steps);
     expect(important[0]).toBe(0);
     expect(important.at(-1)).toBe(39);
     expect(important).toContain(29);
@@ -72,6 +80,6 @@ describe('AI timeline control', () => {
 
   it('calculates bounded tour checkpoints during validation', () => {
     const result = validateActionPlan({ actions: [{ type: 'tour' }] }, steps);
-    expect(result).toEqual([{ type: 'tour', checkpoints: findImportantStepIndices(steps) }]);
+    expect(result).toEqual([{ type: 'tour', checkpoints: structuralCheckpointIndices(steps) }]);
   });
 });

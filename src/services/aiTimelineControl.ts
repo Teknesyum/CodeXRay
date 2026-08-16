@@ -2,6 +2,9 @@ import type { SimulationStep } from '../types/simulation';
 import { sanitizeLocalModelAnswer } from './aiResponse';
 import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
 import { PLANNER_MAX_ACTIONS } from './aiPlanner';
+import { buildTraceOutline } from './trace/traceOutline';
+import { mostSignificantIndex } from './trace/significance';
+import { simulationStepsToRawTrace } from './trace/simulationTrace';
 
 export type TimelineAction =
   | { type: 'jump'; index: number }
@@ -17,18 +20,6 @@ export type DeterministicWorkspaceCommand =
   | TimelineAction
   | { type: 'load-preset'; presetId: string };
 
-const IMPORTANT_EXPLANATION = [
-  /match|eşleş/i,
-  /found|bulun|target|hedef/i,
-  /swap|değiştir|pivot/i,
-  /visit|ziyaret|backtrack|geri dön/i,
-  /shortest|en kısa|distance|mesafe/i,
-  /merge|birleştir|insert|ekle|shift|kaydır/i,
-  /enqueue|dequeue|kuyruk|stack|yığın/i,
-  /complete|tamamlan|sorted|sıralan/i,
-  /path|yol|relax|güncelle/i,
-];
-
 const evenlySample = <T>(values: T[], count: number): T[] => {
   if (values.length <= count) return values;
   if (count <= 1) return [values[0]];
@@ -37,45 +28,22 @@ const evenlySample = <T>(values: T[], count: number): T[] => {
   );
 };
 
-export const findImportantStepIndices = (
+export const structuralCheckpointIndices = (
   steps: SimulationStep[],
   maximum = 8,
 ): number[] => {
   if (!steps.length || maximum <= 0) return [];
   if (steps.length <= maximum) return steps.map((_, index) => index);
 
-  const lastIndex = steps.length - 1;
-  const keywordMatches = steps
-    .map((step, index) => ({ step, index }))
-    .filter(({ step }) => IMPORTANT_EXPLANATION.some((pattern) =>
-      pattern.test(step.explanation),
-    ))
-    .map(({ index }) => index);
-  const selected = new Set<number>([0, lastIndex]);
-  for (const index of evenlySample(keywordMatches, Math.max(0, maximum - 2))) {
-    selected.add(index);
-  }
-
+  const trace = simulationStepsToRawTrace(steps);
+  const selected = new Set<number>([0, steps.length - 1]);
+  const significant = mostSignificantIndex(trace);
+  if (significant !== null) selected.add(significant);
+  const keyIndices = buildTraceOutline(trace).map((phase) => phase.keyIndex);
+  for (const index of evenlySample(keyIndices, Math.max(0, maximum - selected.size))) selected.add(index);
   if (selected.size < maximum) {
-    const phaseChanges = steps
-      .map((step, index) => ({ step, index }))
-      .filter(({ step, index }) =>
-        index > 0 && step.lineNumber !== steps[index - 1].lineNumber,
-      )
-      .map(({ index }) => index)
-      .filter((index) => !selected.has(index));
-    for (const index of evenlySample(phaseChanges, maximum - selected.size)) {
-      selected.add(index);
-    }
-  }
-
-  if (selected.size < maximum) {
-    const remaining = steps
-      .map((_, index) => index)
-      .filter((index) => !selected.has(index));
-    for (const index of evenlySample(remaining, maximum - selected.size)) {
-      selected.add(index);
-    }
+    const remaining = steps.map((_, index) => index).filter((index) => !selected.has(index));
+    for (const index of evenlySample(remaining, maximum - selected.size)) selected.add(index);
   }
   return [...selected].sort((left, right) => left - right).slice(0, maximum);
 };
@@ -132,7 +100,7 @@ export const routeDeterministicCommand = (
     /(kodu|algoritmayı|çalışmayı).*(anlat|gezdir)|önemli (nokta|adım|hamle).*(göster|anlat)|walk me through|guided tour|explain the (code|algorithm)/i
       .test(normalized)
   ) {
-    return [{ type: 'tour', checkpoints: findImportantStepIndices(steps) }];
+    return [{ type: 'tour', checkpoints: structuralCheckpointIndices(steps) }];
   }
   if (
     /(sonraki|bir sonraki|next).*(önemli|eşleş|match|key)|(?:önemli|key).*(sonraki|next)/i
@@ -198,7 +166,7 @@ export const validateActionPlan = (
       });
     } else if (value.type === 'tour') {
       if (!hasExactKeys(value, ['type']) || !steps.length) return null;
-      actions.push({ type: 'tour', checkpoints: findImportantStepIndices(steps) });
+      actions.push({ type: 'tour', checkpoints: structuralCheckpointIndices(steps) });
     } else if (
       value.type === 'play'
       || value.type === 'pause'
@@ -230,11 +198,11 @@ export const resolveTimelineTarget = (
   if (action.type === 'previous') return Math.max(currentIndex - 1, 0);
   if (action.type === 'tour') return action.checkpoints[0] ?? currentIndex;
   if (action.type === 'next-important') {
-    return findImportantStepIndices(steps).find((index) => index > currentIndex)
+    return structuralCheckpointIndices(steps).find((index) => index > currentIndex)
       ?? lastIndex;
   }
   if (action.type === 'previous-important') {
-    return [...findImportantStepIndices(steps)].reverse().find((index) => index < currentIndex)
+    return [...structuralCheckpointIndices(steps)].reverse().find((index) => index < currentIndex)
       ?? 0;
   }
   return currentIndex;

@@ -1,6 +1,6 @@
 import type { Locale } from '../i18n/translations';
 import type { SimulationInput, SimulationStep } from '../types/simulation';
-import { findImportantStepIndices } from './aiTimelineControl';
+import { structuralCheckpointIndices } from './aiTimelineControl';
 
 export interface AssistantMessage {
   role: 'system' | 'user' | 'ai';
@@ -220,7 +220,7 @@ export const buildAssistantContext = (
       .join('\n\n')
     : '(no trace yet)';
   const nextStep = steps[safeIndex + 1];
-  const importantSteps = findImportantStepIndices(steps)
+  const importantSteps = structuralCheckpointIndices(steps)
     .map((index) =>
       `Step ${index + 1}: ${shorten(steps[index].explanation, 140, 'checkpoint shortened')}`,
     )

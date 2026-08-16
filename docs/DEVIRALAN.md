@@ -158,6 +158,25 @@ Last updated: 2026-08-16
 - T9 verification on 2026-08-16: lint passed, 115 Vitest files / 725 tests
   passed, forced TypeScript validation passed, and production build passed at
   the unchanged T8 size budgets.
+- T9 was committed as `653d608` after all gates passed.
+- T10 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T10-titan-router.md`. The explanation-keyword importance list and
+  `findImportantStepIndices` were removed; `rg` finds neither symbol in `src`.
+  `SimulationStep[]` now projects deterministically to T5 `RawTrace`, preserving
+  tracer events emitted by the real interpreter. Checkpoints, phases, closed
+  trace queries, and most-significant targets all use T5 structural scoring.
+- `titanRouter` recognizes the closed roadmap intent set, attempts deterministic
+  routing first, and accepts a validated model intent only for an unclear
+  deterministic result. Models never supply trace or navigation indices.
+  Model-off, none, invalid, prompt-only, and native outcomes all have explicit
+  tested status.
+- T10 focused acceptance passes 12 tests, including a 520-step trace selecting
+  structural result index 259, explanation-empty/translated index invariance,
+  and 40 English plus 40 Turkish navigation expressions. Full verification on
+  2026-08-16: lint passed, 116 Vitest files / 731 tests passed, forced
+  TypeScript validation passed, and production build passed. T5 intelligence
+  is a 2.95 KiB production chunk; the threshold was not raised and initial JS
+  is 619.4/620 KiB.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

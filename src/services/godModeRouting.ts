@@ -1,6 +1,6 @@
 import type { SimulationStep } from '../types/simulation';
 import { resolveAlgorithmPresetFromCommand } from './codeRegistry';
-import { findImportantStepIndices } from './aiTimelineControl';
+import { structuralCheckpointIndices } from './aiTimelineControl';
 import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
 import { resolveDpTemplateFromRequest } from './dpTemplateCompiler';
@@ -270,7 +270,7 @@ export const routeGodModeRequest = (
   if (steps.length && /\b(kritik|onemli|key)\b.*\b(nokta|adim|moment)\b/.test(text)) {
     return {
       type: 'deterministic',
-      actions: [{ type: 'tour', checkpoints: findImportantStepIndices(steps) }],
+      actions: [{ type: 'tour', checkpoints: structuralCheckpointIndices(steps) }],
     };
   }
   if (/\b(algoritma|algorithm|kod|code|program)\b/.test(text)

@@ -29,6 +29,7 @@ export default defineConfig({
             { name: 'simulators-array', test: /extendedArraySimulators\.ts$/ },
             { name: 'simulators-string', test: /extendedStringSimulators\.ts$/ },
             { name: 'simulators-compound', test: /compoundSimulators\.ts$/ },
+            { name: 'trace-intelligence', test: /services[\\/]trace[\\/](?:significance|traceOutline|traceQuery|simulationTrace)\.ts$/ },
           ],
         },
       },

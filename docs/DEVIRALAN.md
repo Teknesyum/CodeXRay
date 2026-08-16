@@ -6,6 +6,13 @@ Last updated: 2026-08-16
 
 ### Current Titan completion status
 
+- T17 completes the binding T6B bundle requirement. `App.tsx` now loads
+  `CodeEditor`, `DynamicVisualizer`, `AiAssistant`, and `PlaylistRadio` through
+  application-level `React.lazy` boundaries with localized, geometry-preserving
+  loading shells. Initial JavaScript fell from 613.6 KiB to 415.6 KiB and the
+  enforced budget was lowered from 620 KiB to 420 KiB. Verification passed 119
+  Vitest files / 747 tests, the production build, and 19 responsive/layout
+  Playwright scenarios. Radio behavior and source are unchanged.
 - Titan packages T1 through T15 are committed. T16 consolidates documentation,
   refreshes the English README, and provides this final Claude/developer report.
 - Dedicated package commits are: T1 `d0d5294`, T2 `c702ecf` with corrective

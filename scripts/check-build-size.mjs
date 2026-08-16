@@ -4,10 +4,7 @@ import path from 'node:path';
 const distRoot = path.resolve(process.cwd(), 'dist');
 const assetsRoot = path.join(distRoot, 'assets');
 const budgets = {
-  // Web-source solving and God Mode are lazy chunks. The DeepSeek profile and
-  // progress-aware agent telemetry raise the aggregate ceiling slightly while
-  // keeping the initial application chunk smaller than before.
-  initialJavaScript: 620 * 1024,
+  initialJavaScript: 420 * 1024,
   lazyJavaScriptChunk: 100 * 1024,
   tracerWorker: 150 * 1024,
   localAiWorker: 6_500 * 1024,

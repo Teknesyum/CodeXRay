@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react';
 import { TimelineProvider, useTimeline } from './context/TimelineContext';
-import { CodeEditor } from './components/CodeEditor';
-import { DynamicVisualizer } from './components/DynamicVisualizer';
 import { ControlBar } from './components/ControlBar';
-import { AiAssistant } from './components/AiAssistant';
 import { VariablesPanel } from './components/VariablesPanel';
-import { PlaylistRadio } from './components/PlaylistRadio';
 import { generateAnalysis, generateSimulationSteps } from './services/aiService';
 import { parseSimulationInput } from './services/inputParsers';
 import {
@@ -24,6 +20,11 @@ import {
 } from './services/titanModeUiControl';
 import './App.css';
 
+const CodeEditor = lazy(() => import('./components/CodeEditor').then((module) => ({ default: module.CodeEditor })));
+const DynamicVisualizer = lazy(() => import('./components/DynamicVisualizer').then((module) => ({ default: module.DynamicVisualizer })));
+const AiAssistant = lazy(() => import('./components/AiAssistant').then((module) => ({ default: module.AiAssistant })));
+const PlaylistRadio = lazy(() => import('./components/PlaylistRadio').then((module) => ({ default: module.PlaylistRadio })));
+
 type PanelName = 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls';
 
 interface LayoutState {
@@ -35,6 +36,22 @@ interface LayoutState {
   controlHeight: number;
   collapsed: Record<PanelName, boolean>;
 }
+
+const PanelLoading = ({ locale, panel, radio = false }: {
+  locale: 'en' | 'tr';
+  panel: 'code' | 'visualizer' | 'assistant' | 'radio';
+  radio?: boolean;
+}) => {
+  const labels = locale === 'tr'
+    ? { code: 'Kaynak kod', visualizer: 'Görselleştirici', assistant: 'Asistan', radio: 'Radyo' }
+    : { code: 'Source code', visualizer: 'Visualizer', assistant: 'Assistant', radio: 'Radio' };
+  return (
+    <div className={`lazy-panel-loading ${radio ? 'radio-loading' : ''}`} role="status" aria-live="polite">
+      <span className="lazy-panel-spinner" aria-hidden="true" />
+      <span>{labels[panel]} {locale === 'tr' ? 'yükleniyor…' : 'loading…'}</span>
+    </div>
+  );
+};
 
 const LAYOUT_STORAGE_KEY = 'codexray.layout.v2';
 const createDefaultLayout = (): LayoutState => {
@@ -411,11 +428,13 @@ const CodeRayApp = () => {
             className={`left-top panel-region ${codeCollapsed ? 'collapsed' : ''}`}
             style={codeCollapsed ? { height: 44 } : variablesCollapsed ? { flex: 1 } : { height: layout.leftTopHeight }}
           >
-            <CodeEditor
-              collapsed={codeCollapsed}
-              onToggleCollapse={() => togglePanel('code')}
-              onSaveInput={handleSimulate}
-            />
+            <Suspense fallback={<PanelLoading locale={locale} panel="code" />}>
+              <CodeEditor
+                collapsed={codeCollapsed}
+                onToggleCollapse={() => togglePanel('code')}
+                onSaveInput={handleSimulate}
+              />
+            </Suspense>
           </section>
           {!codeCollapsed && !variablesCollapsed && (
             <div
@@ -491,12 +510,14 @@ const CodeRayApp = () => {
                   ? { flex: 1 }
                   : { height: displayedRightSizes.visualizerHeight }}
           >
-            <DynamicVisualizer
-              collapsed={visualizerCollapsed}
-              maximized={isVisualizerMaximized}
-              onToggleCollapse={() => togglePanel('visualizer')}
-              onToggleMaximize={toggleVisualizerMaximize}
-            />
+            <Suspense fallback={<PanelLoading locale={locale} panel="visualizer" />}>
+              <DynamicVisualizer
+                collapsed={visualizerCollapsed}
+                maximized={isVisualizerMaximized}
+                onToggleCollapse={() => togglePanel('visualizer')}
+                onToggleMaximize={toggleVisualizerMaximize}
+              />
+            </Suspense>
           </section>
           {!visualizerCollapsed && !assistantCollapsed && !isAiMaximized && !isVisualizerMaximized && (
             <div
@@ -541,7 +562,9 @@ const CodeRayApp = () => {
                   ? { flex: 1 }
                   : { height: displayedRightSizes.assistantHeight }}
           >
-            <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
+            <Suspense fallback={<PanelLoading locale={locale} panel="assistant" />}>
+              <AiAssistant collapsed={assistantCollapsed} onToggleCollapse={() => togglePanel('assistant')} />
+            </Suspense>
           </section>
           {!assistantCollapsed && !controlsCollapsed && !isAiMaximized && !isVisualizerMaximized && (
             <div
@@ -590,7 +613,9 @@ const CodeRayApp = () => {
           </section>
         </div>
       </div>
-      <PlaylistRadio />
+      <Suspense fallback={<PanelLoading locale={locale} panel="radio" radio />}>
+        <PlaylistRadio />
+      </Suspense>
     </main>
   );
 };

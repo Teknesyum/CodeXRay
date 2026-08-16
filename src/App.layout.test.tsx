@@ -17,7 +17,7 @@ describe('right workspace layout', () => {
     const controls = container.querySelector('.control-container');
 
     expect(controls).toHaveStyle({ height: '58px' });
-    await user.click(screen.getByRole('button', { name: 'YZ panelini büyüt' }));
+    await user.click(await screen.findByRole('button', { name: 'YZ panelini büyüt' }, { timeout: 5_000 }));
 
     expect(controls).not.toHaveClass('collapsed');
     expect(controls).toHaveStyle({ height: '58px' });
@@ -31,7 +31,7 @@ describe('right workspace layout', () => {
     const assistant = container.querySelector('.assistant-container');
     const controls = container.querySelector('.control-container');
 
-    await user.click(screen.getByRole('button', { name: 'Simülasyon panelini büyüt' }));
+    await user.click(await screen.findByRole('button', { name: 'Simülasyon panelini büyüt' }, { timeout: 5_000 }));
 
     expect(visualizer).toHaveClass('maximized');
     expect(visualizer).toHaveStyle({ flex: '1' });

@@ -15,7 +15,7 @@ describe('application workspace', () => {
     const user = userEvent.setup();
     render(<App />);
     const bubbleSort = algorithmRegistry.find((algorithm) => algorithm.name.includes('Bubble Sort'));
-    await user.selectOptions(screen.getByLabelText('Algorithm preset'), bubbleSort?.code ?? '');
+    await user.selectOptions(await screen.findByLabelText('Algorithm preset'), bubbleSort?.code ?? '');
     const input = screen.getByRole('textbox', { name: 'Array Simulation Input:' });
     fireEvent.change(input, { target: { value: '[9,1,7,3,5]' } });
     await user.click(screen.getByRole('button', { name: 'Save input' }));
@@ -30,7 +30,7 @@ describe('application workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Settings' }));
     await user.click(screen.getByRole('button', { name: /UI Settings/ }));
     await user.click(screen.getByRole('button', { name: 'Türkçe (TR)' }));
-    expect(screen.getByRole('heading', { name: 'Kaynak Kod' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Kaynak Kod' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Simüle Et/ })).toBeInTheDocument();
     expect(screen.getByText('Değişkenler ve İz')).toBeInTheDocument();
     expect(screen.getByText('Bilgiç Dede')).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe('application workspace', () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     const dfs = algorithmRegistry.find((algorithm) => algorithm.name.includes('Depth First'));
-    await user.selectOptions(screen.getByLabelText('Algorithm preset'), dfs?.code ?? '');
+    await user.selectOptions(await screen.findByLabelText('Algorithm preset'), dfs?.code ?? '');
     const rightPanel = container.querySelector('.panel-right');
     const leftPanel = container.querySelector('.panel-left');
     expect(rightPanel).not.toBeNull();
@@ -68,7 +68,7 @@ describe('application workspace', () => {
       'Controls',
     ];
     for (const panelName of panelNames) {
-      await user.click(screen.getByRole('button', { name: `Collapse ${panelName}` }));
+      await user.click(await screen.findByRole('button', { name: `Collapse ${panelName}` }));
       expect(screen.getByRole('button', { name: `Expand ${panelName}` })).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: `Expand ${panelName}` }));
     }
@@ -89,10 +89,10 @@ describe('application workspace', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.getByText('Where are we in the trace?')).toBeInTheDocument();
+    expect(await screen.findByText('Where are we in the trace?')).toBeInTheDocument();
     expect(screen.getByText('The simulation is paused at the current step.')).toBeInTheDocument();
     const dfs = algorithmRegistry.find((algorithm) => algorithm.name.includes('Depth First'));
-    await user.selectOptions(screen.getByLabelText('Algorithm preset'), dfs?.code ?? '');
+    await user.selectOptions(await screen.findByLabelText('Algorithm preset'), dfs?.code ?? '');
     expect(screen.getByText('Where are we in the trace?')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear conversation memory' }));
     expect(screen.queryByText('Where are we in the trace?')).not.toBeInTheDocument();

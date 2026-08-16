@@ -53,6 +53,26 @@ OpenAI-compatible server.
 - Persistent variable pins that stay at the top of Variables & Trace and mirror
   live values in a horizontally scrollable visualization watch strip.
 
+## Titan Mode
+
+Titan Mode is CodeXRay's deterministic-first workspace orchestrator. Navigation,
+important-step selection, input changes, and simulation traces are computed from
+validated application state and real interpreter or simulator execution. Trace
+steps never come from a language model.
+
+The optional local model can add explanations or propose a SimLang-Lite program,
+but its output is treated as untrusted text. Every program is parsed, validated,
+interpreted inside a Worker, verified against execution budgets, and applied only
+after all deterministic gates pass. CodeXRay never runs user or model source with
+`eval` or `new Function`. Unsupported operations and failed verification remain
+visible instead of silently falling back.
+
+Titan Mode uses five explicit stages: Route, Produce, Semantics, Verify, and
+Apply. Unneeded stages are shown as skipped. Workspace application is atomic and
+supports cancellation, rollback, undo, and redo. Desktop users may select
+separate narrative and command models; leaving the command model empty preserves
+fully deterministic navigation and input editing.
+
 The local model does not train on the conversation. CodeXRay restores up to 24
 messages from browser storage and sends a bounded recent subset with each
 question. The newest workspace snapshot—current code, input, progress, selected

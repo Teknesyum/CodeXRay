@@ -3,9 +3,9 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
-const masterPath = path.join(root, 'CODEXRAY_MASTER_REQUIREMENTS_AND_ACCEPTANCE_TESTS.md');
+const masterPath = path.join(root, 'docs', 'legacy', 'CODEXRAY_MASTER_REQUIREMENTS_AND_ACCEPTANCE_TESTS.md');
 const productDocuments = [
-  path.join(root, 'CODEXRAY_PRODUCT_REQUIREMENTS_AND_REAL_USAGE_SCENARIOS.md'),
+  path.join(root, 'docs', 'legacy', 'CODEXRAY_PRODUCT_REQUIREMENTS_AND_REAL_USAGE_SCENARIOS.md'),
   path.join(root, 'docs', 'PRODUCT_REQUIREMENTS.tr.md'),
 ];
 
@@ -57,7 +57,7 @@ const evidenceByPrefix: Record<string, string[]> = {
   'APP-STORE': ['src/services/siteReset.test.ts', 'src/context/TimelineContext.test.tsx'],
   'APP-THEME': ['e2e/theme-contrast.spec.ts', 'e2e/search-theme-state.spec.ts'],
   'APP-VIS': ['src/components/DynamicVisualizer.test.tsx', 'e2e/interval-dp-god-mode.spec.ts'],
-  'GM': ['GOD_MODE_MULTI_AGENT_PLAN.md', 'src/services/gm2Contracts.test.ts'],
+  'GM': ['docs/legacy/GOD_MODE_MULTI_AGENT_PLAN.md', 'src/services/gm2Contracts.test.ts'],
   'GM-E2E': ['e2e/ai-actions.spec.ts', 'e2e/god-mode-user-graph.spec.ts', 'e2e/god-mode-failures.spec.ts'],
   'GM-INT': ['src/services/gm2Contracts.test.ts', 'src/services/titanEngine.test.ts'],
   'GM-PERF': ['src/test/progressWatchdog.test.ts', 'scripts/check-build-size.mjs'],

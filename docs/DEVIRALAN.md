@@ -6,8 +6,12 @@ Last updated: 2026-08-16
 
 ### Current Titan completion status
 
-- Titan packages T1 through T14 are committed. T15 is ready for its dedicated
-  commit; T16 has not started, preserving the roadmap dependency order.
+- Titan packages T1 through T15 are committed. T16 consolidates documentation,
+  refreshes the English README, and provides this final Claude/developer report.
+- Dedicated package commits are: T1 `d0d5294`, T2 `c702ecf` with corrective
+  `7570885`, T3 `fe5ba6d`, T4 `6ae2194`, T5 `e25a4b1`, T6 `bb74e3f`, T7
+  `85a573f`, T8 `08da345`, T9 `653d608`, T10 `4d65c41`, T11 `ae2dd7e`, T12
+  `d39da65`, T13 `8b5274a`, T14 `ee2c2d2`, and T15 `94eb39e`.
 - T15 currently adds its contract, executable-evidence matrix, focused Titan
   browser smoke, persisted preference migration, deterministic-before-taxonomy
   routing, and refreshed non-radio browser naming/assertions.
@@ -21,6 +25,17 @@ Last updated: 2026-08-16
 - The radio implementation and `real-radio.spec.ts` were not changed. Two stale
   non-real assertions now match the existing implementation: the visible
   autoplay-blocked message and the non-iframe deferred player shell.
+- T16 moved seven superseded root documents to `docs/legacy/`, added the
+  documentation index, updated the coverage manifest paths, and expanded the
+  English README with Titan's deterministic execution boundary. Its final
+  pre-commit gate passed lint and 119 Vitest files / 747 tests.
+- Real WebLLM acceptance was not run because no confirmed model cache and
+  `CODEXRAY_REAL_AI=1` environment were available on this origin. This is
+  recorded as not run, not as a pass. GBNF remains a documented skipped probe
+  for the same lack of a controllable live llama.cpp grammar endpoint.
+- No required Titan implementation work remains after the T16 documentation
+  commit. Future work belongs to the separate product priorities below and must
+  not be represented as incomplete Titan acceptance.
 - `PlaylistRadio.tsx` and `robustnessFuzz.test.ts` remain byte-identical at
   `b5e8cb0e8cc07c4aa4354774c712c3353e09fea6` and
   `ba07291eb0031308ddf48bb579c4da906dd5a25d`, respectively. The pre-existing

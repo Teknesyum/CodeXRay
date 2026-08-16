@@ -143,6 +143,21 @@ Last updated: 2026-08-16
   passed, seven Rust tests passed, forced TypeScript validation passed, and the
   production build passed at 619.9/620 KiB initial JS, 141/150 KiB tracer
   Worker, 5930.8/6500 KiB local-AI Worker, and 90.1/100 KiB styles.
+- T8 was committed as `08da345` after all gates passed.
+- T9 is complete pending its dedicated commit. Its contract is
+  `docs/tasks/T9-input-patch.md`. `InputPatchV1` is a closed runtime-validated
+  11-operation union for arrays, strings, parameters, graphs, targets, and
+  presets. Every result is revalidated by the existing input/graph parsers;
+  stated non-negative constraints are enforced without coercion. Seeded resize
+  and shuffle are reproducible.
+- `applyAndRecompileInputPatch` applies no partial state: rejection returns the
+  original package and a reason; success recompiles through the existing
+  package path, resets the selected index to zero, and preserves source and
+  program identity. Focused acceptance passes 6 tests covering valid and
+  invalid forms of every operation and all four roadmap examples.
+- T9 verification on 2026-08-16: lint passed, 115 Vitest files / 725 tests
+  passed, forced TypeScript validation passed, and production build passed at
+  the unchanged T8 size budgets.
 - `docs/TITAN_MODE_YOL_HARITASI.md` is pre-existing untracked user work and was
   deliberately preserved outside the T1 commit.
 

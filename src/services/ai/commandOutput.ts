@@ -21,7 +21,7 @@ export const resolveCommandOutput = <T>(
     };
   }
   const extracted = extractTolerantJson(modelOutput, validate);
-  if (!extracted.ok) {
+  if ('reason' in extracted) {
     return {
       value: deterministic,
       source: 'deterministic',

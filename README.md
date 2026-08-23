@@ -94,3 +94,11 @@ Bu proje **açık kaynaklıdır**! Katkıda bulunmak için:
 3. Commit atın (`git commit -m 'Yeni özellik'`).
 4. Dalınızı pushlayın (`git push origin feature/YeniÖzellik`).
 5. Pull Request açın.
+
+---
+
+## Lisans
+
+AGPL-3.0-or-later — bkz. [LICENSE](LICENSE).
+
+Copyright (C) 2026 Teknesyum

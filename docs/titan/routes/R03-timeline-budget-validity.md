@@ -78,10 +78,29 @@ transport does not exist, and compare against the outside number.
 | `e2e/performance-budget.spec.ts` | The measurement under repair |
 | `src/**` | Only if the valid measurement proves a product defect, and only the code it implicates |
 | `docs/titan/handoffs/H03-timeline-budget-validity.md` | Handoff |
+| `.github/workflows/ci.yml` | **Trigger block only** — see below. The diagnosis matrix is untouched. |
 | `docs/titan/DOD.md` | Evidence cells only |
 
-`.github/workflows/ci.yml` and `playwright.config.ts` are **read-only this turn** — they are
-R02b's, and the diagnosis matrix stays until R02b removes it.
+`playwright.config.ts` is **read-only this turn**, and so is the rest of `ci.yml`: the
+diagnosis matrix stays until R02b removes it.
+
+### The one CI change this route makes
+
+`ci.yml` currently triggers on `push` to `main` and on `pull_request`. On `agent/titan-relay`
+that means CI runs **only because pull request #1 happens to be open**. This route needs Linux
+samples for criterion 2, and depending on an open pull request to obtain them is fragile —
+closing that PR would silently remove the gate.
+
+Add the working branch to the push trigger:
+
+```yaml
+on:
+  push:
+    branches: [main, 'agent/**']
+  pull_request:
+```
+
+Nothing else in the file changes. This is the whole edit.
 
 ## Invariants
 
@@ -138,7 +157,11 @@ Land the measurement before any fix. The handoff answers all four, with numbers:
    pasted unabridged with a line-by-line justification.
 8. All four gates clean: `npm run lint`, `npm run test`, `npm run build`, `npm run desktop:check`.
 9. `npm run test` count is at or above 751.
-10. Two commits, in order: `route(R03): close`, then `handoff(H03): record`.
+10. `ci.yml` triggers on pushes to `agent/**`, proven by a run on this branch whose trigger
+    event is `push` rather than `pull_request`. Paste the run id and its event.
+11. No other line of `ci.yml` changed. Prove it with `git diff <base>..HEAD -- .github/`
+    pasted unabridged.
+12. Two commits, in order: `route(R03): close`, then `handoff(H03): record`.
 
 **Push authority:** granted for this route, because criterion 2 needs Linux samples and only
 CI produces them. Force-push, history rewrite, tags, releases, and `main` remain out of

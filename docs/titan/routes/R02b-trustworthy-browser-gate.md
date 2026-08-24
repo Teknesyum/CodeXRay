@@ -1,9 +1,5 @@
 # R02b — Close the browser gate
 
-> **Queued, not open.** This file is planning material. The active route is the one directly
-> in `docs/titan/routes/` that has no matching handoff. Nothing here is an instruction to
-> write code until it moves there. R02b opens after R03 closes.
-
 ## Özet
 
 R02 teşhisi tamamladı ve `partial` devredildi: paralel worker yükü eski rastgele hataların
@@ -34,13 +30,35 @@ From `docs/titan/handoffs/H02-trustworthy-browser-gate.md`, run 32759081011 on S
 | Real? | The label genuinely is not committed under contention — the trace shows a correct page with the preset still reading `Algorithm Presets`. | artifact 9532294164 |
 
 Criteria met in R02: 1, 5, 6, 8, 9, 10. Not met: 2, 3, 4, 7 — all four blocked on the
-timeline budget, which is R03.
+timeline budget, which R03 closed.
+
+## What changed since
+
+R03 fixed the timeline budget, and the gate went green. Run 32766877140 on `7e14d9f`,
+`event=push`, overall `success`:
+
+```
+browser                                 success
+quality                                 success
+desktop                                 success
+browser-diagnosis (isolated-implicated) failure
+browser-diagnosis (parallel-full)       failure
+```
+
+That is one green run, and one green run is exactly what an unstable suite produces
+sometimes — the observation that opened R02 in the first place. This route's job is to show
+the result repeats, and to take down the scaffolding that got us here.
+
+The two failing jobs are the diagnosis matrix. They fail **by construction**: they run the
+parallel configuration H02 already proved cannot pass on this runner. They are informational
+and the run concludes `success` despite them. Leaving them in place means every future run
+carries two permanent red jobs, which is exactly the kind of normalised red that made the
+gate meaningless before.
 
 ## Turn
 
 - Route id: `R02b`
-- Base: **not yet stamped.** Written when this file moves into `docs/titan/routes/` as
-  `route(R02b): open`, which happens after `H03` lands.
+- Base: `7ce92d2c1aee655225013ba85d80498ceb44cb5e`
 - Holder: `sole`
 - Expected size: 1–3 files, 2 commits (`route(R02b): close`, `handoff(H02b): record`)
 
@@ -91,7 +109,8 @@ of failing jobs. Keep the diagnostic value, drop the volume:
 ## Acceptance Criteria
 
 1. The diagnosis matrix introduced in `9aa5a41` is removed from `.github/workflows/ci.yml`.
-   The `browser` job remains, with its artifact upload.
+   The `browser` job remains, with its artifact upload. After removal no job in a green run
+   reports `failure`.
 2. The `browser` job is green on **three consecutive runs of the same commit**, triggered by
    re-running the workflow, not by pushing new commits. Paste all three run ids and their
    job conclusions.
@@ -105,7 +124,13 @@ of failing jobs. Keep the diagnostic value, drop the volume:
    `AGENTS.md`. Paste both phase summaries and `E2E_EXIT`.
 8. All four gates clean: `npm run lint`, `npm run test`, `npm run build`, `npm run desktop:check`.
 9. `npm run test` count is at or above 751.
-10. Two commits, in order: `route(R02b): close`, then `handoff(H02b): record`.
+10. `docs/titan/DOD.md` rows 6, 7, 8 and 10 are updated with evidence from H01, H02 and H03.
+    Row 6 states plainly that the two legacy storage constants remain by design. Row 7 closes
+    on the acceptance matrix R01 corrected. Row 10 closes: `CLAUDE.md` exists at the root and
+    beside four `AGENTS.md` files.
+11. Two commits, in order: `route(R02b): close`, then `handoff(H02b): record`. A published
+    `fix(R02b): ...` between them is permitted when remote evidence forces it, provided the
+    handoff names it and says what taught the correction.
 
 **Push authority:** granted, because criteria 2 and 3 cannot be evaluated without CI runs.
 `main` is the working branch, so an ordinary `git push origin main` is expected. Force-push,

@@ -64,6 +64,13 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
    They are separate because the handoff quotes `git log -1 --format=%H` of the commit it
    reports on, and no commit can contain its own hash. One commit would make every handoff
    either wrong or silent about the SHA that identifies the turn.
+
+   A **published corrective commit** may sit between the two. When a criterion's evidence
+   lives on a remote, the close has to be published before CI can grade it, so anything CI
+   teaches necessarily arrives after the close commit exists. Correcting that in the open is
+   right; the handoff lists the extra commit, says what the correction was, and says what
+   taught it. Amending silently and force-pushing stay forbidden — the history of a turn is
+   allowed to show that the turn learned something.
 6. Before opening the next turn Claude **re-runs the verification commands itself** and
    compares the result against `H<n>`.
 7. On any mismatch the route is not patched — it is **reopened** as `R<n>b`.
@@ -120,7 +127,13 @@ git log -1 --format=%H
 - Claude never starts a server. Ports 5173 and 4173 belong entirely to Sole.
 - `git add`, `commit`, `checkout`, `stash` only by whoever holds the turn.
 - Commit subjects, in order: `route(R<n>): open` (Claude), `route(R<n>): close` (Sole's
-  work), `handoff(H<n>): record` (Sole's evidence). Never fold the last two together.
+  work), any `fix(R<n>): ...` the published evidence forces, then `handoff(H<n>): record`
+  (Sole's evidence). Never fold the last two together.
+- **Claude does not move the ground under an open route.** A protocol or repository change
+  that would invalidate an active criterion waits until the turn closes, or the route is
+  reopened with that criterion restated. A criterion that became impossible because T0
+  changed something mid-turn is waived by T0 in `## T0 reconciliation`, never counted
+  against the holder.
 
 ## Route template
 

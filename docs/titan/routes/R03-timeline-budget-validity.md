@@ -229,3 +229,92 @@ record the decision in `## Deviations`.
 - Wiring the second-generation pipeline (R04), the intent vocabularies (R05), translation
   (R06). All queued, none open.
 - Any change to what the user sees. This route changes cost, not behaviour.
+
+## T0 reconciliation
+
+Written by Claude/T0 after re-running the gates independently and reading
+`docs/titan/handoffs/H03-timeline-budget-validity.md`. Appended, not substituted: the
+criteria above stand as written, including the two that turned out to be unsatisfiable.
+
+Independent gate re-run, T0's own invocation:
+
+```
+lint    clean
+test    Test Files  120 passed (120)   Tests  751 passed (751)
+build   Initial JavaScript: 415.7 / 420.0 KiB
+```
+
+CI run 32766877140, `event=push`, head `7e14d9f`, overall `success`:
+
+```
+browser                                success
+quality                                success
+desktop                                success
+browser-diagnosis (isolated-implicated) failure
+browser-diagnosis (parallel-full)       failure
+```
+
+**The `browser` job is green for the first time in this relay.** The two failing jobs are
+H02's temporary diagnosis matrix, whose entire purpose is to run the configuration already
+proven bad; they are informational and R02b removes them.
+
+### The finding is confirmed, and it is reading 1
+
+The measurement was never valid. Ten clicks cost the application about **1 ms** of
+synchronous handler time; the paint-aware in-page total is 166 ms on Windows and 277 ms on
+Linux at the median. The old assertion's 967–1540 ms was almost entirely Playwright
+transport and actionability checks. A budget named "ten timeline commits" was spending 98%
+of its allowance on the harness.
+
+The restated budget — median of ten in-page samples under 400 ms — is judged the right
+shape. It survives the falsification test: `TIMELINE_TEST_DELAY_MS=30` pushed the median to
+457.5 ms and the assertion failed, then a clean run passed at 166.5 ms. A budget that cannot
+fail is not a budget, and this one demonstrably fails.
+
+The mid-turn correction from max-of-ten to median-of-ten is the right call and is the more
+interesting result of the turn. A maximum over ten browser paint samples measures whichever
+scheduler pause happened to be worst; the handler medians stayed at 1.0–1.4 ms across every
+run while the maxima swung from 442 to 551 ms. Judging the median measures the application;
+judging the maximum measures the runner.
+
+### Criterion 10 — waived. T0's error, not Sole's.
+
+Criterion 10 required proof of a push to an `agent/**` branch. Between opening this route and
+Sole reaching that criterion, T0 landed `de30411`, which fast-forwarded the work onto `main`
+and deleted every agent branch. The criterion became impossible while the turn was running,
+because T0 removed the thing it named.
+
+The contract it was written to protect — CI runs on push, not only on an open pull request —
+is satisfied and proven by run 32766877140, `event=push` on `main`, conclusion `success`.
+**Criterion 10 is waived and its intent is met.**
+
+**Standing correction:** T0 does not change the ground a route stands on while that route is
+open. A protocol change that invalidates an active criterion waits for the turn to close, or
+the route is reopened with the criterion restated. Convenience is not a reason to move the
+floor under someone mid-turn.
+
+### Criterion 12 — accepted as three commits. The rule was wrong, not the turn.
+
+Criterion 12 required exactly two commits. The turn published three: `884276c` closed the
+route, `7e14d9f` corrected the assertion from maximum to median after Linux CI evidence
+showed the maximum was tracking scheduler pauses, and the handoff followed.
+
+Sole could only have satisfied the letter of the criterion by force-pushing, which every
+route forbids, or by not correcting a defect it had just proven. It chose correctly.
+
+The rule is the defect. Two commits assumed all evidence exists before the close commit, and
+that is false whenever a criterion's evidence lives on a remote: the close must be published
+before CI can grade it, so anything CI teaches necessarily arrives afterward. **Corrected in
+`PROTOCOL.md`:** a published corrective commit may sit between `route(R<n>): close` and
+`handoff(H<n>): record`, provided the handoff lists it and says what the correction was and
+what taught it. Silent amending and force-pushing stay forbidden.
+
+### Verdict
+
+R03 closes. Ten criteria met as written; criterion 10 waived as impossible through T0's own
+mid-turn change, with its intent proven by other means; criterion 12 accepted as three
+commits with the rule corrected. No `R03b` is opened — nothing remains for Sole to implement,
+and both open items were T0's to resolve.
+
+The gate is green. `R02b` opens next: remove the diagnosis matrix, narrow the artifacts, and
+prove the green result is repeatable rather than a first occurrence.

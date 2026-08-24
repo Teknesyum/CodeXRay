@@ -86,12 +86,16 @@ diagnosis matrix stays until R02b removes it.
 
 ### The one CI change this route makes
 
-`ci.yml` currently triggers on `push` to `main` and on `pull_request`. On `agent/titan-relay`
-that means CI runs **only because pull request #1 happens to be open**. This route needs Linux
-samples for criterion 2, and depending on an open pull request to obtain them is fragile —
-closing that PR would silently remove the gate.
+`ci.yml` triggers on `push` to `main` and on `pull_request`. While the work lived on
+`agent/titan-relay`, CI ran **only because pull request #1 happened to be open** — a gate
+that disappears the moment someone closes a PR.
 
-Add the working branch to the push trigger:
+That is now settled from the other side: the branch was fast-forwarded into `main`, PR #1
+merged, and every other branch deleted. Work happens on `main`, which already triggers on
+push, so the gate no longer depends on a pull request existing.
+
+Keeping `'agent/**'` in the push trigger is harmless and costs nothing if a branch is ever
+needed again:
 
 ```yaml
 on:
@@ -164,8 +168,9 @@ Land the measurement before any fix. The handoff answers all four, with numbers:
 12. Two commits, in order: `route(R03): close`, then `handoff(H03): record`.
 
 **Push authority:** granted for this route, because criterion 2 needs Linux samples and only
-CI produces them. Force-push, history rewrite, tags, releases, and `main` remain out of
-bounds.
+CI produces them. `main` is now the working branch, so an ordinary `git push origin main` is
+expected. Force-push, history rewrite, tags, releases, and anything that rewrites what is
+already published remain out of bounds — ask before any of those.
 
 ## If the product is fine
 

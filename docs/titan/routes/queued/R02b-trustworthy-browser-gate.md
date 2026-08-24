@@ -108,7 +108,9 @@ of failing jobs. Keep the diagnostic value, drop the volume:
 10. Two commits, in order: `route(R02b): close`, then `handoff(H02b): record`.
 
 **Push authority:** granted, because criteria 2 and 3 cannot be evaluated without CI runs.
-Force-push, history rewrite, tags, releases, and `main` remain out of bounds.
+`main` is the working branch, so an ordinary `git push origin main` is expected. Force-push,
+history rewrite, tags, releases, and anything that rewrites published history remain out of
+bounds — ask before any of those.
 
 ## Verification
 
@@ -139,7 +141,7 @@ recorded as inherited.
 CI evidence, three runs of one commit:
 
 ```powershell
-gh run list --branch agent/titan-relay --limit 5
+gh run list --branch main --limit 5
 gh run view <id> --json jobs -q '.jobs[] | \"\(.name) \(.conclusion)\"'
 ```
 
@@ -154,4 +156,5 @@ record the decision in `## Deviations`.
 - The one-worker decision. Established in R02, not reopened.
 - Wiring the second-generation pipeline (R04), the intent vocabularies (R05), translation
   (R06).
-- `main`. The branch stays unmerged until the gate is green.
+- Merging, tagging, or releasing. `main` is where the work lands turn by turn; cutting a
+  release from it is a separate decision and not this route's to make.

@@ -112,9 +112,10 @@ git log -1 --format=%H
 
 ## Branch and commit policy
 
-- One branch: `agent/titan-relay`, forked from `main`. No per-route branches — in a single
+- One branch: `main`. No route branches, no agent branches — in a single working directory
+  `checkout` is the one operation that breaks turn order, and a second branch is what makes
   working directory `checkout` is the one operation that breaks turn order.
-- When a DoD item closes: fast-forward to `main` and tag `titan-dod-<n>`.
+- When a DoD item closes: tag `titan-dod-<n>` on `main`.
 - `npm ci` is Sole's alone, and only at the start of a turn.
 - Claude never starts a server. Ports 5173 and 4173 belong entirely to Sole.
 - `git add`, `commit`, `checkout`, `stash` only by whoever holds the turn.

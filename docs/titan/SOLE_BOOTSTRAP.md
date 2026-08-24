@@ -19,7 +19,7 @@ handoffs. T0 never writes code and never starts a server.
 
 - Repository: `https://github.com/Teknesyum/CodeXRay`
 - Local working copy: `C:\Users\Administrator\Desktop\Projeler\CodeXray`
-- Branch: `agent/titan-relay` (single branch, single working copy, sequential turns)
+- Branch: `main` (single branch, single working copy, sequential turns)
 
 Read in exactly this order, and nothing else before you start:
 

@@ -270,3 +270,9 @@ npm run publish:site -- --target "C:\Users\serkan\git\serkanozelme"
 Use `--no-push` to create and validate the target commit without pushing it.
 The command refuses dirty, divergent, or unexpected repositories and stages
 only `blog/public/codexray/**`.
+
+## License
+
+AGPL-3.0-or-later — see [LICENSE](LICENSE).
+
+Copyright (C) 2026 Teknesyum

@@ -249,8 +249,11 @@ write.** Report the mismatch and stop.
 
 **When you close:**
 
-- Write `docs/titan/handoffs/H<nn>-<slug>.md` and commit as
-  `route(R<n>): close`.
+- Land **two** commits, in this order. The work goes in `route(R<n>): close`.
+  Then `docs/titan/handoffs/H<nn>-<slug>.md` and the `DOD.md` evidence rows go in
+  `handoff(H<n>): record`. They are separate because the handoff quotes
+  `git log -1 --format=%H` of the commit it reports on, and no commit can carry
+  its own hash.
 - Paste command output **verbatim**. Do not summarize it, do not trim it, do not
   paraphrase a number. `git diff --stat <base>..HEAD` goes in unabridged.
 - `## What changed` is a table of `path:line-range` | intent | added/edited/deleted.
@@ -265,6 +268,14 @@ write.** Report the mismatch and stop.
   count did not move, there is no new test.
 - `status: closed` is only allowed when all four of those hold. Otherwise write
   `partial` or `blocked` and say why.
+- **A criterion you cannot satisfy is reported, not worked around.** If the route
+  asks for something impossible — a grep that must return zero over a file you are
+  forbidden to edit, a pattern that matches the very path the route requires, a CI
+  job you have no authority to trigger — write it in `## Deviations` with the exact
+  output and stop there. Do not edit T0's files to make the criterion pass, and do
+  not weaken a test to satisfy a grep. A defective criterion is T0's error to fix,
+  and T0 fixes it in the route's `## T0 reconciliation` section. You lose nothing
+  by reporting it; you lose the turn by silently absorbing it.
 
 T0 re-runs your verification commands and compares them to your handoff. A
 mismatch does not get patched — the route is reopened as `R<n>b`. Reporting a

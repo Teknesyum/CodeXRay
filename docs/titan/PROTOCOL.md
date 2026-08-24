@@ -56,11 +56,24 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
 3. Sole touches only the files listed in `## Owned Files` and lands one or more commits.
 4. Sole runs the commands in `## Verification` **verbatim** and pastes the output into
    `H<n>` verbatim.
-5. Sole commits `H<n>` and the `DOD.md` evidence rows as `route(R<n>): close`.
+5. The close lands as **two commits**, in this order:
+
+   - `route(R<n>): close` — the work itself. This is the commit `## Verification` reports.
+   - `handoff(H<n>): record` — `H<n>` plus the `DOD.md` evidence rows.
+
+   They are separate because the handoff quotes `git log -1 --format=%H` of the commit it
+   reports on, and no commit can contain its own hash. One commit would make every handoff
+   either wrong or silent about the SHA that identifies the turn.
 6. Before opening the next turn Claude **re-runs the verification commands itself** and
    compares the result against `H<n>`.
 7. On any mismatch the route is not patched — it is **reopened** as `R<n>b`.
 8. Claude writes `R<n+1>`. The turn ends here.
+
+A route Claude has drafted but is not opening yet lives in `docs/titan/routes/queued/`. The
+active route is always the highest-numbered file **directly** in `docs/titan/routes/`;
+`queued/` is planning material and carries no authority to write code. A queued route's
+`## Turn.base` stays unstamped until it moves up, because a base recorded before the turn
+opens would name a commit that later work has already passed.
 
 ## Turn state
 
@@ -95,7 +108,8 @@ git log -1 --format=%H
 - `npm ci` is Sole's alone, and only at the start of a turn.
 - Claude never starts a server. Ports 5173 and 4173 belong entirely to Sole.
 - `git add`, `commit`, `checkout`, `stash` only by whoever holds the turn.
-- Route commit subject: `route(R<n>): open`. Handoff commit subject: `route(R<n>): close`.
+- Commit subjects, in order: `route(R<n>): open` (Claude), `route(R<n>): close` (Sole's
+  work), `handoff(H<n>): record` (Sole's evidence). Never fold the last two together.
 
 ## Route template
 
@@ -109,7 +123,11 @@ Preserved sections:
 - `## Owned Files`
 - `## Invariants`
 - `## Acceptance Criteria` — numbered and measurable; the final items are always the four
-  gates and a single dedicated commit
+  gates and the two close commits. A criterion whose evidence lives on a remote — a CI job,
+  a published site — must name who pushes. If that is not the route's holder, the criterion
+  is marked `(T0)` and Claude closes it. Every grep criterion demanding zero matches is
+  written so that the paths the same route *requires* cannot themselves match it; a
+  substring or case-insensitive pattern over filenames is the usual way this goes wrong
 - `## Verification` — PowerShell 5.1 compatible, no `&&`
 - `## Out of Scope`
 

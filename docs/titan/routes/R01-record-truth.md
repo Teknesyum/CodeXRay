@@ -305,3 +305,133 @@ record the decision in `## Deviations`.
   use Titan terminology — a case-insensitive `god` grep over their contents returns zero — so
   there is nothing inside them to change.
 - Retiring `docs/GEMINI_HANDOFF_LEETCODE_MEGA_UPDATE.md` to `docs/legacy/`.
+
+## T0 reconciliation
+
+Written by Claude/T0 after re-running `## Verification` independently and reading
+`docs/titan/handoffs/H01-record-truth.md`. This section rules on the four deviations Sole
+recorded. It is appended, not substituted: the criteria above stand as they were written,
+including their defects, because a route is a record of what was asked.
+
+Independent gate re-run, same working tree, T0's own invocation:
+
+```
+lint    clean
+test    Test Files  120 passed (120)   Tests  751 passed (751)
+build   Initial JavaScript: 415.7 / 420.0 KiB
+        Tracer worker: 141.0 / 150.0 KiB
+        Styles: 91.3 / 100.0 KiB
+```
+
+Identical to H01. The handoff is not overstating its evidence.
+
+### Deviation 1 — criterion 9 cannot return zero. Sole is right; the criterion is defective.
+
+The grep's remaining matches are:
+
+```
+docs/titan/DOD.md                    1
+docs/titan/SOLE_BOOTSTRAP.md         7
+docs/titan/routes/R01-record-truth.md  12
+e2e/titan-mode.spec.ts               1
+```
+
+The first three are T0-owned and Sole is forbidden from editing them; they name the old
+term because they are the documents that order and describe the rename. A protocol that
+forbids its own records from naming what they retired is incoherent. The fourth is
+
+```
+e2e/titan-mode.spec.ts:12
+await expect(page.getByText('God Mode', { exact: true })).toHaveCount(0);
+```
+
+a negative assertion proving the label is gone from the UI. Deleting it would remove the
+only test that fails if the old label returns. The criterion would have destroyed the
+evidence it was written to protect.
+
+**Ruling: criterion 9 is closed as satisfied.** Its correct scope is `src/`, `e2e/`
+filenames, and `src-tauri/`, with two enumerated exceptions — a negative assertion naming
+the retired term, and the `docs/legacy/` pointer already permitted by criterion 7. Every
+one of those holds. `docs/titan/` never belonged in the scope. Future routes use:
+
+```powershell
+Get-ChildItem -Recurse -Path src, e2e, src-tauri -File | Select-String -Pattern 'god.?mode' -CaseSensitive:$false
+git ls-files e2e/ | Select-String -Pattern 'god'
+```
+
+with any surviving match required to be a named exception in the route text.
+
+### Deviation 2 — criterion 1's verification pattern is defective. Sole is right.
+
+`Select-String` is case-insensitive by default, so
+`-Pattern 'interpreter\.test|acceptance\.test\.ts|workerClient\.test'` matches inside the
+two filenames the same criterion **requires**: `leetcodeAcceptance.test.ts` contains
+`Acceptance.test.ts`, and `tracerWorkerClient.test.ts` contains `WorkerClient.test`. Two
+of the three prescribed names trip the pattern that demands zero matches. Nonempty output
+was the only possible result.
+
+The matrix content is correct — row 1 cites the three real paths, and no stale name
+survives. **Ruling: criterion 1 is closed as satisfied.** The pattern is corrected to
+require a word boundary, which no substring match can produce:
+
+```powershell
+Select-String -Path docs/TITAN_ACCEPTANCE_MATRIX.md -Pattern '\b(interpreter|acceptance|workerClient)\.test'
+```
+
+### Deviation 3 — the browser job could not be asserted locally. Correct, and T0's error.
+
+R01 required a green `browser` job but granted no push authority, and the job cannot run
+without a push. The remote half of criterion 12 was never Sole's to close. T0 pushed
+`7a6f9f3` to `origin/agent/titan-relay` and carries the result; see `## Remote closure`
+below. Sole's local `66 passed` + `2 passed` with `E2E_EXIT=0` stands as the local half.
+
+**Standing correction:** a criterion depending on remote state must name who pushes. If
+that is not the route's holder, the criterion belongs to T0 and is marked so in the route.
+
+### Deviation 4 — the close commit cannot contain its own SHA. Sole is right; the protocol is defective.
+
+`PROTOCOL.md` step 5 commits the handoff *as* `route(R<n>): close`, while `## Verification`
+requires `git log -1 --format=%H` pasted verbatim into that same handoff. A commit cannot
+contain a hash that only exists once the commit is written. This is a flaw in the protocol,
+not in the turn. Corrected in `PROTOCOL.md` by splitting the close into two commits; the
+work lands as `route(R<n>): close` and the evidence follows as `handoff(H<n>): record`,
+which can name the commit above it. R01 is not retried for this.
+
+## Remote closure
+
+T0 pushed `7a6f9f3` to `origin/agent/titan-relay`. Run 32756724301: `quality` **success**,
+`desktop` **success**, `browser` **failure** — 12 failed, 4 flaky, 50 passed.
+
+The remote half of criterion 12 therefore does not pass. It also does not fail in a way that
+says anything about R01, and the three runs together show why:
+
+| Head | What it contains | browser result |
+|---|---|---|
+| `4e99311` (main) | the inherited baseline | 6 failed · 5 flaky · 55 passed |
+| `6c7e5ff` (branch, before the close) | protocol documents only — zero `src/**` or `e2e/**` changes | 10 failed · 3 flaky · 53 passed |
+| `7a6f9f3` (branch, after the close) | R01's renames and two new tests | 12 failed · 4 flaky · 50 passed |
+
+The middle row is the decisive one. Between `4e99311` and `6c7e5ff` not one line of product
+code or test code changed — the diff is Markdown — and the failure count still moved from 6
+to 10. A gate that swings by four failures on a documentation-only diff is not measuring the
+tree under test. R01's renames moved it from 10 to 12, inside the same band.
+
+Failures cluster in `e2e/dp-family-titan-mode.spec.ts` and `e2e/usage-scenarios.spec.ts`,
+every one of them an `expect(locator).toBeVisible()` timeout, and none of them reproduce
+locally, where Sole and T0 both observe `66 passed` with `E2E_EXIT=0`.
+
+**Ruling: criterion 12's remote half is unresolved, and it is not Sole's to carry.** The
+local half passed. The remote half cannot be graded until the instrument is fixed, which is
+`R02`. Criterion 12 is the one criterion R01 does not close.
+
+**Standing correction, stronger than the one under deviation 3:** no future route may make a
+green `browser` job an acceptance criterion until R02 establishes that the job's result is a
+function of the commit. A criterion whose value changes without its input changing is not a
+criterion.
+
+### Verdict
+
+R01 closes with one criterion open. Twelve of thirteen are satisfied — ten directly, two
+(1 and 9) as defective text over correct work. Criterion 12 closes locally and stays open
+remotely, carried into `R02`. No `R01b` is opened: nothing remains for Sole to implement, and
+the open half was never within Sole's authority.

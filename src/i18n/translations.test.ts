@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { algorithmRegistry } from '../services/codeRegistry';
 import {
+  dictionaries,
   localizeAlgorithmName,
   t,
   translateRuntimeText,
 } from './translations';
 
 describe('translations', () => {
+  it('keeps English and Turkish translation key sets identical', () => {
+    expect(Object.keys(dictionaries.en).sort()).toEqual(Object.keys(dictionaries.tr).sort());
+    expect(Object.keys(dictionaries.tr).sort()).toEqual(Object.keys(dictionaries.en).sort());
+  });
+
   it('provides Turkish UI labels and interpolation', () => {
     expect(t('sourceCode', 'tr')).toBe('Kaynak Kod');
     expect(t('arrayCount', 'tr', { count: 15 })).toBe('Dizi(15)');

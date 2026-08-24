@@ -2,7 +2,7 @@
 
 | Area | Executable evidence | Gate |
 |---|---|---|
-| JavaScript tracer syntax, budgets, forbidden APIs, seeded determinism | `src/services/trace/interpreter.test.ts`, `src/services/trace/acceptance.test.ts`, `src/services/trace/workerClient.test.ts` | Vitest |
+| JavaScript tracer syntax, budgets, forbidden APIs, seeded determinism | `src/services/trace/jsTracer.test.ts`, `src/services/trace/leetcodeAcceptance.test.ts`, `src/services/trace/tracerWorkerClient.test.ts` | Vitest |
 | Worker trace adaptation and visible failures | `src/services/customTraceFallback.test.ts`, `src/services/trace/adapter.test.ts` | Vitest |
 | Structural significance, 500+ steps, locale independence, 40 EN + 40 TR navigation | `src/services/trace/traceIntelligence.test.ts`, `src/services/titan/titanRouter.test.ts` | Vitest |
 | Closed input patches and atomic recompilation | `src/services/input/inputPatch.test.ts` | Vitest |

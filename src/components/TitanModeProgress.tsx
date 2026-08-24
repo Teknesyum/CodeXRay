@@ -28,7 +28,7 @@ interface TitanModeProgressProps {
   canRedo: boolean;
 }
 
-const agentKey = (role: string) => `godAgent_${role}`;
+const agentKey = (role: string) => `titanAgent_${role}`;
 
 const stageLabel = (id: string, label: string, locale: Locale): string => {
   if (!id.startsWith('titan-')) return label;
@@ -300,9 +300,9 @@ export const TitanModeProgress = ({
         >
           <summary>
             <span>{t(agentKey(reasoningJob.role), locale)}</span>
-            <span>{t('godAgentThinking', locale)}</span>
+            <span>{t('titanAgentThinking', locale)}</span>
             {liveReasoningJob?.id === reasoningJob.id && (
-              <span className="titan-mode-thinking-live">{t('godAgentThinkingLive', locale)}</span>
+              <span className="titan-mode-thinking-live">{t('titanAgentThinkingLive', locale)}</span>
             )}
           </summary>
           <pre>{reasoningJob.reasoning}</pre>

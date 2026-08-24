@@ -224,11 +224,13 @@ cannot get wrong.
 **Before you write anything:**
 
 ```powershell
-git log -1 --format=%H
+git merge-base --is-ancestor <base> HEAD
+git diff --name-only <base>..HEAD
 ```
 
-Compare that SHA to the `## Turn.base` field of the active route. **If it does
-not match, do not write.** Report the mismatch and stop.
+`<base>` is the `## Turn.base` field of the active route. The first command must
+exit 0; the second must list only T0-owned paths. **If either fails, do not
+write.** Report the mismatch and stop.
 
 **While you work:**
 
@@ -273,8 +275,22 @@ failure honestly costs one turn; reporting a false pass costs the protocol.
 1. Read `AGENTS.md` completely.
 2. Read `docs/titan/PROTOCOL.md`.
 3. Open the highest-numbered file in `docs/titan/routes/` — that is your active
-   route. Check its `## Turn.base` against `git log -1 --format=%H` before you
-   write a single line.
+   route. Run the startup check below before you write a single line.
+
+```powershell
+git merge-base --is-ancestor <base> HEAD
+git diff --name-only <base>..HEAD
+```
+
+The first command must exit 0: the route's `## Turn.base` has to be an ancestor
+of local HEAD. This is not an equality check — the commit that fills in `base`
+lands after the commit `base` names, so HEAD is normally one or two T0 commits
+ahead.
+
+The second command must list only T0-owned paths (`docs/titan/PROTOCOL.md`,
+`docs/titan/routes/**`, `docs/titan/SOLE_BOOTSTRAP.md`, `docs/DEVIRALAN.md`,
+`AGENTS.md`, `*/AGENTS.md`, `CLAUDE.md`, `docs/README.md`). Anything else in
+that range means another writer touched the tree: stop and report, do not write.
 
 If `docs/titan/routes/` is empty, no turn is open. Report that and wait for T0
 to open one; do not pick work for yourself.

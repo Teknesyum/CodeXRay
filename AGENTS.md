@@ -12,8 +12,10 @@ Nothing else. Do not scan the repository before reading these three. Archived ma
 ## Turn protocol (binding)
 
 - One branch, one working directory, strictly sequential turns. No parallel work.
-- Before writing anything, run `git log -1 --format=%H` and compare it with the active
-  route's `## Turn.base`. If they differ, do not write; report the mismatch.
+- Before writing anything, check the active route's `## Turn.base`:
+  `git merge-base --is-ancestor <base> HEAD` must exit 0, and
+  `git diff --name-only <base>..HEAD` must list only T0-owned paths. If either fails,
+  do not write; report the mismatch.
 - Touch only the paths listed in the route's `## Owned Files`.
 - Run the route's `## Verification` commands verbatim; paste output verbatim into
   `docs/titan/handoffs/H<nn>-*.md`. Never summarize evidence.

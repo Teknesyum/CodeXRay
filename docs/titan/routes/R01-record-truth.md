@@ -9,7 +9,7 @@ Bu rota matrisi gerçeğe bağlar, testsiz kalan `tracerWorkerClient` için test
 ## Turn
 
 - Route id: `R01`
-- Base SHA: `<PENDING>`
+- Base SHA: `290b699764d58b5f24e9a067f6507b34450b812e`
 - Expected turn size: 12-14 files touched, 1 commit
 - Holder: `sole`
 
@@ -195,9 +195,9 @@ npm run build
 
 npm run desktop:check
 
-git log --oneline "<PENDING>..HEAD"
+git log --oneline "290b699764d58b5f24e9a067f6507b34450b812e..HEAD"
 
-git diff --stat "<PENDING>..HEAD"
+git diff --stat "290b699764d58b5f24e9a067f6507b34450b812e..HEAD"
 ```
 
 Per-rename history proof, once for each new e2e path:
@@ -209,7 +209,7 @@ git log --follow --oneline -- e2e/<new-name>.spec.ts
 Untouched proof:
 
 ```powershell
-git diff --stat "<PENDING>..HEAD" -- .claude docs/tasks docs/legacy AGENTS.md CLAUDE.md docs/titan/PROTOCOL.md docs/titan/routes
+git diff --stat "290b699764d58b5f24e9a067f6507b34450b812e..HEAD" -- .claude docs/tasks docs/legacy AGENTS.md CLAUDE.md docs/titan/PROTOCOL.md docs/titan/routes
 ```
 
 That last command must print nothing.
@@ -230,7 +230,7 @@ git clean -fd src/services/trace/tracerWorkerClient.test.ts
 ```
 
 `git mv` renames are staged; `git checkout -- .` alone does not undo them. Use
-`git reset --hard <PENDING>` only when the working tree holds nothing else worth keeping, and
+`git reset --hard 290b699764d58b5f24e9a067f6507b34450b812e` only when the working tree holds nothing else worth keeping, and
 record the decision in `## Deviations`.
 
 ## Out of Scope

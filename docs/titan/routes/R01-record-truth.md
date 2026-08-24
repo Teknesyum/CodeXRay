@@ -10,7 +10,7 @@ Bu rota matrisi gerçeğe bağlar, testsiz kalan `tracerWorkerClient` için test
 
 - Route id: `R01`
 - Base SHA: `290b699764d58b5f24e9a067f6507b34450b812e`
-- Expected turn size: 12-14 files touched, 1 commit
+- Expected turn size: 14-18 files touched, 1 commit
 - Holder: `sole`
 
 ## Objective
@@ -133,7 +133,47 @@ Do not scan the repository beyond these files. Everything R01 needs is listed ab
     baseline of 747, matching the new `tracerWorkerClient` and i18n parity tests.
 11. All four gates are clean: `npm run lint`, `npm run test`, `npm run build`,
     `npm run desktop:check`.
-12. The whole route lands as one dedicated commit, subject `route(R01): close`.
+12. `npm run test:e2e` passes, and the GitHub Actions `browser` job is green on the branch.
+    See `## Inherited breakage` — the suite is red before this route starts, and renaming a
+    broken spec is not progress. Diagnose the cause before touching the filenames; if the
+    fault turns out to be product logic rather than the specs, stop and report it in
+    `## Blockers` instead of expanding the route.
+13. The whole route lands as one dedicated commit, subject `route(R01): close`.
+
+## Inherited breakage
+
+The `browser` CI job was already failing when this route was opened. Run 32751560721 on
+`main` (2026-08-24, commit `4e99311`) reported **55 passed, 6 failed, 5 flaky** while
+`quality` and `desktop` were both green.
+
+Failing specs, by match count in the failure log:
+
+| Spec | Note |
+|---|---|
+| `e2e/usage-scenarios.spec.ts` | highest match count |
+| `e2e/dp-family-god-mode.spec.ts` | also renamed by criterion 5 |
+| `e2e/release-tour.spec.ts` | |
+| `e2e/god-mode-user-graph.spec.ts` | also renamed by criterion 5 |
+| `e2e/god-mode-clarification.spec.ts` | also renamed by criterion 5 |
+
+Every failure shares one symptom — an accessible-label lookup for a running simulation
+never resolves:
+
+```
+> 69 |   await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
+Error: element(s) not found
+Timeout: 5000ms
+```
+
+`e2e/usage-scenarios.spec.ts:85` fails the same way on `LeetCode 322 — Coin Change`.
+
+This was not verified locally: per the protocol, Claude does not run servers or e2e in this
+project, so whether the suite also fails on a developer machine is unknown. Establish that
+first — a CI-only failure and a universal failure need different fixes.
+
+Three of the five failing specs are ones criterion 5 renames. Fix before renaming, so that
+`git log --follow` history and the green state land together rather than a rename burying a
+red suite.
 
 ## Call path
 
@@ -199,6 +239,22 @@ git log --oneline "290b699764d58b5f24e9a067f6507b34450b812e..HEAD"
 
 git diff --stat "290b699764d58b5f24e9a067f6507b34450b812e..HEAD"
 ```
+
+The e2e suite is run separately, not as a line in the block above. On Windows the
+Playwright `webServer` helper can wait on its own child process and produce no output;
+use the external-server procedure from `AGENTS.md` and clean up only the PIDs this run
+created:
+
+```powershell
+$server = Start-Process -FilePath "npm.cmd" `
+  -ArgumentList @("run", "dev", "--", "--host", "127.0.0.1", "--port", "4173") `
+  -WorkingDirectory (Get-Location) -WindowStyle Hidden -PassThru
+$env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
+npm run test:e2e
+```
+
+Paste the full pass/fail summary line into `## Gate output`, and record the counts both
+before and after the route so the inherited 55/6/5 split can be compared.
 
 Per-rename history proof, once for each new e2e path:
 

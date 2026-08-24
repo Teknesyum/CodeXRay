@@ -1,0 +1,203 @@
+# R03 — Make the timeline budget measure the product
+
+## Özet
+
+H02 gerçek bir bulgu çıkardı: on timeline adımı 1000 ms bütçesini Linux'ta 1320–1326 ms,
+Windows'ta 1049 ms ile aşıyor. Ama bu bir gerileme değil — T19'dan bu yana tek satır ürün
+mantığı değişmedi. Ölçüm on Playwright tıklamasının gidiş-dönüş maliyetini ürünün maliyeti
+sanıyor. Bu rota önce ölçümü geçerli hale getirir, sonra ürünü gerçek sayıyla yargılar.
+Eşiği yükselterek yeşile geçmek bu rotanın başarısızlığıdır.
+
+## Objective
+
+Replace a measurement that cannot distinguish application work from harness overhead with
+one that can, then hold the product to a budget derived from that measurement. If the valid
+measurement shows the product is genuinely slow, fix the product — but find that out before
+changing any number.
+
+### Why this is not a regression
+
+`e2e/performance-budget.spec.ts:26-28` is the failing assertion:
+
+```js
+const next = page.getByRole('button', { name: 'Next step' });
+const stepStarted = performance.now();
+for (let index = 0; index < 10 && !await next.isDisabled(); index += 1) await next.click();
+expect(performance.now() - stepStarted, 'ten timeline commits').toBeLessThan(1_000);
+```
+
+The 1000 ms budget was set in `dfe894c` and declared met by T19
+(`docs/tasks/T19-isolated-performance-e2e.md`), whose Decision section rejected raising it:
+
+> "the observed 1.193-second result occurred only while eight independent browser workers
+> competed for the same CPU; the unchanged test repeatedly passed when isolated."
+
+T19's criterion 3 states the threshold "remains unchanged and passes in the isolated phase".
+It now fails in exactly that isolated phase, on one worker, on two operating systems.
+
+The decisive fact is what changed in between. Every `src/**` change from `f16ebc4` (T19) to
+`9aa5a41` is:
+
+```
+ src/components/TitanModeProgress.tsx          |  6 +-
+ src/i18n/translations.test.ts                 |  6 ++
+ src/i18n/translations.ts                      | 66 ++++++++++----------
+ src/services/titan/AGENTS.md                  | 17 +++++
+ src/services/trace/AGENTS.md                  | 18 ++++++
+ src/services/trace/tracerWorkerClient.test.ts | 89 +++++++++++++++++++++++++++
+```
+
+Translation-key renames, a new test file, and two guide documents. No product logic changed
+at all. A string-key rename cannot add 300 ms to ten step commits, so the application today
+performs exactly as it did when the budget was declared met.
+
+Two readings survive, and the route must decide between them with evidence, not preference:
+
+1. **The measurement was never valid.** The loop performs ten `click()` calls and up to ten
+   `isDisabled()` calls. Each is a WebSocket round trip to the browser plus Playwright's
+   actionability checks — visible, enabled, stable, receives-events — before the event is
+   dispatched. Twenty round trips of harness cost sit inside a budget named "ten timeline
+   commits", and T19's pass may have been a single lucky sample near the line.
+2. **The product is genuinely at the limit** and the harness overhead merely pushed a
+   marginal number over it.
+
+These are distinguishable. Measure the commits from inside the page, where Playwright's
+transport does not exist, and compare against the outside number.
+
+## Turn
+
+- Route id: `R03`
+- Base: `02497a1bd6a0283b7a42fa1731d443e0c7931500`
+- Holder: `sole`
+- Expected size: 2–5 files, 2 commits (`route(R03): close`, `handoff(H03): record`)
+
+## Owned Files
+
+| Path | Why |
+|---|---|
+| `e2e/performance-budget.spec.ts` | The measurement under repair |
+| `src/**` | Only if the valid measurement proves a product defect, and only the code it implicates |
+| `docs/titan/handoffs/H03-timeline-budget-validity.md` | Handoff |
+| `docs/titan/DOD.md` | Evidence cells only |
+
+`.github/workflows/ci.yml` and `playwright.config.ts` are **read-only this turn** — they are
+R02b's, and the diagnosis matrix stays until R02b removes it.
+
+## Invariants
+
+- **No threshold is raised to reach green.** A number may change only as the conclusion of a
+  measurement that is reported in the handoff, with the sample count and the spread. "It
+  passes now" is not a reason.
+- No assertion is deleted, no test is skipped, no `@performance` tag is removed, and the
+  performance phase keeps running with one worker.
+- The other four budgets in the spec — startup 5000, seven preset commits 3500, graph trace
+  2000, 70-cell matrix 4000 — are not touched unless the same measurement work proves one of
+  them invalid too, and then the same evidence rule applies.
+- Everything stays deterministic. No `Math.random`, no wall-clock branching in product code.
+  `performance.now()` inside a test is measurement, not branching, and is allowed.
+- If product code changes, its behaviour is unchanged: same steps, same trace, same visual
+  output. A performance fix that alters what the user sees is a different route.
+
+## Measurement first
+
+Land the measurement before any fix. The handoff answers all four, with numbers:
+
+1. **What does the product actually cost?** Drive the same ten commits from inside the page
+   and time them there — click the control via `page.evaluate`, or have the application emit
+   `performance.mark`/`measure` around the step commit and read the entries. Report the
+   in-page total next to the Playwright-measured total for the same run. The difference is
+   the harness cost, and naming it settles reading 1 versus reading 2.
+2. **How stable is it?** Ten samples minimum, on Linux CI and on Windows. Report min, median,
+   max for each. A budget set from one sample is how this defect was created; do not repeat
+   the method that produced it.
+3. **Where does the time go?** If the in-page number is itself large, profile one commit and
+   name the cost: re-rendering the whole visualizer instead of the changed nodes, recomputing
+   a derived structure per step, an unmemoised context value re-rendering every consumer, or
+   serialising a large `TraceValue` on each commit. Name the function, not the subsystem.
+4. **Is the button the bottleneck or the state?** Distinguish the cost of the click handler
+   from the cost of the React commit that follows it. They have different fixes.
+
+## Acceptance Criteria
+
+1. The handoff answers all four `## Measurement first` questions with pasted numbers, and
+   states which of the two readings the evidence supports.
+2. The timeline assertion measures application work, with harness round trips excluded or
+   accounted for. The handoff shows the before and after measurement for the same commit so
+   the two numbers can be compared.
+3. If the evidence supports reading 2, the product is fixed and the in-page measurement drops
+   below the budget with the fix and exceeds it without — prove both directions.
+4. If the evidence supports reading 1, the budget is restated in terms of what is now
+   measured, and the handoff states the sample-based margin. The new number is justified by
+   the distribution from criterion 2, not by the value that happens to pass.
+5. The assertion still fails when the product is genuinely slower. Prove it by deliberately
+   introducing a delay in the step commit path, showing the failure, then removing it. A
+   budget that cannot fail is not a budget.
+6. `npm run test:e2e` is green locally on Windows, both phases, including `@performance`.
+   Paste both phase summaries and `E2E_EXIT`.
+7. No threshold other than the timeline one changed, and `git diff <base>..HEAD -- e2e/` is
+   pasted unabridged with a line-by-line justification.
+8. All four gates clean: `npm run lint`, `npm run test`, `npm run build`, `npm run desktop:check`.
+9. `npm run test` count is at or above 751.
+10. Two commits, in order: `route(R03): close`, then `handoff(H03): record`.
+
+**Push authority:** granted for this route, because criterion 2 needs Linux samples and only
+CI produces them. Force-push, history rewrite, tags, releases, and `main` remain out of
+bounds.
+
+## If the product is fine
+
+If the in-page measurement shows the application commits ten steps well inside a sensible
+budget and the entire overage is harness cost, say so plainly and fix the measurement. That
+is a complete, successful route — not a smaller one. The defect was in the instrument, and
+the record should say that rather than inventing a product problem to justify the turn.
+
+## Verification
+
+PowerShell 5.1. No `&&`, no `||`, no ternary. Run verbatim; paste output verbatim.
+
+```powershell
+git log -1 --format=%H
+
+git diff --stat "02497a1bd6a0283b7a42fa1731d443e0c7931500..HEAD"
+
+git diff "02497a1bd6a0283b7a42fa1731d443e0c7931500..HEAD" -- e2e/
+
+Get-ChildItem -Recurse -Path e2e -File | Select-String -Pattern 'toBeLessThan'
+
+npm run lint
+
+npm run test
+
+npm run build
+
+npm run desktop:check
+```
+
+The fourth command lists every budget in the suite so the handoff can show which numbers
+moved and which did not.
+
+Local e2e uses the external-server procedure in `AGENTS.md`. Clean up only the PIDs this run
+created.
+
+```powershell
+$server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", "--host", "127.0.0.1", "--port", "4173") -WorkingDirectory (Get-Location) -WindowStyle Hidden -PassThru
+$env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
+npm run test:e2e
+```
+
+## Rollback
+
+`git reset --hard 02497a1bd6a0283b7a42fa1731d443e0c7931500` only when the working tree holds nothing else worth keeping, and
+record the decision in `## Deviations`.
+
+## Out of Scope
+
+- **The CI diagnosis matrix and its artifacts.** H02 recorded a 648,454,966-byte diagnostic
+  artifact. Removing that matrix and narrowing the uploads is R02b, queued at
+  `docs/titan/routes/queued/R02b-trustworthy-browser-gate.md`. Do not edit `ci.yml`.
+- Proving three consecutive green CI runs. Also R02b, and impossible until this route lands.
+- The parallel-worker configuration. H02 established one worker as the gate's configuration;
+  that decision is not reopened here.
+- Wiring the second-generation pipeline (R04), the intent vocabularies (R05), translation
+  (R06). All queued, none open.
+- Any change to what the user sees. This route changes cost, not behaviour.

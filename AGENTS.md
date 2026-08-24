@@ -4,9 +4,11 @@
 
 1. This file.
 2. `docs/titan/PROTOCOL.md` — the canonical turn protocol, single source of truth.
-3. The active route: the highest-numbered `docs/titan/routes/R<nn>-*.md`, directly in that
-   folder. `docs/titan/routes/queued/**` holds drafted future routes — planning material,
-   never an instruction to write code.
+3. The active route: the file directly in `docs/titan/routes/` that has **no** matching
+   `docs/titan/handoffs/H<id>-*.md`. Exactly one route is ever in that state, and numbering
+   does not decide it — a retry `R<n>b` opens after higher-numbered routes have closed.
+   `docs/titan/routes/queued/**` holds drafted future routes — planning material, never an
+   instruction to write code.
 
 Nothing else. Do not scan the repository before reading these three. Archived material in
 `docs/legacy/**` and `docs/tasks/**` is historical record, not instruction.

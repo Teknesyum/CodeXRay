@@ -25,7 +25,9 @@ Read in exactly this order, and nothing else before you start:
 
 1. `AGENTS.md`
 2. `docs/titan/PROTOCOL.md`
-3. The active route — the highest-numbered file in `docs/titan/routes/`
+3. The active route — the file directly in `docs/titan/routes/` that has no
+   matching handoff in `docs/titan/handoffs/`. Not the highest-numbered one; a
+   retry like `R02b` opens after `R03` has already closed.
 
 Do not scan the repository broadly before reading the route. The route's
 `## Read first` section tells you which files matter and why.
@@ -285,8 +287,18 @@ failure honestly costs one turn; reporting a false pass costs the protocol.
 
 1. Read `AGENTS.md` completely.
 2. Read `docs/titan/PROTOCOL.md`.
-3. Open the highest-numbered file in `docs/titan/routes/` — that is your active
-   route. Run the startup check below before you write a single line.
+3. Find your active route: the file directly in `docs/titan/routes/` with no
+   matching `docs/titan/handoffs/H*.md`. Exactly one exists. Ignore
+   `docs/titan/routes/queued/**` entirely — those are drafts and carry no
+   authority to write code.
+
+   ```powershell
+   $routes = Get-ChildItem docs\titan\routes -Filter R*.md -File
+   $closed = Get-ChildItem docs\titan\handoffs -Filter H*.md -File | ForEach-Object { $_.Name -replace '^H', '' }
+   $routes | Where-Object { $closed -notcontains ($_.Name -replace '^R', '') }
+   ```
+
+   Run the startup check below before you write a single line.
 
 ```powershell
 git merge-base --is-ancestor <base> HEAD

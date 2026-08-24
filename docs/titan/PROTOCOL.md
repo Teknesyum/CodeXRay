@@ -69,11 +69,14 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
 7. On any mismatch the route is not patched — it is **reopened** as `R<n>b`.
 8. Claude writes `R<n+1>`. The turn ends here.
 
-A route Claude has drafted but is not opening yet lives in `docs/titan/routes/queued/`. The
-active route is always the highest-numbered file **directly** in `docs/titan/routes/`;
+A route Claude has drafted but is not opening yet lives in `docs/titan/routes/queued/`.
 `queued/` is planning material and carries no authority to write code. A queued route's
 `## Turn.base` stays unstamped until it moves up, because a base recorded before the turn
 opens would name a commit that later work has already passed.
+
+A turn that ends `partial` does not reopen by editing its route. It produces `R<n>b`, which
+is queued until whatever blocked it has closed, then moves up and opens normally. Its handoff
+is `H<n>b`, so the pairing rule above keeps working.
 
 ## Turn state
 
@@ -84,9 +87,15 @@ forget.
 
 Derivation:
 
-- `active route` = the highest-numbered file in `docs/titan/routes/`.
-- `holder` = the answer to "does the highest-numbered `R` have a matching `H`?"
-  No matching `H` → holder is **Sole**. A matching `H` exists → holder is **Claude**.
+- `active route` = the file directly in `docs/titan/routes/` that has **no** matching handoff
+  in `docs/titan/handoffs/`. Exactly one route is ever in that state, because Claude never
+  opens a second one while the first is unanswered.
+- `holder` = **Sole** while such a file exists, **Claude** once every route has its handoff.
+
+  This is a pairing rule, not an ordering rule. Numbering says when a route was written; it
+  does not say which route is live. A retry (`R<n>b`) opens after routes with higher numbers
+  have already closed, and "highest-numbered" would point at the wrong file the moment that
+  happens.
 - `base SHA` = the `## Turn.base` field of the active route — the commit that opened the
   turn. Sole's startup check asks whether that commit is an ancestor of local HEAD and
   whether the range touched only Claude-owned paths. It is not an equality check: the
@@ -95,8 +104,9 @@ Derivation:
   The check reads git history, never a status file.
 
 ```powershell
-Get-ChildItem docs\titan\routes -Filter R*.md | Sort-Object Name | Select-Object -Last 1
-Get-ChildItem docs\titan\handoffs -Filter H*.md | Sort-Object Name | Select-Object -Last 1
+$routes = Get-ChildItem docs\titan\routes -Filter R*.md -File
+$closed = Get-ChildItem docs\titan\handoffs -Filter H*.md -File | ForEach-Object { $_.Name -replace '^H', '' }
+$routes | Where-Object { $closed -notcontains ($_.Name -replace '^R', '') }
 git log -1 --format=%H
 ```
 

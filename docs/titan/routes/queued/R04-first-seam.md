@@ -1,4 +1,4 @@
-# R03 — Wire the first seam of the second-generation pipeline
+# R04 — Wire the first seam of the second-generation pipeline
 
 > **Queued, not open.** This file is planning material. The active route is the
 > highest-numbered file directly in `docs/titan/routes/`. Nothing here is an instruction
@@ -58,15 +58,15 @@ Three consequences, all of which make `AGENTS.md` false today:
    `translate` role that is never requested.
 
 This route fixes (2) for one intent. (1) and (3) are named here so the record is complete and
-are routed to R04 and R05.
+are routed to R05 and R06.
 
 ## Turn
 
-- Route id: `R03`
+- Route id: `R04`
 - Base: **not yet stamped.** Queued, not open. The base SHA is written when this
-  file moves into `docs/titan/routes/` as `route(R03): open`.
+  file moves into `docs/titan/routes/` as `route(R04): open`.
 - Holder: `sole`
-- Expected size: 6–9 files, 2 commits (`route(R03): close`, `handoff(H03): record`)
+- Expected size: 6–9 files, 2 commits (`route(R04): close`, `handoff(H04): record`)
 
 ## Owned Files
 
@@ -79,7 +79,7 @@ are routed to R04 and R05.
 | `src/i18n/translations.test.ts` | Parity test follows the rename |
 | `src/services/titan/titanPipeline.test.ts` | Covers the new helper if one is added |
 | `e2e/titan-mode.spec.ts` | The user-visible proof |
-| `docs/titan/handoffs/H03-first-seam.md` | Handoff |
+| `docs/titan/handoffs/H04-first-seam.md` | Handoff |
 | `docs/titan/DOD.md` | Evidence cells only |
 
 Nothing else. `titanEngine.ts` and `titanEntry.ts` are **read-only this turn**.
@@ -171,14 +171,14 @@ list in the verification block below. A migration constant should be findable.
    `codexray.ai.godMode` and the exact string `god-mode`.
 7. The `## Call path` table is filled with real `file:line` values, every one of which exists
    in the committed tree.
-8. DoD rows 6, 7 and 10 are updated with H01/H03 evidence. Row 6's cell states plainly that
+8. DoD rows 6, 7 and 10 are updated with H01/H04 evidence. Row 6's cell states plainly that
    the two legacy constants remain by design. Row 10 closes: `CLAUDE.md` now exists at the
    root and beside four `AGENTS.md` files.
 9. All four gates clean: `npm run lint`, `npm run test`, `npm run build`, `npm run desktop:check`.
 10. `npm run test` count is at or above 751 and every added test corresponds to a claim above.
 11. `npm run test:e2e` passes locally. **(T0)** The remote `browser` job is Claude's to close;
     do not push.
-12. Two commits, in order: `route(R03): close`, then `handoff(H03): record`.
+12. Two commits, in order: `route(R04): close`, then `handoff(H04): record`.
 
 ## Verification
 
@@ -227,15 +227,15 @@ record the decision in `## Deviations`.
 ## Out of Scope
 
 - **Rewriting `titanEngine.ts` or `titanEntry.ts`.** Read-only this turn. Routing a second
-  intent through the pipeline is R06, after this seam has survived one turn.
+  intent through the pipeline is R07, after this seam has survived one turn.
 - **Reconciling the two intent vocabularies.** `TitanIntent` versus `TitanModeIntent` is a
-  product decision about what CodeXRay promises, and it is R04. Do not edit either union, and
-  do not edit the intent list in `AGENTS.md` — that text becomes true or changes in R04, and
+  product decision about what CodeXRay promises, and it is R05. Do not edit either union, and
+  do not edit the intent list in `AGENTS.md` — that text becomes true or changes in R05, and
   changing it now would hide the gap this route just documented.
 - **Shipping cross-language translation.** `translate.ts`, its prompt, and the `translate`
-  role budget are R05. Do not call `translateToVerifiedPackage` and do not delete it.
+  role budget are R06. Do not call `translateToVerifiedPackage` and do not delete it.
 - **Deleting `titanRouter.ts`, `inputPatch.ts`, or `roleBudgets.ts`.** Their fate is decided
-  in R04 and R05. Dead code is not removed while the decision that governs it is open.
+  in R05 and R06. Dead code is not removed while the decision that governs it is open.
 - Any change to the interpreter's supported language profile.
 - CI workflow files under `.github/`.
 - Pushing to `origin`. The remote half of criterion 11 belongs to T0.

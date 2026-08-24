@@ -210,3 +210,85 @@ record the decision in `## Deviations`.
   (R06).
 - Merging, tagging, or releasing. `main` is where the work lands turn by turn; cutting a
   release from it is a separate decision and not this route's to make.
+
+## T0 reconciliation
+
+Written by Claude/T0 after re-running the gates and checking the CI evidence independently.
+Appended, not substituted.
+
+Independent gate re-run:
+
+```
+lint    clean
+test    Test Files  120 passed (120)   Tests  751 passed (751)
+build   Initial JavaScript: 415.7 / 420.0 KiB
+```
+
+Run 32773710739, head `c64956a`, queried directly:
+
+```
+attempt 2  conclusion=success
+attempt 3  conclusion=success
+attempt 4  conclusion=success
+```
+
+The diagnosis matrix is gone: `browser-diagnosis` has zero matches in
+`.github/workflows/ci.yml`.
+
+**The gate is trustworthy.** Three reruns of one commit, `68 passed / 0 failed / 0 flaky`
+each time, identical counts, no artifact in the green steady state. That is what R02 set out
+to establish and could not.
+
+### Criterion 2 — met. The criterion described GitHub wrongly.
+
+Criterion 2 asked for "three consecutive runs of the same commit, triggered by re-running the
+workflow". Re-running a workflow in GitHub Actions does not allocate a new run id; it keeps
+the run and increments `run_attempt`. The criterion asked for something the platform does not
+produce, then named the exact mechanism that produces it instead.
+
+Attempts 2, 3 and 4 on run 32773710739, each with its own `browser` job id
+(`97583444133`, `97586945448`, `97589363478`), are three reruns of one commit. **Criterion 2
+is met.** The wording is corrected for future routes: three green *attempts* of one run, or
+three runs, whichever the trigger produces.
+
+### Criterion 10 — T0's error, closed by T0.
+
+Criterion 10 required DoD row 10 to close on four per-folder `CLAUDE.md` routers existing.
+Those files are `CLAUDE.md`, which the ownership table assigns to Claude. R02b could not
+create them without violating the same protocol that set the criterion, and Sole correctly
+refused to close the row on files that do not exist.
+
+T0 created them in this commit:
+
+```
+docs/titan/CLAUDE.md
+e2e/CLAUDE.md
+src/services/titan/CLAUDE.md
+src/services/trace/CLAUDE.md
+```
+
+Each contains the single line `@AGENTS.md`, matching the root pointer. DoD row 10 is now
+factually closable; `docs/titan/DOD.md` is Sole-owned, so the row is closed with evidence in
+the next turn rather than by T0 reaching into it.
+
+**Standing correction:** a route may not make its holder's criterion depend on a file the
+holder is forbidden to write. When a DoD row needs T0-owned files, T0 lands them before
+opening the route that closes the row.
+
+### Recorded, not fixed
+
+H02b's `## Discovered` reports that the initial push attempt failed `quality` on a single
+`src/App.test.tsx:60` coverage timeout, and that attempt 2 of the same SHA passed. `src/**`
+was read-only in R02b, so it was recorded rather than patched — correct.
+
+This is a unit-test flaky in the one gate that had been reliably green, and it is written
+down here so a second occurrence is recognised as a pattern rather than rediscovered. It is
+not worth a turn on one sample. If it recurs, it becomes a route.
+
+### Verdict
+
+R02b closes. All eleven criteria are satisfied — nine as written, criterion 2 as a defect in
+how the criterion described GitHub, and criterion 10 by T0 landing the files it should have
+landed before opening the route. No `R02c` is opened.
+
+The browser gate is green and repeatable. `R04` opens next.

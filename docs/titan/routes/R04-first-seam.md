@@ -1,9 +1,5 @@
 # R04 — Wire the first seam of the second-generation pipeline
 
-> **Queued, not open.** This file is planning material. The active route is the
-> highest-numbered file directly in `docs/titan/routes/`. Nothing here is an instruction
-> to write code until it moves there.
-
 ## Özet
 
 Projede iki Titan uygulaması var: sevk edilen birinci nesil (`titanEngine.ts`, 1498 satır) ve
@@ -63,8 +59,7 @@ are routed to R05 and R06.
 ## Turn
 
 - Route id: `R04`
-- Base: **not yet stamped.** Queued, not open. The base SHA is written when this
-  file moves into `docs/titan/routes/` as `route(R04): open`.
+- Base: `1741cb14e4b41cabd83d848477605b81492f6e58`
 - Holder: `sole`
 - Expected size: 6–9 files, 2 commits (`route(R04): close`, `handoff(H04): record`)
 
@@ -171,14 +166,22 @@ list in the verification block below. A migration constant should be findable.
    `codexray.ai.godMode` and the exact string `god-mode`.
 7. The `## Call path` table is filled with real `file:line` values, every one of which exists
    in the committed tree.
-8. DoD rows 6, 7 and 10 are updated with H01/H04 evidence. Row 6's cell states plainly that
-   the two legacy constants remain by design. Row 10 closes: `CLAUDE.md` now exists at the
-   root and beside four `AGENTS.md` files.
+8. DoD row 10 closes. R02b left it open because the four per-folder `CLAUDE.md` routers did
+   not exist; T0 landed them in `route(R04): open`. Verify they are present and cite them.
+   Rows 6, 7 and 8 were closed in H02b and are not reopened.
 9. All four gates clean: `npm run lint`, `npm run test`, `npm run build`, `npm run desktop:check`.
 10. `npm run test` count is at or above 751 and every added test corresponds to a claim above.
 11. `npm run test:e2e` passes locally. **(T0)** The remote `browser` job is Claude's to close;
     do not push.
-12. Two commits, in order: `route(R04): close`, then `handoff(H04): record`.
+12. Two commits, in order: `route(R04): close`, then `handoff(H04): record`. A published
+    `fix(R04): ...` between them is permitted when remote evidence forces it, provided the
+    handoff names it and says what taught the correction.
+
+**Sign-off:** the repository's `CONTRIBUTING.md` now requires a `Signed-off-by` trailer, but
+the configured identity is still the unusable placeholder `CodeRay Developer
+<coderay@example.com>`. Keep committing without `-s` until T0 says the identity is settled,
+and record in the handoff that you did so and why. An unattributable attestation is worse
+than none.
 
 ## Verification
 

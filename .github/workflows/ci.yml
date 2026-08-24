@@ -21,6 +21,8 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
+    env:
+      CODEXRAY_E2E_WORKERS: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +32,63 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: error
+          retention-days: 7
+
+  browser-diagnosis:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [parallel-full, isolated-implicated]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run current parallel configuration
+        if: matrix.mode == 'parallel-full'
+        run: npm run test:e2e
+      - name: Run implicated specs in isolation
+        if: matrix.mode == 'isolated-implicated'
+        shell: bash
+        run: |
+          status=0
+          for spec in \
+            e2e/dp-family-titan-mode.spec.ts \
+            e2e/usage-scenarios.spec.ts \
+            e2e/titan-mode-user-graph.spec.ts \
+            e2e/titan-mode-clarification.spec.ts \
+            e2e/release-tour.spec.ts \
+            e2e/interval-dp-titan-mode.spec.ts
+          do
+            echo "::group::$spec"
+            npx playwright test "$spec" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+      - name: Upload diagnosis artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnosis-${{ matrix.mode }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: error
+          retention-days: 7
 
   desktop:
     runs-on: windows-latest

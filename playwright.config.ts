@@ -4,6 +4,9 @@ const localBrowserChannel = process.env.CODEXRAY_E2E_CHANNEL as
   | 'chrome'
   | 'msedge'
   | undefined;
+const configuredWorkers = process.env.CODEXRAY_E2E_WORKERS
+  ? Number.parseInt(process.env.CODEXRAY_E2E_WORKERS, 10)
+  : undefined;
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,10 +17,14 @@ export default defineConfig({
       : '**/real-*.spec.ts',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  workers: configuredWorkers,
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never' }]]
+    : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
     ...(localBrowserChannel ? { channel: localBrowserChannel } : {}),
   },
   webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVER ? undefined : {

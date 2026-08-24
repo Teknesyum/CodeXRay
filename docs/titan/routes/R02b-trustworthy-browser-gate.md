@@ -55,10 +55,37 @@ and the run concludes `success` despite them. Leaving them in place means every 
 carries two permanent red jobs, which is exactly the kind of normalised red that made the
 gate meaningless before.
 
+## Inherited from outside the relay
+
+Two commits landed on `main` between this route being written and being opened, authored by
+`Mustafa Özel <iyott131@gmail.com>`, who is not a relay participant:
+
+```
+48cd9cf add DCO 1.1 — contributions certify origin, copyright stays with the author
+67413b5 add CONTRIBUTING — AGPL terms, sign-off requirement, pull request rules
+```
+
+They add `DCO` and `CONTRIBUTING.md`. Neither is a relay-owned path, so the startup check
+would have refused the turn — correctly; that is the check doing its job. T0 rebased the base
+rather than loosening the rule.
+
+**One of them changes how this turn commits.** `CONTRIBUTING.md` requires every commit to
+carry a `Signed-off-by` trailer, added with `git commit -s`. Note that the two commits which
+introduced the requirement do not themselves carry it, and the working copy's configured
+identity is `CodeRay Developer <coderay@example.com>` — `example.com` is a reserved address
+that cannot identify anyone, so a sign-off made with it certifies nothing.
+
+**Do not sign off with a placeholder identity.** Commit as you have been until T0 confirms
+which identity the relay signs off as; a sign-off is an attestation, and an unattributable
+one is worse than none. If the identity is settled before you close, use `-s` and say so in
+the handoff.
+
 ## Turn
 
 - Route id: `R02b`
-- Base: `7ce92d2c1aee655225013ba85d80498ceb44cb5e`
+- Base: `67413b5aff2b9c9c5979edd5eed795ee05a733a3`
+- Base rebased once, from `7ce92d2`, after two governance commits by a writer outside the
+  relay landed on `main`. See `## Inherited from outside the relay`.
 - Holder: `sole`
 - Expected size: 1–3 files, 2 commits (`route(R02b): close`, `handoff(H02b): record`)
 

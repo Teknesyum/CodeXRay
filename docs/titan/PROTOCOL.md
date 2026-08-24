@@ -53,6 +53,12 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
    (`docs/titan/PROTOCOL.md`, `docs/titan/routes/**`, `docs/titan/SOLE_BOOTSTRAP.md`,
    `docs/DEVIRALAN.md`, `AGENTS.md`, `*/AGENTS.md`, `CLAUDE.md`, `docs/README.md`).
    Anything else means another writer touched the tree — stop and report.
+
+   **The remedy is a rebase, never a loosened check.** Now that work happens on `main`,
+   people outside the relay can and do commit — governance files, licence text, repository
+   metadata. When that happens the turn does not start. T0 reviews what landed, decides
+   whether it changes the route, and republishes the route with `## Turn.base` moved to the
+   current tip as `route(R<n>): rebase`. The check stays strict; only the base moves.
 3. Sole touches only the files listed in `## Owned Files` and lands one or more commits.
 4. Sole runs the commands in `## Verification` **verbatim** and pastes the output into
    `H<n>` verbatim.

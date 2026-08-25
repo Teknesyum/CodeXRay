@@ -49,6 +49,17 @@ describe('Titan Mode routing', () => {
     expect(routeTitanModeRequest('17. nolu nodu kaldır', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
+  it('routes a current-step discussion to the five-phase explanation seam', () => {
+    expect(routeTitanModeRequest('bunu açıkla', [], 0)).toEqual({ type: 'discuss-current-step' });
+  });
+
+  it('routes a workspace focus request to the typed UI command', () => {
+    expect(routeTitanModeRequest('kod editorüne odaklan', [], 0)).toEqual({
+      type: 'ui-control',
+      command: 'focus-code',
+    });
+  });
+
   it('keeps composite solve, author, input, and simulate requests on the creation pipeline', () => {
     expect(routeTitanModeRequest(
       'LeetCode 1 Two Sum solve: write code, create original input, simulate every step, and verify the final result',

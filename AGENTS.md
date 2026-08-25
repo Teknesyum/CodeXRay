@@ -178,9 +178,10 @@ The Titan pipeline has five phases, in order: **route → produce → semantics 
 apply**. `semantics` may be skipped only through its declared optional slot; phases are
 never reordered, and `apply` runs only after `verify` returns ok.
 
-Intents are a closed set — no free-form intent strings: `navigate`, `edit-input`,
-`explain`, `trace-code`, `translate-code`, `load-preset`, `ui-control`, `unclear`.
-Anything the deterministic router cannot classify is `unclear`.
+Intents are a closed set — no free-form intent strings: `create-algorithm`,
+`create-catalog-problem`, `clarify-algorithm`, `adapt-input`, `discuss-current-step`,
+`ui-control`, `deterministic`. Anything the deterministic router cannot classify returns
+`null` and remains ordinary chat.
 
 - AI-authored actions apply source, input, simulation-program, timeline, and CodeXRay UI
   changes only through the typed application command bus, atomically. Never execute raw

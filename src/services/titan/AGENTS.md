@@ -10,8 +10,9 @@ about product behaviour.
 - `translate.ts` cpp/java/python source into a verified custom simulation package.
 ## Rules
 - Five phases, in order: route -> produce -> semantics -> verify -> apply.
-- Closed intent set: `navigate`, `edit-input`, `explain`, `trace-code`, `translate-code`,
-  `load-preset`, `ui-control`, `unclear`. No ninth intent without a route.
+- Closed intent set: `create-algorithm`, `create-catalog-problem`, `clarify-algorithm`,
+  `adapt-input`, `discuss-current-step`, `ui-control`, `deterministic`. No eighth intent
+  without a route; unclassified requests return `null` and remain ordinary chat.
 - **A trace never comes from the model.** Traces are produced by `src/services/trace`.
 - **The model never computes an index.** It picks a phase identity; resolution happens in
   `trace/traceOutline.ts` and `trace/significance.ts`.

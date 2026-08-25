@@ -231,9 +231,17 @@ whichever set needed less work.
     `fix(R05): ...` between them is permitted when remote evidence forces it, provided the
     handoff names it and says what taught the correction.
 
-**Sign-off:** the repository requires a `Signed-off-by` trailer, but the configured identity
-is still the unusable placeholder `CodeRay Developer <coderay@example.com>`. Keep committing
-without `-s` until T0 says the identity is settled, and record in the handoff that you did.
+**Sign-off:** settled, and this is the first route it applies to. The repository identity is
+now `Mustafa Ozel <iyott131@gmail.com>`, set in this repository's local git config by T0 after
+the user confirmed it. Sign both commits with `-s`. If `git config user.email` returns
+anything else, stop and report rather than signing with whatever is configured — a DCO
+trailer is an assertion about a person, and asserting the wrong one is worse than asserting
+nothing.
+
+Commits before this point are unsigned on purpose. `coderay@example.com` was a reserved,
+unattributable address, and R02b through R04 correctly refused to certify under it. That
+history is not rewritten to add trailers after the fact; a sign-off backdated by an
+amend certifies nothing.
 
 ## Verification
 

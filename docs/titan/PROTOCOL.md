@@ -135,6 +135,15 @@ git log -1 --format=%H
 - Commit subjects, in order: `route(R<n>): open` (Claude), `route(R<n>): close` (Sole's
   work), any `fix(R<n>): ...` the published evidence forces, then `handoff(H<n>): record`
   (Sole's evidence). Never fold the last two together.
+- **Sign every commit with `-s`.** The repository identity is
+  `Mustafa Ozel <iyott131@gmail.com>`, set in this repository's local git config. Before
+  signing, `git config user.email` must return exactly that; if it returns anything else,
+  stop and report instead of certifying under whatever is configured. A DCO trailer is an
+  assertion about a person, and asserting the wrong person is worse than asserting nothing —
+  which is why every commit up to and including `H04` is unsigned. The identity was the
+  reserved placeholder `coderay@example.com` until R05, both agents refused to certify under
+  it, and that refusal was correct. Those commits are not amended to add trailers; a
+  backdated sign-off certifies nothing.
 - **Every criterion is read against the ownership list before the route opens.** A criterion
   the holder cannot satisfy without writing a file the same route forbids is not a criterion,
   it is a trap. This has now happened three times — R02b required Claude-owned `CLAUDE.md`

@@ -29,6 +29,11 @@ describe('translations', () => {
     expect(t('webTranslatedSimulationApplied', 'tr')).toContain('deterministik doğrulanan');
   });
 
+  it('localizes failed input adaptation without claiming a mutation', () => {
+    expect(t('titanInputAdaptationVerificationFailed', 'en')).toContain('workspace was not changed');
+    expect(t('titanInputAdaptationVerificationFailed', 'tr')).toContain('Çalışma alanı değiştirilmedi');
+  });
+
   it('provides Turkish UI labels and interpolation', () => {
     expect(t('sourceCode', 'tr')).toBe('Kaynak Kod');
     expect(t('arrayCount', 'tr', { count: 15 })).toBe('Dizi(15)');

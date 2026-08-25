@@ -700,4 +700,24 @@ describe('Titan Mode orchestrator', () => {
     expect(matrix[0]).toHaveLength(15);
     expect(updated.steps.at(-1).visualData.vars.visitedCells).toBe(120);
   });
+
+  it('adapts predict_winner_interval_dp through the typed array patch and rebuilds its timeline', async () => {
+    const activePackage = (await startTitanModeRun({
+      request: 'interval dp yaz simüle et', intent: { type: 'create-algorithm', template: 'predict-winner-interval-dp' },
+      locale: 'tr', workspace, activePackage: null, onPlan: vi.fn(), applyPackage: vi.fn(), applyInput: vi.fn(),
+    }).promise as any).package;
+    const packageWorkspace = {
+      ...workspace, algorithmName: activePackage.title, code: activePackage.source.code,
+      simulationInput: activePackage.input.value, steps: activePackage.steps, activePackageId: activePackage.id,
+    };
+    const applyPackage = vi.fn();
+    await startTitanModeRun({
+      request: 'inputu [4,9,2,11,6] yap', intent: { type: 'adapt-input' }, locale: 'tr',
+      workspace: packageWorkspace, activePackage, onPlan: vi.fn(), applyPackage, applyInput: vi.fn(),
+    }).promise;
+    const updated = applyPackage.mock.calls[0]?.[0];
+    expect(updated.program.id).toBe('predict_winner_interval_dp');
+    expect(updated.input.value.text).toBe('[4,9,2,11,6]');
+    expect(updated.steps.length).toBeGreaterThan(0);
+  });
 });

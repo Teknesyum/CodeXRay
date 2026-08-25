@@ -7,6 +7,8 @@ import { recompileSimulationInput } from '../recompileSimulationInput';
 
 export type InputPatchV1 =
   | { op: 'set-array'; values: number[] }
+  | { op: 'set-matrix'; values: number[][] }
+  | { op: 'set-graph'; graph: GraphDocumentV1 }
   | { op: 'resize-array'; count: number; fill: 'ascending' | 'descending' | 'random-seeded' | 'duplicates' }
   | { op: 'sort-array'; direction: 'asc' | 'desc' }
   | { op: 'shuffle-array'; seed: number }
@@ -33,6 +35,22 @@ export const parseInputPatch = (value: unknown): InputPatchV1 | null => {
     case 'set-array':
       return Array.isArray(value.values) && value.values.every(finite)
         ? { op: value.op, values: [...value.values] } : null;
+    case 'set-matrix': {
+      if (!Array.isArray(value.values) || value.values.length === 0) return null;
+      const rows = value.values as unknown[];
+      const width = Array.isArray(rows[0]) ? rows[0].length : 0;
+      return width > 0 && rows.every((row) => Array.isArray(row)
+        && row.length === width && row.every(finite))
+        ? { op: value.op, values: rows.map((row) => Array.from(row as number[])) }
+        : null;
+    }
+    case 'set-graph':
+      if (!isRecord(value.graph)) return null;
+      try {
+        return { op: value.op, graph: validateGraphDocument(value.graph as unknown as GraphDocumentV1) };
+      } catch {
+        return null;
+      }
     case 'resize-array':
       return Number.isInteger(value.count) && Number(value.count) >= 0 && Number(value.count) <= 10_000
         && ['ascending', 'descending', 'random-seeded', 'duplicates'].includes(String(value.fill))
@@ -73,6 +91,24 @@ export const parseInputPatch = (value: unknown): InputPatchV1 | null => {
     default:
       return null;
   }
+};
+
+export const createInputReplacementPatch = (
+  input: SimulationInput,
+  options: { matrix?: boolean } = {},
+): InputPatchV1 => {
+  const raw: unknown = input.graph
+    ? { op: 'set-graph', graph: input.graph }
+    : options.matrix
+      ? { op: 'set-matrix', values: JSON.parse(input.text) }
+      : input.kind === 'array'
+        ? { op: 'set-array', values: JSON.parse(input.text) }
+        : input.kind === 'string'
+          ? { op: 'set-text', value: input.text }
+          : { op: 'load-preset-input', presetIndex: 2 };
+  const patch = parseInputPatch(raw);
+  if (!patch) throw new Error('The deterministic input adapter produced an invalid typed patch.');
+  return patch;
 };
 
 const seededValues = (count: number, seed = 0x9e3779b9): number[] => {
@@ -142,6 +178,12 @@ export const applyInputPatch = (
     let next: SimulationInput;
     if (patch.op === 'load-preset-input') {
       next = createInputPreset(contract.kind, patch.presetIndex, contract.description);
+    } else if (patch.op === 'set-matrix') {
+      if (input.kind !== 'array') throw new Error('This operation requires an array input.');
+      next = { ...input, text: JSON.stringify(patch.values), origin: 'user' };
+    } else if (patch.op === 'set-graph') {
+      if (input.kind !== 'graph' && input.kind !== 'tree') throw new Error('This operation requires a graph or tree input.');
+      next = { ...input, text: '', graph: patch.graph, origin: 'user' };
     } else if (patch.op === 'set-array' || patch.op === 'resize-array'
       || patch.op === 'sort-array' || patch.op === 'shuffle-array') {
       if (input.kind !== 'array') throw new Error('This operation requires an array input.');
@@ -220,6 +262,7 @@ export const applyInputPatch = (
     if (next.graph) next = { ...next, graph: validateGraphDocument(next.graph) };
     const failure = constraintFailure(next, contract);
     if (failure) return { ok: false, reason: failure };
+    if (patch.op === 'set-matrix') return { ok: true, input: next };
     const parsed = parseSimulationInput(next.kind, next.text, next.graph, next.parameters);
     if (parsed.error || !parsed.input) return { ok: false, reason: parsed.error ?? 'The patched input is invalid.' };
     return { ok: true, input: { ...parsed.input, origin: next.origin } };

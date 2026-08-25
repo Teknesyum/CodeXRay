@@ -39,6 +39,7 @@ import { runVerificationGates } from './verificationGates';
 import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
 import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
+import { applyInputPatch, createInputReplacementPatch } from './input/inputPatch';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 export type TitanModeRunResult = {
   status: 'success';
@@ -49,6 +50,7 @@ export type TitanModeRunResult = {
   package?: CustomSimulationPackageV1;
   input?: SimulationInput;
   steps?: SimulationStep[];
+  visualOnly?: boolean;
 } | {
   status: 'unsupported' | 'needs-source';
   runId: string;
@@ -81,6 +83,7 @@ export interface TitanModeOrchestratorOptions {
     runId: string,
   ) => Promise<void> | void;
   agentRunner?: AgentRunner;
+  deferApply?: boolean;
 }
 
 export interface TitanModeRunHandle {
@@ -830,11 +833,24 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
               graph: applyStructuralGraphRequest(generated.graph, options.request),
             };
           }
+          const patch = createInputReplacementPatch(generated, {
+            matrix: options.activePackage?.program.id === 'spiral_matrix',
+          });
+          const contract = options.activePackage?.input ?? {
+            version: 1 as const,
+            kind,
+            description: options.workspace.algorithmName,
+            constraints: [],
+            value: current ?? generated,
+            origin: 'user' as const,
+          };
+          const applied = applyInputPatch(current ?? generated, patch, contract);
+          if (!applied.ok) throw new Error(applied.reason);
           const advice = options.locale === 'tr'
             ? `Input düzenleme komutu ${kind} sözleşmesine deterministik olarak uygulandı.`
             : `The input edit was applied deterministically to the ${kind} contract.`;
           setJob('input-engineer-build-compatible-input', { summary: advice });
-          return generated;
+          return applied.input;
         });
         let updatedPackage: CustomSimulationPackageV1 | null = null;
         const steps = await runJob('compiler-regenerate-deterministic-trace', () => {
@@ -870,11 +886,14 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           setJob('critic-validate-input-and-trace', { summary });
           return summary;
         });
-        await runJob('manager-apply-workspace-transaction', () => updatedPackage
-          ? visualOnly && options.applyVisualPackage
-            ? options.applyVisualPackage(updatedPackage, runId)
-            : options.applyPackage(updatedPackage, runId)
-          : options.applyInput(input, steps, runId));
+        await runJob('manager-apply-workspace-transaction', () => {
+          if (options.deferApply) return 'Application deferred to the five-phase pipeline.';
+          return updatedPackage
+            ? visualOnly && options.applyVisualPackage
+              ? options.applyVisualPackage(updatedPackage, runId)
+              : options.applyPackage(updatedPackage, runId)
+            : options.applyInput(input, steps, runId);
+        });
         const tutorAnswer = await runJob('tutor-explain-updated-workspace', () =>
           deterministicFiveLens(options.locale, steps[0], 0, steps.length));
         return {
@@ -885,6 +904,8 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           tutorAnswer,
           input,
           steps,
+          package: updatedPackage ?? undefined,
+          visualOnly,
         };
       }
 

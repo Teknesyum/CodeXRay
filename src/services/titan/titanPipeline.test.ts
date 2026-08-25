@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   executeTitanPipeline,
+  startAdaptInputPipeline,
   startDiscussCurrentStepPipeline,
   type TitanStageState,
 } from './titanPipeline';
@@ -140,5 +141,75 @@ describe('five-stage Titan pipeline', () => {
     await expect(run.promise).rejects.toThrow(message);
     expect(applyResult).not.toHaveBeenCalled();
     expect(committedWorkspace).toEqual({ algorithmName: 'DFS' });
+  });
+
+  it('carries adapt-input through five stages and applies only the verified package', async () => {
+    const applyPackage = vi.fn();
+    const packageValue = { id: 'adapted-package' } as any;
+    const input = { kind: 'array', text: '[4,9,2]' } as any;
+    const result = {
+      status: 'success' as const,
+      runId: 'engine-adapt',
+      plan: { version: 1 as const, runId: 'engine-adapt', request: 'change input', intent: 'adapt-input' as const, jobs: [], createdAt: 1 },
+      summary: 'Adapted.',
+      package: packageValue,
+      input,
+      steps: [{ explanation: 'Rebuilt timeline' }] as any,
+    };
+    const run = startAdaptInputPipeline({
+      request: 'change input',
+      intent: { type: 'adapt-input' },
+      locale: 'en',
+      workspace: { steps: [], currentIndex: 0 } as any,
+      activePackage: packageValue,
+      onPlan: vi.fn(),
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Adaptation failed.',
+      startRun: (options) => {
+        expect(options.deferApply).toBe(true);
+        return { runId: 'engine-adapt', promise: Promise.resolve(result), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).resolves.toBe(result);
+    expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('preserves workspace, package, and timeline identity when adapt-input verification fails', async () => {
+    const committed = {
+      workspace: { input: '[3,1,2]' },
+      package: { id: 'committed' },
+      timeline: [{ id: 'committed-step' }],
+    };
+    const applyPackage = vi.fn();
+    const applyInput = vi.fn();
+    const run = startAdaptInputPipeline({
+      request: 'impossible input',
+      intent: { type: 'adapt-input' },
+      locale: 'en',
+      workspace: { steps: committed.timeline, currentIndex: 0 } as any,
+      activePackage: committed.package as any,
+      onPlan: vi.fn(),
+      applyPackage,
+      applyInput,
+      verificationFailureMessage: 'The input adaptation could not be verified. The workspace was not changed.',
+      startRun: () => ({
+        runId: 'engine-adapt',
+        promise: Promise.resolve({
+          status: 'success', runId: 'engine-adapt',
+          plan: { version: 1, runId: 'engine-adapt', request: 'impossible input', intent: 'adapt-input', jobs: [], createdAt: 1 },
+          summary: 'Invalid empty timeline.', input: { kind: 'array', text: '[]' }, steps: [],
+        }),
+        cancel: vi.fn(),
+      }),
+    });
+    await expect(run.promise).rejects.toThrow('workspace was not changed');
+    expect(applyPackage).not.toHaveBeenCalled();
+    expect(applyInput).not.toHaveBeenCalled();
+    expect(committed).toEqual({
+      workspace: { input: '[3,1,2]' },
+      package: { id: 'committed' },
+      timeline: [{ id: 'committed-step' }],
+    });
   });
 });

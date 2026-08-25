@@ -102,6 +102,11 @@ export interface DiscussCurrentStepPipelineOptions extends TitanModeOrchestrator
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
+export interface AdaptInputPipelineOptions extends TitanModeOrchestratorOptions {
+  verificationFailureMessage: string;
+  startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
+}
+
 export const startDiscussCurrentStepPipeline = (
   options: DiscussCurrentStepPipelineOptions,
 ): TitanModeRunHandle => {
@@ -157,6 +162,78 @@ export const startDiscussCurrentStepPipeline = (
         : { ok: false as const, reason: options.verificationFailureMessage };
     },
     apply: options.applyResult,
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
+export const startAdaptInputPipeline = (
+  options: AdaptInputPipelineOptions,
+): TitanModeRunHandle => {
+  const controller = new AbortController();
+  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  let activeRun: TitanModeRunHandle | null = null;
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  const publishPlan = (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan({
+      version: 1,
+      runId,
+      request: options.request,
+      intent: options.intent.type,
+      createdAt: Date.now(),
+      jobs: stageOrder.map((id, index) => {
+        const state = stages.get(id)!;
+        return {
+          id: `titan-${id}`,
+          role: stageRole[id],
+          label: id,
+          dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+          weight: 20,
+          status: stageStateStatus(state.status),
+          attempt: state.status === 'waiting' ? 0 : 1,
+          maxAttempts: 1,
+          summary: state.status === 'skipped' ? state.detail : undefined,
+          error: state.status === 'failed' ? state.detail : undefined,
+        };
+      }),
+    });
+  };
+  const promise = executeTitanPipeline({
+    route: () => options.intent,
+    produce: async () => {
+      activeRun = (options.startRun ?? startTitanEngineRun)({
+        ...options,
+        deferApply: true,
+        onPlan: () => undefined,
+        onEvent: undefined,
+      });
+      return activeRun.promise;
+    },
+    verify: (result) => result.status === 'success' && result.input && result.steps?.length
+      ? { ok: true as const }
+      : { ok: false as const, reason: options.verificationFailureMessage },
+    apply: (result) => {
+      if (result.status !== 'success' || !result.input || !result.steps) return;
+      if (result.package) {
+        return result.visualOnly && options.applyVisualPackage
+          ? options.applyVisualPackage(result.package, runId)
+          : options.applyPackage(result.package, runId);
+      }
+      return options.applyInput(result.input, result.steps, runId);
+    },
     signal: controller.signal,
     onStage: publishPlan,
   }).then(({ artifact }) => artifact);

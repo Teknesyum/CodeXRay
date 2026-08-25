@@ -798,7 +798,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
           packageOutOfSync: stateRef.current.packageOutOfSync,
         };
-        const { startDiscussCurrentStepPipeline, startTitanModeRun } = await import('../services/titan/titanPipeline');
+        const { startAdaptInputPipeline, startDiscussCurrentStepPipeline, startTitanModeRun } = await import('../services/titan/titanPipeline');
         sourcePreviewSnapshotRef.current = workspaceSnapshot;
         const orchestratorOptions: TitanModeOrchestratorOptions = {
           request: titanModeRequest,
@@ -898,7 +898,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               ].slice(-MAX_STORED_MESSAGES));
             },
           })
-          : startTitanModeRun(orchestratorOptions);
+          : titanModeIntent.type === 'adapt-input'
+            ? startAdaptInputPipeline({
+              ...orchestratorOptions,
+              verificationFailureMessage: t('titanInputAdaptationVerificationFailed', locale),
+            })
+            : startTitanModeRun(orchestratorOptions);
         titanModeRunRef.current = run;
         sourcePreviewRunRef.current = run.runId;
         const result = await run.promise;

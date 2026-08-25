@@ -5,6 +5,7 @@ import { compilePredictWinnerPackage } from '../intervalDpCompiler';
 import {
   applyAndRecompileInputPatch,
   applyInputPatch,
+  createInputReplacementPatch,
   parseInputPatch,
   type InputPatchV1,
 } from './inputPatch';
@@ -49,6 +50,8 @@ describe('InputPatchV1', () => {
   it('runtime-validates every closed operation and rejects malformed variants', () => {
     const valid: unknown[] = [
       { op: 'set-array', values: [1, 2] },
+      { op: 'set-matrix', values: [[1, 2], [3, 4]] },
+      { op: 'set-graph', graph: graphInput.graph },
       { op: 'resize-array', count: 12, fill: 'descending' },
       { op: 'sort-array', direction: 'asc' },
       { op: 'shuffle-array', seed: 7 },
@@ -62,6 +65,8 @@ describe('InputPatchV1', () => {
     ];
     const invalid: unknown[] = [
       { op: 'set-array', values: [1, 'x'] },
+      { op: 'set-matrix', values: [[1], [2, 3]] },
+      { op: 'set-graph', graph: { nodes: [], edges: [] } },
       { op: 'resize-array', count: -1, fill: 'descending' },
       { op: 'sort-array', direction: 'sideways' },
       { op: 'shuffle-array', seed: 1.5 },
@@ -85,6 +90,21 @@ describe('InputPatchV1', () => {
     expect(applied(arrayInput, { op: 'sort-array', direction: 'asc' }).text).toBe('[1,2,3]');
     const first = applied(arrayInput, { op: 'shuffle-array', seed: 42 }).text;
     expect(applied(arrayInput, { op: 'shuffle-array', seed: 42 }).text).toBe(first);
+  });
+
+  it('runtime-validates complete matrix and graph replacements', () => {
+    expect(applied(arrayInput, { op: 'set-matrix', values: [[1, 2], [3, 4]] }).text)
+      .toBe('[[1,2],[3,4]]');
+    expect(applied(graphInput, { op: 'set-graph', graph: graphInput.graph! }).graph)
+      .toEqual(graphInput.graph);
+  });
+
+  it('converts deterministic adapter output into parser-validated closed operations', () => {
+    expect(createInputReplacementPatch({ kind: 'array', text: '[8,5]' })).toEqual({ op: 'set-array', values: [8, 5] });
+    expect(createInputReplacementPatch({ kind: 'array', text: '[[1,2],[3,4]]' }, { matrix: true }))
+      .toEqual({ op: 'set-matrix', values: [[1, 2], [3, 4]] });
+    expect(createInputReplacementPatch(graphInput)).toEqual({ op: 'set-graph', graph: graphInput.graph });
+    expect(() => createInputReplacementPatch({ kind: 'array', text: '[1,"bad"]' })).toThrow('invalid typed patch');
   });
 
   it('sets text and parameters without changing the input kind', () => {

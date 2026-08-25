@@ -23,8 +23,10 @@ test('asks for missing algorithm requirements without mutation and resumes with 
   await expect(question).toBeEnabled();
 
   await question.fill('write bidirectional BFS for me');
+  const clarificationPipelineStartedAt = performance.now();
   await question.press('Enter');
   await expect(page.getByLabel(/Bidirectional BFS.*Custom execution/)).toBeVisible();
+  console.log(`CLARIFICATION_PIPELINE_MS ${Math.round(performance.now() - clarificationPipelineStartedAt)}`);
   await expect(page.getByText(/code, input, and \d+-step simulation were applied/i)).toBeVisible();
 });
 

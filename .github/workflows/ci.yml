@@ -4,6 +4,13 @@ on:
   push:
     branches: [main, 'agent/**']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      clarification_measurement:
+        description: Repeat the clarification pipeline ten times instead of the full browser gate
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   quality:
@@ -31,16 +38,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Run browser gate
+        if: ${{ !inputs.clarification_measurement }}
+        run: npm run test:e2e
+      - name: Measure clarification pipeline
+        if: ${{ inputs.clarification_measurement }}
+        run: npx playwright test e2e/titan-mode-clarification.spec.ts --grep "asks for missing" --repeat-each=10 --workers=1
       - name: Upload browser diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-diagnostics
           path: |
             test-results/
             playwright-report/
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7
 
   desktop:

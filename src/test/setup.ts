@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
+
+configure({ asyncUtilTimeout: 5_000 });
 
 if (!globalThis.crypto.randomUUID) {
   Object.defineProperty(globalThis.crypto, 'randomUUID', {

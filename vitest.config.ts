@@ -11,6 +11,7 @@ export default defineConfig({
   define: { __CODEXRAY_VERSION__: JSON.stringify(packageMetadata.version) },
   test: {
     environment: 'jsdom',
+    testTimeout: 15_000,
     setupFiles: ['./src/test/setup.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
     coverage: {

@@ -74,10 +74,22 @@ are routed to R05 and R06.
 | `src/i18n/translations.test.ts` | Parity test follows the rename |
 | `src/services/titan/titanPipeline.test.ts` | Covers the new helper if one is added |
 | `e2e/titan-mode.spec.ts` | The user-visible proof |
+| `src/context/TimelineContext.tsx` | **Line 128 only** — the legacy storage key in criterion 6 |
+| `src/services/titanModeRunStore.ts` | **Line 5 only** — the legacy run-store name in criterion 6 |
+| `src/context/TimelineContext.test.tsx` | Asserts the legacy key's exact string |
+| `src/services/titanModeRunStore.test.ts` | Asserts the legacy run-store name's exact string |
 | `docs/titan/handoffs/H04-first-seam.md` | Handoff |
 | `docs/titan/DOD.md` | Evidence cells only |
 
 Nothing else. `titanEngine.ts` and `titanEntry.ts` are **read-only this turn**.
+
+The four rows above were missing when this route opened, which made criterion 6 impossible:
+it asks for those two constants to be rewritten and for a test to pin the resulting strings,
+while the ownership list forbade touching any of the four files. Added by T0 on Sole's
+report, with the base unchanged — this widens what the holder may write to match a criterion
+that was already there, rather than changing what the turn must achieve. In
+`TimelineContext.tsx` and `titanModeRunStore.ts` nothing but the named constant line may
+change; the rest of both files stays read-only.
 
 ## Invariants
 

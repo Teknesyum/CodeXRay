@@ -11,7 +11,7 @@ altındaki dosya adlarından türetilir. Rota Claude'un, uygulama Sole'undur.
 | Actor | Does | Never does |
 |---|---|---|
 | **Claude (T0)** | Writes the plan, opens the route, verifies the closed turn, writes the next route | Writes product code or tests, starts a dev server, runs `npm ci` |
-| **Sole (Codex CLI)** | Implements the active route, commits, runs the verification block, writes the handoff | Touches files outside `## Owned Files`, edits a route, summarizes evidence |
+| **Sole (Codex CLI)** | Implements the active route, commits, runs the verification block, writes the handoff | Writes a frozen or T0-owned path, edits a route, summarizes evidence, stops to ask permission for a file inside its own ownership |
 
 One working directory, one branch, strictly sequential turns. No parallelism.
 
@@ -59,7 +59,8 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
    metadata. When that happens the turn does not start. T0 reviews what landed, decides
    whether it changes the route, and republishes the route with `## Turn.base` moved to the
    current tip as `route(R<n>): rebase`. The check stays strict; only the base moves.
-3. Sole touches only the files listed in `## Owned Files` and lands one or more commits.
+3. Sole implements the criteria and lands one or more commits. `## Expected Files` is the
+   route's forecast, not a gate; the hard boundary is the ownership table above.
 4. Sole runs the commands in `## Verification` **verbatim** and pastes the output into
    `H<n>` verbatim.
 5. The close lands as **two commits**, in this order:
@@ -150,12 +151,29 @@ git log -1 --format=%H
   reserved placeholder `coderay@example.com` until R05, both agents refused to certify under
   it, and that refusal was correct. Those commits are not amended to add trailers; a
   backdated sign-off certifies nothing.
+- **`## Expected Files` is a forecast, not a permission gate.** Sole may write any path inside
+  its own ownership that a criterion actually requires. What it may never write is a frozen
+  path or a T0-owned path — that boundary is absolute and needs no list to restate it.
+  Every file touched outside the forecast gets a `## Deviations` entry naming the criterion
+  that required it, and T0 checks those entries for scope creep when the turn closes.
+
+  This replaces an allowlist that stalled five turns in a row. An allowlist fails closed on
+  every file the route author did not foresee, and the author forecasts from greps while the
+  holder works from the call path — so the holder keeps finding files the author could not
+  have known to list. Trading a guaranteed stall for a reviewable justification is the better
+  trade. Scope creep was never actually prevented by the list; it is prevented by T0 reading
+  the diff, which happens either way.
+- **Sole does not stop to ask whether it may touch a file.** If the file is frozen or
+  T0-owned, it stops and reports — that is a real boundary. For anything inside its own
+  ownership it proceeds, and explains itself in `## Deviations`. A turn that halts for a
+  permission that the ownership table already grants is a turn wasted on protocol instead of
+  product.
 - **Every criterion is read against the ownership list before the route opens.** A criterion
   the holder cannot satisfy without writing a file the same route forbids is not a criterion,
   it is a trap. This has now happened three times — R02b required Claude-owned `CLAUDE.md`
   files, R04 required two constants absent from its own list, R05 required deleting a module
   whose only importer was unlisted — so it is a checklist item, not a reminder. Widening
-  `## Owned Files` mid-turn to match a criterion that was already there is a route correction
+  `## Expected Files` mid-turn to match a criterion that was already there is a route correction
   and leaves the base alone; changing what the turn must achieve is not.
 - **Ownership for a deletion is computed, not remembered.** Reading criteria against the list
   catches a criterion that names a file. It does not catch one that names a *rule* — "delete a
@@ -182,7 +200,7 @@ at the top.
 Preserved sections:
 
 - `## Objective`
-- `## Owned Files`
+- `## Expected Files`
 - `## Invariants`
 - `## Acceptance Criteria` — numbered and measurable; the final items are always the four
   gates and the two close commits. A criterion whose evidence lives on a remote — a CI job,
@@ -254,8 +272,8 @@ File: `docs/titan/handoffs/H<nn>-<slug>.md`. Written by Sole.
 1. Every criterion is proven by a **machine-verifiable** pointer; prose is not evidence.
 2. A new behavior claim must match a delta in the `npm run test` count — if the number did
    not change, there is no new test.
-3. The `git diff --stat` list is compared against `## Owned Files`; every file outside it
-   requires a `## Deviations` entry.
+3. The `git diff --stat` list is compared against `## Expected Files`; every file outside it
+   requires a `## Deviations` entry naming which criterion required it.
 4. Claude re-runs the same commands.
 
 ## Conflict rules
@@ -266,7 +284,7 @@ File: `docs/titan/handoffs/H<nn>-<slug>.md`. Written by Sole.
   edit of `R<n>`.
 - `DOD.md` is the single shared file: Claude owns its structure, Sole writes only the
   evidence cells, and only during its own turn.
-- If a violation is observed — a write outside `## Owned Files`, an edited past route, a
+- If a violation is observed — a write to a frozen or T0-owned path, an edited past route, a
   handoff landed while the base SHA did not match — the turn is **not** patched. The
   handoff is marked `status: blocked`, the offending commit is reverted by the owner of
   the affected paths, and the route is reopened as `R<n>b`.

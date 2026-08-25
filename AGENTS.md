@@ -20,7 +20,9 @@ Nothing else. Do not scan the repository before reading these three. Archived ma
   `git merge-base --is-ancestor <base> HEAD` must exit 0, and
   `git diff --name-only <base>..HEAD` must list only T0-owned paths. If either fails,
   do not write; report the mismatch.
-- Touch only the paths listed in the route's `## Owned Files`.
+- The route's `## Expected Files` is a forecast, not a gate. Write what the criteria require
+  inside your own ownership; never write a frozen or T0-owned path. Justify every file
+  outside the forecast in `## Deviations`.
 - Run the route's `## Verification` commands verbatim; paste output verbatim into
   `docs/titan/handoffs/H<nn>-*.md`. Never summarize evidence.
 - A criterion claiming user-visible behavior cannot close on a unit test alone.

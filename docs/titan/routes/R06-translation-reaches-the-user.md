@@ -72,7 +72,7 @@ what each does with it today" is.
 - Holder: `sole`
 - Expected size: 5–10 files, 2 commits (`route(R06): close`, `handoff(H06): record`)
 
-## Owned Files
+## Expected Files
 
 | Path | Why |
 |---|---|
@@ -85,6 +85,8 @@ what each does with it today" is.
 | `src/services/webProblemOrchestrator.test.ts` | Follows its module |
 | `src/types/titan.ts` | `TranslationProvenanceV1` and the intent union, if the decision requires it |
 | `src/components/CodeEditor.tsx` | **The badge only** — lines 229-234 and the string move |
+| `src/components/AiAssistant.tsx` | **The `solve-web-problem` branch only** — lines 546-607 |
+| `src/types/webSource.ts` | Only if the `validated-simulation` kind needs a translated variant |
 | `src/i18n/translations.ts` | New EN/TR strings this route introduces |
 | `e2e/**` | One new spec proving the badge appears; existing specs only if a symbol moved |
 | `AGENTS.md` | **The intent paragraph only**, and only if an eighth intent lands |
@@ -95,8 +97,36 @@ what each does with it today" is.
 `titanEngine.ts`, `titanEntry.ts`, `inputPatch.ts`, `webSource.ts`, and everything under
 `src/services/trace/` are **read-only this turn**.
 
-The `CodeEditor.tsx` grant is bounded to the provenance badge. Nothing else in that file
-changes. If the decision is to remove the badge, the grant covers its deletion instead.
+The `CodeEditor.tsx` forecast is bounded to the provenance badge. Nothing else in that file
+changes. If the decision is to remove the badge, that bound covers its deletion instead.
+
+The `AiAssistant.tsx` forecast is bounded to the Java-fallback branch of `solve-web-problem`:
+applying a verified translation package through the existing `applySimulationPackage`
+transaction and writing the resulting session and transcript outcome. The R04 seam at
+`AiAssistant.tsx:869` and everything else in that 1000-line component stay as they are.
+
+**This list is a forecast, not a gate.** It was written from greps; the holder works from the
+call path and will see files this author could not. Write what the criteria require inside
+your own ownership and justify each extra file in `## Deviations`. Do not stop to ask.
+
+### The call path, as measured before this route opened
+
+The holder's startup measurement established the entry point, and it is recorded here so the
+route does not have to be re-derived:
+
+| Hop | Where |
+|---|---|
+| web source arrives | `AiAssistant.tsx:527` |
+| incompatible problem enters Java fallback | `AiAssistant.tsx:546` |
+| today's only outcome | `unexecuted-java17`, printed to chat, `AiAssistant.tsx:571-591` |
+| the package transaction | `applySimulationPackage`, `AiAssistant.tsx:832` |
+| the badge | `CodeEditor.tsx:229` |
+
+The gap is between rows three and four. `webProblemOrchestrator.ts` can produce a verified
+package, but only `AiAssistant.tsx` can apply one, so calling `translateToVerifiedPackage`
+inside the orchestrator alone cannot make the badge appear. `types/webSource.ts:81` already
+declares a `validated-simulation` solution kind, so the session type may need nothing at all
+— check before adding a variant.
 
 ## Invariants
 
@@ -136,8 +166,9 @@ scope and their own decision.
 ## Acceptance Criteria
 
 1. The handoff names every place foreign-language source enters the product today and what
-   each currently does with it, with pasted greps. The chosen entry point is one of them, or
-   the handoff argues why none of them fit.
+   each currently does with it, with pasted greps. The measurement above already establishes
+   `solve-web-problem` as the honest entry point; confirm or correct it, do not redo it from
+   scratch.
 2. `translateToVerifiedPackage` has at least one production caller, shown as `file:line`.
 3. `## Call path` is filled: user action to badge, every hop as `file:line`, naming the e2e
    spec that traverses it.
@@ -169,6 +200,10 @@ Both commits are signed with `-s`. Verify `git config user.email` returns
 `iyott131@gmail.com` before signing; if it returns anything else, stop and report.
 
 ## If wiring turns out to be wrong
+
+The measurement is already in, and it found a real entry point, so this section is now the
+unlikely branch rather than the expected one. It stands only for the case where implementation
+proves the path unworkable for a reason the measurement could not see.
 
 If the measurement shows there is no honest entry point — no foreign source reaches the
 product, and inventing an intent would be building a feature nobody asked for — then **say

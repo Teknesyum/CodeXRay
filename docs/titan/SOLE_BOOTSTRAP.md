@@ -236,11 +236,19 @@ write.** Report the mismatch and stop.
 
 **While you work:**
 
-- Touch **only** the paths listed in the route's `## Owned Files`.
 - Your ownership is `src/**`, `e2e/**`, `src-tauri/**`, `.github/**`,
   `scripts/**`, `package.json`, `docs/titan/handoffs/H*.md`, and the evidence
-  cells of `docs/titan/DOD.md` — and within a turn, only the subset the route
-  actually lists.
+  cells of `docs/titan/DOD.md`.
+- The route's `## Expected Files` is a **forecast, not a permission gate**. Write
+  whatever inside your ownership the criteria actually require. Do not stop to ask
+  whether a file is allowed — if it is yours, it is allowed. Name every file you
+  touched outside the forecast in `## Deviations`, with the criterion that required
+  it. T0 reads those entries.
+- **Work the whole route before you report.** Do not return after the startup check,
+  after the measurement, or after the first obstacle inside your own ownership.
+  One turn, one consolidated handoff. Stop early only for a genuine boundary: a
+  frozen or T0-owned path, a failed base check, or a criterion you cannot satisfy
+  for a reason no amount of work will change.
 - **Nobody touches:** `.claude/**`, `docs/tasks/**`, `docs/legacy/**`,
   `CodeXray-readme-neon.svg`, `docs/TITAN_MODE_YOL_HARITASI.md`.
   The last two are untracked; they are not yours to clean up.
@@ -263,8 +271,8 @@ write.** Report the mismatch and stop.
 - Every acceptance criterion is copied verbatim from the route and marked
   met / not-met with exactly **one** machine-checkable evidence pointer.
 - **Deviations are never absorbed silently.** Anything you did differently from
-  the route, and every file in the diff that is outside `## Owned Files`, gets an
-  entry in `## Deviations`. That section can never be empty — write `none` if
+  the route, and every file in the diff that is outside `## Expected Files`, gets an
+  entry in `## Deviations` naming the criterion that required it. That section can never be empty — write `none` if
   there truly were none.
 - A new behavior claim must match a change in the `npm run test` count. If the
   count did not move, there is no new test.

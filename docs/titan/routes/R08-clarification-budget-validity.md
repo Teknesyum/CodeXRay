@@ -213,3 +213,71 @@ record the decision in `## Deviations`.
 - Adding e2e coverage for uncovered behaviour. This route makes the existing gate
   trustworthy again; it does not grow it.
 - Every `AGENTS.md` file — T0-owned.
+
+## T0 reconciliation
+
+Handoff `H08` recorded at `94ef542`, closing `8e82e37`. Both pushed; `main` and
+`origin/main` agree. Claude verified independently.
+
+**The measurement is the whole route, and it is damning.** CI median `4937 ms` against a
+`5000 ms` budget — a margin of 63 milliseconds, or roughly one percent. The worst sample was
+`5458 ms`, already past the line. This was never a valid budget that degraded; it was a coin
+flip that happened to land right most of the time, and it landed right for three commits
+because R02b had lowered contention, not because anything had headroom.
+
+The new budget is `15000 ms`, stated as `2.75×` the measured CI worst case. That is a number
+with a provenance, which is the entire difference between this and "raise it until it
+passes".
+
+| Claim in H08 | Independent result |
+|---|---|
+| `expect` timeout now configured | `playwright.config.ts:21` `expect: { timeout: 15_000 }` |
+| `retries` unchanged | `:19` still `process.env.CI ? 2 : 0` |
+| `src/**` untouched | absent from `git diff --stat 7aaa9e7..8e82e37` |
+| three same-SHA browser runs clean | runs on `8e82e37` and `94ef542`, `quality`/`desktop`/`browser` all success |
+| both commits signed | two `Signed-off-by: Mustafa Özel <iyott131@gmail.com>` trailers |
+
+The spec change is two lines of instrumentation and weakens nothing. The `ci.yml` change was
+outside the forecast and correctly justified in `## Deviations`: a `workflow_dispatch`
+measurement mode that leaves the default path running the full gate, plus
+`if: failure()` → `if: always()` on diagnostics upload. That upload change is the better
+find of the two — the opening runs had produced **no artifacts at all**, because Playwright's
+retry turned the job green before the failure-only condition was evaluated. A diagnostic that
+only uploads when the job is red cannot capture a flake, which is the one thing it is for.
+
+**A criterion of mine was impossible again, and the holder reported it instead of working
+around it.** Criterion 5's grep for `\.skip|\.fixme|test\.only` was written to "return
+nothing", but the base already contained three conditional `test.skip` guards in
+`e2e/real-ai.spec.ts` and `e2e/real-radio.spec.ts` — the opt-in specs behind
+`test:e2e:ai` and `test:e2e:radio-live`. `PROTOCOL.md` already carries the rule that a
+zero-match grep must be written so the route's own required paths cannot match it; what it
+did not say is that the pattern must be run against the base first. R09's verification block
+now instructs exactly that, and the holder's handling here is the reason it can be written
+as a routine step rather than a warning.
+
+**R08 closes as met.**
+
+## Follow-on
+
+Two things this route surfaced that are not its own:
+
+1. **The unit suite has the same defect one layer down.** `vitest.config.ts` sets no
+   `testTimeout`, so every unit test inherits the same unchosen `5000 ms`. T0's verification
+   of `H08` failed on three consecutive independent runs — `1`, `2`, and `1` failures out of
+   759, a different test each time — while the same commit is green on CI's `quality` job and
+   on the holder's machine. `src/App.test.tsx:60`, carried as a watch note since R04 and seen
+   again in `H08 ## Discovered`, is one of them. Three occurrences across three routes is
+   where a note becomes a route: this is **R09**, and the semantic-ops route is requeued to
+   `R10`.
+
+   Ordering the gate ahead of the feature for the second turn running is deliberate. R02
+   made the same call over pipeline wiring, and the reason has not changed: while
+   `npm run test` returns a different answer on two machines, every later route's test
+   criterion is worth less than it claims.
+
+2. **The measurement scaffolding is still in the tree.** `ci.yml` keeps the
+   `clarification_measurement` dispatch input, and
+   `e2e/titan-mode-clarification.spec.ts` keeps its `console.log` timing line. Both are
+   harmless and both are genuinely useful the next time this budget is questioned, so they
+   stay for now — recorded here rather than left to be discovered later and mistaken for
+   debris. If they are still unused three routes from now, they come out.

@@ -91,6 +91,85 @@ const stageRole: Record<TitanStageId, TitanModeAgentRole> = {
   apply: 'manager',
 };
 
+const stageStateStatus = (status: TitanStageStatus): AgentJobStatus => {
+  if (status === 'skipped') return 'completed';
+  return status;
+};
+
+export interface DiscussCurrentStepPipelineOptions extends TitanModeOrchestratorOptions {
+  verificationFailureMessage: string;
+  applyResult: (result: TitanModeRunResult) => void | Promise<void>;
+  startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
+}
+
+export const startDiscussCurrentStepPipeline = (
+  options: DiscussCurrentStepPipelineOptions,
+): TitanModeRunHandle => {
+  const controller = new AbortController();
+  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  let activeRun: TitanModeRunHandle | null = null;
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  const publishPlan = (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan({
+      version: 1,
+      runId,
+      request: options.request,
+      intent: options.intent.type,
+      createdAt: Date.now(),
+      jobs: stageOrder.map((id, index) => {
+        const state = stages.get(id)!;
+        return {
+          id: `titan-${id}`,
+          role: stageRole[id],
+          label: id,
+          dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+          weight: 20,
+          status: stageStateStatus(state.status),
+          attempt: state.status === 'waiting' ? 0 : 1,
+          maxAttempts: 1,
+          summary: state.status === 'skipped' ? state.detail : undefined,
+          error: state.status === 'failed' ? state.detail : undefined,
+        };
+      }),
+    });
+  };
+  const promise = executeTitanPipeline({
+    route: () => options.intent,
+    produce: async () => {
+      activeRun = (options.startRun ?? startTitanEngineRun)({
+        ...options,
+        onPlan: () => undefined,
+        onEvent: undefined,
+      });
+      return activeRun.promise;
+    },
+    verify: (result) => {
+      const selectedStepExists = options.workspace.steps[options.workspace.currentIndex] !== undefined;
+      const artifactIsNonempty = result.status === 'success'
+        && Boolean(result.summary.trim() || result.tutorAnswer?.trim());
+      return selectedStepExists && artifactIsNonempty
+        ? { ok: true as const }
+        : { ok: false as const, reason: options.verificationFailureMessage };
+    },
+    apply: options.applyResult,
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
 const aggregateStatus = (jobs: ManagerJobV1[]): AgentJobStatus => {
   if (!jobs.length) return 'completed';
   if (jobs.some((job) => job.status === 'failed')) return 'failed';

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { executeTitanPipeline, type TitanStageState } from './titanPipeline';
+import {
+  executeTitanPipeline,
+  startDiscussCurrentStepPipeline,
+  type TitanStageState,
+} from './titanPipeline';
 
 describe('five-stage Titan pipeline', () => {
   it('emits five ordered stages, skips sufficient semantics, and applies once', async () => {
@@ -70,5 +74,71 @@ describe('five-stage Titan pipeline', () => {
       signal: controller.signal,
     })).rejects.toThrow('cancelled');
     expect(applied).not.toHaveBeenCalled();
+  });
+
+  it('runs the current-step explanation through five visible ordered stages', async () => {
+    const plans: string[][] = [];
+    const applyResult = vi.fn();
+    const result = {
+      status: 'success' as const,
+      runId: 'engine-run',
+      plan: { version: 1 as const, runId: 'engine-run', request: 'explain this step', intent: 'discuss-current-step' as const, jobs: [], createdAt: 1 },
+      summary: 'Grounded explanation.',
+    };
+    const run = startDiscussCurrentStepPipeline({
+      request: 'explain this step',
+      intent: { type: 'discuss-current-step' },
+      locale: 'en',
+      workspace: { steps: [{ explanation: 'Selected step' }], currentIndex: 0 } as any,
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan.jobs.map((job) => `${job.id}:${job.summary ?? job.status}`)),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Verification failed.',
+      applyResult,
+      startRun: () => ({ runId: 'engine-run', promise: Promise.resolve(result), cancel: vi.fn() }),
+    });
+    await expect(run.promise).resolves.toBe(result);
+    expect(applyResult).toHaveBeenCalledOnce();
+    expect(plans.at(-1)).toEqual([
+      'titan-route:completed',
+      'titan-produce:completed',
+      'titan-semantics:Skipped because deterministic semantics were already sufficient.',
+      'titan-verify:completed',
+      'titan-apply:completed',
+    ]);
+  });
+
+  it.each([
+    ['en', 'The current-step explanation could not be verified. The workspace was not changed.'],
+    ['tr', 'Geçerli adım açıklaması doğrulanamadı. Çalışma alanı değiştirilmedi.'],
+  ] as const)('does not apply an unverified current-step artifact in %s', async (locale, message) => {
+    const applyResult = vi.fn();
+    const committedWorkspace = { algorithmName: 'DFS' };
+    const run = startDiscussCurrentStepPipeline({
+      request: 'explain this step',
+      intent: { type: 'discuss-current-step' },
+      locale,
+      workspace: { steps: [], currentIndex: 0 } as any,
+      activePackage: null,
+      onPlan: vi.fn(),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      verificationFailureMessage: message,
+      applyResult,
+      startRun: () => ({
+        runId: 'engine-run',
+        promise: Promise.resolve({
+          status: 'success',
+          runId: 'engine-run',
+          plan: { version: 1, runId: 'engine-run', request: 'explain this step', intent: 'discuss-current-step', jobs: [], createdAt: 1 },
+          summary: 'Ungrounded explanation.',
+        }),
+        cancel: vi.fn(),
+      }),
+    });
+    await expect(run.promise).rejects.toThrow(message);
+    expect(applyResult).not.toHaveBeenCalled();
+    expect(committedWorkspace).toEqual({ algorithmName: 'DFS' });
   });
 });

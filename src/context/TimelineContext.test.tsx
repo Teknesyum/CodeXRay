@@ -20,6 +20,7 @@ const Probe = () => {
       <output aria-label="locale">{timeline.locale}</output>
       <output aria-label="radio-minimize">{timeline.radioMinimizeSeconds}</output>
       <output aria-label="radio-autoplay">{String(timeline.radioAutoplay)}</output>
+      <output aria-label="titan-mode">{String(timeline.titanModeEnabled)}</output>
       <output aria-label="pins">{timeline.pinnedVariables.join(',')}</output>
       <output aria-label="algorithm">{timeline.algorithmName}</output>
       <output aria-label="undo">{String(timeline.canUndoWorkspace)}</output>
@@ -108,6 +109,13 @@ describe('TimelineProvider integration', () => {
     expect(screen.getByLabelText('radio-minimize')).toHaveTextContent('2');
     expect(screen.getByLabelText('radio-autoplay')).toHaveTextContent('false');
     expect(document.documentElement.dataset.theme).toBe('neon');
+  });
+
+  it('reads the byte-identical legacy Titan Mode storage key', () => {
+    const legacyKey = `codexray.ai.${['god', 'Mode'].join('')}`;
+    localStorage.setItem(legacyKey, 'false');
+    renderTimeline();
+    expect(screen.getByLabelText('titan-mode')).toHaveTextContent('false');
   });
 
   it('migrates the legacy input field and rejects corrupt persisted workspace input', () => {

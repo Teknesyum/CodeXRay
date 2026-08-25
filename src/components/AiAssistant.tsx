@@ -16,7 +16,7 @@ import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
 import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from '../services/titanModeRouting';
-import type { TitanModeRunHandle } from '../services/titan/titanPipeline';
+import type { TitanModeOrchestratorOptions, TitanModeRunHandle } from '../services/titan/titanPipeline';
 import { dispatchTitanUiAction } from '../services/titanUiControl';
 import {
   clearTitanModePlans,
@@ -782,9 +782,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackageId: stateRef.current.activeSimulationPackage?.id ?? null,
           packageOutOfSync: stateRef.current.packageOutOfSync,
         };
-        const { startTitanModeRun } = await import('../services/titan/titanPipeline');
+        const { startDiscussCurrentStepPipeline, startTitanModeRun } = await import('../services/titan/titanPipeline');
         sourcePreviewSnapshotRef.current = workspaceSnapshot;
-        const run = startTitanModeRun({
+        const orchestratorOptions: TitanModeOrchestratorOptions = {
           request: titanModeRequest,
           intent: titanModeIntent,
           locale,
@@ -866,7 +866,23 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
               inputError: null,
             };
           },
-        });
+        };
+        const run = titanModeIntent.type === 'discuss-current-step'
+          ? startDiscussCurrentStepPipeline({
+            ...orchestratorOptions,
+            verificationFailureMessage: t('titanCurrentStepVerificationFailed', locale),
+            applyResult: (result) => {
+              if (result.status !== 'success') return;
+              const content = result.tutorAnswer
+                ? `${result.summary}\n\n${stripThinkBlock(result.tutorAnswer)}`
+                : result.summary;
+              setChatHistory((previous) => [
+                ...previous,
+                { role: 'ai' as const, content },
+              ].slice(-MAX_STORED_MESSAGES));
+            },
+          })
+          : startTitanModeRun(orchestratorOptions);
         titanModeRunRef.current = run;
         sourcePreviewRunRef.current = run.runId;
         const result = await run.promise;
@@ -874,6 +890,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         sourcePreviewRunRef.current = null;
         setIsTitanModeTypingSource(false);
         if (!mountedRef.current) return;
+        if (titanModeIntent.type === 'discuss-current-step') return;
         const content = (result as any).tutorAnswer
           ? `${(result as any).summary}\n\n${stripThinkBlock((result as any).tutorAnswer)}`
           : (result as any).summary;

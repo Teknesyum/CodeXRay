@@ -125,7 +125,7 @@ const STORAGE_KEY = 'codexray.workspace.v1';
 const PINNED_VARIABLES_KEY = 'codexray.pinned-variables.v1';
 const AI_MODEL_KEY = 'codexray.ai-model.v1';
 const AI_CONTEXT_WINDOW_KEY = 'codexray.ai-context-window.v1';
-const LEGACY_TITAN_MODE_KEY = `codexray.ai.${['god', 'Mode'].join('')}`;
+const LEGACY_TITAN_MODE_KEY = 'codexray.ai.godMode';
 const TimelineContext = createContext<TimelineContextType | undefined>(undefined);
 
 const readStorage = (key: string): string | null => {

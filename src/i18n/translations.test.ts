@@ -13,6 +13,13 @@ describe('translations', () => {
     expect(Object.keys(dictionaries.tr).sort()).toEqual(Object.keys(dictionaries.en).sort());
   });
 
+  it('provides Titan pipeline status and verification copy in both locales', () => {
+    expect(t('titanStatus_running', 'en')).toBe('running');
+    expect(t('titanStatus_running', 'tr')).toBe('çalışıyor');
+    expect(t('titanCurrentStepVerificationFailed', 'en')).toContain('workspace was not changed');
+    expect(t('titanCurrentStepVerificationFailed', 'tr')).toContain('Çalışma alanı değiştirilmedi');
+  });
+
   it('provides Turkish UI labels and interpolation', () => {
     expect(t('sourceCode', 'tr')).toBe('Kaynak Kod');
     expect(t('arrayCount', 'tr', { count: 15 })).toBe('Dizi(15)');

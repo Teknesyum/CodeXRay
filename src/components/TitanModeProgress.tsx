@@ -245,19 +245,19 @@ export const TitanModeProgress = ({
           <div
             className={`titan-mode-agent ${job.summary?.startsWith('Skipped') ? 'skipped' : job.status}`}
             key={job.id}
-            aria-label={`${stageLabel(job.id, t(agentKey(job.role), locale), locale)}: ${job.summary?.startsWith('Skipped') ? (locale === 'tr' ? 'atlandı (gerekmedi)' : 'skipped (not required)') : t(`godStatus_${job.status}`, locale)}`}
+            aria-label={`${stageLabel(job.id, t(agentKey(job.role), locale), locale)}: ${job.summary?.startsWith('Skipped') ? (locale === 'tr' ? 'atlandı (gerekmedi)' : 'skipped (not required)') : t(`titanStatus_${job.status}`, locale)}`}
             tabIndex={0}
             onMouseEnter={(event) => showAgentTooltip(
               event,
               t(agentKey(job.role), locale),
-              t(`godStatus_${job.status}`, locale),
+              t(`titanStatus_${job.status}`, locale),
               jobDetails(job, now),
             )}
             onMouseLeave={() => setTooltip(null)}
             onFocus={(event) => showAgentTooltip(
               event,
               t(agentKey(job.role), locale),
-              t(`godStatus_${job.status}`, locale),
+              t(`titanStatus_${job.status}`, locale),
               jobDetails(job, now),
             )}
             onBlur={() => setTooltip(null)}

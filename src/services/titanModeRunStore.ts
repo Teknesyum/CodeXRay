@@ -2,7 +2,7 @@ import type { ManagerPlanV1 } from '../types/titan';
 
 const INDEX_KEY = 'codexray.titan-mode.runs.v1';
 const RUN_PREFIX = 'codexray.titan-mode.run.v1.';
-const LEGACY_NAME = ['god', 'mode'].join('-');
+const LEGACY_NAME = 'god-mode';
 const LEGACY_INDEX_KEY = `codexray.${LEGACY_NAME}.runs.v1`;
 const LEGACY_RUN_PREFIX = `codexray.${LEGACY_NAME}.run.v1.`;
 const MAX_STORED_RUNS = 8;

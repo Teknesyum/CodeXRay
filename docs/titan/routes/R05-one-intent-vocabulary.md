@@ -52,9 +52,38 @@ A third spelling of the same idea sits in `src/services/ai/roleBudgets.ts:1`:
 export type LocalAiRole = 'route' | 'navigate' | 'edit-input' | 'explain' | 'translate';
 ```
 
-with a per-role output-token table. Nothing outside that file references it — `roleMaxTokens`
-and `LOCAL_AI_USABLE_OUTPUT_TOKENS` have zero callers. It reserves 900 tokens for a
-`translate` role that is never requested.
+with a per-role output-token table. It reserves 900 tokens for a `translate` role that is
+never requested.
+
+**Correction, and the reason it matters.** This route first said nothing outside that file
+references it. That was wrong. What was measured was production callers; the grep was never
+widened to tests. `src/services/ai/tolerantJson.test.ts:3` imports both `roleMaxTokens` and
+`LOCAL_AI_USABLE_OUTPUT_TOKENS`, and its fourth `it` block asserts against them — a
+role-budget test misfiled in a file named for a different module. The claim "zero callers"
+and the claim "zero production callers" are different claims, and only the second was
+measured. The holder found this before writing anything, which is the check working.
+
+The blast radius of both deletions, measured over `src/` and `e2e/`, pasted rather than
+summarised:
+
+```
+$ grep -rn "roleBudgets\|roleMaxTokens\|LocalAiRole\|LOCAL_AI_USABLE_OUTPUT_TOKENS" src/ e2e/
+src/services/ai/roleBudgets.ts:1:export type LocalAiRole = ...
+src/services/ai/roleBudgets.ts:3:export const LOCAL_AI_USABLE_OUTPUT_TOKENS: ...
+src/services/ai/roleBudgets.ts:11:export const roleMaxTokens = (
+src/services/ai/roleBudgets.ts:12:  role: LocalAiRole,
+src/services/ai/roleBudgets.ts:17:  LOCAL_AI_USABLE_OUTPUT_TOKENS[role] + ...
+src/services/ai/tolerantJson.test.ts:3:import { LOCAL_AI_USABLE_OUTPUT_TOKENS, roleMaxTokens } from './roleBudgets';
+src/services/ai/tolerantJson.test.ts:27:    expect(LOCAL_AI_USABLE_OUTPUT_TOKENS).toEqual({ ... });
+src/services/ai/tolerantJson.test.ts:28:    expect(roleMaxTokens('navigate', 500, 1024)).toBe(620);
+src/services/ai/tolerantJson.test.ts:29:    expect(roleMaxTokens('translate', 500, 1024)).toBe(1024);
+
+$ grep -rn "titanRouter\|TitanIntent\|TitanRouteDecision\|routeTitanRequest" src/ e2e/
+src/services/titan/titanRouter.ts:13,23,24,31,34,42,89,128  (self)
+src/services/titan/titanRouter.test.ts:5:import { routeTitanRequest } from './titanRouter';
+```
+
+Two files outside the modules themselves, both owned by this route. Nothing else.
 
 Dead weight after R04, all with zero production callers:
 
@@ -89,6 +118,7 @@ class of risk from option B and should be weighed as such.
 | `src/services/titan/titanRouter.ts` | Wired or deleted, per the decision |
 | `src/services/titan/titanRouter.test.ts` | Follows its module |
 | `src/services/ai/roleBudgets.ts` | Wired or deleted, per the decision |
+| `src/services/ai/tolerantJson.test.ts` | **Bounded.** See below — the only importer of `roleBudgets` |
 | `src/services/titanModeRouting.ts` | The live classifier, if option A is chosen |
 | `src/services/titanModeRouting.test.ts` | Follows its module |
 | `src/types/titan.ts` | **`TitanModeIntent` union only**, and only if the decision requires it |
@@ -104,6 +134,18 @@ of it fails the route.
 
 `titanEngine.ts`, `titanEntry.ts`, `inputPatch.ts` and `translate.ts` are **read-only this
 turn**.
+
+The `tolerantJson.test.ts` grant is bounded to exactly two edits, and nothing in that file
+may change beyond them:
+
+- the `roleBudgets` import on line 3, and
+- the whole fourth `it` block, `'adds measured reasoning overhead to usable role budgets
+  within the profile limit'`, which is entirely role-budget assertions.
+
+Deleting only the assertions and leaving an empty `it` is not the intent — the block goes
+with them. The three `extractTolerantJson` tests above it are untouched, and `tolerantJson.ts`
+itself is out of scope. If option A is chosen and `roleBudgets.ts` survives, this file is not
+edited at all.
 
 The `e2e/**` grant is a mechanical follow-through, not an invitation. A spec may be edited to
 track a renamed symbol and for nothing else. No assertion is weakened, no spec is skipped, and
@@ -141,8 +183,9 @@ either they map to `unclear` — which is a lie about what the product can do �
 grows to wire them, which it must not.
 
 **Option B — the shipped set is the contract.** `TitanModeIntent` is the only intent union.
-`titanRouter.ts`, its test, and `roleBudgets.ts` are deleted. `AGENTS.md`'s intent paragraph
-is rewritten to name the shipped set exactly.
+`titanRouter.ts`, its test, and `roleBudgets.ts` are deleted, along with the role-budget block
+stranded in `tolerantJson.test.ts`. `AGENTS.md`'s intent paragraph is rewritten to name the
+shipped set exactly.
 
 Costs: 167 lines of tested code deleted, and the five-phase pipeline loses the vocabulary it
 was designed around — though R04 showed the pipeline works fine taking `TitanModeIntent`
@@ -167,8 +210,12 @@ whichever set needed less work.
    union declaration.
 3. Every intent named in `AGENTS.md` is produced by the live classifier for at least one
    input, proven by a test per intent. An intent no input can produce is not in the set.
-4. If a module is deleted, its tests are deleted with it and `npm run test` count moves by
-   the number of tests removed. State the before and after counts and the difference.
+4. If a module is deleted, every test of it is deleted with it — including tests filed under
+   another module's name — and `npm run test` count moves by exactly the number removed.
+   State the before and after counts and the difference. Under option B the expected move is
+   **756 to 749**: six `it` blocks in `titanRouter.test.ts` and one in `tolerantJson.test.ts`.
+   A different number is not automatically wrong, but the handoff must say what accounts for
+   it.
 5. Behaviour is unchanged: the full e2e suite passes, and the handoff names which specs cover
    the intents that changed spelling.
 6. `roleBudgets.ts` is either called from production or gone. If it survives, show the caller;

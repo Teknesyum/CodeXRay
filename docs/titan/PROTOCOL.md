@@ -137,10 +137,21 @@ git log -1 --format=%H
   (Sole's evidence). Never fold the last two together.
 - **Every criterion is read against the ownership list before the route opens.** A criterion
   the holder cannot satisfy without writing a file the same route forbids is not a criterion,
-  it is a trap. This has now happened twice — R02b required Claude-owned `CLAUDE.md` files,
-  R04 required two constants absent from its own list — so it is a checklist item, not a
-  reminder. Widening `## Owned Files` mid-turn to match a criterion that was already there is
-  a route correction and leaves the base alone; changing what the turn must achieve is not.
+  it is a trap. This has now happened three times — R02b required Claude-owned `CLAUDE.md`
+  files, R04 required two constants absent from its own list, R05 required deleting a module
+  whose only importer was unlisted — so it is a checklist item, not a reminder. Widening
+  `## Owned Files` mid-turn to match a criterion that was already there is a route correction
+  and leaves the base alone; changing what the turn must achieve is not.
+- **Ownership for a deletion is computed, not remembered.** Reading criteria against the list
+  catches a criterion that names a file. It does not catch one that names a *rule* — "delete a
+  module, delete its tests" — because the file set has to be derived. Before a route may
+  delete or rename a symbol, its author greps every reference to that symbol across `src/`,
+  `e2e/`, and `src-tauri/`, and every file returned is either owned or the route says why it
+  does not need to change. The grep is pasted into the route.
+- **"Zero callers" and "zero production callers" are different claims.** R05 published the
+  first while having measured only the second, and the module it called unreferenced had a
+  test importing it. State which one was measured, in the route, every time. A route's own
+  evidence is held to the standard the route imposes on the handoff.
 - **Claude does not move the ground under an open route.** A protocol or repository change
   that would invalidate an active criterion waits until the turn closes, or the route is
   reopened with that criterion restated. A criterion that became impossible because T0

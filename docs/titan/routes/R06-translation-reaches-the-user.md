@@ -89,8 +89,6 @@ what each does with it today" is.
 | `src/types/webSource.ts` | Only if the `validated-simulation` kind needs a translated variant |
 | `src/i18n/translations.ts` | New EN/TR strings this route introduces |
 | `e2e/**` | One new spec proving the badge appears; existing specs only if a symbol moved |
-| `AGENTS.md` | **The intent paragraph only**, and only if an eighth intent lands |
-| `src/services/titan/AGENTS.md` | The `translate.ts` status line, which this route makes false |
 | `docs/titan/handoffs/H06-translation-reaches-the-user.md` | Handoff |
 | `docs/titan/DOD.md` | Evidence cells only |
 
@@ -185,9 +183,11 @@ scope and their own decision.
    strings at `CodeEditor.tsx:231-233` move into `src/i18n/translations.ts` like every other
    user-facing string.
 8. The `verifiedAt` decision is stated and implemented.
-9. If an eighth intent was added, `AGENTS.md`'s intent paragraph names it and a classifier
-   test produces it. If none was added, say which existing intent carries translation.
-10. `src/services/titan/AGENTS.md` no longer says `translate.ts` has no production caller.
+9. The handoff says which intent carries translation. If an eighth intent was added, a
+   classifier test produces it. **(T0)** Naming it in `AGENTS.md` is Claude's; no `AGENTS.md`
+   is the holder's to write.
+10. **(T0)** `src/services/titan/AGENTS.md` no longer says `translate.ts` has no production
+   caller. Claude closes this in `## T0 reconciliation`.
 11. All four gates clean: `npm run lint`, `npm run test`, `npm run build`,
     `npm run desktop:check`.
 12. `npm run test:e2e` passes locally, both phases. **(T0)** The remote `browser` job is
@@ -266,4 +266,37 @@ nothing else worth keeping, and record the decision in `## Deviations`.
 - Adding new translatable languages beyond `cpp | java | python`.
 - Bypassing authentication or bot protection on any source site.
 - Any change to the interpreter's supported language profile.
+- **Every `AGENTS.md` file.** They are T0-owned without exception. Criteria 9 and 10 are
+  marked `(T0)` for that reason; do not write them, and do not stop for them either.
 - Pushing to `origin`. The remote half of criterion 12 belongs to T0.
+
+## T0 reconciliation
+
+Opened while the turn is still in flight, because criterion 10 blocked the holder and the
+block was T0's fault.
+
+**Criterion 10 is closed by T0.** `src/services/titan/AGENTS.md` now reads
+`STATUS: two seams live` and describes `translateToVerifiedPackage` as called from the
+`solve-web-problem` flow through `webProblemOrchestrator.ts`. The `Not wired` marker on the
+`translate.ts` file entry is gone, replaced by the constraint that actually matters there:
+the model supplies SimLang-Lite fragments only, and nothing foreign is ever executed.
+
+**Criterion 9 is closed by T0 as far as documents go.** No eighth intent was added;
+`solve-web-problem` carries translation, so `AGENTS.md`'s intent paragraph is already correct
+and needs no edit. The holder still owes the handoff sentence naming which intent carries it.
+
+**Why the holder was blocked, and why stopping was right.** R06 listed two `AGENTS.md` files
+in `## Expected Files`, copying a pattern that worked in R05 when `## Owned Files` was the
+gate. Last turn's inversion made the ownership table the only boundary, which revoked those
+grants without anyone noticing. So the route asked for something the protocol forbade. Under
+the new rules the holder had exactly two options — write a T0 file, or stop — and it chose the
+one that was still a rule. That is the boundary working, not a turn wasted.
+
+The protocol now states the rule in both directions: a criterion may never require the holder
+to write a T0-owned path, and such criteria are marked `(T0)`. Criteria 9 and 10 are marked,
+and both `AGENTS.md` entries are struck from `## Expected Files`.
+
+**Not yet verified.** The product seam is uncommitted at the time of writing. This section
+records only what T0 closed. The gates, the greps, the badge e2e, and the remote `browser`
+job are graded after `H06` lands, and a failure there reopens the route as `R06b` — including
+the `AGENTS.md` status above, which describes a wiring that must still prove itself.

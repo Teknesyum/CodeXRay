@@ -163,6 +163,20 @@ git log -1 --format=%H
   have known to list. Trading a guaranteed stall for a reviewable justification is the better
   trade. Scope creep was never actually prevented by the list; it is prevented by T0 reading
   the diff, which happens either way.
+- **A criterion may never require the holder to write a T0-owned path.** The ownership table
+  is absolute in both directions: routes do not delegate pieces of `PROTOCOL.md`, a route
+  file, `DEVIRALAN.md`, any `AGENTS.md`, or `SOLE_BOOTSTRAP.md`, not even a single bounded
+  paragraph. When a turn's work makes a T0 document false — and wiring work usually does —
+  the criterion is marked **`(T0)`** and Claude closes it in `## T0 reconciliation`, exactly
+  as it already closes the remote `browser` gate.
+
+  R05 granted the intent paragraph of `AGENTS.md` and it worked, so R06 granted two more doc
+  lines out of habit. Then the `## Expected Files` inversion made the ownership table the sole
+  boundary, which silently revoked those grants and stalled R06 at criterion 10. The
+  contradiction was T0's, not the holder's, and the holder stopping was correct. One rule in
+  both directions is worth more than the atomicity a bounded grant buys: the contract is
+  written by whoever is accountable for it, and a document edited by the side it constrains
+  is how the six stale references in R05 accumulated in the first place.
 - **Sole does not stop to ask whether it may touch a file.** If the file is frozen or
   T0-owned, it stops and reports — that is a real boundary. For anything inside its own
   ownership it proceeds, and explains itself in `## Deviations`. A turn that halts for a

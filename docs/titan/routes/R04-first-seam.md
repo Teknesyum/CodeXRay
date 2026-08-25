@@ -254,3 +254,63 @@ record the decision in `## Deviations`.
 - Any change to the interpreter's supported language profile.
 - CI workflow files under `.github/`.
 - Pushing to `origin`. The remote half of criterion 11 belongs to T0.
+
+## T0 reconciliation
+
+Handoff `H04` recorded at `0a5c1af95b7776e2ecbc0380eeea4afd8e34ec55`, closing
+`2a30aba9` (`route(R04): close`). Claude re-ran the gates and the criterion greps
+independently rather than reading the handoff's pasted output, because a handoff that
+copies its own evidence proves only that the copy was faithful. Every claim held.
+
+| Claim in H04 | Independent result |
+|---|---|
+| `npm run lint` clean | clean |
+| `npm run test` | `Test Files 120 passed (120)`, `Tests 756 passed (756)` |
+| `npm run build` | `Initial JavaScript: 415.9 / 420.0 KiB`, under budget |
+| `executeTitanPipeline` has a production caller | `src/services/titan/titanPipeline.ts:141` |
+| `godStatus_` gone from `src/` | zero matches |
+| legacy constants are plain literals | `'codexray.ai.godMode'`, `'god-mode'` |
+| `god.?mode` over `src/ e2e/ src-tauri/` | exactly the two permitted files |
+
+Criterion 3 was the one worth reading rather than grepping, because the grep can only show
+that a call exists, not that the call is honest. The seam at `titanPipeline.ts:141` passes
+`route: () => options.intent` — the phase returns the intent the deterministic router already
+produced and does not re-classify — and `produce` delegates to `startTitanEngineRun`
+unchanged. So the pipeline now carries real `discuss-current-step` traffic without having
+taken over the decision that the deterministic layer owns. That is the seam this route asked
+for: the executor is load-bearing, and nothing about who classifies moved.
+
+**Sign-off.** Sole committed without `-s` and said so. That is the correct call: the
+configured identity is still `CodeRay Developer <coderay@example.com>`, and `example.com` is
+a reserved address that can never attribute a real person. A DCO trailer naming an
+unreachable identity is worse than an absent one, because it asserts something. The gap is
+T0's to close, not the holder's, and it stays open into R05.
+
+**Numbering note.** `## Out of Scope` above assigns R06 to translation and R07 to the second
+intent on the seam. An earlier planning note had those reversed. This route is published and
+Sole read it, so the published order stands and R05 was written to match it.
+
+## Remote closure
+
+Criterion 11's remote half is Claude's, and it is closed. Both commits are pushed to `main`.
+Run `32832273845` on `0a5c1af9`, first attempt, all three jobs `success`:
+
+```
+desktop  completed success
+quality  completed success
+browser  completed success
+```
+
+The `browser` job reported both phases clean, with no flaky line at all:
+
+```
+  67 passed (6.5m)
+  2 passed (58.6s)
+```
+
+This is the second consecutive commit where the gate came back green on the first attempt and
+reported zero flaky specs. R02b bought that on a re-run ladder; here it held without one. The
+gate is now doing the job R02 opened to restore: the result is a function of the commit, and
+a green `browser` on a route's head means something again.
+
+**R04 closes as met.** Local and remote halves of every criterion are satisfied.

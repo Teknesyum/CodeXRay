@@ -1,10 +1,11 @@
 # Titan orchestration
-## STATUS: two seams live
-`executeTitanPipeline` carries production traffic for `discuss-current-step` since R04; the
-entry is in `AiAssistant.tsx`. `translateToVerifiedPackage` is called from the
-`solve-web-problem` flow since R06, through `webProblemOrchestrator.ts`, and its provenance
-badge is what `CodeEditor.tsx` renders. Every other request still routes through
-`src/services/titanModeRouting.ts` with `titanEntry.ts` / `titanEngine.ts`.
+## STATUS: three seams live
+`executeTitanPipeline` carries production traffic for `discuss-current-step` since R04 and
+`adapt-input` since R07; both entries are in `AiAssistant.tsx`.
+`translateToVerifiedPackage` is called from the `solve-web-problem` flow since R06, through
+`webProblemOrchestrator.ts`, and its provenance badge is what `CodeEditor.tsx` renders.
+Every other request still routes through `src/services/titanModeRouting.ts` with
+`titanEntry.ts` / `titanEngine.ts`.
 ## Files
 - `titanPipeline.ts` `executeTitanPipeline`, the five phases, re-exports of the live engine.
 - `translate.ts` cpp/java/python source into a verified custom simulation package. The model

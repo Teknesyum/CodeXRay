@@ -209,3 +209,107 @@ and record the decision in `## Deviations`.
   later route.
 - Every `AGENTS.md` file — T0-owned, criteria there are marked **(T0)**.
 - Pushing to `origin`. The remote half of criterion 10 belongs to T0.
+
+## T0 reconciliation
+
+Handoff `H07` recorded at `954f150`, closing `ea4c07f`. **Option A** was chosen. Claude
+re-ran the gates and greps independently; every claim held.
+
+| Claim in H07 | Independent result |
+|---|---|
+| `npm run lint` clean | clean |
+| `npm run test` | `Test Files 119 passed (119)`, `Tests 759 passed (759)` |
+| `npm run build` | `Initial JavaScript: 416.7 / 420.0 KiB`, under budget |
+| `adapt-input` enters the pipeline | `AiAssistant.tsx:902` → `titanPipeline.ts:178,214` |
+| the R04 seam is unchanged | `AiAssistant.tsx:887` → `titanPipeline.ts:110,146` |
+| both commits signed | two `Signed-off-by: Mustafa Özel <iyott131@gmail.com>` trailers |
+
+`desktop:check` was not re-run — `src-tauri/**` is absent from the diff; the handoff's 7/7
+stands. The count moved 753 → 759 with six new tests backing new behaviour claims.
+
+**A grep of mine was wrong, and the record should say so.** Checking criterion 6, Claude
+grepped for `parseInputPatch` outside `input/inputPatch.ts`, found nothing, and briefly read
+that as the criterion failing. It was the wrong instrument. `parseInputPatch` is called from
+`createInputReplacementPatch` *inside* the same module, and that wrapper is called from
+`titanEngine.ts:833` — so the parser does gate every adaptation. This is the exact
+zero-callers-versus-zero-production-callers distinction R05 added to the protocol, arriving
+from the other direction: an internal call that is nonetheless on the production path. The
+rule needs no change; the reader did.
+
+The production chain, verified by reading rather than grepping:
+
+```
+AiAssistant.tsx:902  startAdaptInputPipeline
+titanPipeline.ts:214 executeTitanPipeline
+titanEngine.ts:833   createInputReplacementPatch
+inputPatch.ts        parseInputPatch     (throws on malformed)
+titanEngine.ts:847   applyInputPatch     (enforces the input contract)
+```
+
+`deferApply` is the mechanism that makes the seam real rather than decorative: the engine
+stops applying and hands the transaction to the pipeline's `apply` phase, so mutation now
+happens after `verify` returns ok instead of inside the engine body.
+
+**What did not land, recorded so no future route assumes it did.** Criterion 6 is met as
+written — `parseInputPatch` validates every op on the path — but the path is narrower than
+"every adaptation goes through a closed patch op" suggests. `createInputReplacementPatch`
+can emit exactly five ops (`set-graph`, `set-matrix`, `set-array`, `set-text`, and a
+`load-preset-input` fallback), all wholesale replacements carrying a value the existing
+heuristics derived first. The eight semantic ops stay validated-but-unreachable, and
+`applyAndRecompileInputPatch` still has no production caller.
+
+That is not a shortfall against this route. R07's invariant was behaviour-first and its
+`## Out of Scope` explicitly said deterministic-router-only emission was complete. But the
+closed vocabulary is currently a validation envelope around a heuristic result rather than
+the mutation vocabulary it was written to be, and a document that let "Option A landed"
+stand unqualified would be claiming more than the code does. That is the failure R05 spent a
+whole turn undoing.
+
+**T0 documentation, done in this turn.** `src/services/titan/AGENTS.md` now reads
+`STATUS: three seams live` and names `adapt-input` since R07. The architecture map's
+`inputPatch.ts` line in `AGENTS.md` now states both what became reachable and what did not,
+including the unwired export by name.
+
+**Successor opened.** `R08 — The semantic ops become reachable` takes the gap above as its
+subject: make the semantic ops reachable from real requests in both languages, or shrink the
+union to what is honest. `applyAndRecompileInputPatch` gets a verdict there.
+
+## Remote closure
+
+Criterion 10's remote half is closed. Both commits are pushed to `main`. Run `32881017681`
+on `954f150`, all three jobs `success`:
+
+```
+quality  success
+desktop  success
+browser  success
+```
+
+**And the flake threshold fired.** The `browser` job reported:
+
+```
+  1 flaky
+    [chromium] > e2e/titan-mode-clarification.spec.ts:3:1
+  67 passed (6.8m)
+  2 passed (1.0m)
+```
+
+Same spec, same line, same failure text as `b4f9ae4` — `getByLabel(...)` not visible within
+5000ms at line 27. Two consecutive commits.
+
+R06's reconciliation set the threshold in writing: *"if this spec flakes again on any commit,
+it opens a route of its own. Not a timeout bump, not a retry allowance — a diagnosis, on
+R02's terms. One occurrence is watched; two is a defect with a name."* It flaked again, so
+that is what happens. The threshold existed precisely so this would not be re-argued now that
+it is inconvenient, with a finished route already drafted and a green checkmark available to
+hide behind.
+
+**R07 still closes as met.** Criterion 10 asked for a passing remote gate and the gate
+passed; the flake belongs to R08, not to this route's ledger. Recording it as a clean green
+would be the dishonesty R02 existed to end.
+
+**The queue changed.** `R08 — The semantic ops become reachable` was written and is now
+requeued as `R09` in `docs/titan/routes/queued/`, base unstamped. `R08` is instead the
+clarification diagnosis. Ordering the gate ahead of the feature is the same call R02 made
+over the pipeline wiring: while the gate is untrustworthy, every later route's e2e criterion
+means less than it claims.

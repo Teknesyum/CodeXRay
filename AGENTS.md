@@ -121,7 +121,11 @@ testing another trusted CodeXRay gateway.
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
-- `src/services/input/inputPatch.ts` — validated workspace input mutation.
+- `src/services/input/inputPatch.ts` — the closed `InputPatchV1` op union and its parser.
+  On the production `adapt-input` path since R07, but only through whole-input replacement
+  ops; the semantic ops (`resize-array`, `sort-array`, `shuffle-array`, `set-param`,
+  `set-target`, and the three `graph-*` ops) are still validated-but-unreachable, and
+  `applyAndRecompileInputPatch` still has no production caller.
 - `TimelineContext.tsx` — playback, selected algorithm/input, analysis, local AI state;
   autosaves the input workspace and top-level variable pins.
 - `App.tsx` — persistent split sizes and collapse state for the five workspace panels.

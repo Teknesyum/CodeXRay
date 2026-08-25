@@ -300,3 +300,77 @@ and both `AGENTS.md` entries are struck from `## Expected Files`.
 records only what T0 closed. The gates, the greps, the badge e2e, and the remote `browser`
 job are graded after `H06` lands, and a failure there reopens the route as `R06b` — including
 the `AGENTS.md` status above, which describes a wiring that must still prove itself.
+
+---
+
+The section above was written mid-turn when criterion 10 blocked; what follows closes the
+whole route.
+
+**Independent verification.** Handoff `H06` recorded at `b4f9ae4`, closing `b73945b`.
+Claude re-ran the gates and greps rather than reading pasted output:
+
+| Claim in H06 | Independent result |
+|---|---|
+| `npm run lint` clean | clean |
+| `npm run test` | `Test Files 119 passed (119)`, `Tests 753 passed (753)` |
+| `npm run build` | `Initial JavaScript: 416.4 / 420.0 KiB`, under budget |
+| `translateToVerifiedPackage` called from production | `webProblemOrchestrator.ts:18,107` |
+| no `eval` / `new Function` in the changed files | zero matches |
+| `verifiedAt` injected | `translate.ts:56` parameter, `:85` pass-through |
+| badge strings in the i18n dictionary | `translationProvenanceTitle`, `translationProvenanceBadge`, `CodeEditor.tsx:230-232` |
+| both commits signed | two `Signed-off-by: Mustafa Özel <iyott131@gmail.com>` trailers |
+
+`desktop:check` was not re-run — `src-tauri/**` is absent from the diff; the handoff's own
+7/7 stands. The test count moved 751 → 753 with new behaviour claims, as required.
+
+The diff stayed inside the forecast plus one addition: `e2e/translation-provenance.spec.ts`
+(141 lines), which the `e2e/**` forecast row anticipated. The `AiAssistant.tsx` change is 38
+lines confined to the `solve-web-problem` branch; the R04 seam at line 869 is untouched.
+
+**The turn also validated the new protocol.** This was the first route run under
+forecast-not-gate semantics, and both halves fired correctly in one turn: the holder wrote
+into `AiAssistant.tsx` without stopping to ask — under the old allowlist that alone would
+have been the turn's second stall — and stopped once, at a genuine T0 boundary, which T0
+closed mid-turn. One stop for a real boundary instead of five for imaginary ones is the
+trade the inversion promised.
+
+## Remote closure
+
+Criterion 12's remote half is closed. Both commits are pushed to `main`. Run `32875927404`
+on `b4f9ae4`, first attempt, all three jobs `success`:
+
+```
+browser  success
+desktop  success
+quality  success
+```
+
+**But not clean, and the difference matters.** The `browser` job reported:
+
+```
+  1 flaky
+    [chromium] > e2e/titan-mode-clarification.spec.ts:3:1 > asks for missing algorithm
+    requirements without mutation and resumes with a concrete request
+  67 passed (7.1m)
+  2 passed (1.0m)
+```
+
+The job is green because Playwright retried and the retry passed. The route still closes:
+criterion 12 asks for a passing gate, and the gate passed. Recording it as "all green" would
+be the exact dishonesty R02 existed to end, so it is recorded as what it is.
+
+This is the first flaky in four commits. It is also not a new name: `titan-mode-clarification`
+was one of the six specs in R02's opening evidence table, back when the gate was measuring
+something other than the tree. It has passed cleanly on `0a5c1af`, `e38fb9e`, and every R02b
+re-run in between, so one retry is not yet a pattern — but it is the same spec, and that is
+worth saying rather than filing as noise.
+
+**Threshold, set now rather than after arguing about it later:** if this spec flakes again on
+any commit, it opens a route of its own. Not a timeout bump, not a retry allowance — a
+diagnosis, on R02's terms. One occurrence is watched; two is a defect with a name.
+
+The e2e total is 68 (67 passed plus the flaky one), up from 67 in R05, matching the new
+`translation-provenance.spec.ts`.
+
+**R06 closes as met.** Local and remote halves of every criterion are satisfied, criteria 9
+and 10 by T0.

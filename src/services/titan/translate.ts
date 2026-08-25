@@ -53,6 +53,7 @@ export const translateToVerifiedPackage = (options: {
   input: InputContractV1;
   visualization: VisualizationContract;
   analysis: string;
+  verifiedAt: number;
 }): TranslationResult => {
   const failures: TranslationAttemptFailure[] = [];
   const attempts = options.attempts.slice(0, 3);
@@ -81,7 +82,7 @@ export const translateToVerifiedPackage = (options: {
             originalSource: options.originalSource,
             generatedFormat: 'simlang-lite',
             deterministicTrace: true,
-            verifiedAt: Date.now(),
+            verifiedAt: options.verifiedAt,
           },
         },
         attempts: index + 1,

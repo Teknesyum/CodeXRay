@@ -227,10 +227,10 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
           </button>
         )}
         {activeSimulationPackage?.translation && (
-          <span className="translation-provenance" title={locale === 'tr' ? 'İz adımları doğrulanmış SimLang yürütmesinden gelir.' : 'Trace steps come from verified SimLang execution.'}>
-            {locale === 'tr'
-              ? `${activeSimulationPackage.translation.originalLanguage.toUpperCase()} kaynağından çevrildi · deterministik doğrulandı`
-              : `Translated from ${activeSimulationPackage.translation.originalLanguage.toUpperCase()} · deterministically verified`}
+          <span className="translation-provenance" title={t('translationProvenanceTitle', locale)}>
+            {t('translationProvenanceBadge', locale, {
+              language: activeSimulationPackage.translation.originalLanguage.toUpperCase(),
+            })}
           </span>
         )}
         <button

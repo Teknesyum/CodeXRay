@@ -20,6 +20,15 @@ describe('translations', () => {
     expect(t('titanCurrentStepVerificationFailed', 'tr')).toContain('Çalışma alanı değiştirilmedi');
   });
 
+  it('localizes verified translation provenance without rerunning the package', () => {
+    expect(t('translationProvenanceBadge', 'en', { language: 'JAVA' }))
+      .toBe('Translated from JAVA · deterministically verified');
+    expect(t('translationProvenanceBadge', 'tr', { language: 'JAVA' }))
+      .toBe('JAVA kaynağından çevrildi · deterministik doğrulandı');
+    expect(t('webTranslatedSimulationApplied', 'en')).toContain('deterministically verified');
+    expect(t('webTranslatedSimulationApplied', 'tr')).toContain('deterministik doğrulanan');
+  });
+
   it('provides Turkish UI labels and interpolation', () => {
     expect(t('sourceCode', 'tr')).toBe('Kaynak Kod');
     expect(t('arrayCount', 'tr', { count: 15 })).toBe('Dizi(15)');

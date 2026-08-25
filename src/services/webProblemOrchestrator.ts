@@ -7,6 +7,7 @@ import type {
   SolutionArtifactV1,
   WebProblemSpecV1,
 } from '../types/webSource';
+import type { CustomSimulationPackageV1, InputContractV1, VisualizationContract } from '../types/titan';
 import {
   isActiveAiAdvancedCapable,
   runLocalAgentDetailed,
@@ -14,6 +15,7 @@ import {
   type LocalAgentProgress,
 } from './localAiService';
 import { buildWebProblemPrompt } from './webSource';
+import { translateToVerifiedPackage, type TranslationResult } from './titan/translate';
 
 const JAVA_SCHEMA = {
   type: 'object',
@@ -42,6 +44,19 @@ const CRITIC_SCHEMA = {
   },
 } as const;
 
+const TRANSLATION_SCHEMA = {
+  type: 'object',
+  required: ['version', 'title', 'attempts', 'input', 'visualization', 'analysis'],
+  properties: {
+    version: { const: 1 },
+    title: { type: 'string' },
+    attempts: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'array', minItems: 1, items: { type: 'string' } } },
+    input: { type: 'object' },
+    visualization: { type: 'object' },
+    analysis: { type: 'string' },
+  },
+} as const;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
@@ -56,6 +71,51 @@ interface JavaCandidate {
   explanation: string;
   complexity: { time: string; space: string };
 }
+
+interface TranslationEnvelope {
+  title: string;
+  attempts: string[][];
+  input: InputContractV1;
+  visualization: VisualizationContract;
+  analysis: string;
+}
+
+const validateTranslationEnvelope = (value: unknown): TranslationEnvelope => {
+  if (!isRecord(value) || value.version !== 1 || typeof value.title !== 'string' || !value.title.trim()
+    || !Array.isArray(value.attempts) || value.attempts.length < 1 || value.attempts.length > 3
+    || !value.attempts.every((attempt) => Array.isArray(attempt) && attempt.length > 0
+      && attempt.every((fragment) => typeof fragment === 'string' && fragment.trim()))
+    || !isRecord(value.input) || !isRecord(value.visualization)
+    || typeof value.analysis !== 'string' || !value.analysis.trim()) {
+    throw new Error('Translator returned an invalid translation envelope.');
+  }
+  return {
+    title: value.title.trim(),
+    attempts: value.attempts as string[][],
+    input: value.input as unknown as InputContractV1,
+    visualization: value.visualization as unknown as VisualizationContract,
+    analysis: value.analysis.trim(),
+  };
+};
+
+export const translateJavaFallbackCandidate = (options: {
+  id: string;
+  locale: Locale;
+  originalSource: string;
+  envelope: TranslationEnvelope;
+  verifiedAt: number;
+}): TranslationResult => translateToVerifiedPackage({
+  id: options.id,
+  title: options.envelope.title,
+  locale: options.locale,
+  originalLanguage: 'java',
+  originalSource: options.originalSource,
+  attempts: options.envelope.attempts,
+  input: options.envelope.input,
+  visualization: options.envelope.visualization,
+  analysis: options.envelope.analysis,
+  verifiedAt: options.verifiedAt,
+});
 
 const validateJavaCandidate = (value: unknown): JavaCandidate => {
   const errors: string[] = [];
@@ -135,7 +195,8 @@ export const createJavaFallbackPlan = (request: string): ManagerPlanV2 => {
       newJob({ id: 'capability-gate', role: 'manager', label: 'Select safe solution branch', dependsOn: [], consumes: ['problem-spec'], produces: [], resourceLocks: [], maxAttempts: 1 }),
       newJob({ id: 'java-author', role: 'code-author', label: 'Draft Java 17 Solution', dependsOn: ['capability-gate'], consumes: ['problem-spec'], produces: ['java-solution'], resourceLocks: ['webgpu'], maxAttempts: 2 }),
       newJob({ id: 'critic', role: 'critic', label: 'Review against source and examples', dependsOn: ['java-author'], consumes: ['problem-spec', 'java-solution'], produces: ['critic-review'], resourceLocks: ['webgpu'], maxAttempts: 1 }),
-      newJob({ id: 'publish', role: 'manager', label: 'Publish unexecuted artifact', dependsOn: ['critic'], consumes: ['java-solution', 'critic-review'], produces: ['java-solution'], resourceLocks: [], maxAttempts: 1 }),
+      newJob({ id: 'translator', role: 'compiler', label: 'Translate into verified SimLang-Lite', dependsOn: ['critic'], consumes: ['java-solution', 'critic-review'], produces: ['simulation-package'], resourceLocks: ['webgpu'], maxAttempts: 1 }),
+      newJob({ id: 'publish', role: 'manager', label: 'Publish verified simulation', dependsOn: ['translator'], consumes: ['simulation-package', 'critic-review'], produces: ['simulation-package'], resourceLocks: [], maxAttempts: 1 }),
     ],
   };
 };
@@ -171,7 +232,7 @@ export interface JavaFallbackRun {
   runId: string;
   plan: ManagerPlanV2;
   attempts: AgentAttemptV1[];
-  promise: Promise<SolutionArtifactV1>;
+  promise: Promise<{ solution: SolutionArtifactV1; package: CustomSimulationPackageV1 }>;
   cancel: () => void;
 }
 
@@ -232,7 +293,7 @@ export const startJavaFallbackRun = (options: {
   };
   updateJob('capability-gate', { status: 'completed', attempt: 1, summary: 'Java 17 fallback selected; workspace remains unchanged.' });
 
-  const promise = (async (): Promise<SolutionArtifactV1> => {
+  const promise = (async (): Promise<{ solution: SolutionArtifactV1; package: CustomSimulationPackageV1 }> => {
     let candidate: JavaCandidate | null = null;
     let previousFailure = '';
     for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -320,8 +381,47 @@ export const startJavaFallbackRun = (options: {
       ...candidate,
       review,
     };
-    updateJob('publish', { status: 'completed', attempt: 1, summary: 'Java 17 draft published without changing the workspace.' });
-    return artifact;
+    if (cancelled) throw new Error('Web problem run was cancelled.');
+    updateJob('translator', { status: 'running', attempt: 1 });
+    active = runLocalAgentDetailed({
+      role: 'compiler',
+      locale: options.locale,
+      instructions: options.locale === 'tr'
+        ? 'İncelenmiş Java algoritmasını SimLang-Lite parçalarına çevir. Özgün Java kodunu çalıştırma. Tam bir input sözleşmesi, görselleştirme sözleşmesi ve en çok üç parça denemesi döndür. Her deneme birlikte tam programı oluşturmalıdır.'
+        : 'Translate the reviewed Java algorithm into SimLang-Lite fragments. Never execute the original Java. Return a complete input contract, visualization contract, and at most three fragment attempts. Each attempt must merge into a complete program.',
+      context: buildWebProblemPrompt(options.problem, `Translate this reviewed Java 17 candidate without executing it:\n${candidate.code}`),
+      responseSchema: TRANSLATION_SCHEMA as unknown as Record<string, unknown>,
+      jsonMode: true,
+      maxTokens: 1_200,
+      temperature: 0,
+    }, trackReasoning('translator'));
+    const translationAgentResult = await active.promise;
+    flushReasoning('translator');
+    active = null;
+    const envelope = validateTranslationEnvelope(parseJson(translationAgentResult.text));
+    const translation = translateJavaFallbackCandidate({
+      id: `web-translation-${options.problem.id}`,
+      locale: options.locale,
+      originalSource: candidate.code,
+      envelope,
+      verifiedAt: Date.now(),
+    });
+    if (!translation.ok) {
+      updateJob('translator', { status: 'failed', error: translation.reason });
+      throw new Error(`Translation verification failed: ${translation.reason}`);
+    }
+    updateJob('translator', {
+      status: 'completed',
+      attempt: 1,
+      queueMs: translationAgentResult.queueMs,
+      firstTokenMs: translationAgentResult.firstTokenMs,
+      inferenceMs: translationAgentResult.inferenceMs,
+      completionTokens: translationAgentResult.completionTokens,
+      finishReason: translationAgentResult.finishReason,
+      summary: `Verified deterministic translation after ${translation.attempts} attempt(s).`,
+    });
+    updateJob('publish', { status: 'completed', attempt: 1, summary: 'Verified translated simulation is ready for atomic apply.' });
+    return { solution: artifact, package: translation.package };
   })().catch((error) => {
     if (cancelled) {
       plan = { ...plan, jobs: plan.jobs.map((job) => job.status === 'waiting' || job.status === 'running' || job.status === 'retrying'

@@ -565,29 +565,45 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           });
           webRunRef.current = run;
           setWebPlan(run.plan);
-          const solution = await run.promise;
+          const outcome = await run.promise;
           webRunRef.current = null;
           if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
+          const { package: translatedPackage, solution: reviewedJava } = outcome;
+          applySimulationPackage(translatedPackage, run.runId);
+          setTourSteps(translatedPackage.checkpoints.map((checkpoint) => checkpoint.stepIndex));
+          stateRef.current = {
+            ...stateRef.current,
+            algorithmName: translatedPackage.title,
+            code: translatedPackage.source.code,
+            simulationInput: translatedPackage.input.value,
+            steps: translatedPackage.steps,
+            analysis: translatedPackage.analysis,
+            inputError: null,
+            activeSimulationPackage: translatedPackage,
+            packageOutOfSync: false,
+          };
+          const solution: SolutionArtifactV1 = {
+            version: 1,
+            kind: 'validated-simulation',
+            sourceHash: activeWebSession.problem.sourceHash,
+            problemHash: activeWebSession.problem.id,
+            packageId: translatedPackage.id,
+            review: reviewedJava.review,
+          };
           const nextSession = { ...activeWebSession, solution };
           saveBoundWebSource(nextSession);
           setWebSourceSession(nextSession);
-          if (solution.kind !== 'unexecuted-java17') throw new Error('Unexpected web solution branch.');
           setChatHistory((previous) => [
             ...previous,
             {
               role: 'ai' as const,
               content: [
-                `**${t('webJavaUnexecuted', locale)}**`,
+                `**${t('webTranslatedSimulationApplied', locale)}**`,
                 '',
-                `### ${solution.title}`,
-                '```java',
-                solution.code,
-                '```',
-                solution.explanation,
+                `### ${translatedPackage.title}`,
+                translatedPackage.analysis,
                 '',
-                `**${t('webCriticReview', locale)}:** ${solution.review.summary}`,
-                '',
-                `Time: \`${solution.complexity.time}\` · Space: \`${solution.complexity.space}\``,
+                `**${t('webCriticReview', locale)}:** ${reviewedJava.review.summary}`,
               ].join('\n'),
             },
           ].slice(-MAX_STORED_MESSAGES));

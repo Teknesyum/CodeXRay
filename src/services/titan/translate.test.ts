@@ -45,6 +45,7 @@ const translate = (language: TranslatableLanguage, attempts: string[][]) => tran
   input,
   visualization,
   analysis: 'Verified deterministic translation.',
+  verifiedAt: 1_700_000_000_000,
 });
 
 describe('verified SimLang-Lite translation', () => {
@@ -56,6 +57,7 @@ describe('verified SimLang-Lite translation', () => {
       originalLanguage: language,
       generatedFormat: 'simlang-lite',
       deterministicTrace: true,
+      verifiedAt: 1_700_000_000_000,
     });
     expect(result.package.steps.length).toBeGreaterThan(0);
     expect(result.package.tests.passed).toBe(true);

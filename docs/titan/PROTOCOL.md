@@ -125,13 +125,19 @@ git log -1 --format=%H
 
 ## Branch and commit policy
 
-- One branch: `main`. No route branches, no agent branches — in a single working directory
-  `checkout` is the one operation that breaks turn order, and a second branch is what makes
-  working directory `checkout` is the one operation that breaks turn order.
+- One branch: `main`. No route branches, no agent branches. In a single working directory
+  `checkout` is the one operation that can break turn order, and a second branch is the only
+  thing that would make anyone run it.
 - When a DoD item closes: tag `titan-dod-<n>` on `main`.
 - `npm ci` is Sole's alone, and only at the start of a turn.
 - Claude never starts a server. Ports 5173 and 4173 belong entirely to Sole.
 - `git add`, `commit`, `checkout`, `stash` only by whoever holds the turn.
+- **Stage explicit paths. Never `git add -A`, never `git add .`, not even scoped to a
+  directory.** `git add -A -- docs/` staged the frozen `docs/TITAN_MODE_YOL_HARITASI.md`
+  while T0 was closing R05; it was caught in `git status` and unstaged before the commit, but
+  nothing structural caught it. The "Nobody" row of the ownership table is enforced by
+  `.gitignore` for none of its paths — every frozen file is protected only by the writer
+  naming what to stage. Name the files.
 - Commit subjects, in order: `route(R<n>): open` (Claude), `route(R<n>): close` (Sole's
   work), any `fix(R<n>): ...` the published evidence forces, then `handoff(H<n>): record`
   (Sole's evidence). Never fold the last two together.
@@ -201,8 +207,9 @@ Added sections:
 ### `## Call path` is mandatory
 
 The field records the chain from the user action to the changed module, every hop written
-as `file:line` (`UI event → TimelineContext → titanRouter → executeTitanPipeline`), plus
-the name of **at least one e2e or integration test** that traverses that chain.
+as `file:line`, plus the name of **at least one e2e or integration test** that traverses that
+chain. The live example, as of R04:
+`AiAssistant.tsx:869 → titanPipeline.ts:141 → executeTitanPipeline`.
 
 Rule sentence, carried into every route:
 
@@ -210,9 +217,16 @@ Rule sentence, carried into every route:
 > route with an empty `Call path` is not accepted.
 
 Why it exists: T10-T14 were closed on exactly the "module added + its test passed"
-criterion, yet `titanRouter`, `executeTitanPipeline`, `inputPatch` and `translate` are
-never called in production. `## Evidence required` alone cannot catch this — it proves the
-module behaves, not that the product is wired to it.
+criterion, and every module they added — `titanRouter`, `executeTitanPipeline`, `inputPatch`,
+`translate` — shipped with green tests and no production caller. `## Evidence required` alone
+cannot catch this; it proves the module behaves, not that the product is wired to it.
+
+Where those four ended up is the point of the rule, not a footnote to it. `executeTitanPipeline`
+was wired in R04 and now carries `discuss-current-step`. `titanRouter` was deleted in R05,
+along with the intent vocabulary it alone spoke. `inputPatch` and `translate` are still
+uncalled and still awaiting the routes that decide them. Two of four turned out to be worth
+wiring; one was worth deleting. A green test never distinguished between those outcomes, and
+that is exactly what `## Call path` exists to force someone to state up front.
 
 ## Handoff template
 

@@ -1,13 +1,12 @@
 # Titan orchestration
-## STATUS: NOT WIRED
-`titanRouter.ts` and `executeTitanPipeline` here are **not called in production**. The live path
-is still `src/services/titanModeRouting.ts` with `titanEntry.ts` / `titanEngine.ts`. Route R02
-connects them. Until then these are unreferenced modules: green unit tests here prove nothing
-about product behaviour.
+## STATUS: one seam live
+`executeTitanPipeline` carries production traffic for `discuss-current-step` since R04; the
+entry is in `AiAssistant.tsx`. Every other request still routes through
+`src/services/titanModeRouting.ts` with `titanEntry.ts` / `titanEngine.ts`. `translate.ts`
+has no production caller, so green unit tests there prove nothing about product behaviour.
 ## Files
-- `titanRouter.ts` maps a user request to one intent plus a deterministic decision.
-- `titanPipeline.ts` `executeTitanPipeline`, the five stages, re-exports of the live engine.
-- `translate.ts` cpp/java/python source into a verified custom simulation package.
+- `titanPipeline.ts` `executeTitanPipeline`, the five phases, re-exports of the live engine.
+- `translate.ts` cpp/java/python source into a verified custom simulation package. Not wired.
 ## Rules
 - Five phases, in order: route -> produce -> semantics -> verify -> apply.
 - Closed intent set: `create-algorithm`, `create-catalog-problem`, `clarify-algorithm`,

@@ -226,6 +226,10 @@ Last updated: 2026-08-16
   deterministic result. Models never supply trace or navigation indices.
   Model-off, none, invalid, prompt-only, and native outcomes all have explicit
   tested status.
+  **Superseded by R05:** `titanRouter` was never called in production and was deleted
+  together with the `TitanIntent` vocabulary only it spoke. The live classifier is
+  `titanModeRouting.ts`. The entry above stands as the record of what T10 delivered, not
+  as a description of the current tree.
 - T10 focused acceptance passes 12 tests, including a 520-step trace selecting
   structural result index 259, explanation-empty/translated index invariance,
   and 40 English plus 40 Turkish navigation expressions. Full verification on

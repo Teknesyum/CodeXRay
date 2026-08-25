@@ -295,3 +295,94 @@ record the decision in `## Deviations`.
 - Any change to `AGENTS.md` outside the intent paragraph.
 - Adding a new intent. This route reconciles what exists; it does not grow the set.
 - Pushing to `origin`. The remote half of criterion 10 belongs to T0.
+
+## T0 reconciliation
+
+Handoff `H05` recorded at `e38fb9eddf43c1f2cf074cc0f190d4a4442792b8`, closing `d4ddeda4`.
+Option B was chosen. Claude re-ran the gates and the greps independently; every claim held.
+
+| Claim in H05 | Independent result |
+|---|---|
+| `npm run lint` clean | clean |
+| `npm run test` | `Test Files 119 passed (119)`, `Tests 751 passed (751)` |
+| `npm run build` | `Initial JavaScript: 415.9 / 420.0 KiB` |
+| no residual references to either deleted vocabulary | grep over `src/ e2e/` returns nothing |
+| only the seven owned paths changed | `git diff --stat` lists exactly those |
+| both commits carry the DCO trailer | `Signed-off-by: Mustafa Özel <iyott131@gmail.com>` |
+
+`npm run desktop:check` was not re-run: `src-tauri/**` is absent from the diff, so the gate
+had nothing to grade. The handoff's own run of it stands unchallenged.
+
+**Criterion 4 moved, and the handoff was right to move it.** The route projected `756 → 749`
+from seven deletions; the actual count is 751. Criterion 3 asked for a classifier test per
+documented intent, and two of the seven — `discuss-current-step` and `ui-control` — had none.
+Two tests were added. `756 − 7 + 2 = 751` is the arithmetic the criterion asked for, stated in
+`## Deviations` rather than absorbed. That is the difference between a deviation and drift.
+
+**Criterion 1 was answered more carefully than it was asked.** The criterion demanded exactly
+one user-intent union. Two other unions could have been quietly ignored; instead the handoff
+named both and said why neither counts — `WebSourceIntent` selects read/solve/explain for a
+bound URL *before* `routeTitanModeRequest` runs, and `DeterministicWorkspaceCommand` is an
+application command union carried inside `TitanModeIntent.deterministic`. Verified: neither is
+a second spelling of pipeline intent. A handoff that surfaces the two hardest cases against
+itself is doing the job.
+
+**The `unclear` correction.** The old contract listed `unclear` as an intent. The shipped
+classifier has no such member — it returns `null` and the request stays ordinary chat. Both
+`AGENTS.md` files now say that. The contract got less tidy and more true, which is the trade
+this route existed to make.
+
+**The bounded grant held.** `tolerantJson.test.ts` lost exactly the import and the one
+role-budget block; the three `extractTolerantJson` tests are untouched. Six stale references
+to the deleted module were left in place rather than fixed, because they sat outside the
+grant, and all were reported in `## Discovered`. Refusing to fix something you can see, and
+naming it instead, is what a bounded grant is for.
+
+**T0 follow-up, done in this turn.** Sole reported three stale references; grep found six.
+All six are now corrected in T0-owned files:
+
+| File | Was | Now |
+|---|---|---|
+| `AGENTS.md:116` | architecture map named `titanRouter.ts` | names `titanPipeline.ts` and its entry |
+| `src/services/titan/AGENTS.md:2-6` | `STATUS: NOT WIRED`, "Route R02 connects them" | `STATUS: one seam live`, names R04 |
+| `src/services/titan/AGENTS.md:8` | `titanRouter.ts` file entry | removed |
+| `PROTOCOL.md:204` | invented call chain through `titanRouter` | the real R04 chain |
+| `PROTOCOL.md:213` | four modules "never called in production" | where each of the four ended up |
+| `docs/DEVIRALAN.md:224` | T10's description of `titanRouter` | marked superseded, entry preserved |
+
+The `NOT WIRED` banner was the worst of them: it had been false since R04 and pointed at R02,
+a route that turned into gate repair and never wired anything. An agent reading that file
+would have been told the opposite of the truth by a document whose whole purpose is
+orientation.
+
+`DEVIRALAN.md` was annotated rather than edited. It is a dated rollup of what each turn
+delivered, and T10 did deliver that module; rewriting the entry would falsify the record to
+make the present tidy. The superseding note sits directly under the claim, where a grep for
+`titanRouter` lands.
+
+One unrelated repair: `PROTOCOL.md:128-130` carried a mangled sentence from an earlier T0
+edit, with a clause duplicated into nonsense. Rewritten.
+
+## Remote closure
+
+Criterion 10's remote half is closed. Both commits are pushed to `main`. Run `32840631016`
+on `e38fb9e`, first attempt, all three jobs `success`:
+
+```
+quality  success
+desktop  success
+browser  success
+```
+
+The `browser` job, both phases, no flaky line:
+
+```
+  67 passed (6.4m)
+  2 passed (59.6s)
+```
+
+Third consecutive commit green on the first attempt with zero flaky specs. The e2e total is
+67, unchanged from R04 — this route deleted unit suites, not browser specs. The gate is now
+stable across three different tree shapes, including one that deleted two modules.
+
+**R05 closes as met.** Local and remote halves of every criterion are satisfied.

@@ -113,8 +113,9 @@ testing another trusted CodeXRay gateway.
 - `src/services/simulators.ts`, `extended*Simulators.ts`, `compoundSimulators.ts` — the 60
   offline algorithm implementations and dispatch.
 - `src/services/codeRegistry.ts` — preset support and explicit blocked reasons.
-- `src/services/titan/` — `titanRouter.ts` (intent routing), `titanPipeline.ts` (the
-  five-phase executor), `translate.ts` (cross-language source translation).
+- `src/services/titan/` — `titanPipeline.ts` (the five-phase executor, entered from
+  `AiAssistant.tsx` for `discuss-current-step`), `translate.ts` (cross-language source
+  translation, no production caller yet).
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.

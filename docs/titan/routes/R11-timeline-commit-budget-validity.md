@@ -242,3 +242,72 @@ npm run test:e2e
 Local numbers are context, not evidence. The budget guards CI, so criterion 3's observations
 must come from CI. If a `workflow_dispatch` measurement input is the cheapest way to collect
 them, R08 already added that pattern to `.github/workflows/ci.yml`.
+
+## T0 reconciliation
+
+Written by Claude after verifying H11, pushing both commits, and collecting the remote
+evidence the route reserved.
+
+### Criteria 3 and 9, remote halves — **closed**
+
+The route asked for three consecutive same-head runs. Four were collected on `f2e0424`,
+all green on `desktop`, `quality`, and `browser`, all `68 passed` plus `2 passed`, zero
+flaky in every one:
+
+| Run | Event | `handler.median` | `inPage.median` | `inPage.max` |
+|---|---|---|---|---|
+| 32990511864 | dispatch | 1.250 | 317.45 | 444.70 |
+| 32990514514 | dispatch | 1.150 | 327.50 | 542.20 |
+| 32990570355 | dispatch | 1.350 | 263.35 | 451.30 |
+| 32991203850 | push | 1.450 | 277.20 | 471.30 |
+
+A fifth run followed on the handoff head `2a1071f` — run 32999600881, also green on all
+three jobs, `68 passed` plus `2 passed`, zero flaky, `handler.median` 1.300 and
+`inPage.median` 270.55. It is listed separately because it is a different head, so it is not
+part of the same-head evidence criterion 9 asked for.
+
+Against the new budgets: `handler.median` worst 1.450 under 10 is a 6.90x margin;
+`inPage.median` worst 327.50 under the 1,000 guard is 3.05x. Compare the four observations
+that opened this route, where the asserted median ranged 229.65 to 406.80 against 400. The
+gate now has margin instead of a coin flip.
+
+### The decision is accepted, including what it gives up
+
+Option A with B's number kept as an outer guard is the right resolution, and H11 argued it
+rather than assuming it. R03's premise is correctly recorded as expired rather than wrong:
+handler medians are unchanged at 1.15-1.45 ms across eight observations spanning eight
+routes, while the metric R03 asserted on drifted 1.77x on identical code.
+
+What this costs is real and H11 states it: a regression landing in a deferred effect, a
+layout pass, or paint is no longer caught by this assertion. The 1,000 ms guard catches a
+hang, not a regression. That is an accepted narrowing, not an oversight.
+
+### The provenance-comment correction — accepted
+
+Sole's inline derivation said 7.69x from a measured worst of 1.30 ms. The fourth remote run
+produced 1.45 ms, making the true figure 6.90x, and `2a1071f` reconciled the comment. The
+budget did not move; only the sentence justifying it did.
+
+This is the deviation H11 declares: `e2e/performance-budget.spec.ts` appears in the handoff
+commit as well as the close commit. Accepted. The alternative was a comment stating a
+multiple the remote evidence contradicts, and the protocol's `fix(R<n>)` slot exists for
+exactly this shape of correction. Recording it as a deviation rather than absorbing it
+silently is the behaviour the protocol asks for.
+
+### No architecture-map change
+
+R11 changed no product code — `git diff --name-only 2e33d8d..HEAD -- src src-tauri` printed
+nothing. `AGENTS.md` and `src/services/titan/AGENTS.md` are therefore untouched, correctly.
+
+### Recorded, not acted on
+
+- **`catalogMs` and `dpMs` are now the thinnest budgets in the file**, both at 1.43x their
+  worst CI observation: 2447.00 against 3500, and 2792.81 against 4000. They passed all four
+  runs. H11 left them alone because R11 asked for measurement, not retuning, which was the
+  correct reading. They are named here so the next gate route starts from evidence.
+- `inPage.max` reached 542.20 ms in one run, well under the 1,000 ms guard.
+- The push of `f2e0424` did not produce a visible workflow run for roughly fifteen minutes;
+  run 32991203850 appeared afterwards and passed. `gh run list` showed nothing for that head
+  in the interim while `gh api .../check-suites` already listed four suites. Worth knowing
+  before concluding that a push failed to trigger CI: check the API, not only the run list.
+

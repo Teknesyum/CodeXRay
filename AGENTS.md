@@ -122,13 +122,19 @@ testing another trusted CodeXRay gateway.
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
 - `src/services/input/inputPatch.ts` — the closed `InputPatchV1` op union, its parser, and
-  the deterministic request classifier `createSemanticArrayPatch`. On the production
-  `adapt-input` path since R07 through whole-input replacement ops, and since R10 through
-  the semantic array ops `resize-array`, `sort-array`, and `shuffle-array`, which
-  `titanModeRouting.ts` and `titanEngine.ts` reach via that classifier;
-  `applyAndRecompileInputPatch` is its production applier. Ambiguous requests still fall
-  back to the older heuristic adapter. `set-param`, `set-target`, and the three `graph-*`
-  ops remain validated-but-unreachable.
+  **the only implementation of input mutation**. Reachable on the production `adapt-input`
+  path: whole-input replacement ops since R07, the semantic array ops `resize-array`,
+  `sort-array`, and `shuffle-array` since R10 through `createSemanticArrayPatch`, and
+  `set-target` plus the three `graph-*` ops since R12 through `createStructuralGraphPatches`.
+  `applyInputPatches` folds a sequence onto a candidate copy so a multi-op request is atomic;
+  `applyAndRecompileInputPatches` is its production applier and the single-patch
+  `applyAndRecompileInputPatch` delegates to it. Ambiguous requests still fall back to the
+  older heuristic adapter in `inputRequestAdapter.ts`. `set-param` is the last
+  validated-but-unreachable op.
+- `src/services/graphRequestEdits.ts` — classifies a graph request into typed ops and does
+  not mutate. `isVisualOnlyGraphRequest` and `spreadGraphLayout` are layout only. Since R12
+  a rejected op fails the whole request rather than being silently skipped, so a
+  misunderstood graph request surfaces as a failed Titan run instead of a partial edit.
 - `TimelineContext.tsx` — playback, selected algorithm/input, analysis, local AI state;
   autosaves the input workspace and top-level variable pins.
 - `App.tsx` — persistent split sizes and collapse state for the five workspace panels.

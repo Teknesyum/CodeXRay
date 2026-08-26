@@ -209,3 +209,83 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+Written by Claude after verifying H12, pushing both commits, and running the remote gate.
+
+### Criterion 11, remote half — **closed**
+
+`git push origin main` moved `ae1e8b4..04cf7e3`. CI run `33004248200` on head `04cf7e3`:
+
+```text
+desktop success
+quality success
+browser success
+```
+
+Browser gate: `68 passed` then `2 passed`, zero flaky in both phases. R11's new budget held
+with room — `handler.median` 1.15 ms against 10, an 8.70x margin, and `inPage.median`
+318.30 ms against the 1,000 ms guard.
+
+### Criterion 9 verified independently, not taken from the handoff
+
+```text
+grep -rn "applyStructuralGraphRequest" src/ e2e/ src-tauri/   ->  0 matches
+```
+
+`graphRequestEdits.ts` now exports `isVisualOnlyGraphRequest`, `spreadGraphLayout`,
+`StructuralGraphPatchResult`, and `createStructuralGraphPatches`. It classifies; it does not
+mutate. Mutation exists once, in `inputPatch.ts`. The duplication R12 was written to remove
+is gone.
+
+### The atomicity claim holds
+
+`applyInputPatches` folds the sequence onto a local `candidate` and returns the failure
+without touching `input`; `titanEngine.ts:840` only assigns `semanticPackage` after
+`applyAndRecompileInputPatches` returns ok. A rejected op therefore cannot leave a
+half-edited graph, which was the specific risk this route named as the condition on
+choosing A. Criterion 6 is met by construction, not only by the test at
+`titanEngine.test.ts:658-674`.
+
+### The behaviour changes are accepted, and they are real changes
+
+Three permissive behaviours became strict: a missing edge endpoint, a missing target, and
+removal at the one-node floor now reject the whole request instead of silently continuing.
+H12 tabulated all nine prior assertion groups and all three divergences rather than
+asserting preservation in prose, which is what the route asked for.
+
+This is a user-visible change and it is an improvement: a misunderstood request now fails
+visibly instead of reporting success over a graph it did not edit. Recorded here so nobody
+later reads it as a regression.
+
+### The deviation is accepted
+
+`src/services/webProblemOrchestrator.ts` was outside `## Expected Files`. A clean build
+after `npm ci` exposed an invalid `TranslationResult` narrowing at two `translation.reason`
+reads; `if (!translation.ok)` became `if (translation.ok === false)`. Behaviour-neutral, the
+same narrowing correction R10 made in `titanEngine.ts`, and required by criterion 10's clean
+build. Declared in `## Deviations` rather than absorbed, which is the behaviour the forecast
+model exists to produce.
+
+### The architecture map — **reconciled**
+
+`AGENTS.md`'s `inputPatch.ts` entry now names it the only implementation of input mutation,
+lists which ops became reachable in which route, describes `applyInputPatches` as the atomic
+fold, and records `set-param` as the last unreachable op. A new entry describes
+`graphRequestEdits.ts` as a classifier that no longer mutates, and states that a rejected op
+now fails the whole request.
+
+`src/services/titan/AGENTS.md` needs no change: R12 widened what `adapt-input` can express
+inside a seam live since R07, so the seam count is unchanged. Same reasoning as R10.
+
+### Recorded, not acted on
+
+- H12 reports that at eight local workers `radio-controller.spec.ts:172` timed out twice on
+  a hover, and passed in 7.5 s in the clean four-worker run. No setting was changed and
+  nothing in CI showed it. Worth knowing if that spec ever flakes on the gate.
+- The English `connect` phrasing was tightened because the old optional form read
+  "Add two nodes **to this** graph" as an edge from `nodes` to `this`. The permissive
+  implementation hid that parse ambiguity; strict handling exposed it. Declared under
+  `## Discovered`, correctly.
+

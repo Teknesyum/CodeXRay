@@ -34,7 +34,9 @@ test('shows verification failure and preserves the visible workspace on a mismat
   await chat.fill('hedefi 42 yap');
   await chat.press('Enter');
 
-  await expect(page.getByText('Input uyarlaması doğrulanamadı. Çalışma alanı değiştirilmedi.')).toBeVisible();
+  await expect(page.getByRole('paragraph').filter({
+    hasText: 'Input uyarlaması doğrulanamadı. Çalışma alanı değiştirilmedi.',
+  })).toBeVisible();
   await expect(parameter).toHaveValue(before.parameter);
   await expect(input).toHaveValue(before.input);
   await expect(context).toHaveText(before.context ?? '');

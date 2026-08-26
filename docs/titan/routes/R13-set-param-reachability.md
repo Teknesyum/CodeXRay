@@ -240,3 +240,84 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+Written by Claude after verifying H13, pushing both commits, and running the remote gate.
+
+### Criterion 11, remote half — **closed**
+
+`git push origin main` moved `952bf38..fa521e7`. CI run `33009085060` on head `fa521e7`:
+
+```text
+browser success
+quality success
+desktop success
+```
+
+`69 passed` then `2 passed`, zero flaky in both phases. The first phase is 69 rather than 68
+because R13 added the parameter scenario. R11's budget held again: `handler.median` 1.25 ms
+against 10, an 8.00x margin.
+
+The run reported `in_progress` for roughly seven minutes after every `desktop` step had
+already completed successfully. Nothing was wrong; GitHub's run-level status lagged its own
+job steps. Read the job's step list before concluding a job is stuck.
+
+### The scoping decision is accepted, and it is the right one
+
+Six numeric keys reachable, five text keys deferred to R14, with the split argued rather
+than asserted. This is exactly what the route asked for: an honest subset closes the
+architecture question, eleven keys recognized badly reopens it.
+
+Criterion 9's claim needs one word of precision so nobody misreads it later: **all eleven
+ops** in `InputPatchV1` now have a production caller. That is not the same as all eleven
+parameter *keys* being reachable — five are not. The op is closed; the vocabulary is not.
+
+### Verified independently, not taken from the handoff
+
+The validation is real and sits where it must:
+
+```
+inputPatch.ts:276  if (!definition) throw new Error(`Parameter ${patch.name} is not declared ...`)
+inputPatch.ts:278  definition.type === 'number' && typeof patch.value !== 'number' -> throw
+```
+
+`algorithmName` reaches it through `applyAndRecompileInputPatches` from
+`options.workspace.algorithmName`, and all three `routeTitanModeRequest` call sites in
+`AiAssistant.tsx` (490, 493, 655) pass `stateRef.current.algorithmName`. A classifier that
+only fired from one of the three entry points would have looked correct in tests and been
+dead on two production paths; it does not.
+
+`src/services/algorithmInputs.ts` was not modified. The registry stayed the authority
+instead of being widened to make a phrase parse, which the route named as an invariant.
+
+`H13 / Discovered` records that `parseSimulationInput` performs no numeric validation for
+any of the six keys. That makes the new applier check the **only** guard on parameter types,
+not a second one. Worth knowing before anyone considers removing it as redundant.
+
+### The architecture map — **reconciled**
+
+`AGENTS.md`'s `inputPatch.ts` entry now records `set-param` as reachable since R13 for the
+six numeric keys by name, states that every op in the union has a production caller, and
+lists the five deferred text keys with the reason. A new entry names
+`src/services/algorithmInputs.ts` as the authority on parameter keys, describes the two
+rejections the applier performs, and forbids widening the registry to make a phrase parse.
+
+`src/services/titan/AGENTS.md` needs no change, for the third time and the same reason: R13
+widened what `adapt-input` can express inside a seam live since R07.
+
+### Recorded, not acted on
+
+- **Quoted-literal extraction already exists twice**, with two different regexes:
+  `inputRequestAdapter.ts:154` uses `/["“”']([^"“”']+)["“”']/`
+  and handles smart quotes; `stringCompiler.ts:29` uses `/"([^"]*)"/` and does not. R14 does
+  not need to invent an extraction convention, and it should probably resolve which of the
+  two is the convention rather than adding a third.
+- **Five of the seven intents still bypass the five-phase pipeline.**
+  `AiAssistant.tsx:887` routes `discuss-current-step` and `:902` routes `adapt-input` to
+  `titanPipeline`; `:906` sends everything else to `startTitanModeRun`. `create-algorithm`,
+  `create-catalog-problem`, `clarify-algorithm`, `ui-control`, and `deterministic` are off
+  the seam. The documented claim that the pipeline has five phases is true; the implied
+  claim that requests go through them is true for two intents out of seven. This is the
+  largest remaining honesty gap in the repository and it is bigger than one route.
+

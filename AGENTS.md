@@ -129,8 +129,18 @@ testing another trusted CodeXRay gateway.
   `applyInputPatches` folds a sequence onto a candidate copy so a multi-op request is atomic;
   `applyAndRecompileInputPatches` is its production applier and the single-patch
   `applyAndRecompileInputPatch` delegates to it. Ambiguous requests still fall back to the
-  older heuristic adapter in `inputRequestAdapter.ts`. `set-param` is the last
-  validated-but-unreachable op.
+  older heuristic adapter in `inputRequestAdapter.ts`. `set-param` is reachable since R13
+  through `createSemanticParameterPatches`, for the six **numeric** keys only — `target`,
+  `windowSize`, `capacity`, `amount`, `modulus`, `cycleEntry`. Every op in the union now has
+  a production caller. The five text keys (`pattern`, `query`, `other`, `values`, and
+  Minimum Window Substring's text `target`) are deliberately deferred to R14: extracting a
+  string literal from a sentence is a different problem and a wrong guess silently corrupts
+  the lesson.
+- `src/services/algorithmInputs.ts` — `getAlgorithmParameterDefinitions` is **the authority
+  on parameter keys**, per algorithm, with EN/TR labels. Both the `CodeEditor.tsx` form and
+  the request path read it; `applyInputPatch` rejects any `set-param` naming a key the
+  active algorithm does not declare, and rejects a non-numeric value for a `type: 'number'`
+  key. Never widen this registry to make a phrase parse.
 - `src/services/graphRequestEdits.ts` — classifies a graph request into typed ops and does
   not mutate. `isVisualOnlyGraphRequest` and `spreadGraphLayout` are layout only. Since R12
   a rejected op fails the whole request rather than being silently skipped, so a

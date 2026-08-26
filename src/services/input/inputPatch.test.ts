@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 import type { InputContractV1, WorkspaceSnapshotV1 } from '../../types/titan';
 import type { SimulationInput } from '../../types/simulation';
 import { compilePredictWinnerPackage } from '../intervalDpCompiler';
+import { createInputPreset, getInputKindForAlgorithm } from '../inputPresets';
+import { parseSimulationInput } from '../inputParsers';
 import {
   applyAndRecompileInputPatch,
+  applyAndRecompileInputPatches,
   applyInputPatch,
   applyInputPatches,
   createInputReplacementPatch,
   createSemanticArrayPatch,
+  createSemanticParameterPatches,
   parseInputPatch,
   type InputPatchV1,
 } from './inputPatch';
@@ -126,7 +130,48 @@ describe('InputPatchV1', () => {
   it('sets text and parameters without changing the input kind', () => {
     const textInput: SimulationInput = { kind: 'string', text: 'old' };
     expect(applied(textInput, { op: 'set-text', value: 'ABABC' })).toMatchObject({ kind: 'string', text: 'ABABC' });
-    expect(applied(arrayInput, { op: 'set-param', name: 'target', value: 9 }).parameters).toEqual({ target: '9' });
+    const parameter = applyInputPatch(arrayInput, { op: 'set-param', name: 'target', value: 9 },
+      contract('array', arrayInput), { algorithmName: 'Binary Search' });
+    expect(parameter.ok && parameter.input.parameters).toEqual({ target: '9' });
+  });
+
+  it.each([
+    ['target', 'Binary Search', 'set target to 42', 'hedefi 42 yap'],
+    ['windowSize', 'Sliding Window Maximum', 'set window size to 4', 'pencereyi 4 yap'],
+    ['capacity', '0/1 Knapsack', 'set capacity to 15', 'kapasiteyi 15 yap'],
+    ['amount', 'Coin Change', 'set amount to 11', 'miktarı 11 yap'],
+    ['modulus', 'Rabin-Karp Algorithm', 'set modulus to 101', 'modülü 101 yap'],
+    ['cycleEntry', 'Detect Cycle in Linked List', 'set cycle entry to 2', 'döngü başlangıcını 2 yap'],
+  ])('classifies numeric %s requests in English and Turkish', (key, algorithm, english, turkish) => {
+    for (const request of [english, turkish]) {
+      expect(createSemanticParameterPatches(request, algorithm)).toEqual([
+        { op: 'set-param', name: key, value: expect.any(Number) },
+      ]);
+    }
+  });
+
+  it('rejects undeclared keys and non-numeric values before parsing the input', () => {
+    expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'nonsense', value: 1 },
+      contract('array', arrayInput), { algorithmName: 'Binary Search' }))
+      .toMatchObject({ ok: false, reason: expect.stringContaining('not declared') });
+    expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'target', value: 'forty-two' },
+      contract('array', arrayInput), { algorithmName: 'Binary Search' }))
+      .toMatchObject({ ok: false, reason: expect.stringContaining('numeric') });
+  });
+
+  it.each([
+    ['Binary Search', 'target'],
+    ['Sliding Window Maximum', 'windowSize'],
+    ['0/1 Knapsack', 'capacity'],
+    ['Coin Change', 'amount'],
+    ['Rabin-Karp Algorithm', 'modulus'],
+    ['Detect Cycle in Linked List', 'cycleEntry'],
+  ])('measures that parseSimulationInput preserves non-numeric %s/%s unchanged', (algorithm, key) => {
+    const input = createInputPreset(getInputKindForAlgorithm(algorithm), 1, algorithm);
+    const parameters = { ...input.parameters, [key]: 'not-a-number' };
+    const parsed = parseSimulationInput(input.kind, input.text, input.graph, parameters);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.input?.parameters?.[key]).toBe('not-a-number');
   });
 
   it('adds and removes validated graph nodes and edges and sets the target', () => {
@@ -219,5 +264,32 @@ describe('InputPatchV1', () => {
     expect(result.package).toBe(guarded);
     expect(result.package.steps).toBe(timeline);
     expect(workspace).toMatchObject({ currentIndex: 4, simulationInput: arrayInput });
+  });
+
+  it('preserves package and timeline identity when a later parameter op rejects the transaction', () => {
+    const workspace: WorkspaceSnapshotV1 = {
+      version: 1, algorithmName: 'Binary Search', code: '', simulationInput: arrayInput,
+      steps: [], currentIndex: 3, analysis: null, inputError: null, activePackageId: null,
+      packageOutOfSync: false,
+    };
+    const activePackage = compilePredictWinnerPackage({
+      id: 'parameter-atomicity', request: 'Predict the Winner', locale: 'en', workspace,
+    });
+    const inputIdentity = activePackage.input.value;
+    const timelineIdentity = activePackage.steps;
+    const result = applyAndRecompileInputPatches({
+      activePackage,
+      currentInput: inputIdentity,
+      patches: [
+        { op: 'set-param', name: 'target', value: 42 },
+        { op: 'set-param', name: 'nonsense', value: 1 },
+      ],
+      locale: 'en',
+      workspace,
+    });
+    expect(result).toMatchObject({ ok: false, package: activePackage });
+    expect(result.package).toBe(activePackage);
+    expect(result.package.input.value).toBe(inputIdentity);
+    expect(result.package.steps).toBe(timelineIdentity);
   });
 });

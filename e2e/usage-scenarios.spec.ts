@@ -82,3 +82,23 @@ test('resizes a true matrix simulation to a rectangular 8 by 15 grid', async ({ 
   expect(matrix).toHaveLength(8);
   expect(matrix.every((row) => row.length === 15)).toBe(true);
 });
+
+test('changes a numeric algorithm parameter and rebuilds its trace from a natural command', async ({ page }) => {
+  await prepare(page);
+  const preset = page.locator('select.registry-select');
+  const option = preset.locator('option').filter({ hasText: /Binary Search|İkili Arama/ });
+  await preset.selectOption(await option.getAttribute('value') ?? '');
+  await page.getByRole('button', { name: /Simüle Et/ }).click();
+  const parameter = page.locator('.parameter-field input');
+  const targetVariable = page.getByTestId('variable-target');
+  const beforeTarget = await targetVariable.textContent();
+
+  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  await chat.fill('hedefi 42 yap');
+  await chat.press('Enter');
+
+  await expect(parameter).toHaveValue('42');
+  await expect(targetVariable).toContainText('42');
+  await expect(page.locator('.context-chip')).toHaveText(/Adım 1\/\d+/);
+  expect(beforeTarget).not.toContain('42');
+});

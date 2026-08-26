@@ -60,6 +60,17 @@ describe('Titan Mode routing', () => {
     expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
   });
 
+  it('routes declared parameters without treating unrelated numbers as parameters', () => {
+    expect(routeTitanModeRequest('hedefi 42 yap', [], 0, 'Binary Search'))
+      .toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('kapasiteyi 15 yap', [], 0, '0/1 Knapsack'))
+      .toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('inputu 10 elemanli azalan yap', [], 0, 'Binary Search'))
+      .toEqual({ type: 'adapt-input' });
+    expect(routeTitanModeRequest('42 eleman ekle', [], 0, 'Binary Search'))
+      .not.toEqual({ type: 'adapt-input' });
+  });
+
   it('routes a current-step discussion to the five-phase explanation seam', () => {
     expect(routeTitanModeRequest('bunu açıkla', [], 0)).toEqual({ type: 'discuss-current-step' });
   });

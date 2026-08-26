@@ -5,7 +5,7 @@ import type { Locale } from '../i18n/translations';
 import { localizeAlgorithmName } from '../i18n/translations';
 import { resolveDpTemplateFromRequest } from './dpTemplateCompiler';
 import type { TitanModeIntent } from '../types/titan';
-import { createSemanticArrayPatch } from './input/inputPatch';
+import { createSemanticArrayPatch, createSemanticParameterPatches } from './input/inputPatch';
 import { extractFirstPublicHttpsUrl } from './webSource';
 
 export type WebSourceIntent =
@@ -116,6 +116,7 @@ export const routeTitanModeRequest = (
   }
   const text = normalizeTitanModeText(question);
   if (createSemanticArrayPatch(question)) return { type: 'adapt-input' };
+  if (createSemanticParameterPatches(question, algorithmName).length) return { type: 'adapt-input' };
   if (/\b(radyo|radio)\b.*\b(ac|goster|open|show)\b/.test(text)) {
     return { type: 'ui-control', command: 'radio-open' };
   }

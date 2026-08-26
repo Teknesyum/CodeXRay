@@ -43,8 +43,10 @@ import {
   applyAndRecompileInputPatch,
   applyAndRecompileInputPatches,
   applyInputPatch,
+  applyInputPatches,
   createInputReplacementPatch,
   createSemanticArrayPatch,
+  createSemanticParameterPatches,
 } from './input/inputPatch';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 export type TitanModeRunResult = {
@@ -835,6 +837,33 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
                 : `${semanticPatch.op} was validated and applied deterministically.`,
             });
             return semanticResult.input;
+          }
+          const parameterPatches = current
+            ? createSemanticParameterPatches(options.request, options.workspace.algorithmName)
+            : [];
+          if (parameterPatches.length && current) {
+            if (options.activePackage) {
+              const semanticResult = applyAndRecompileInputPatches({
+                activePackage: options.activePackage,
+                currentInput: current,
+                patches: parameterPatches,
+                locale: options.locale,
+                workspace: options.workspace,
+              });
+              if (semanticResult.ok === false) throw new Error(semanticResult.reason);
+              semanticPackage = semanticResult.package;
+              return semanticResult.input;
+            }
+            const applied = applyInputPatches(current, parameterPatches, {
+              version: 1,
+              kind,
+              description: options.workspace.algorithmName,
+              constraints: [],
+              value: current,
+              origin: 'user',
+            }, { algorithmName: options.workspace.algorithmName });
+            if (applied.ok === false) throw new Error(applied.reason);
+            return applied.input;
           }
           const graphPatches = current?.graph && !visualOnly
             ? createStructuralGraphPatches(current.graph, options.request)

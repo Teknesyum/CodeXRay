@@ -4,6 +4,7 @@ import type { GraphDocumentV1, SimulationInput } from '../../types/simulation';
 import { parseSimulationInput, validateGraphDocument } from '../inputParsers';
 import { createInputPreset } from '../inputPresets';
 import { recompileSimulationInput } from '../recompileSimulationInput';
+import { getAlgorithmParameterDefinitions } from '../algorithmInputs';
 
 export type InputPatchV1 =
   | { op: 'set-array'; values: number[] }
@@ -155,6 +156,36 @@ export const createSemanticArrayPatch = (request: string): InputPatchV1 | null =
   return null;
 };
 
+const numericParameterAliases: Record<string, string[]> = {
+  target: ['target', 'hedef'],
+  windowSize: ['window size', 'window', 'pencere boyutu', 'pencere'],
+  capacity: ['capacity', 'kapasite'],
+  amount: ['amount', 'miktar'],
+  modulus: ['modulus', 'modulo', 'mod', 'modul'],
+  cycleEntry: ['cycle entry', 'cycle start', 'dongu baslangici', 'dongu girisi'],
+};
+
+export const createSemanticParameterPatches = (
+  request: string,
+  algorithmName: string,
+): InputPatchV1[] => {
+  const text = normalizedRequest(request);
+  const definitions = getAlgorithmParameterDefinitions(algorithmName)
+    .filter((definition) => definition.type === 'number');
+  const patches: InputPatchV1[] = [];
+  for (const definition of definitions) {
+    const aliases = numericParameterAliases[definition.key] ?? [];
+    const alias = aliases.find((candidate) => text.includes(candidate));
+    if (!alias) continue;
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    const after = text.match(new RegExp(`${escaped}[a-z]*\\s*(?:to|as|=|:)?\\s*(-?\\d+(?:\\.\\d+)?)`));
+    const before = text.match(new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(?:as|olarak)?\\s*${escaped}[a-z]*`));
+    const value = Number(after?.[1] ?? before?.[1]);
+    if (Number.isFinite(value)) patches.push({ op: 'set-param', name: definition.key, value });
+  }
+  return patches;
+};
+
 const seededValues = (count: number, seed = 0x9e3779b9): number[] => {
   let state = seed >>> 0 || 0x6d2b79f5;
   return Array.from({ length: count }, () => {
@@ -214,6 +245,7 @@ export const applyInputPatch = (
   input: SimulationInput,
   patch: InputPatchV1,
   contract: InputContractV1,
+  options: { algorithmName?: string } = {},
 ): InputPatchResult => {
   if (input.kind !== contract.kind) {
     return { ok: false, reason: `The active input kind ${input.kind} does not match the ${contract.kind} contract.` };
@@ -241,6 +273,12 @@ export const applyInputPatch = (
       if (input.kind !== 'string') throw new Error('This operation requires a string input.');
       next = { ...input, text: patch.value, origin: 'user' };
     } else if (patch.op === 'set-param') {
+      const definition = getAlgorithmParameterDefinitions(options.algorithmName ?? '')
+        .find((candidate) => candidate.key === patch.name);
+      if (!definition) throw new Error(`Parameter ${patch.name} is not declared for the active algorithm.`);
+      if (definition.type === 'number' && (typeof patch.value !== 'number' || !Number.isFinite(patch.value))) {
+        throw new Error(`Parameter ${patch.name} requires a numeric value.`);
+      }
       next = { ...input, parameters: { ...input.parameters, [patch.name]: String(patch.value) }, origin: 'user' };
     } else {
       const graph = graphFor(input);
@@ -325,10 +363,11 @@ export const applyInputPatches = (
   input: SimulationInput,
   patches: InputPatchV1[],
   contract: InputContractV1,
+  options: { algorithmName?: string } = {},
 ): InputPatchResult => {
   let candidate = input;
   for (const patch of patches) {
-    const applied = applyInputPatch(candidate, patch, contract);
+    const applied = applyInputPatch(candidate, patch, contract, options);
     if (applied.ok === false) return { ...applied };
     candidate = applied.input;
   }
@@ -342,7 +381,9 @@ export const applyAndRecompileInputPatches = (options: {
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
 }): InputPatchRecompileResult => {
-  const applied = applyInputPatches(options.currentInput, options.patches, options.activePackage.input);
+  const applied = applyInputPatches(options.currentInput, options.patches, options.activePackage.input, {
+    algorithmName: options.workspace.algorithmName,
+  });
   if (applied.ok === false) return { ...applied, package: options.activePackage };
   try {
     const nextPackage = recompileSimulationInput({

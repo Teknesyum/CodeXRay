@@ -45,7 +45,7 @@ So the reachable implementation is the permissive one, and the strict one is the
 `set-graph` validates the finished document afterwards, which catches a malformed graph but
 never catches a misunderstood request.
 
-### Reverse-reference grep (PROTOCOL requirement, run at `2e33d8d`; re-run at this route's real base)
+### Reverse-reference grep (PROTOCOL requirement, re-run at this route's base `2a1071f`)
 
 ```text
 src/services/gm2Contracts.test.ts:6,131,138        applyStructuralGraphRequest, spreadGraphLayout
@@ -54,6 +54,8 @@ src/services/titanEngine.ts:34,802,854,859         the only production caller
 ```
 
 No `e2e/**` or `src-tauri/**` reference. Production callers: one file, three call sites.
+The grep is byte-identical at `2e33d8d` and at this route's base `2a1071f`; R11 changed no
+product code, so nothing about this measurement moved between drafting and opening.
 
 Still with zero production callers after R10: `set-param`, `set-target`, `graph-add-node`,
 `graph-add-edge`, `graph-remove` — five of eleven ops.
@@ -61,7 +63,7 @@ Still with zero production callers after R10: `set-param`, `set-target`, `graph-
 ## Turn
 
 - Route id: `R12`
-- Base: set when this route opens
+- Base: `2a1071f` (`handoff(H11): record`)
 - Holder: `sole`
 - Expected size: 4–9 files, 2 commits (`route(R12): close`, `handoff(H12): record`)
 
@@ -177,7 +179,7 @@ PowerShell 5.1. No `&&`, no `||`, no ternary. Run verbatim; paste output verbati
 ```powershell
 git log -1 --format=%H
 
-git diff --stat "<base>..HEAD"
+git diff --stat "2a1071f..HEAD"
 
 Get-ChildItem -Recurse -Path src -Include *.ts,*.tsx -File | Select-String -Pattern "op: '"
 

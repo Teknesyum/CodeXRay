@@ -54,7 +54,7 @@ Ops declared but unreachable in production: `resize-array`, `sort-array`, `shuff
 ## Turn
 
 - Route id: `R10`
-- Base: unstamped — this route is queued behind R09
+- Base: `5f27c87` (`handoff(H09): record`)
 - Holder: `sole`
 - Expected size: 5–11 files, 2 commits (`route(R10): close`, `handoff(H10): record`)
 
@@ -153,11 +153,16 @@ explicitly deferred with the route number that will decide it.
 **(T0)** The architecture-map line describing `inputPatch.ts` reachability is Claude's, in
 `## T0 reconciliation`.
 
-**Requeued twice, and the reason is the same both times.** The clarification flake took R08;
-the intermittent unit suite took R09. Both are gate-trustworthiness defects, and a feature
-route whose criteria rest on `npm run test` and `npm run test:e2e` is worth less than it
-claims while those gates are unreliable. This opens after R09 closes, and its base is
-stamped then.
+**Requeued twice, and both gates are now honest.** The clarification flake took R08; the
+intermittent unit suite took R09. Both were the same defect — an unchosen `5000 ms` default
+applied to work that legitimately needed longer — one at the Playwright layer and one at the
+Vitest layer. Both now carry budgets with stated provenance and margin.
+
+That matters for this route specifically. R10's criteria rest on `npm run test` and
+`npm run test:e2e`, and two turns ago neither meant the same thing on two machines. They do
+now: five consecutive clean unit runs on the machine where the suite had never once passed,
+and three same-commit browser runs at zero flaky. This is the first feature route since R07
+whose evidence is worth what it claims.
 
 ## Verification
 
@@ -166,7 +171,7 @@ PowerShell 5.1. No `&&`, no `||`, no ternary. Run verbatim; paste output verbati
 ```powershell
 git log -1 --format=%H
 
-git diff --stat "<base>..HEAD"
+git diff --stat "5f27c87..HEAD"
 
 Get-ChildItem -Recurse -Path src -Include *.ts,*.tsx -File | Select-String -Pattern "op: '"
 
@@ -197,7 +202,7 @@ npm run test:e2e
 
 ## Rollback
 
-`git reset --hard <base>` only when the working tree holds nothing else worth keeping, and
+`git reset --hard 5f27c87` only when the working tree holds nothing else worth keeping, and
 record the decision in `## Deviations`.
 
 ## Out of Scope

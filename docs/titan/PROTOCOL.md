@@ -139,6 +139,12 @@ git log -1 --format=%H
   nothing structural caught it. The "Nobody" row of the ownership table is enforced by
   `.gitignore` for none of its paths — every frozen file is protected only by the writer
   naming what to stage. Name the files.
+
+  **Naming files misses deletions, so a rename needs both halves staged.** Renaming a queued
+  route with plain `mv` and then `git add`-ing only the new path left the old one tracked but
+  absent from disk, and the tree stayed dirty across two turns until the holder noticed and
+  reported it. Use `git mv`, or stage the removal explicitly. `git status` after staging and
+  before committing catches both this and the frozen-file case; run it.
 - Commit subjects, in order: `route(R<n>): open` (Claude), `route(R<n>): close` (Sole's
   work), any `fix(R<n>): ...` the published evidence forces, then `handoff(H<n>): record`
   (Sole's evidence). Never fold the last two together.

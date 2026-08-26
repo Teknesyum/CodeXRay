@@ -209,3 +209,106 @@ record the decision in `## Deviations`.
   recorded in `H08 ## Discovered`.
 - Every `AGENTS.md` file — T0-owned.
 - Pushing to `origin`. The remote half of criterion 9 belongs to T0.
+
+## T0 reconciliation
+
+Handoff `H09` recorded at `5f27c87`, closing `f57c78a`. Both signed and pushed.
+
+**Criterion 4 was the point of the route, and it passed where it mattered.** Five consecutive
+`npm run test` runs on T0's machine — the machine where the suite had never once come back
+clean:
+
+```
+run 1: Tests 759 passed (759)
+run 2: Tests 759 passed (759)
+run 3: Tests 759 passed (759)
+run 4: Test Files 119 passed (119) | Tests 759 passed (759)
+run 5: Test Files 119 passed (119) | Tests 759 passed (759)
+```
+
+Against the three runs that opened this route — `1`, `2`, and `1` failures out of 759, a
+different test each time — that is the defect closing rather than moving.
+
+**The fix is four lines and touches no test.**
+
+```
+vitest.config.ts    testTimeout: 15_000
+src/test/setup.ts   configure({ asyncUtilTimeout: 5_000 })
+```
+
+No query changed, no assertion loosened, no `retry` added, no test file edited, and non-test
+`src/**` untouched. Criterion 5's fix-versus-weakening distinction had nothing to adjudicate,
+which is the outcome a config-level cause should produce.
+
+| Claim in H09 | Independent result |
+|---|---|
+| `npm run lint` | clean |
+| `npm run test` | `Test Files 119 passed (119)`, `Tests 759 passed (759)` |
+| `npm run build` | `Initial JavaScript: 416.7 / 420.0 KiB` |
+| no test file changed | `git diff 33e5740..f57c78a` touches only the two config files |
+| both commits signed | two `Signed-off-by: Mustafa Özel <iyott131@gmail.com>` trailers |
+
+**A number passing is not a cause being right, so the mechanism was checked.**
+`asyncUtilTimeout` governs `findBy*` and `waitFor` only; it has no effect on a synchronous
+`getBy*`. Three of the four observed failures were synchronous `getBy*` misses
+(`Unable to find a label with the text of: Algorithm preset` and two like it), so on the face
+of it they should not have been fixed by this change at all.
+
+They were, and the reason holds up: all three files lean heavily on async queries — 6, 24,
+and 6 occurrences of `findBy`/`waitFor` respectively. A synchronous query failing to find an
+element was the *symptom* of an earlier async wait giving up at 1000 ms; once that wait
+completes, the DOM has settled by the time the sync query runs. The failing line was never
+the failing step. That is a real fix rather than a masked race, but it was worth reading
+rather than inferring from a green number — the whole reason this route existed is that a
+green number had been meaning two different things on two machines.
+
+**The environmental answer is in the measurement too.** Single worker: `355.16 s`. The default
+sixteen parallel forks: `41.62–87.06 s`. Parallelism buys four to eight times the speed and
+creates the contention that consumed the budget; different core counts are why the defect was
+invisible on the holder's machine and reproducible on T0's. Neither machine was wrong.
+
+**R08 and R09 were one defect seen twice.** An unchosen `5000 ms` default applied to work that
+legitimately needed longer — once at the Playwright assertion layer, once at the Vitest test
+layer. Both now carry a budget with stated provenance and margin. Whether other unconfigured
+defaults are waiting in the same tree is not this route's question, but it is a fair one for
+whoever next finds an intermittent failure: check what nobody chose before assuming something
+regressed.
+
+**T0 housekeeping, and a mistake of mine the holder caught.** When R09 displaced the
+semantic-ops route, T0 renamed `queued/R09-semantic-input-ops.md` to `R10-` with a plain `mv`
+and then staged only the new path. The deletion was never staged, so the old file stayed
+tracked while absent from disk and the tree stayed dirty for two turns. Sole left it alone —
+correctly, it is a T0-owned path — and reported it instead. Now removed, and `PROTOCOL.md`'s
+staging rule gains the half it was missing: naming files explicitly protects frozen paths but
+does not catch deletions, so a rename needs both halves staged.
+
+## Remote closure
+
+Criterion 9's remote half is closed. Both commits are pushed to `main`. Run `32933124940` on
+`5f27c87`, first attempt, all three jobs `success`:
+
+```
+quality  success
+browser  success
+desktop  success
+```
+
+The `browser` job, both phases, **no flaky line at all**:
+
+```
+  68 passed (5.5m)
+  2 passed (50.0s)
+```
+
+This is the first fully clean 68 since R06 added `translation-provenance.spec.ts`. R06 and
+R07 both reported `67 passed · 1 flaky`; R08's re-runs reached zero flaky on a re-run ladder;
+this one arrived clean on the first attempt without one. The run also came in at 5.5 minutes
+against 6.8 and 7.1 for the two flaky runs — consistent with the reading that those runs were
+losing time to a retry rather than to genuinely slower work.
+
+The `quality` job passing here matters more than usual. It is the job that failed during R08
+at `src/App.test.tsx:60`, and it is now green on the same runner with the same suite. Between
+that and the five clean local runs on T0's machine, both halves of criterion 4's concern are
+answered: the fix holds where the defect was invisible and where it was reproducible.
+
+**R09 closes as met.**

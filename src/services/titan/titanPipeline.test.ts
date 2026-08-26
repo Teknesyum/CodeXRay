@@ -3,8 +3,10 @@ import {
   executeTitanPipeline,
   startAdaptInputPipeline,
   startDiscussCurrentStepPipeline,
+  verifyAdaptInputArtifact,
   type TitanStageState,
 } from './titanPipeline';
+import { generateSimulationSteps } from '../aiService';
 
 describe('five-stage Titan pipeline', () => {
   it('emits five ordered stages, skips sufficient semantics, and applies once', async () => {
@@ -144,27 +146,29 @@ describe('five-stage Titan pipeline', () => {
   });
 
   it('carries adapt-input through five stages and applies only the verified package', async () => {
-    const applyPackage = vi.fn();
-    const packageValue = { id: 'adapted-package' } as any;
+    const applyInput = vi.fn();
     const input = { kind: 'array', text: '[4,9,2]' } as any;
+    const workspace = {
+      algorithmName: 'Bubble Sort', code: '', steps: [], currentIndex: 0,
+    } as any;
+    const steps = await generateSimulationSteps(workspace.algorithmName, workspace.code, input);
     const result = {
       status: 'success' as const,
       runId: 'engine-adapt',
       plan: { version: 1 as const, runId: 'engine-adapt', request: 'change input', intent: 'adapt-input' as const, jobs: [], createdAt: 1 },
       summary: 'Adapted.',
-      package: packageValue,
       input,
-      steps: [{ explanation: 'Rebuilt timeline' }] as any,
+      steps,
     };
     const run = startAdaptInputPipeline({
       request: 'change input',
       intent: { type: 'adapt-input' },
       locale: 'en',
-      workspace: { steps: [], currentIndex: 0 } as any,
-      activePackage: packageValue,
+      workspace,
+      activePackage: null,
       onPlan: vi.fn(),
-      applyPackage,
-      applyInput: vi.fn(),
+      applyPackage: vi.fn(),
+      applyInput,
       verificationFailureMessage: 'Adaptation failed.',
       startRun: (options) => {
         expect(options.deferApply).toBe(true);
@@ -172,7 +176,72 @@ describe('five-stage Titan pipeline', () => {
       },
     });
     await expect(run.promise).resolves.toBe(result);
-    expect(applyPackage).toHaveBeenCalledOnce();
+    expect(applyInput).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a well-formed artifact whose carried trace disagrees with independent recomputation', async () => {
+    const input = { kind: 'array', text: '[4,9,2]', origin: 'user' } as any;
+    const workspace = {
+      algorithmName: 'Bubble Sort', code: '', simulationInput: { kind: 'array', text: '[3,1,2]' },
+      steps: [{ explanation: 'Committed timeline' }], currentIndex: 1,
+    } as any;
+    const correct = await generateSimulationSteps(workspace.algorithmName, workspace.code, input);
+    const result = {
+      status: 'success' as const, runId: 'engine-adapt',
+      plan: { version: 1 as const, runId: 'engine-adapt', request: 'change input', intent: 'adapt-input' as const, jobs: [], createdAt: 1 },
+      summary: 'Produced successfully.', input,
+      steps: [{ ...correct[0], explanation: 'Tampered but well-formed trace.' }],
+    };
+    const inputIdentity = workspace.simulationInput;
+    const timelineIdentity = workspace.steps;
+    const packageIdentity = { id: 'committed-package' };
+    const applyPackage = vi.fn();
+    const applyInput = vi.fn();
+    const ordering: string[] = [];
+    const run = startAdaptInputPipeline({
+      request: 'change input', intent: { type: 'adapt-input' }, locale: 'en', workspace,
+      activePackage: packageIdentity as any, onPlan: vi.fn(), applyPackage, applyInput,
+      verificationFailureMessage: 'The input adaptation could not be verified. The workspace was not changed.',
+      startRun: (options) => {
+        expect(options.deferApply).toBe(true);
+        ordering.push('produce');
+        return { runId: 'engine-adapt', promise: Promise.resolve(result), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).rejects.toThrow('workspace was not changed');
+    ordering.push('rejected');
+    expect(ordering).toEqual(['produce', 'rejected']);
+    expect(applyPackage).not.toHaveBeenCalled();
+    expect(applyInput).not.toHaveBeenCalled();
+    expect(workspace.simulationInput).toBe(inputIdentity);
+    expect(workspace.steps).toBe(timelineIdentity);
+    expect(workspace.currentIndex).toBe(1);
+    expect(packageIdentity).toEqual({ id: 'committed-package' });
+  });
+
+  it('measures independent verification on the largest semantic package input', async () => {
+    const input = { kind: 'array', text: JSON.stringify(Array.from({ length: 20 }, (_, index) => 20 - index)), origin: 'user' } as any;
+    const workspace = { algorithmName: 'Bubble Sort', code: '', simulationInput: input, steps: [], currentIndex: 0 } as any;
+    const steps = await generateSimulationSteps(workspace.algorithmName, workspace.code, input);
+    const result = {
+      status: 'success' as const, runId: 'measure',
+      plan: { version: 1 as const, runId: 'measure', request: 'resize', intent: 'adapt-input' as const, jobs: [], createdAt: 1 },
+      summary: 'Measured.', input, steps,
+    };
+    const iterations = 25;
+    const beforeStart = performance.now();
+    for (let index = 0; index < iterations; index += 1) {
+      Boolean(result.status === 'success' && result.input && result.steps.length);
+    }
+    const beforeMs = performance.now() - beforeStart;
+    const afterStart = performance.now();
+    for (let index = 0; index < iterations; index += 1) {
+      await expect(verifyAdaptInputArtifact(result, {
+        workspace, locale: 'en', verificationFailureMessage: 'failed',
+      })).resolves.toEqual({ ok: true });
+    }
+    const afterMs = performance.now() - afterStart;
+    console.info(`ADAPT_VERIFY_MEASUREMENT {"size":20,"iterations":${iterations},"beforeMs":${beforeMs.toFixed(3)},"afterMs":${afterMs.toFixed(3)}}`);
   });
 
   it('preserves workspace, package, and timeline identity when adapt-input verification fails', async () => {

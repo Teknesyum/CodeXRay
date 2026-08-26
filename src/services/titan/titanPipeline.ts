@@ -1,6 +1,9 @@
 import type { TitanModeOrchestratorOptions, TitanModeRunHandle, TitanModeRunResult } from '../titanEngine';
 import { startTitanModeRun as startTitanEngineRun, preflightCatalogProblem } from '../titanEntry';
 import type { AgentJobStatus, TitanModeAgentRole, ManagerJobV1, ManagerPlanV1 } from '../../types/titan';
+import type { SimulationStep } from '../../types/simulation';
+import { generateSimulationSteps } from '../aiService';
+import { recompileSimulationInput } from '../recompileSimulationInput';
 
 export type TitanStageId = 'route' | 'produce' | 'semantics' | 'verify' | 'apply';
 export type TitanStageStatus = 'waiting' | 'running' | 'completed' | 'skipped' | 'failed' | 'cancelled';
@@ -106,6 +109,38 @@ export interface AdaptInputPipelineOptions extends TitanModeOrchestratorOptions 
   verificationFailureMessage: string;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
+
+const sameTrace = (left: SimulationStep[], right: SimulationStep[]): boolean =>
+  JSON.stringify(left) === JSON.stringify(right);
+
+export const verifyAdaptInputArtifact = (
+  result: TitanModeRunResult,
+  options: Pick<AdaptInputPipelineOptions, 'workspace' | 'locale' | 'verificationFailureMessage'>,
+): Promise<{ ok: true } | { ok: false; reason: string }> => {
+  if (result.status !== 'success' || !result.input || !result.steps?.length) {
+    return Promise.resolve({ ok: false, reason: options.verificationFailureMessage });
+  }
+  const input = result.input;
+  const carriedSteps = result.steps;
+  return (async () => {
+    try {
+      const verificationInput = structuredClone(input);
+      const recomputed = result.package
+        ? recompileSimulationInput({
+          activePackage: result.package,
+          input: verificationInput,
+          locale: options.locale,
+          workspace: options.workspace,
+        }).steps
+        : await generateSimulationSteps(options.workspace.algorithmName, options.workspace.code, verificationInput);
+      return sameTrace(carriedSteps, recomputed)
+        ? { ok: true }
+        : { ok: false, reason: options.verificationFailureMessage };
+    } catch {
+      return { ok: false, reason: options.verificationFailureMessage };
+    }
+  })();
+};
 
 export const startDiscussCurrentStepPipeline = (
   options: DiscussCurrentStepPipelineOptions,
@@ -222,9 +257,7 @@ export const startAdaptInputPipeline = (
       });
       return activeRun.promise;
     },
-    verify: (result) => result.status === 'success' && result.input && result.steps?.length
-      ? { ok: true as const }
-      : { ok: false as const, reason: options.verificationFailureMessage },
+    verify: (result) => verifyAdaptInputArtifact(result, options),
     apply: (result) => {
       if (result.status !== 'success' || !result.input || !result.steps) return;
       if (result.package) {

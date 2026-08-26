@@ -214,3 +214,57 @@ record the decision in `## Deviations`.
 - `translate.ts`, the web-problem flow, `titanEntry.ts`, and `src/services/trace/**`.
 - Every `AGENTS.md` file — T0-owned; such criteria are marked **(T0)**.
 - Pushing to `origin`. The remote half of criterion 11 belongs to T0.
+
+## T0 reconciliation
+
+Written by Claude after verifying H10, pushing, and running the remote gate.
+
+### Criterion 11, remote half — **closed**
+
+`git push origin main` moved `85146de..2e33d8d`. CI run `32958195410` on head `2e33d8d`:
+
+```text
+desktop completed success
+quality completed success
+browser completed success
+```
+
+Browser gate, phase one: `68 passed (6.8m)`, zero flaky. Phase two: `1 flaky`, `1 passed
+(1.9m)`. The flaky spec is `performance-budget.spec.ts`, not a spec R10 touched; it is
+recorded below and it is what opens R11.
+
+### The architecture-map line — **reconciled**
+
+`AGENTS.md`'s `inputPatch.ts` entry claimed the semantic ops were validated-but-unreachable
+and that `applyAndRecompileInputPatch` had no production caller. Both were true when R10
+opened and neither is true now. The entry now names `createSemanticArrayPatch` as the
+classifier, the three array ops as reachable since R10 through `titanModeRouting.ts` and
+`titanEngine.ts`, `applyAndRecompileInputPatch` as their production applier, the heuristic
+adapter as the surviving fallback, and `set-param`, `set-target`, and the three `graph-*`
+ops as still unreachable.
+
+`src/services/titan/AGENTS.md` needs no change. Its `STATUS: three seams live` describes
+which intents reach `executeTitanPipeline`; R10 widened what `adapt-input` can express
+inside a seam that was already live since R07, so the seam count is unchanged.
+
+### Verifying criterion 8's empty grep — a correction to the reader, not the rule
+
+`grep -rn "resize-array\|sort-array\|shuffle-array" src/` excluding tests and
+`input/inputPatch.ts` returns nothing. Read carelessly that says the ops are still
+unreachable. Read correctly it is criterion 8 being satisfied: the literals are confined to
+the union, its parser, and its applier, and production reaches them through
+`createSemanticArrayPatch`, which `titanModeRouting.ts:118` and `titanEngine.ts:818` call.
+
+This is the second time an absence-grep nearly produced a false verdict here — R07 had the
+same shape with `parseInputPatch`. The rule that survives both: **an empty grep for an
+identifier proves nothing about reachability when the module deliberately encapsulates that
+identifier.** Follow the call path instead.
+
+### Recorded, not acted on
+
+- `handler.median` in the performance spec is ~1.2 ms while the asserted `inPage.median` is
+  230–407 ms. R11 carries this.
+- `graphRequestEdits.ts` implements add-node, add-edge, remove-node, and set-target with its
+  own regexes, on the production path, bypassing `parseInputPatch` entirely. Four of the five
+  ops R10 deliberately deferred therefore have a reachable untyped twin. Drafted as
+  `routes/queued/R12-two-graph-editors.md`.

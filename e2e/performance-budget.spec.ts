@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-// Four CI observations put the unchanged handler median at 1.20–1.30 ms. Ten milliseconds
-// leaves 7.69x the measured worst while still failing a 30 ms-per-click regression.
+// Eight CI observations put the unchanged handler median at 1.15–1.45 ms. Ten milliseconds
+// leaves 6.90x the measured worst while still failing a 30 ms-per-click regression.
 const TIMELINE_HANDLER_BUDGET_MS = 10;
 // The paint-aware median includes shared-runner frame pacing. Keep only a catastrophic-hang
 // guard at 2.46x the measured 406.80 ms worst median instead of treating it as app cost.

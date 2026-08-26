@@ -102,3 +102,23 @@ test('changes a numeric algorithm parameter and rebuilds its trace from a natura
   await expect(page.locator('.context-chip')).toHaveText(/Adım 1\/\d+/);
   expect(beforeTarget).not.toContain('42');
 });
+
+test('changes a text algorithm parameter and rebuilds its trace from a quoted command', async ({ page }) => {
+  await prepare(page);
+  const preset = page.locator('select.registry-select');
+  const option = preset.locator('option').filter({ hasText: /KMP/ });
+  await preset.selectOption(await option.getAttribute('value') ?? '');
+  await page.getByRole('button', { name: /Simüle Et/ }).click();
+  const parameter = page.locator('.parameter-field input');
+  const patternVariable = page.getByTestId('variable-pattern');
+  const beforePattern = await patternVariable.textContent();
+
+  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  await chat.fill('deseni “abc” yap');
+  await chat.press('Enter');
+
+  await expect(parameter).toHaveValue('abc');
+  await expect(patternVariable).toContainText('abc');
+  await expect(page.locator('.context-chip')).toHaveText(/Adım 1\/\d+/);
+  expect(beforePattern).not.toContain('abc');
+});

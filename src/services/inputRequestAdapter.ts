@@ -1,5 +1,6 @@
 import type { SimulationInput } from '../types/simulation';
 import { createInputPreset } from './inputPresets';
+import { extractQuotedLiteral } from './requestLiterals';
 import {
   createTeachingMatrix,
   matrixDimensionsFromRequest,
@@ -151,7 +152,7 @@ export const adaptSimulationInputFromRequest = (options: {
     }
   }
 
-  const quoted = options.request.match(/["“”']([^"“”']+)["“”']/)?.[1];
+  const quoted = extractQuotedLiteral(options.request);
   if (options.kind === 'string' && quoted) {
     return { kind: 'string', text: quoted, origin: 'user' };
   }

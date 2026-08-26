@@ -150,6 +150,46 @@ describe('InputPatchV1', () => {
     }
   });
 
+  it.each([
+    ['pattern', 'KMP Algorithm', 'set pattern to "abc"', 'deseni "abc" yap', 'abc'],
+    ['query', 'Trie Insert & Search', 'set query to "grow"', 'sorguyu "grow" yap', 'grow'],
+    ['other', 'Longest Common Subsequence', 'set second text to "ace"', 'ikinci metni "ace" yap', 'ace'],
+    ['target', 'Minimum Window Substring', 'set target to "ABC"', 'hedefi "ABC" yap', 'ABC'],
+    ['values', '0/1 Knapsack', 'set item values to [6,12,14]', 'ürün değerlerini [6,12,14] yap', '[6,12,14]'],
+  ])('classifies text %s requests in English and Turkish', (key, algorithm, english, turkish, value) => {
+    for (const request of [english, turkish]) {
+      expect(createSemanticParameterPatches(request, algorithm)).toEqual([
+        { op: 'set-param', name: key, value },
+      ]);
+    }
+  });
+
+  it('measures Turkish suffix apostrophes under the double-quote-only extractor', () => {
+    expect(createSemanticParameterPatches('deseni "abc" yap', 'KMP Algorithm'))
+      .toEqual([{ op: 'set-param', name: 'pattern', value: 'abc' }]);
+    expect(createSemanticParameterPatches('pattern\'i "abc" yap', 'KMP Algorithm'))
+      .toEqual([{ op: 'set-param', name: 'pattern', value: 'abc' }]);
+    expect(createSemanticParameterPatches("pattern'i 'abc' yap", 'KMP Algorithm')).toEqual([]);
+  });
+
+  it('resolves target by the active definition and preserves numeric value types', () => {
+    for (const request of ['hedefi 42 yap', 'set the target to 42']) {
+      const patches = createSemanticParameterPatches(request, 'Binary Search');
+      expect(patches).toEqual([{ op: 'set-param', name: 'target', value: 42 }]);
+      expect(typeof (patches[0] as Extract<InputPatchV1, { op: 'set-param' }>).value).toBe('number');
+    }
+    for (const request of ['hedefi "ABC" yap', 'set the target to "ABC"']) {
+      expect(createSemanticParameterPatches(request, 'Minimum Window Substring'))
+        .toEqual([{ op: 'set-param', name: 'target', value: 'ABC' }]);
+    }
+    expect(createSemanticParameterPatches('hedefi 42 yap', 'Minimum Window Substring')).toEqual([]);
+  });
+
+  it('refuses text parameter requests without a delimited literal', () => {
+    expect(createSemanticParameterPatches('deseni abc yap', 'KMP Algorithm')).toEqual([]);
+    expect(createSemanticParameterPatches('set item values to 6,12,14', '0/1 Knapsack')).toEqual([]);
+  });
+
   it('rejects undeclared keys and non-numeric values before parsing the input', () => {
     expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'nonsense', value: 1 },
       contract('array', arrayInput), { algorithmName: 'Binary Search' }))
@@ -157,6 +197,12 @@ describe('InputPatchV1', () => {
     expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'target', value: 'forty-two' },
       contract('array', arrayInput), { algorithmName: 'Binary Search' }))
       .toMatchObject({ ok: false, reason: expect.stringContaining('numeric') });
+    expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'pattern', value: '' },
+      contract('array', arrayInput), { algorithmName: 'KMP Algorithm' }))
+      .toMatchObject({ ok: false, reason: expect.stringContaining('non-empty') });
+    expect(applyInputPatch(arrayInput, { op: 'set-param', name: 'values', value: '[6,"bad"]' },
+      contract('array', arrayInput), { algorithmName: '0/1 Knapsack' }))
+      .toMatchObject({ ok: false, reason: expect.stringContaining('numeric array') });
   });
 
   it.each([

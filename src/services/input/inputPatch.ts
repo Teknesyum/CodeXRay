@@ -5,6 +5,7 @@ import { parseSimulationInput, validateGraphDocument } from '../inputParsers';
 import { createInputPreset } from '../inputPresets';
 import { recompileSimulationInput } from '../recompileSimulationInput';
 import { getAlgorithmParameterDefinitions } from '../algorithmInputs';
+import { extractNumericArrayLiteral, extractQuotedLiteral } from '../requestLiterals';
 
 export type InputPatchV1 =
   | { op: 'set-array'; values: number[] }
@@ -165,18 +166,38 @@ const numericParameterAliases: Record<string, string[]> = {
   cycleEntry: ['cycle entry', 'cycle start', 'dongu baslangici', 'dongu girisi'],
 };
 
+const textParameterAliases: Record<string, string[]> = {
+  pattern: ['pattern', 'desen'],
+  query: ['query', 'search query', 'sorgu', 'arama'],
+  other: ['other', 'second text', 'diger metin', 'ikinci met'],
+  target: ['target', 'hedef'],
+  values: ['values', 'item values', 'degerler', 'urun degerleri'],
+};
+
 export const createSemanticParameterPatches = (
   request: string,
   algorithmName: string,
 ): InputPatchV1[] => {
   const text = normalizedRequest(request);
-  const definitions = getAlgorithmParameterDefinitions(algorithmName)
-    .filter((definition) => definition.type === 'number');
+  const definitions = getAlgorithmParameterDefinitions(algorithmName);
   const patches: InputPatchV1[] = [];
   for (const definition of definitions) {
-    const aliases = numericParameterAliases[definition.key] ?? [];
+    const aliases = (definition.type === 'number' ? numericParameterAliases : textParameterAliases)[definition.key] ?? [];
     const alias = aliases.find((candidate) => text.includes(candidate));
     if (!alias) continue;
+    if (definition.type !== 'number') {
+      const value = definition.key === 'values'
+        ? extractNumericArrayLiteral(request)
+        : extractQuotedLiteral(request);
+      if (value !== null && (!Array.isArray(value) || value.length > 0)) {
+        patches.push({
+          op: 'set-param',
+          name: definition.key,
+          value: Array.isArray(value) ? JSON.stringify(value) : value,
+        });
+      }
+      continue;
+    }
     const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
     const after = text.match(new RegExp(`${escaped}[a-z]*\\s*(?:to|as|=|:)?\\s*(-?\\d+(?:\\.\\d+)?)`));
     const before = text.match(new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(?:as|olarak)?\\s*${escaped}[a-z]*`));
@@ -278,6 +299,13 @@ export const applyInputPatch = (
       if (!definition) throw new Error(`Parameter ${patch.name} is not declared for the active algorithm.`);
       if (definition.type === 'number' && (typeof patch.value !== 'number' || !Number.isFinite(patch.value))) {
         throw new Error(`Parameter ${patch.name} requires a numeric value.`);
+      }
+      if (definition.type !== 'number' && (typeof patch.value !== 'string' || patch.value.length === 0)) {
+        throw new Error(`Parameter ${patch.name} requires a non-empty text value.`);
+      }
+      if (definition.key === 'values'
+        && (typeof patch.value !== 'string' || extractNumericArrayLiteral(patch.value) === null)) {
+        throw new Error('Parameter values requires a numeric array literal.');
       }
       next = { ...input, parameters: { ...input.parameters, [patch.name]: String(patch.value) }, origin: 'user' };
     } else {

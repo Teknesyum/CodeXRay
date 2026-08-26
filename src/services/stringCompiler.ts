@@ -9,6 +9,7 @@ import type {
 import type { Locale, SimulationStep } from '../types/simulation';
 import { reviewTrace } from './customSimulationCompiler';
 import { createTeachingPlan } from './teachingPlan';
+import { extractQuotedLiteral } from './requestLiterals';
 
 export type StringTemplateId = 'sliding-window-string' | 'two-pointers-string';
 
@@ -26,8 +27,8 @@ interface StringArtifact {
 const MAX_LENGTH = 80;
 
 const requestText = (request: string, fallback: string): string => {
-  const quoted = request.match(/"([^"]*)"/)?.[1];
-  return quoted !== undefined && quoted.length <= MAX_LENGTH ? quoted : fallback;
+  const quoted = extractQuotedLiteral(request);
+  return quoted !== null && quoted.length <= MAX_LENGTH ? quoted : fallback;
 };
 
 const arrayStep = (

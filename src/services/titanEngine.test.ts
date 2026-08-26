@@ -656,6 +656,24 @@ describe('Titan Mode orchestrator', () => {
     ]));
     expect(structuralPackage.steps.length).toBeGreaterThan(0);
     expect(JSON.stringify(structuralPackage.steps)).toContain('X');
+
+    const failedApplyPackage = vi.fn();
+    const inputIdentity = activePackage.input.value;
+    const timelineIdentity = activePackage.steps;
+    await expect(startTitanModeRun({
+      request: 'add node X and connect X to missing',
+      intent: { type: 'adapt-input' },
+      locale: 'en',
+      workspace: packageWorkspace,
+      activePackage,
+      onPlan: vi.fn(),
+      applyPackage: failedApplyPackage,
+      applyInput: vi.fn(),
+      agentRunner: successfulAgent,
+    }).promise).rejects.toThrow('endpoints');
+    expect(failedApplyPackage).not.toHaveBeenCalled();
+    expect(activePackage.input.value).toBe(inputIdentity);
+    expect(activePackage.steps).toBe(timelineIdentity);
   });
 
   it.each([

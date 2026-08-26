@@ -3,7 +3,8 @@ import { algorithmRegistry } from './codeRegistry';
 import { createAgentInputContract } from './agentInputGenerator';
 import { compileCustomSimulationPackage } from './customSimulationCompiler';
 import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
-import { applyStructuralGraphRequest, spreadGraphLayout } from './graphRequestEdits';
+import { createStructuralGraphPatches, spreadGraphLayout } from './graphRequestEdits';
+import { applyInputPatches } from './input/inputPatch';
 import { classifyGraphChange, patchPackageGraphLayout } from './graphTransactions';
 import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
 import { createBidirectionalBfsProgram } from './simLangBuiltins';
@@ -135,7 +136,15 @@ describe('GM-2 visual and teaching contracts', () => {
       .toEqual(packageValue.steps.map((step) => [step.lineNumber, step.explanation]));
     expect(patched.steps[0].visualData).not.toEqual(packageValue.steps[0].visualData);
 
-    const structural = applyStructuralGraphRequest(graph, 'Bu grapha iki node ekle, hedefi değiştir');
+    const plan = createStructuralGraphPatches(graph, 'Bu grapha iki node ekle, hedefi değiştir');
+    expect(plan.ok).toBe(true);
+    if (plan.ok === false) throw new Error(plan.reason);
+    const input = packageValue.input.value;
+    const applied = applyInputPatches(input, plan.patches, packageValue.input);
+    expect(applied.ok).toBe(true);
+    if (applied.ok === false) throw new Error(applied.reason);
+    if (!applied.input.graph) throw new Error('Missing graph');
+    const structural = applied.input.graph;
     expect(classifyGraphChange(graph, structural)).toBe('structural');
     expect(structural.nodes).toHaveLength(graph.nodes.length + 2);
     expect(structural.edges).toHaveLength(graph.edges.length + 2);

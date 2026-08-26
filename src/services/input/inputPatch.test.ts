@@ -5,6 +5,7 @@ import { compilePredictWinnerPackage } from '../intervalDpCompiler';
 import {
   applyAndRecompileInputPatch,
   applyInputPatch,
+  applyInputPatches,
   createInputReplacementPatch,
   createSemanticArrayPatch,
   parseInputPatch,
@@ -138,6 +139,19 @@ describe('InputPatchV1', () => {
     const removed = applied(withEdge, { op: 'graph-remove', id: 'B' });
     expect(removed.graph?.nodes.some((node) => node.id === 'B')).toBe(false);
     expect(removed.graph?.edges.some((edge) => edge.from === 'B' || edge.to === 'B')).toBe(false);
+  });
+
+  it('rejects a multi-op graph transaction without mutating its input when any op fails', () => {
+    const before = structuredClone(graphInput);
+    const originalGraph = graphInput.graph;
+    const result = applyInputPatches(graphInput, [
+      { op: 'graph-add-node', id: 'X', label: 'X' },
+      { op: 'graph-add-edge', from: 'X', to: 'missing', weight: 4 },
+      { op: 'set-target', nodeId: 'X' },
+    ], contract('graph', graphInput));
+    expect(result).toMatchObject({ ok: false, reason: expect.stringContaining('endpoints') });
+    expect(graphInput).toEqual(before);
+    expect(graphInput.graph).toBe(originalGraph);
   });
 
   it('loads same-kind presets and rejects kind, constraint, and graph violations visibly', () => {

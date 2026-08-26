@@ -406,7 +406,7 @@ export const startJavaFallbackRun = (options: {
       envelope,
       verifiedAt: Date.now(),
     });
-    if (!translation.ok) {
+    if (translation.ok === false) {
       updateJob('translator', { status: 'failed', error: translation.reason });
       throw new Error(`Translation verification failed: ${translation.reason}`);
     }

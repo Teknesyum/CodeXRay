@@ -31,7 +31,7 @@ import type { TitanModeIntent } from '../types/titan';
 import { createAgentInputContract } from './agentInputGenerator';
 import { applyGraphLayout, createGraphLayoutSpec, inspectGraphLayout } from './graphLayout';
 import { createVisualizationContractV2 } from './visualizationDesigner';
-import { applyStructuralGraphRequest, isVisualOnlyGraphRequest, spreadGraphLayout } from './graphRequestEdits';
+import { createStructuralGraphPatches, isVisualOnlyGraphRequest, spreadGraphLayout } from './graphRequestEdits';
 import { patchPackageGraphLayout } from './graphTransactions';
 import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './intervalDpCompiler';
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
@@ -41,6 +41,7 @@ import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
 import {
   applyAndRecompileInputPatch,
+  applyAndRecompileInputPatches,
   applyInputPatch,
   createInputReplacementPatch,
   createSemanticArrayPatch,
@@ -835,6 +836,27 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             });
             return semanticResult.input;
           }
+          const graphPatches = current?.graph && !visualOnly
+            ? createStructuralGraphPatches(current.graph, options.request)
+            : null;
+          if (graphPatches?.ok === false) throw new Error(graphPatches.reason);
+          if (graphPatches?.patches.length && options.activePackage && current) {
+            const semanticResult = applyAndRecompileInputPatches({
+              activePackage: options.activePackage,
+              currentInput: current,
+              patches: graphPatches.patches,
+              locale: options.locale,
+              workspace: options.workspace,
+            });
+            if (semanticResult.ok === false) throw new Error(semanticResult.reason);
+            semanticPackage = semanticResult.package;
+            setJob('input-engineer-build-compatible-input', {
+              summary: options.locale === 'tr'
+                ? `${graphPatches.patches.length} grafik işlemi atomik olarak doğrulandı ve uygulandı.`
+                : `${graphPatches.patches.length} graph operations were validated and applied atomically.`,
+            });
+            return semanticResult.input;
+          }
           let generated = adaptSimulationInputFromRequest({
             request: options.request,
             current: current ?? null,
@@ -852,12 +874,6 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           }
           if (generated.graph && visualOnly) {
             generated = { ...generated, text: '', graph: spreadGraphLayout(generated.graph) };
-          } else if (generated.graph && options.activePackage) {
-            generated = {
-              ...generated,
-              text: '',
-              graph: applyStructuralGraphRequest(generated.graph, options.request),
-            };
           }
           const patch = createInputReplacementPatch(generated, {
             matrix: options.activePackage?.program.id === 'spiral_matrix',

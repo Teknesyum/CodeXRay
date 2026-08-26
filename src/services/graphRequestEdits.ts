@@ -1,5 +1,6 @@
-import type { GraphDocumentV1 } from '../types/simulation';
+import type { GraphDocumentV1, SimulationInput } from '../types/simulation';
 import { nextNodeId } from './graphEditorUtils';
+import { applyInputPatch, parseInputPatch, type InputPatchV1 } from './input/inputPatch';
 
 export const isVisualOnlyGraphRequest = (request: string): boolean =>
   /(?:node|d[uü][gğ][uü]m).*(?:geni[sş]|yay|spread|spacing|ara|yerle[sş])|(?:cephe|frontier).*(?:renk|color|[sş]ekil|shape)|(?:layout|yerle[sş]im).*(?:de[gğ]i[sş]|change|d[uü]zen|arrange)|(?:de[gğ]i[sş]|change|d[uü]zen|arrange).*(?:layout|yerle[sş]im)/i.test(request)
@@ -68,99 +69,153 @@ const resolveRequestedNode = (
 
 const requestedConnections = (request: string): Array<[string, string]> => {
   const pairs: Array<[string, string]> = [];
+  const seen = new Set<string>();
   const token = '[\\p{L}\\p{N}_-]+';
   const patterns = [
-    new RegExp(`(?=(${token})\\s+ile\\s+(${token}))`, 'giu'),
-    new RegExp(`(?=(?:connect\\s+)?(${token})\\s+(?:to|-)\\s+(${token}))`, 'giu'),
+    new RegExp(`(?=(?<![\\p{L}\\p{N}_-])(${token})\\s+ile\\s+(${token}))`, 'giu'),
+    new RegExp(`(?=(?<![\\p{L}\\p{N}_-])connect\\s+(${token})\\s+(?:to|-)\\s+(${token}))`, 'giu'),
   ];
   for (const pattern of patterns) {
     for (const match of request.matchAll(pattern)) {
-      if (match[1] && match[2]) pairs.push([match[1], match[2]]);
+      if (match[1] && match[2]) {
+        const key = `${match[1].toLocaleLowerCase('tr-TR')}\u0000${match[2].toLocaleLowerCase('tr-TR')}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          pairs.push([match[1], match[2]]);
+        }
+      }
     }
   }
   return pairs;
 };
 
-export const applyStructuralGraphRequest = (
+export type StructuralGraphPatchResult =
+  | { ok: true; patches: InputPatchV1[] }
+  | { ok: false; reason: string };
+
+export const createStructuralGraphPatches = (
   graph: GraphDocumentV1,
   request: string,
-): GraphDocumentV1 => {
+): StructuralGraphPatchResult => {
   const count = requestedNodeCount(request);
   const namedNodeId = requestedNodeId(request);
   const removalIds = requestedRemovalIds(request);
   const belowToken = requestedAnchorBelow(request);
-  const next = {
-    ...graph,
-    nodes: graph.nodes.map((node) => ({ ...node })),
-    edges: graph.edges.map((edge) => ({ ...edge })),
+  const patches: InputPatchV1[] = [];
+  let planningInput: SimulationInput = {
+    kind: graph.mode,
+    text: '',
+    graph,
+    origin: 'user',
   };
+  const contract = {
+    version: 1 as const,
+    kind: graph.mode,
+    description: 'Deterministic graph request',
+    constraints: [],
+    value: planningInput,
+    origin: 'user' as const,
+  };
+  const append = (raw: unknown): string | null => {
+    const patch = parseInputPatch(raw);
+    if (!patch) return 'The graph request produced an invalid typed operation.';
+    const applied = applyInputPatch(planningInput, patch, contract);
+    if (applied.ok === false) return applied.reason;
+    patches.push(patch);
+    planningInput = applied.input;
+    return null;
+  };
+
   for (const token of removalIds) {
-    const id = resolveRequestedNode(next, token);
-    if (!id || next.nodes.length <= 1) continue;
-    const incoming = next.edges.find((edge) => edge.to === id)?.from;
-    const children = next.edges.filter((edge) => edge.from === id).map((edge) => edge.to);
-    next.nodes = next.nodes.filter((node) => node.id !== id);
-    next.edges = next.edges.filter((edge) => edge.from !== id && edge.to !== id);
-    if (next.mode === 'tree' && incoming) {
+    const currentGraph = planningInput.graph!;
+    const id = resolveRequestedNode(currentGraph, token);
+    if (!id) return { ok: false, reason: `Graph node ${token} does not exist.` };
+    const incoming = currentGraph.edges.find((edge) => edge.to === id)?.from;
+    const children = currentGraph.edges.filter((edge) => edge.from === id).map((edge) => edge.to);
+    const removalFailure = append({ op: 'graph-remove', id });
+    if (removalFailure) return { ok: false, reason: removalFailure };
+    if (currentGraph.mode === 'tree' && incoming) {
       for (const child of children) {
-        next.edges.push({ id: `request-${incoming}-${child}`, from: incoming, to: child, weight: next.weighted ? 1 : undefined });
+        const edgeFailure = append({
+          op: 'graph-add-edge',
+          from: incoming,
+          to: child,
+          weight: currentGraph.weighted ? 1 : undefined,
+        });
+        if (edgeFailure) return { ok: false, reason: edgeFailure };
       }
     }
-    const fallback = next.nodes[0]?.id ?? '';
-    if (next.rootId === id) next.rootId = children.find((child) => next.nodes.some((node) => node.id === child)) ?? fallback;
-    if (next.startId === id) next.startId = fallback;
-    if (next.targetId === id) next.targetId = next.nodes.at(-1)?.id;
   }
-  if (namedNodeId && !next.nodes.some((node) => node.id.toLocaleLowerCase('tr-TR') === namedNodeId.toLocaleLowerCase('tr-TR'))) {
-    const target = next.nodes.find((node) => node.id === next.targetId);
-    next.nodes.push({
+
+  if (namedNodeId) {
+    const currentGraph = planningInput.graph!;
+    if (currentGraph.nodes.some((node) => node.id.toLocaleLowerCase('tr-TR') === namedNodeId.toLocaleLowerCase('tr-TR'))) {
+      return { ok: false, reason: `Graph node ${namedNodeId} already exists.` };
+    }
+    const target = currentGraph.nodes.find((node) => node.id === currentGraph.targetId);
+    const namedFailure = append({
+      op: 'graph-add-node',
       id: namedNodeId,
       label: namedNodeId,
       x: target ? Math.max(8, target.x - 14) : 68,
       y: target ? Math.min(92, target.y + 18) : 50,
     });
+    if (namedFailure) return { ok: false, reason: namedFailure };
   }
+
   let anchor = graph.targetId ?? graph.nodes.at(-1)?.id ?? graph.startId;
-  const belowAnchor = belowToken ? resolveRequestedNode(next, belowToken) : null;
+  const belowAnchor = belowToken ? resolveRequestedNode(planningInput.graph!, belowToken) : null;
+  if (belowToken && !belowAnchor) return { ok: false, reason: `Graph node ${belowToken} does not exist.` };
   if (belowAnchor) anchor = belowAnchor;
   const doubledCount = requestsDoubleComplexity(request)
-    ? Math.min(20, Math.max(0, next.nodes.length))
+    ? Math.min(20, Math.max(0, planningInput.graph!.nodes.length))
     : 0;
   const totalToAdd = Math.max(count, belowAnchor && count === 0 ? 1 : 0, doubledCount);
   for (let index = 0; index < totalToAdd; index += 1) {
-    const id = nextNodeId(next.nodes);
-    const anchorNode = next.nodes.find((node) => node.id === anchor);
+    const currentGraph = planningInput.graph!;
+    const id = nextNodeId(currentGraph.nodes);
+    const anchorNode = currentGraph.nodes.find((node) => node.id === anchor);
     const x = belowAnchor && index === 0 ? anchorNode?.x ?? 68 : Math.min(92, 68 + (index % 3) * 12);
     const y = belowAnchor && index === 0 ? Math.min(93, (anchorNode?.y ?? 50) + 18) : 24 + ((index * 17) % 62);
-    next.nodes.push({ id, label: id, x, y });
-    next.edges.push({
-      id: `request-${id}`,
+    const nodeFailure = append({ op: 'graph-add-node', id, label: id, x, y });
+    if (nodeFailure) return { ok: false, reason: nodeFailure };
+    const edgeFailure = append({
+      op: 'graph-add-edge',
       from: anchor,
       to: id,
-      weight: next.weighted ? 1 : undefined,
+      weight: currentGraph.weighted ? 1 : undefined,
     });
+    if (edgeFailure) return { ok: false, reason: edgeFailure };
     anchor = id;
   }
+
   for (const [fromToken, toToken] of requestedConnections(request)) {
-    const from = resolveRequestedNode(next, fromToken);
-    const to = resolveRequestedNode(next, toToken);
-    if (!from || !to || from === to) continue;
-    const duplicate = next.edges.some((edge) =>
-      (edge.from === from && edge.to === to)
-      || (!next.directed && edge.from === to && edge.to === from));
-    if (duplicate) continue;
-    next.edges.push({
-      id: `request-${from}-${to}`,
+    const currentGraph = planningInput.graph!;
+    const from = resolveRequestedNode(currentGraph, fromToken);
+    const to = resolveRequestedNode(currentGraph, toToken);
+    if (!from || !to) {
+      return {
+        ok: false,
+        reason: `Both requested edge endpoints must exist: ${fromToken}, ${toToken}; available: ${currentGraph.nodes.map((node) => node.id).join(', ')}.`,
+      };
+    }
+    if (from === to) return { ok: false, reason: 'A graph edge cannot connect a node to itself.' };
+    const edgeFailure = append({
+      op: 'graph-add-edge',
       from,
       to,
-      weight: next.weighted ? 1 : undefined,
+      weight: currentGraph.weighted ? 1 : undefined,
     });
+    if (edgeFailure) return { ok: false, reason: edgeFailure };
   }
+
   const explicitTarget = request.match(/(?:hedef(?:i)?|target)\s+(?:node(?:unu)?\s+)?([A-Za-z0-9_-]+)\s*(?:yap|olarak|set|make)/i)?.[1];
-  if (explicitTarget && next.nodes.some((node) => node.id === explicitTarget)) {
-    next.targetId = explicitTarget;
+  if (explicitTarget) {
+    const targetFailure = append({ op: 'set-target', nodeId: explicitTarget });
+    if (targetFailure) return { ok: false, reason: targetFailure };
   } else if (totalToAdd > 0 && /hedef|target/i.test(request)) {
-    next.targetId = anchor;
+    const targetFailure = append({ op: 'set-target', nodeId: anchor });
+    if (targetFailure) return { ok: false, reason: targetFailure };
   }
-  return next;
+  return { ok: true, patches };
 };

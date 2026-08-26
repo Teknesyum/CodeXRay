@@ -15,7 +15,7 @@ export type InputPatchV1 =
   | { op: 'set-text'; value: string }
   | { op: 'set-param'; name: string; value: number | string }
   | { op: 'set-target'; nodeId: string }
-  | { op: 'graph-add-node'; id: string; label?: string }
+  | { op: 'graph-add-node'; id: string; label?: string; x?: number; y?: number }
   | { op: 'graph-add-edge'; from: string; to: string; weight?: number }
   | { op: 'graph-remove'; id: string }
   | { op: 'load-preset-input'; presetIndex: number };
@@ -77,7 +77,15 @@ export const parseInputPatch = (value: unknown): InputPatchV1 | null => {
     case 'graph-add-node':
       return typeof value.id === 'string' && value.id.length > 0
         && (value.label === undefined || typeof value.label === 'string')
-        ? { op: value.op, id: value.id, label: value.label as string | undefined } : null;
+        && (value.x === undefined || finite(value.x))
+        && (value.y === undefined || finite(value.y))
+        ? {
+          op: value.op,
+          id: value.id,
+          label: value.label as string | undefined,
+          x: value.x as number | undefined,
+          y: value.y as number | undefined,
+        } : null;
     case 'graph-add-edge':
       return typeof value.from === 'string' && typeof value.to === 'string'
         && (value.weight === undefined || finite(value.weight))
@@ -249,8 +257,8 @@ export const applyInputPatch = (
             nodes: [...graph.nodes, {
               id: patch.id,
               label: patch.label ?? patch.id,
-              x: 80 + (index % 6) * 110,
-              y: 80 + Math.floor(index / 6) * 110,
+              x: patch.x ?? 80 + (index % 6) * 110,
+              y: patch.y ?? 80 + Math.floor(index / 6) * 110,
             }],
           },
           origin: 'user',
@@ -281,6 +289,8 @@ export const applyInputPatch = (
         const nodes = graph.nodes.filter((node) => node.id !== patch.id);
         const edges = graph.edges.filter((edge) => edge.id !== patch.id && edge.from !== patch.id && edge.to !== patch.id);
         const fallbackId = nodes[0].id;
+        const childFallback = graph.edges.find((edge) => edge.from === patch.id
+          && nodes.some((node) => node.id === edge.to))?.to;
         next = {
           ...input,
           graph: {
@@ -288,8 +298,8 @@ export const applyInputPatch = (
             nodes,
             edges,
             startId: graph.startId === patch.id ? fallbackId : graph.startId,
-            rootId: graph.rootId === patch.id ? fallbackId : graph.rootId,
-            targetId: graph.targetId === patch.id ? undefined : graph.targetId,
+            rootId: graph.rootId === patch.id ? childFallback ?? fallbackId : graph.rootId,
+            targetId: graph.targetId === patch.id ? nodes.at(-1)?.id : graph.targetId,
           },
           origin: 'user',
         };
@@ -311,14 +321,28 @@ export type InputPatchRecompileResult =
   | { ok: true; input: SimulationInput; package: CustomSimulationPackageV1; currentIndex: 0 }
   | { ok: false; reason: string; package: CustomSimulationPackageV1 };
 
-export const applyAndRecompileInputPatch = (options: {
+export const applyInputPatches = (
+  input: SimulationInput,
+  patches: InputPatchV1[],
+  contract: InputContractV1,
+): InputPatchResult => {
+  let candidate = input;
+  for (const patch of patches) {
+    const applied = applyInputPatch(candidate, patch, contract);
+    if (applied.ok === false) return { ...applied };
+    candidate = applied.input;
+  }
+  return { ok: true, input: candidate };
+};
+
+export const applyAndRecompileInputPatches = (options: {
   activePackage: CustomSimulationPackageV1;
   currentInput: SimulationInput;
-  patch: InputPatchV1;
+  patches: InputPatchV1[];
   locale: Locale;
   workspace: WorkspaceSnapshotV1;
 }): InputPatchRecompileResult => {
-  const applied = applyInputPatch(options.currentInput, options.patch, options.activePackage.input);
+  const applied = applyInputPatches(options.currentInput, options.patches, options.activePackage.input);
   if (applied.ok === false) return { ...applied, package: options.activePackage };
   try {
     const nextPackage = recompileSimulationInput({
@@ -335,4 +359,14 @@ export const applyAndRecompileInputPatch = (options: {
       package: options.activePackage,
     };
   }
+};
+
+export const applyAndRecompileInputPatch = (options: {
+  activePackage: CustomSimulationPackageV1;
+  currentInput: SimulationInput;
+  patch: InputPatchV1;
+  locale: Locale;
+  workspace: WorkspaceSnapshotV1;
+}): InputPatchRecompileResult => {
+  return applyAndRecompileInputPatches({ ...options, patches: [options.patch] });
 };

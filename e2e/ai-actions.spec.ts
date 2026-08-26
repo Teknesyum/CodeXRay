@@ -249,6 +249,7 @@ test('builds and applies bidirectional BFS through the visible Titan Mode queue'
   await chatInput.press('Enter');
   await expect(page.getByText(/Compatible input and trace applied/i).last()).toBeVisible();
   await expect(page.locator('.graph-node')).toHaveCount(11);
+  await expect(page.locator('.graph-edge')).toHaveCount(edgeCountBeforeVisualEdit + 2);
   await expect(page.locator('.graph-node').filter({ hasText: /^X$/ })).toBeVisible();
   await expect(page.getByLabel('Bidirectional BFS — Custom execution')).toHaveText(sourceBeforeVisualEdit ?? '');
 

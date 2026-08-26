@@ -39,7 +39,12 @@ import { runVerificationGates } from './verificationGates';
 import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
 import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
-import { applyInputPatch, createInputReplacementPatch } from './input/inputPatch';
+import {
+  applyAndRecompileInputPatch,
+  applyInputPatch,
+  createInputReplacementPatch,
+  createSemanticArrayPatch,
+} from './input/inputPatch';
 import { compileArrayTemplatePackage, type ArrayTemplateId } from './arrayCompiler';
 export type TitanModeRunResult = {
   status: 'success';
@@ -795,6 +800,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
       if (options.intent.type === 'adapt-input') {
         const visualOnly = Boolean(options.activePackage?.input.value.graph)
           && isVisualOnlyGraphRequest(options.request);
+        let semanticPackage: CustomSimulationPackageV1 | null = null;
         const input = await runJob('input-engineer-build-compatible-input', async () => {
           const kind = options.activePackage?.input.kind
             ?? getInputKindForAlgorithm(options.workspace.algorithmName);
@@ -809,6 +815,26 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
                 options.workspace.simulationInput.parameters,
               ).input
             : undefined;
+          const semanticPatch = current?.kind === 'array' && !isMatrixPackage
+            ? createSemanticArrayPatch(options.request)
+            : null;
+          if (semanticPatch && options.activePackage && current) {
+            const semanticResult = applyAndRecompileInputPatch({
+              activePackage: options.activePackage,
+              currentInput: current,
+              patch: semanticPatch,
+              locale: options.locale,
+              workspace: options.workspace,
+            });
+            if (semanticResult.ok === false) throw new Error(semanticResult.reason);
+            semanticPackage = semanticResult.package;
+            setJob('input-engineer-build-compatible-input', {
+              summary: options.locale === 'tr'
+                ? `${semanticPatch.op} işlemi doğrulandı ve deterministik olarak uygulandı.`
+                : `${semanticPatch.op} was validated and applied deterministically.`,
+            });
+            return semanticResult.input;
+          }
           let generated = adaptSimulationInputFromRequest({
             request: options.request,
             current: current ?? null,
@@ -845,7 +871,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             origin: 'user' as const,
           };
           const applied = applyInputPatch(current ?? generated, patch, contract);
-          if (!applied.ok) throw new Error(applied.reason);
+          if (applied.ok === false) throw new Error(applied.reason);
           const advice = options.locale === 'tr'
             ? `Input düzenleme komutu ${kind} sözleşmesine deterministik olarak uygulandı.`
             : `The input edit was applied deterministically to the ${kind} contract.`;
@@ -854,6 +880,10 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         });
         let updatedPackage: CustomSimulationPackageV1 | null = null;
         const steps = await runJob('compiler-regenerate-deterministic-trace', () => {
+          if (semanticPackage) {
+            updatedPackage = semanticPackage;
+            return semanticPackage.steps;
+          }
           const parsed = options.activePackage?.program.id === 'spiral_matrix'
             ? { input }
             : parseSimulationInput(input.kind, input.text, input.graph, input.parameters);

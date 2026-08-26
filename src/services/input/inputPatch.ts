@@ -111,6 +111,42 @@ export const createInputReplacementPatch = (
   return patch;
 };
 
+const normalizedRequest = (request: string): string => request
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/ı/g, 'i')
+  .toLocaleLowerCase('en-US');
+
+export const createSemanticArrayPatch = (request: string): InputPatchV1 | null => {
+  const text = normalizedRequest(request);
+  if (!/\b(array|input|dizi|girdi)\w*\b/.test(text)) return null;
+
+  const resizeMatch = text.match(/\b(\d{1,4})\s*(?:(?:ascending|descending|random|duplicate|artan|azalan|rastgele|tekrarli)\s+)?(?:items?|values?|elements?|eleman(?:li|a)?)\b/);
+  const count = Number(resizeMatch?.[1]);
+  if (Number.isInteger(count) && /\b(resize|make|change|boyut|yap|cikar)\w*\b/.test(text)) {
+    const fill = /\b(descending|reverse|azalan|tersten)\b/.test(text) ? 'descending'
+      : /\b(ascending|artan)\b/.test(text) ? 'ascending'
+        : /\b(duplicates?|repeated|tekrarli)\b/.test(text) ? 'duplicates'
+          : /\b(random|rastgele)\b/.test(text) ? 'random-seeded'
+            : null;
+    if (fill) return parseInputPatch({ op: 'resize-array', count, fill });
+  }
+
+  if (/\b(sort|sirala)\w*\b/.test(text)) {
+    const direction = /\b(descending|reverse|azalan|tersten)\b/.test(text) ? 'desc'
+      : /\b(ascending|artan)\b/.test(text) ? 'asc'
+        : null;
+    if (direction) return parseInputPatch({ op: 'sort-array', direction });
+  }
+
+  if (/\b(shuffle|karistir)\w*\b/.test(text)) {
+    const seedMatch = text.match(/\b(?:seed|tohum)\s*(\d+)\b/) ?? text.match(/\b(\d+)\s*(?:seed|tohum)\b/);
+    const seed = Number(seedMatch?.[1]);
+    if (Number.isSafeInteger(seed)) return parseInputPatch({ op: 'shuffle-array', seed });
+  }
+  return null;
+};
+
 const seededValues = (count: number, seed = 0x9e3779b9): number[] => {
   let state = seed >>> 0 || 0x6d2b79f5;
   return Array.from({ length: count }, () => {

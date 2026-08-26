@@ -49,6 +49,17 @@ describe('Titan Mode routing', () => {
     expect(routeTitanModeRequest('17. nolu nodu kaldır', [], 0)).toEqual({ type: 'adapt-input' });
   });
 
+  it.each([
+    'resize the array to 10 descending values',
+    'diziyi 10 elemanli azalan yap',
+    'sort the array in ascending order',
+    'diziyi azalan sirala',
+    'shuffle the array with seed 17',
+    'diziyi tohum 17 ile karistir',
+  ])('routes a semantic array request through adapt-input: %s', (request) => {
+    expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'adapt-input' });
+  });
+
   it('routes a current-step discussion to the five-phase explanation seam', () => {
     expect(routeTitanModeRequest('bunu açıkla', [], 0)).toEqual({ type: 'discuss-current-step' });
   });

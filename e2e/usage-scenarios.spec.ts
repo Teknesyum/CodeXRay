@@ -56,6 +56,12 @@ test('edits, expands, and recompiles the active input from natural commands', as
   await expect(page.getByRole('button', { name: 'Sonraki adım' })).toBeEnabled();
 
   const expanded = await input.inputValue();
+  const descending = [...JSON.parse(expanded) as number[]].sort((left, right) => right - left);
+  await chat.fill('diziyi azalan sırala');
+  await chat.press('Enter');
+  await expect.poll(async () => JSON.parse(await input.inputValue())).toEqual(descending);
+  await expect(page.locator('.context-chip')).toHaveText(/Adım 1\/\d+/);
+
   await chat.fill('inputu düzenle');
   await chat.press('Enter');
   await expect.poll(() => input.inputValue()).not.toBe(expanded);

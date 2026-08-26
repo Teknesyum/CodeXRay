@@ -6,6 +6,7 @@ import {
   applyAndRecompileInputPatch,
   applyInputPatch,
   createInputReplacementPatch,
+  createSemanticArrayPatch,
   parseInputPatch,
   type InputPatchV1,
 } from './inputPatch';
@@ -47,6 +48,17 @@ const applied = (input: SimulationInput, patch: InputPatchV1, constraints: strin
 };
 
 describe('InputPatchV1', () => {
+  it.each([
+    ['resize-array EN', 'resize the array to 10 descending values', { op: 'resize-array', count: 10, fill: 'descending' }],
+    ['resize-array TR', 'diziyi 10 elemanli azalan yap', { op: 'resize-array', count: 10, fill: 'descending' }],
+    ['sort-array EN', 'sort the array in ascending order', { op: 'sort-array', direction: 'asc' }],
+    ['sort-array TR', 'diziyi azalan sirala', { op: 'sort-array', direction: 'desc' }],
+    ['shuffle-array EN', 'shuffle the array with seed 17', { op: 'shuffle-array', seed: 17 }],
+    ['shuffle-array TR', 'diziyi tohum 17 ile karistir', { op: 'shuffle-array', seed: 17 }],
+  ])('classifies a real %s request into a validated semantic op', (_label, request, expected) => {
+    expect(createSemanticArrayPatch(request)).toEqual(expected);
+  });
+
   it('runtime-validates every closed operation and rejects malformed variants', () => {
     const valid: unknown[] = [
       { op: 'set-array', values: [1, 2] },
@@ -90,6 +102,9 @@ describe('InputPatchV1', () => {
     expect(applied(arrayInput, { op: 'sort-array', direction: 'asc' }).text).toBe('[1,2,3]');
     const first = applied(arrayInput, { op: 'shuffle-array', seed: 42 }).text;
     expect(applied(arrayInput, { op: 'shuffle-array', seed: 42 }).text).toBe(first);
+    const requestPatch = createSemanticArrayPatch('shuffle the array with seed 42');
+    expect(requestPatch).not.toBeNull();
+    expect(applied(arrayInput, requestPatch!).text).toBe(applied(arrayInput, requestPatch!).text);
   });
 
   it('runtime-validates complete matrix and graph replacements', () => {
@@ -166,5 +181,29 @@ describe('InputPatchV1', () => {
     expect(result.package.program.id).toBe(activePackage.program.id);
     expect(result.package.source).toEqual(activePackage.source);
     expect(result.package.input.value.text).toBe('[4,9,2,11,6]');
+  });
+
+  it('preserves workspace, package, and timeline identity when a semantic op violates the contract', () => {
+    const workspace: WorkspaceSnapshotV1 = {
+      version: 1, algorithmName: 'Predict the Winner', code: '', simulationInput: arrayInput,
+      steps: [], currentIndex: 4, analysis: null, inputError: null, activePackageId: null,
+      packageOutOfSync: false,
+    };
+    const original = compilePredictWinnerPackage({
+      id: 'patch-guarded', request: 'Predict the Winner', locale: 'en', workspace,
+    });
+    const guarded = { ...original, input: { ...original.input, constraints: ['Non-negative values only'] } };
+    const timeline = guarded.steps;
+    const result = applyAndRecompileInputPatch({
+      activePackage: guarded,
+      currentInput: { kind: 'array', text: '[-3,1,2]', origin: 'user' },
+      patch: { op: 'sort-array', direction: 'asc' },
+      locale: 'en',
+      workspace,
+    });
+    expect(result).toMatchObject({ ok: false, package: guarded });
+    expect(result.package).toBe(guarded);
+    expect(result.package.steps).toBe(timeline);
+    expect(workspace).toMatchObject({ currentIndex: 4, simulationInput: arrayInput });
   });
 });

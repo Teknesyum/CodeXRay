@@ -239,3 +239,100 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+Written by Claude after verifying H14, pushing both commits, and running the remote gate.
+
+### Criterion 13, remote half — **closed**
+
+`git push origin main` moved `8b8a688..d9f06a6`. CI run `33011710391` on head `d9f06a6`:
+
+```text
+quality success
+desktop success
+browser success
+```
+
+`70 passed` then `2 passed`, zero flaky in both phases. `handler.median` 1.10 ms against 10,
+a 9.09x margin.
+
+### The input story is finished
+
+Eleven ops, eleven keys, all reachable, all validated, all atomic. R07 put `adapt-input` on
+the seam, R10 made the array ops reachable, R12 removed the duplicate graph editor, R13
+closed the op union, R14 closed the vocabulary. Five routes, and the claim in `AGENTS.md`
+now matches the code exactly.
+
+### The unification fixed a latent bug, and that is worth stating
+
+H14 records the apostrophe measurement and the decision to drop `'` as a delimiter. What it
+does not say is what the old regex did on the pre-existing path.
+
+`inputRequestAdapter.ts:154` was `/["“”']([^"“”']+)["“”']/`. On
+`pattern'i "abc" yap` it matches from the suffix apostrophe, captures `[^"“”']+`
+as `i `, and closes on the `"`. The old adapter therefore extracted **`i `** — not `abc`,
+and not nothing. For a `kind === 'string'` input that value became the input text.
+
+So dropping the single quote is not a narrowing that cost something. On Turkish input it
+replaced a wrong answer with a right one. The three-line measurement in H14 shows the new
+behaviour; this is the missing half — what the old behaviour was.
+
+### One thing was changed without being declared as a behaviour change
+
+The `'` removal alters `inputRequestAdapter.ts` and `stringCompiler.ts`, both of which
+existed before this route. `stringCompiler.ts` only widened (it now accepts smart quotes,
+having accepted straight quotes only). `inputRequestAdapter.ts` genuinely changed what it
+extracts, as above.
+
+H14 declares `requestLiterals.ts` in `## Deviations` as a new file, correctly, but treats
+the consumer changes as mechanical. They were not entirely mechanical, and no test covered
+quoted extraction on either older path in **either** direction — before or after. The
+behaviour is now better and it is still uncovered.
+
+Not a defect in the turn and not worth reopening: criterion 8 required exactly this
+unification, and the direction is right. Recorded so the next route touching those two files
+knows the coverage is absent, and so that "criterion 8 required it" is not mistaken for
+"criterion 8 verified it".
+
+### The architecture map — **reconciled**
+
+`AGENTS.md`'s `inputPatch.ts` entry now states 11/11 ops and 11/11 keys instead of listing
+what is deferred. The `algorithmInputs.ts` entry records the `target` type collision and
+that it is resolved only by the active algorithm. A new entry names `requestLiterals.ts` as
+the single literal extractor, records why the single quote is not a delimiter, and forbids a
+fourth convention.
+
+`src/services/titan/AGENTS.md` needs no change, for the fourth time and the same reason.
+
+### Recorded, not acted on — and it supersedes what R13 recorded
+
+R13's reconciliation said five of seven intents bypass the five-phase pipeline. Reading
+`titanPipeline.ts:178-240` makes that description wrong in a way that matters, so replace it
+with this:
+
+`startAdaptInputPipeline` does not replace the engine. It calls `startTitanEngineRun` with
+`deferApply: true` and `onPlan: () => undefined`, so:
+
+- **`produce` is the entire engine run** — its own seven-job `manager → scout →
+  input-engineer → compiler → critic → manager → tutor` graph, collapsed into one phase and
+  with its progress events suppressed.
+- **`verify` is a shape check**, not a verification:
+  `result.status === 'success' && result.input && result.steps?.length`.
+- **`apply` is genuinely owned by the pipeline**, which is real and is the phase that earns
+  its name.
+
+And the engine's own `critic-validate-input-and-trace` for `adapt-input` is
+`if (!steps.length) throw` — also a shape check. So there are two verification steps on this
+path and neither inspects content.
+
+The system is nonetheless safe, which is the part that must not be lost: what actually
+rejects a bad adaptation is `applyInputPatch`'s contract validation — the work of R10
+through R14 — running inside `produce`. The guarantee is real. The claim about **where** it
+comes from is wrong.
+
+That is the honest next question, and it is not "migrate five intents to the pipeline".
+It is: the phase named `verify` does not verify, and for `create-algorithm` with
+`template: 'model-authored'` — the one intent that puts model-authored source into the
+workspace — there is no pipeline at all.
+

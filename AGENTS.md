@@ -130,17 +130,23 @@ testing another trusted CodeXRay gateway.
   `applyAndRecompileInputPatches` is its production applier and the single-patch
   `applyAndRecompileInputPatch` delegates to it. Ambiguous requests still fall back to the
   older heuristic adapter in `inputRequestAdapter.ts`. `set-param` is reachable since R13
-  through `createSemanticParameterPatches`, for the six **numeric** keys only — `target`,
-  `windowSize`, `capacity`, `amount`, `modulus`, `cycleEntry`. Every op in the union now has
-  a production caller. The five text keys (`pattern`, `query`, `other`, `values`, and
-  Minimum Window Substring's text `target`) are deliberately deferred to R14: extracting a
-  string literal from a sentence is a different problem and a wrong guess silently corrupts
-  the lesson.
+  through `createSemanticParameterPatches`. **Every op and every parameter key is reachable
+  from production as of R14 — 11/11 ops, 11/11 keys.** Numeric keys take a bare number; the
+  four text keys and Knapsack's `values` require an explicit literal, never an inference.
 - `src/services/algorithmInputs.ts` — `getAlgorithmParameterDefinitions` is **the authority
-  on parameter keys**, per algorithm, with EN/TR labels. Both the `CodeEditor.tsx` form and
-  the request path read it; `applyInputPatch` rejects any `set-param` naming a key the
-  active algorithm does not declare, and rejects a non-numeric value for a `type: 'number'`
-  key. Never widen this registry to make a phrase parse.
+  on parameter keys**, per algorithm, with EN/TR labels and a declared type. Both the
+  `CodeEditor.tsx` form and the request path read it; `applyInputPatch` rejects any
+  `set-param` naming a key the active algorithm does not declare, and rejects a value of the
+  wrong type. `target` is numeric for Binary Search and textual for Minimum Window
+  Substring, resolved only by the active algorithm. Never widen this registry to make a
+  phrase parse.
+- `src/services/requestLiterals.ts` — the single extractor for literals in request text:
+  `extractQuotedLiteral` (straight and smart double quotes; **the single quote is not a
+  delimiter**, because in Turkish it is a suffix apostrophe) and
+  `extractNumericArrayLiteral` (explicit JSON array). `inputPatch.ts`,
+  `inputRequestAdapter.ts`, and `stringCompiler.ts` all read it. Do not add a fourth quote
+  convention. A request with no delimited literal produces no patch — never infer a string
+  from surrounding prose.
 - `src/services/graphRequestEdits.ts` — classifies a graph request into typed ops and does
   not mutate. `isVisualOnlyGraphRequest` and `spreadGraphLayout` are layout only. Since R12
   a rejected op fails the whole request rather than being silently skipped, so a

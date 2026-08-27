@@ -265,9 +265,15 @@ orderings without re-deciding that trade.
   artifact is what its program deterministically produces. **It cannot prove the program
   solves the request** — nothing in the system can, and no gate should be described as if it
   did. Fails closed: a throw is a rejection.
-- `discuss-current-step` — still a shape check: the selected step exists and the answer is
-  non-empty. It cannot reject a confidently wrong explanation. Deferred to
-  `R17-grounded-current-step-verification`.
+- `discuss-current-step` — **currently wrong, and knowingly so; see `R17b`.** R17 replaced the
+  shape check with `verifyCurrentStepArtifact`, which extracts the five EN/TR lenses and is
+  fail-closed. `Time` genuinely compares the answer's `N/M` against `currentIndex + 1` and
+  `steps.length`. `Code` and `Data` do not compare facts: they require the answer to contain
+  `deterministicFiveLens`'s own sentence — the literal phrase `Active source line N` /
+  `Aktif kaynak satırı N`, and verbatim containment of `JSON.stringify(vars).slice(0, 700)`.
+  A correct answer in different words is rejected, so with a local advisory model loaded this
+  intent fails verification for almost any answer. `Reasoning` and `Visual` are required as
+  slots and never verified — that part is deliberate and stays.
 
 Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
 and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,

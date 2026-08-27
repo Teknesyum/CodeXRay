@@ -198,3 +198,75 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Verdict: not closed. Reopened as `R17b`.** Head `60f4595`, CI run `33115935942`, all three
+jobs green — the gates are clean and the defect is not the kind a gate here can see.
+
+### Remote gate
+
+```
+72 passed (6.9m)
+2 passed (59.2s)
+TIMELINE_MEASUREMENTS {"playwright":{"min":1392.2482390000005,"median":1628.817885999999,"max":1965.6402529999996},"inPage":{"min":248.79999999993015,"median":279.79999999998836,"max":479.4000000000233},"handler":{"min":0.9999999997671694,"median":1.2999999999883585,"max":3.1999999997206032},"deliberateDelayMs":0}
+```
+
+Zero flaky. The new divergent-tutor spec is the 72nd.
+
+### Criterion 1 is not met
+
+H17 states: "`Code` is verified against `workspace.steps[currentIndex].lineNumber`; that
+committed simulation step is its independent source of truth." The code does not do that. It
+requires the answer to contain the deterministic fallback's own sentence:
+
+```ts
+lenses.get('code')!.match(/(?:Active source line|Aktif kaynak satırı)\s+(\d+|result step|sonuç adımı)\b/iu)
+lenses.get('data')!.includes(JSON.stringify(step.visualData.vars).slice(0, 700))
+```
+
+`Code: line 9 is active.` is a correct answer and is rejected. `Data: i = 2` is a correct answer
+and is rejected. Only `Time` verifies a fact — it parses any `N/M` and compares the numbers,
+and it is right.
+
+So the turn shipped a check whose passing condition is "the answer reproduces
+`deterministicFiveLens`", described as a check whose passing condition is "the answer agrees
+with the trace". The description is what the criterion asked for; the code is not.
+
+### Why the suite could not catch it
+
+Every accepting test feeds the fallback's phrasing; every rejecting test feeds that phrasing
+with a wrong number, or an unlabelled string. Both the true hypothesis and the false one
+predict all five results. `titanPipeline.test.ts:180` — accepting the real
+`deterministicFiveLens` output in EN and TR — is the best test in the turn and is precisely the
+case that cannot separate them. **The missing test is the one R17b opens with: a correct answer
+in different words.**
+
+### Consequence, and why it is invisible here
+
+`callOptionalAgent` returns the fallback only when no advisory model is loaded
+(`titanEngine.ts:756`). With a model, the tutor's own text is returned, and nothing in the
+prompt or in `fiveLensContext` asks for the canonical sentence or the raw `vars` JSON. On a
+machine with a local model, `discuss-current-step` now fails verification for almost any
+answer and the user reads the failure message instead of an explanation.
+
+R17's decision section named this exact outcome as the one that would make Option A the wrong
+call. It is not the wrong call — the comparison is wrong, not the option — but the warning was
+live and the turn passed under it because H18 had already established that this environment has
+no usable WebGPU adapter. **The configuration that breaks is the configuration that cannot be
+run**, and that is now a standing hazard for any route touching a model-conditional path, not
+a fact about this turn.
+
+### What R17 got right and R17b keeps
+
+Fail-closed, the two-language label map, `extractFiveLenses` handling bullets and bold, five
+slots required, `Reasoning` and `Visual` explicitly unverified, the localized failure message,
+`Time`'s comparison, exporting `deterministicFiveLens` as an oracle, and an e2e that drives a
+stubbed divergent tutor through the production UI and asserts the wrong line never reaches the
+user. None of that is reopened. R17b changes three comparisons.
+
+### Architecture map
+
+`AGENTS.md`'s `discuss-current-step` line is corrected in this commit to describe what is
+actually in `main` — including the defect — rather than leaving the pre-R17 "shape check"
+sentence standing. The settled wording waits for R17b, as that route reserves.

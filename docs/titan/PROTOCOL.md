@@ -259,12 +259,22 @@ criterion, and every module they added — `titanRouter`, `executeTitanPipeline`
 `translate` — shipped with green tests and no production caller. `## Evidence required` alone
 cannot catch this; it proves the module behaves, not that the product is wired to it.
 
-Where those four ended up is the point of the rule, not a footnote to it. `executeTitanPipeline`
-was wired in R04 and now carries `discuss-current-step`. `titanRouter` was deleted in R05,
-along with the intent vocabulary it alone spoke. `inputPatch` and `translate` are still
-uncalled and still awaiting the routes that decide them. Two of four turned out to be worth
-wiring; one was worth deleting. A green test never distinguished between those outcomes, and
-that is exactly what `## Call path` exists to force someone to state up front.
+Where those four ended up is the point of the rule, not a footnote to it.
+`executeTitanPipeline` was wired in R04 and carries `discuss-current-step` and, since R07,
+`adapt-input`. `titanRouter` was deleted in R05, along with the intent vocabulary it alone
+spoke. `translate` was wired in R06 through `webProblemOrchestrator.ts`. `inputPatch` took
+five routes — R07, R10, R12, R13, R14 — to go from validated-but-unreachable to 11/11 ops
+and 11/11 parameter keys reachable from production. Three of four were worth wiring; one was
+worth deleting. A green test never distinguished between those outcomes, and that is exactly
+what `## Call path` exists to force someone to state up front.
+
+**Wired is not the same as doing what its name says.** R15 found that the phase called
+`verify` checked only that the artifact was non-empty, on both intents that reached it, for
+eleven routes. The call path was real, the tests were green, the phase ran in the right
+order — and it could not reject a single well-formed artifact. `## Call path` proves a module
+is reached. Nothing proves a module does its job except a test that fails when the job is not
+done, which is why a route that changes a check must show that check failing on input the
+producer accepts.
 
 ## Handoff template
 

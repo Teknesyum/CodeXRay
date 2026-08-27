@@ -210,6 +210,35 @@ The Titan pipeline has five phases, in order: **route → produce → semantics 
 apply**. `semantics` may be skipped only through its declared optional slot; phases are
 never reordered, and `apply` runs only after `verify` returns ok.
 
+**What each phase actually does, because the names alone mislead.** Only two intents run
+this pipeline: `adapt-input` and `discuss-current-step`, both from `AiAssistant.tsx`.
+`produce` is not a step beside the engine — it *is* the engine run, entered with
+`deferApply: true` and its own job events suppressed, so the engine's whole job graph
+happens inside one phase. `apply` is genuinely owned by the pipeline and is the reason
+`deferApply` exists.
+
+`verify` differs per intent and the difference matters:
+
+- `adapt-input` — since R15, `verifyAdaptInputArtifact` recomputes the trace independently
+  from the artifact's committed input (`structuredClone`, then `recompileSimulationInput`
+  for a package or `generateSimulationSteps` otherwise) and compares it to the trace the
+  artifact carries. A well-formed but internally inconsistent artifact is rejected. It fails
+  closed: a throw is a rejection. Measured cost ~0.72 ms per check.
+- `discuss-current-step` — still a shape check: the selected step exists and the answer is
+  non-empty. It cannot reject a confidently wrong explanation. Deferred to
+  `R16-grounded-current-step-verification`.
+
+Everything else — `create-algorithm`, `create-catalog-problem`, `clarify-algorithm`,
+`ui-control`, `deterministic` — does not run this pipeline at all. In particular
+`create-algorithm` with `template: 'model-authored'`, the one intent that puts
+model-authored source into the workspace, has no pipeline phase; its gates live in the
+engine's own job graph. Deferred to `R17-model-authored-pipeline-verification`.
+
+**Do not assume a new artifact type is checked because it sits behind `verify`.** For
+`adapt-input` the content guarantee comes from two places: the typed appliers in
+`inputPatch.ts` inside `produce`, and R15's recomputation in `verify`. A new artifact type
+must bring its own check or it gets neither.
+
 Intents are a closed set — no free-form intent strings: `create-algorithm`,
 `create-catalog-problem`, `clarify-algorithm`, `adapt-input`, `discuss-current-step`,
 `ui-control`, `deterministic`. Anything the deterministic router cannot classify returns

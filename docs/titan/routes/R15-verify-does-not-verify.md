@@ -222,3 +222,95 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+Written by Claude after verifying H15, pushing all three commits, and running the remote
+gate.
+
+### Criterion 11, remote half — **closed**
+
+`git push origin main` moved `8bb7758..4d86c33`. CI run `33046845220` on head `4d86c33`:
+
+```text
+browser success
+quality success
+desktop success
+```
+
+`71 passed` then `2 passed`, zero flaky. `handler.median` 1.30 ms against 10.
+
+### Option A, and it is really option A
+
+The distinction the route drew between A and the third possibility — re-deriving versus
+re-reading produce's conclusion — was met on the re-deriving side.
+`verifyAdaptInputArtifact` clones the artifact's input, recomputes the trace from it
+(`recompileSimulationInput` for a package, `generateSimulationSteps` otherwise), and
+compares it byte-for-byte to the trace the artifact carries. It fails closed: a throw is a
+rejection, not a pass.
+
+Criterion 2 is the one that mattered and it was met properly — `titanPipeline.test.ts:182-224`
+constructs a result that `produce` returns successfully, with a non-empty tampered trace, and
+`verify` rejects it. That is a check that can fail on a well-formed artifact, which is exactly
+what the old one could not do.
+
+**The honest limit, which H15 does not state and should be on record:** for the package
+branch, `verify` re-runs `recompileSimulationInput` — the same function `produce` used. It
+re-derives from the committed input rather than re-reading a stored verdict, so it genuinely
+catches an artifact whose trace and input disagree. It cannot catch a bug inside
+`recompileSimulationInput` itself, because both derivations would be wrong identically.
+That is a real and acceptable bound; it is not a reason to weaken the claim, only a reason
+not to overstate it.
+
+### The cost measurement is usable
+
+```text
+ADAPT_VERIFY_MEASUREMENT {"size":20,"iterations":25,"beforeMs":0.004,"afterMs":17.886}
+```
+
+0.00016 ms/check before, 0.71544 ms/check after, on the largest input the semantic patch path
+accepts (20 values). A 4,470x relative increase on a number that is still under a
+millisecond. Stating both the ratio and the absolute is the right way to report this: the
+ratio alone would look alarming and the absolute alone would hide that the old check was
+doing nothing.
+
+### Three commits, and the rule is right this time
+
+Criterion 12 said two commits; the turn published three, with `957da74` correcting a
+Playwright strict-mode locator between close and handoff. That is the `fix(R<n>)` slot the
+protocol reserves, used for exactly what it is for, and the handoff declares it. Accepted.
+
+Unlike R03 — where a three-commit turn revealed the two-commit rule was wrong — nothing needs
+to change here. The rule already permits this shape; the criterion's wording is shorthand for
+it.
+
+### The two documents — **reconciled**
+
+`AGENTS.md` now records what each phase does rather than only their order: that only two
+intents run the pipeline, that `produce` *is* the engine run with `deferApply: true` and
+suppressed job events, that `apply` is genuinely pipeline-owned, and that `verify` differs
+per intent — recomputation for `adapt-input`, still a shape check for `discuss-current-step`.
+It names the five intents that never reach the pipeline, singles out `create-algorithm`
+model-authored, and closes with the warning that made this route necessary: a new artifact
+type placed behind `verify` is not checked by being there.
+
+`PROTOCOL.md`'s `## Call path` section carried a stale paragraph claiming `inputPatch` and
+`translate` were still uncalled. Both are wired — `translate` in R06, `inputPatch` across
+R07, R10, R12, R13, and R14. Corrected, and a rule added beside it:
+
+> **Wired is not the same as doing what its name says.** `## Call path` proves a module is
+> reached. Nothing proves a module does its job except a test that fails when the job is not
+> done.
+
+That rule is R15's real product. The verify phase had a real call path, green tests, and
+correct ordering for eleven routes while checking nothing.
+
+### Recorded, not acted on
+
+- `R16-grounded-current-step-verification` and `R17-model-authored-pipeline-verification` are
+  named by H15 with their requirements stated. Neither is drafted; both are real.
+- H15 reports `radio-controller.spec.ts` exhausting its 30-second timeout once at eight local
+  workers, passing cleanly at four. Second sighting — H12 reported the same spec at the same
+  worker count. Local-only both times, never on the gate. If it appears a third time, or once
+  on CI, it stops being a worker-contention note and becomes a route.
+

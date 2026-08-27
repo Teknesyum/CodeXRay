@@ -50,13 +50,34 @@ const successfulAgent = (request: LocalAgentRequest): LocalAgentHandle => {
   return { requestId: 1, promise: Promise.resolve(text), cancel: vi.fn() };
 };
 
+const successfulModelAuthoredAgent = (request: LocalAgentRequest): LocalAgentHandle => {
+  const text = request.role === 'architect'
+    ? JSON.stringify({
+      version: 1,
+      title: 'Array Scan',
+      purpose: 'Scan an array deterministically.',
+      inputKind: 'array',
+      dataStructures: ['array'],
+      invariants: ['Each value is observed once.'],
+      termination: 'The array is loaded.',
+      complexity: { time: 'O(n)', space: 'O(n)' },
+    })
+    : request.role === 'code-author'
+      ? JSON.stringify(modelAuthoredProgram)
+      : request.role === 'critic'
+        ? JSON.stringify({ passed: true, issues: [], summary: 'Validated.' })
+        : `${request.role} completed.`;
+  return { requestId: 2, promise: Promise.resolve(text), cancel: vi.fn() };
+};
+
 describe('Titan Mode orchestrator', () => {
   it.each([
-    ['interval-DP', { type: 'create-algorithm', template: 'predict-winner-interval-dp' }],
-    ['array template', { type: 'create-algorithm', template: 'jump-game-dp' }],
-    ['DP template', { type: 'create-algorithm', template: 'house-robber-1d-dp' }],
-    ['custom creation', { type: 'create-algorithm', template: 'bidirectional-bfs' }],
-  ] as const)('applies the %s package once eagerly and zero times when deferred', async (_label, intent) => {
+    ['interval-DP', { type: 'create-algorithm', template: 'predict-winner-interval-dp' }, successfulAgent],
+    ['array template', { type: 'create-algorithm', template: 'jump-game-dp' }, successfulAgent],
+    ['DP template', { type: 'create-algorithm', template: 'house-robber-1d-dp' }, successfulAgent],
+    ['custom creation', { type: 'create-algorithm', template: 'bidirectional-bfs' }, successfulAgent],
+    ['model-authored creation', { type: 'create-algorithm', template: 'model-authored' }, successfulModelAuthoredAgent],
+  ] as const)('applies the %s package once eagerly and zero times when deferred', async (_label, intent, agentRunner) => {
     for (const deferApply of [false, true]) {
       const applyPackage = vi.fn();
       const result = await startTitanModeRun({
@@ -68,7 +89,7 @@ describe('Titan Mode orchestrator', () => {
         onPlan: vi.fn(),
         applyPackage,
         applyInput: vi.fn(),
-        agentRunner: successfulAgent,
+        agentRunner,
         deferApply,
       }).promise;
       expect(result.status).toBe('success');

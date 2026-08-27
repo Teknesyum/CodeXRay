@@ -4,6 +4,7 @@ import type { AgentJobStatus, TitanModeAgentRole, ManagerJobV1, ManagerPlanV1 } 
 import type { SimulationStep } from '../../types/simulation';
 import { generateSimulationSteps } from '../aiService';
 import { recompileSimulationInput } from '../recompileSimulationInput';
+import { compileCustomSimulationPackage } from '../customSimulationCompiler';
 
 export type TitanStageId = 'route' | 'produce' | 'semantics' | 'verify' | 'apply';
 export type TitanStageStatus = 'waiting' | 'running' | 'completed' | 'skipped' | 'failed' | 'cancelled';
@@ -65,17 +66,26 @@ export const executeTitanPipeline = async <Route, Artifact>(
       throw error;
     }
   };
-  const route = await run('route', tasks.route);
-  let artifact = await run('produce', () => tasks.produce(route));
-  if (tasks.semantics) artifact = await run('semantics', () => tasks.semantics!(artifact));
-  else publish('semantics', 'skipped', 'Skipped because deterministic semantics were already sufficient.');
-  const verification = await run('verify', () => tasks.verify(artifact));
-  if ('reason' in verification) {
-    publish('verify', 'failed', verification.reason);
-    throw new Error(verification.reason);
+  try {
+    const route = await run('route', tasks.route);
+    let artifact = await run('produce', () => tasks.produce(route));
+    if (tasks.semantics) artifact = await run('semantics', () => tasks.semantics!(artifact));
+    else publish('semantics', 'skipped', 'Skipped because deterministic semantics were already sufficient.');
+    const verification = await run('verify', () => tasks.verify(artifact));
+    if ('reason' in verification) {
+      publish('verify', 'failed', verification.reason);
+      throw new Error(verification.reason);
+    }
+    await run('apply', () => tasks.apply(artifact));
+    return { artifact, stages: stageOrder.map((id) => states.get(id)!) };
+  } catch (error) {
+    for (const id of stageOrder) {
+      if (states.get(id)?.status === 'waiting') {
+        publish(id, 'cancelled', 'Skipped because an earlier pipeline stage failed.');
+      }
+    }
+    throw error;
   }
-  await run('apply', () => tasks.apply(artifact));
-  return { artifact, stages: stageOrder.map((id) => states.get(id)!) };
 };
 
 const stagePatterns: Record<TitanStageId, RegExp> = {
@@ -115,6 +125,11 @@ export interface ArrayTemplatePipelineOptions extends TitanModeOrchestratorOptio
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
+export interface ModelAuthoredPipelineOptions extends TitanModeOrchestratorOptions {
+  verificationFailureMessage: string;
+  startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
+}
+
 const arrayTemplateIds = new Set([
   'jump-game-dp',
   'jump-game-greedy',
@@ -124,6 +139,9 @@ const arrayTemplateIds = new Set([
 
 export const isArrayTemplateCreationIntent = (intent: TitanModeOrchestratorOptions['intent']): boolean =>
   intent.type === 'create-algorithm' && arrayTemplateIds.has(intent.template);
+
+export const isModelAuthoredCreationIntent = (intent: TitanModeOrchestratorOptions['intent']): boolean =>
+  intent.type === 'create-algorithm' && intent.template === 'model-authored';
 
 const sameTrace = (left: SimulationStep[], right: SimulationStep[]): boolean =>
   JSON.stringify(left) === JSON.stringify(right);
@@ -155,6 +173,37 @@ export const verifyAdaptInputArtifact = (
       return { ok: false, reason: options.verificationFailureMessage };
     }
   })();
+};
+
+export const verifyModelAuthoredArtifact = (
+  result: TitanModeRunResult,
+  verificationFailureMessage: string,
+): { ok: true } | { ok: false; reason: string } => {
+  if (result.status !== 'success' || !result.package) {
+    return { ok: false, reason: verificationFailureMessage };
+  }
+  try {
+    const candidate = result.package;
+    const recomputed = compileCustomSimulationPackage({
+      id: candidate.id,
+      title: candidate.title,
+      locale: candidate.locale,
+      program: structuredClone(candidate.program),
+      input: structuredClone(candidate.input),
+      visualization: structuredClone(candidate.visualization),
+      analysis: candidate.analysis,
+    });
+    const sourceMatches = JSON.stringify(candidate.source) === JSON.stringify(recomputed.source);
+    const traceMatches = sameTrace(candidate.steps, recomputed.steps);
+    const testsMatch = candidate.tests.passed
+      && recomputed.tests.passed
+      && JSON.stringify(candidate.tests.results) === JSON.stringify(recomputed.tests.results);
+    return sourceMatches && traceMatches && testsMatch
+      ? { ok: true }
+      : { ok: false, reason: verificationFailureMessage };
+  } catch {
+    return { ok: false, reason: verificationFailureMessage };
+  }
 };
 
 export const startDiscussCurrentStepPipeline = (
@@ -359,6 +408,76 @@ export const startArrayTemplatePipeline = (
     apply: (result) => {
       if (result.status !== 'success' || !result.package) throw new Error(options.verificationFailureMessage);
       return options.applyPackage(result.package, runId);
+    },
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
+export const startModelAuthoredPipeline = (
+  options: ModelAuthoredPipelineOptions,
+): TitanModeRunHandle => {
+  const controller = new AbortController();
+  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  let activeRun: TitanModeRunHandle | null = null;
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  const publishPlan = (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan({
+      version: 1,
+      runId,
+      request: options.request,
+      intent: options.intent.type,
+      createdAt: Date.now(),
+      jobs: stageOrder.map((id, index) => {
+        const state = stages.get(id)!;
+        return {
+          id: `titan-${id}`,
+          role: stageRole[id],
+          label: id,
+          dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+          weight: 20,
+          status: stageStateStatus(state.status),
+          attempt: state.status === 'waiting' ? 0 : 1,
+          maxAttempts: 1,
+          summary: state.status === 'skipped' ? state.detail : undefined,
+          error: state.status === 'failed' ? state.detail : undefined,
+        };
+      }),
+    });
+  };
+  const promise = executeTitanPipeline({
+    route: () => options.intent,
+    produce: async () => {
+      if (!isModelAuthoredCreationIntent(options.intent)) {
+        throw new Error('The model-authored pipeline only accepts the model-authored template.');
+      }
+      activeRun = (options.startRun ?? startTitanEngineRun)({
+        ...options,
+        deferApply: true,
+        previewSource: undefined,
+        onPlan: () => undefined,
+        onEvent: undefined,
+      });
+      return activeRun.promise;
+    },
+    verify: (result) => verifyModelAuthoredArtifact(result, options.verificationFailureMessage),
+    apply: async (result) => {
+      if (result.status !== 'success' || !result.package) throw new Error(options.verificationFailureMessage);
+      await options.previewSource?.(result.package.source.code, result.package.title, runId);
+      await options.applyPackage(result.package, runId);
     },
     signal: controller.signal,
     onStage: publishPlan,

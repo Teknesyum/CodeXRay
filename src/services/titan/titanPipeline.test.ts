@@ -4,10 +4,46 @@ import {
   startArrayTemplatePipeline,
   startAdaptInputPipeline,
   startDiscussCurrentStepPipeline,
+  startModelAuthoredPipeline,
   verifyAdaptInputArtifact,
   type TitanStageState,
 } from './titanPipeline';
 import { generateSimulationSteps } from '../aiService';
+import { compileCustomSimulationPackage } from '../customSimulationCompiler';
+
+const createModelAuthoredPackage = () => compileCustomSimulationPackage({
+  id: 'model-authored-package',
+  title: 'Array Scan — Custom',
+  locale: 'en',
+  program: {
+    version: 1,
+    id: 'scan_array',
+    title: 'Array Scan',
+    locale: 'en',
+    inputKind: 'array',
+    functions: [],
+    budgets: { instructions: 200, traceSteps: 20, recursionDepth: 4, collectionSize: 100 },
+    entry: [
+      { id: 'load_array', type: 'declare', name: 'array', value: { type: 'input-field', field: 'array' } },
+      { id: 'trace_array', type: 'trace', at: 'load_array', explanation: 'Loaded {{array}}.', category: 'result', importance: 1 },
+    ],
+  },
+  input: {
+    version: 1,
+    kind: 'array',
+    description: 'Array input',
+    constraints: [],
+    value: { kind: 'array', text: '[3, 1, 2]', origin: 'user' },
+  },
+  visualization: {
+    version: 1,
+    type: 'array',
+    activeVariables: [],
+    queuedVariables: [],
+    visitedVariables: [],
+  },
+  analysis: 'A deterministic array scan.',
+});
 
 describe('five-stage Titan pipeline', () => {
   it('emits five ordered stages, skips sufficient semantics, and applies once', async () => {
@@ -34,14 +70,17 @@ describe('five-stage Titan pipeline', () => {
   it('preserves committed state when verification fails', async () => {
     const committed = { id: 'working-package' };
     const apply = vi.fn((artifact: { id: string }) => { committed.id = artifact.id; });
+    const stages: TitanStageState[] = [];
     await expect(executeTitanPipeline({
       route: () => 'trace-code',
       produce: () => ({ id: 'candidate' }),
       verify: () => ({ ok: false, reason: 'Trace gate failed.' }),
       apply,
+      onStage: (stage) => stages.push(stage),
     })).rejects.toThrow('Trace gate failed.');
     expect(committed.id).toBe('working-package');
     expect(apply).not.toHaveBeenCalled();
+    expect(stages.at(-1)).toMatchObject({ id: 'apply', status: 'cancelled' });
   });
 
   it('fails loudly when a pipeline caller omits the required apply task', async () => {
@@ -230,6 +269,96 @@ describe('five-stage Titan pipeline', () => {
       'titan-verify:completed',
       'titan-apply:completed',
     ]);
+  });
+
+  it('independently verifies a model-authored package before previewing and applying it exactly once', async () => {
+    const packageValue = createModelAuthoredPackage();
+    const ordering: string[] = [];
+    const previewSource = vi.fn(() => { ordering.push('preview'); });
+    const applyPackage = vi.fn(() => { ordering.push('apply'); });
+    const result = {
+      status: 'success' as const,
+      runId: 'engine-model',
+      plan: { version: 1 as const, runId: 'engine-model', request: 'author', intent: 'create-algorithm' as const, jobs: [], createdAt: 1 },
+      summary: 'Created.',
+      package: packageValue,
+      steps: packageValue.steps,
+    };
+    const run = startModelAuthoredPipeline({
+      request: 'author a custom array scan',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'en',
+      workspace: { steps: [], currentIndex: 0 } as any,
+      activePackage: null,
+      onPlan: vi.fn(),
+      previewSource,
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Model artifact failed verification.',
+      startRun: (options) => {
+        expect(options.deferApply).toBe(true);
+        expect(options.previewSource).toBeUndefined();
+        ordering.push('produce');
+        return { runId: 'engine-model', promise: Promise.resolve(result), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).resolves.toBe(result);
+    expect(ordering).toEqual(['produce', 'preview', 'apply']);
+    expect(previewSource).toHaveBeenCalledWith(packageValue.source.code, packageValue.title, run.runId);
+    expect(previewSource).toHaveBeenCalledOnce();
+    expect(applyPackage).toHaveBeenCalledWith(packageValue, run.runId);
+    expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an empty carried model trace before preview and preserves every workspace snapshot field', async () => {
+    const packageValue = { ...createModelAuthoredPackage(), steps: [] };
+    const workspace = {
+      algorithmName: 'Committed Algorithm',
+      code: 'function committed() {}',
+      steps: [{ explanation: 'Committed step' }],
+      currentIndex: 1,
+      analysis: 'Committed analysis',
+      inputError: 'Committed input error',
+    };
+    const snapshot = structuredClone(workspace);
+    const previewSource = vi.fn();
+    const applyPackage = vi.fn();
+    const run = startModelAuthoredPipeline({
+      request: 'author a custom array scan',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'en',
+      workspace: workspace as any,
+      activePackage: null,
+      onPlan: vi.fn(),
+      previewSource,
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Model artifact failed verification.',
+      startRun: (options) => {
+        expect(options.previewSource).toBeUndefined();
+        return {
+          runId: 'engine-model',
+          promise: Promise.resolve({
+            status: 'success' as const,
+            runId: 'engine-model',
+            plan: { version: 1 as const, runId: 'engine-model', request: 'author', intent: 'create-algorithm' as const, jobs: [], createdAt: 1 },
+            summary: 'Created.',
+            package: packageValue,
+            steps: packageValue.steps,
+          }),
+          cancel: vi.fn(),
+        };
+      },
+    });
+    await expect(run.promise).rejects.toThrow('Model artifact failed verification.');
+    expect(previewSource).not.toHaveBeenCalled();
+    expect(applyPackage).not.toHaveBeenCalled();
+    expect(workspace.algorithmName).toBe(snapshot.algorithmName);
+    expect(workspace.code).toBe(snapshot.code);
+    expect(workspace.steps).toEqual(snapshot.steps);
+    expect(workspace.currentIndex).toBe(snapshot.currentIndex);
+    expect(workspace.analysis).toBe(snapshot.analysis);
+    expect(workspace.inputError).toBe(snapshot.inputError);
   });
 
   it('rejects a well-formed artifact whose carried trace disagrees with independent recomputation', async () => {

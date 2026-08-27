@@ -800,8 +800,10 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         };
         const {
           isArrayTemplateCreationIntent,
+          isModelAuthoredCreationIntent,
           startAdaptInputPipeline,
           startArrayTemplatePipeline,
+          startModelAuthoredPipeline,
           startDiscussCurrentStepPipeline,
           startTitanModeRun,
         } = await import('../services/titan/titanPipeline');
@@ -914,7 +916,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 ...orchestratorOptions,
                 verificationFailureMessage: t('titanCreationVerificationFailed', locale),
               })
-              : startTitanModeRun(orchestratorOptions);
+              : isModelAuthoredCreationIntent(titanModeIntent)
+                ? startModelAuthoredPipeline({
+                  ...orchestratorOptions,
+                  verificationFailureMessage: t('titanCreationVerificationFailed', locale),
+                })
+                : startTitanModeRun(orchestratorOptions);
         titanModeRunRef.current = run;
         sourcePreviewRunRef.current = run.runId;
         const result = await run.promise;

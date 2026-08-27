@@ -201,3 +201,77 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Verdict: not closed. Reopened as `R17c`.** Head `3d2bc09`, CI run `33122377446`, all three
+jobs green — and green for the same reason R17's suite was green: the case that breaks is not
+in the fixture set.
+
+### Remote gate
+
+```
+72 passed (6.8m)
+2 passed (58.4s)
+TIMELINE_MEASUREMENTS {"playwright":{"min":1425.1284780000024,"median":1581.524485500002,"max":1763.975133},"inPage":{"min":221.40000000002328,"median":280.5,"max":488.29999999993015},"handler":{"min":0.9000000001396984,"median":1.3000000001629815,"max":4.300000000046566},"deliberateDelayMs":0}
+```
+
+Zero flaky.
+
+### What R17b got right, and it is most of the route
+
+`Code` no longer looks for a sentence. `extractDistinctIntegers` pulls integers out of the slot,
+one distinct integer is compared to `lineNumber`, and two different integers reject rather than
+guess — criterion 5 as written. `Time` was correct and was left alone. `dataLensMatchesVariables`
+binds each key to `JSON.stringify(value)` through `:`, `=`, `is`, `value is`, or `değeri`, so
+`i = 2` and `i is 2` now pass where R17 demanded the JSON blob. Six phrasings accepted, R17's
+three rejections unchanged. The direction is right and none of it is reopened.
+
+### The invariant that was asserted and never tested at scale
+
+R17b's own invariant: *"The deterministic fallback must still pass, in both locales."* It does
+not, and the failure is reachable inside the application's own limits.
+
+`deterministicFiveLens` truncates its `Data` lens at `JSON.stringify(vars).slice(0, 700)`.
+`dataLensMatchesVariables` requires **every** key to bind. Past 700 characters the oracle's own
+answer is cut, the later keys have no binding, and the oracle is rejected by the check it
+defines. Measured against the shipped code on `081d2cc`, Merge Sort with `origin: 'user'`
+arrays:
+
+```
+size=20   steps=147   worstVarsChars=136  fallbackVerifies=true
+size=60   steps=535   worstVarsChars=277  fallbackVerifies=true
+size=120  steps=1191  worstVarsChars=484  fallbackVerifies=true
+size=200  steps=2143  worstVarsChars=761  fallbackVerifies=false
+```
+
+`inputParsers.ts:9` sets `MAX_INPUT_ITEMS = 200`. **The breaking input is exactly the largest
+input the parser accepts.** Across the eight default presets the worst case is Dijkstra at 413
+characters, so every fixture in the suite sits under the threshold — which is why 828 unit
+tests and 72 e2e specs pass over a defect a user can reach.
+
+This one needs no model. `callOptionalAgent` returns the fallback when none is loaded, and the
+fallback fails, so on this machine a large-array user reads "The current-step explanation could
+not be verified" instead of an explanation.
+
+### Whose error this is
+
+**Mine.** R17b's Option A specified "every variable the trace reports at this step is mentioned
+with its committed value". Sole implemented that sentence exactly. The route asserted the
+oracle invariant and then wrote a rule that contradicts it above 700 characters, without
+noticing that the oracle truncates. H17b followed the route it was given; the route was wrong.
+
+### The lesson, which is now three routes old
+
+R15: a phase named `verify` was a shape check. R17: a check that claimed to compare a fact
+compared a sentence. R17b: a check that compares facts correctly is defeated by its own
+oracle's truncation. Each time the code did something narrower than its description, and each
+time **the test set could not tell the two apart** — because every fixture was drawn from the
+same small, well-behaved region. R17c's first criterion is therefore not another comparison
+rule; it is running the oracle across every supported algorithm at the maximum legal input size.
+Fixtures chosen for convenience prove convenience.
+
+### Architecture map
+
+`AGENTS.md`'s `discuss-current-step` line is corrected in this commit to describe `main` as it
+now stands, defect included. The settled wording waits for R17c.

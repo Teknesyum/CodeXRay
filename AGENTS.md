@@ -265,15 +265,17 @@ orderings without re-deciding that trade.
   artifact is what its program deterministically produces. **It cannot prove the program
   solves the request** — nothing in the system can, and no gate should be described as if it
   did. Fails closed: a throw is a rejection.
-- `discuss-current-step` — **currently wrong, and knowingly so; see `R17b`.** R17 replaced the
-  shape check with `verifyCurrentStepArtifact`, which extracts the five EN/TR lenses and is
-  fail-closed. `Time` genuinely compares the answer's `N/M` against `currentIndex + 1` and
-  `steps.length`. `Code` and `Data` do not compare facts: they require the answer to contain
-  `deterministicFiveLens`'s own sentence — the literal phrase `Active source line N` /
-  `Aktif kaynak satırı N`, and verbatim containment of `JSON.stringify(vars).slice(0, 700)`.
-  A correct answer in different words is rejected, so with a local advisory model loaded this
-  intent fails verification for almost any answer. `Reasoning` and `Visual` are required as
-  slots and never verified — that part is deliberate and stays.
+- `discuss-current-step` — **partly wrong, and knowingly so; see `R17c`.**
+  `verifyCurrentStepArtifact` extracts the five EN/TR lenses and is fail-closed. `Code`
+  compares a single distinct integer from the slot against `step.lineNumber`, rejecting an
+  ambiguous slot rather than guessing; `Time` compares the answer's `N/M` against
+  `currentIndex + 1` and `steps.length`. Both are sound. `Data` requires **every** key in
+  `visualData.vars` to bind to its `JSON.stringify` value — and `deterministicFiveLens`
+  truncates its own `Data` lens at 700 characters, so above that size the deterministic
+  fallback fails the check it is supposed to define. Reachable with no model loaded: Merge Sort
+  on a 200-element array (`MAX_INPUT_ITEMS`, the largest legal input) peaks at 761 characters
+  and does not verify. `Reasoning` and `Visual` are required as slots and never verified — that
+  part is deliberate and stays.
 
 Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
 and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,

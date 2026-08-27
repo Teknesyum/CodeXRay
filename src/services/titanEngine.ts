@@ -570,7 +570,7 @@ const fiveLensContext = (
   lenses: ['code', 'data', 'visual', 'reasoning', 'time'],
 });
 
-const deterministicFiveLens = (
+export const deterministicFiveLens = (
   locale: Locale,
   step: SimulationStep | undefined,
   current: number,

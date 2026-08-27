@@ -206,6 +206,50 @@ export const verifyModelAuthoredArtifact = (
   }
 };
 
+const fiveLensLabels = new Map([
+  ['code', 'code'], ['kod', 'code'],
+  ['data', 'data'], ['veri', 'data'],
+  ['visual', 'visual'], ['görsel', 'visual'],
+  ['reasoning', 'reasoning'], ['mantık', 'reasoning'],
+  ['time', 'time'], ['zaman', 'time'],
+]);
+
+const extractFiveLenses = (answer: string): Map<string, string> | null => {
+  const lenses = new Map<string, string>();
+  for (const rawLine of answer.split(/\r?\n/)) {
+    const match = rawLine.match(/^\s*(?:[-*]\s*)?(?:\*\*)?([^:*]+?)(?:\*\*)?\s*:\s*(.*)$/u);
+    if (!match) continue;
+    const key = fiveLensLabels.get(match[1].trim().toLocaleLowerCase('tr-TR'));
+    if (key && !lenses.has(key)) lenses.set(key, match[2].trim());
+  }
+  return lenses.size === 5 ? lenses : null;
+};
+
+export const verifyCurrentStepArtifact = (
+  result: TitanModeRunResult,
+  options: Pick<DiscussCurrentStepPipelineOptions, 'workspace' | 'verificationFailureMessage'>,
+): { ok: true } | { ok: false; reason: string } => {
+  const fail = { ok: false as const, reason: options.verificationFailureMessage };
+  const step = options.workspace.steps[options.workspace.currentIndex];
+  if (result.status !== 'success' || !step) return fail;
+  const answer = result.tutorAnswer?.trim() || '';
+  if (!answer) return fail;
+  const lenses = extractFiveLenses(answer);
+  if (!lenses) return fail;
+
+  const expectedLine = step.lineNumber;
+  const lineMatch = lenses.get('code')!.match(/(?:Active source line|Aktif kaynak satırı)\s+(\d+|result step|sonuç adımı)\b/iu);
+  const lineMatches = expectedLine === null
+    ? /^(?:result step|sonuç adımı)$/iu.test(lineMatch?.[1] ?? '')
+    : Number(lineMatch?.[1]) === expectedLine;
+  const variables = JSON.stringify(step.visualData.vars).slice(0, 700);
+  const dataMatches = lenses.get('data')!.includes(variables);
+  const timeMatch = lenses.get('time')!.match(/(?:Step\s+)?(\d+)\s*\/\s*(\d+)(?:\.\s*adım)?/iu);
+  const timeMatches = Number(timeMatch?.[1]) === options.workspace.currentIndex + 1
+    && Number(timeMatch?.[2]) === options.workspace.steps.length;
+  return lineMatches && dataMatches && timeMatches ? { ok: true } : fail;
+};
+
 export const startDiscussCurrentStepPipeline = (
   options: DiscussCurrentStepPipelineOptions,
 ): TitanModeRunHandle => {
@@ -252,14 +296,7 @@ export const startDiscussCurrentStepPipeline = (
       });
       return activeRun.promise;
     },
-    verify: (result) => {
-      const selectedStepExists = options.workspace.steps[options.workspace.currentIndex] !== undefined;
-      const artifactIsNonempty = result.status === 'success'
-        && Boolean(result.summary.trim() || result.tutorAnswer?.trim());
-      return selectedStepExists && artifactIsNonempty
-        ? { ok: true as const }
-        : { ok: false as const, reason: options.verificationFailureMessage };
-    },
+    verify: (result) => verifyCurrentStepArtifact(result, options),
     apply: options.applyResult,
     signal: controller.signal,
     onStage: publishPlan,

@@ -6,10 +6,12 @@ import {
   startDiscussCurrentStepPipeline,
   startModelAuthoredPipeline,
   verifyAdaptInputArtifact,
+  verifyCurrentStepArtifact,
   type TitanStageState,
 } from './titanPipeline';
 import { generateSimulationSteps } from '../aiService';
 import { compileCustomSimulationPackage } from '../customSimulationCompiler';
+import { deterministicFiveLens } from '../titanEngine';
 
 const createModelAuthoredPackage = () => compileCustomSimulationPackage({
   id: 'model-authored-package',
@@ -135,12 +137,13 @@ describe('five-stage Titan pipeline', () => {
       runId: 'engine-run',
       plan: { version: 1 as const, runId: 'engine-run', request: 'explain this step', intent: 'discuss-current-step' as const, jobs: [], createdAt: 1 },
       summary: 'Grounded explanation.',
+      tutorAnswer: 'Code: Active source line 9.\nData: Live variables {"i":2}.\nVisual: array.\nReasoning: Selected step.\nTime: Step 1/1.',
     };
     const run = startDiscussCurrentStepPipeline({
       request: 'explain this step',
       intent: { type: 'discuss-current-step' },
       locale: 'en',
-      workspace: { steps: [{ explanation: 'Selected step' }], currentIndex: 0 } as any,
+      workspace: { steps: [{ lineNumber: 9, explanation: 'Selected step', visualData: { type: 'array', vars: { i: 2 } } }], currentIndex: 0 } as any,
       activePackage: null,
       onPlan: (plan) => plans.push(plan.jobs.map((job) => `${job.id}:${job.summary ?? job.status}`)),
       applyPackage: vi.fn(),
@@ -158,6 +161,41 @@ describe('five-stage Titan pipeline', () => {
       'titan-verify:completed',
       'titan-apply:completed',
     ]);
+  });
+
+  it.each([
+    ['wrong source line', 'Code: Active source line 14.\nData: Live variables {"i":2}.\nVisual: array.\nReasoning: prose is not checked.\nTime: Step 2/3.'],
+    ['wrong step index', 'Code: Active source line 9.\nData: Live variables {"i":2}.\nVisual: array.\nReasoning: prose is not checked.\nTime: Step 1/3.'],
+    ['unparseable', 'A confident explanation without the required labels.'],
+  ])('rejects a %s in a current-step answer', (_case, tutorAnswer) => {
+    const workspace = {
+      currentIndex: 1,
+      steps: [
+        { lineNumber: 4, visualData: { vars: {} } },
+        { lineNumber: 9, visualData: { vars: { i: 2 } } },
+        { lineNumber: 12, visualData: { vars: {} } },
+      ],
+    } as any;
+    expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+      workspace,
+      verificationFailureMessage: 'Verification failed.',
+    })).toEqual({ ok: false, reason: 'Verification failed.' });
+  });
+
+  it.each(['en', 'tr'] as const)('accepts the actual deterministic five-lens fallback in %s', (locale) => {
+    const workspace = {
+      currentIndex: 1,
+      steps: [
+        { lineNumber: 4, visualData: { vars: {} } },
+        { lineNumber: 9, visualData: { vars: { i: 2 } } },
+        { lineNumber: 12, visualData: { vars: {} } },
+      ],
+    } as any;
+    const tutorAnswer = deterministicFiveLens(locale, workspace.steps[1], 1, 3);
+    expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+      workspace,
+      verificationFailureMessage: 'Verification failed.',
+    })).toEqual({ ok: true });
   });
 
   it.each([

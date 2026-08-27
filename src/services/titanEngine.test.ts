@@ -51,6 +51,33 @@ const successfulAgent = (request: LocalAgentRequest): LocalAgentHandle => {
 };
 
 describe('Titan Mode orchestrator', () => {
+  it.each([
+    ['interval-DP', { type: 'create-algorithm', template: 'predict-winner-interval-dp' }],
+    ['array template', { type: 'create-algorithm', template: 'jump-game-dp' }],
+    ['DP template', { type: 'create-algorithm', template: 'house-robber-1d-dp' }],
+    ['custom creation', { type: 'create-algorithm', template: 'bidirectional-bfs' }],
+  ] as const)('applies the %s package once eagerly and zero times when deferred', async (_label, intent) => {
+    for (const deferApply of [false, true]) {
+      const applyPackage = vi.fn();
+      const result = await startTitanModeRun({
+        request: 'create a deterministic teaching package',
+        intent,
+        locale: 'en',
+        workspace,
+        activePackage: null,
+        onPlan: vi.fn(),
+        applyPackage,
+        applyInput: vi.fn(),
+        agentRunner: successfulAgent,
+        deferApply,
+      }).promise;
+      expect(result.status).toBe('success');
+      if (result.status !== 'success') throw new Error('Expected a successful creation result.');
+      expect(result.package).toBeDefined();
+      expect(applyPackage).toHaveBeenCalledTimes(deferApply ? 0 : 1);
+    }
+  });
+
   it('validates a fenced Architect contract after removing private reasoning', () => {
     const validation = validateArchitectureContract(`<think>private reasoning</think>\n\`\`\`json\n${JSON.stringify({
       version: 1,

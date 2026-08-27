@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   executeTitanPipeline,
+  startArrayTemplatePipeline,
   startAdaptInputPipeline,
   startDiscussCurrentStepPipeline,
   verifyAdaptInputArtifact,
@@ -41,6 +42,14 @@ describe('five-stage Titan pipeline', () => {
     })).rejects.toThrow('Trace gate failed.');
     expect(committed.id).toBe('working-package');
     expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('fails loudly when a pipeline caller omits the required apply task', async () => {
+    await expect(executeTitanPipeline({
+      route: () => 'create-algorithm',
+      produce: () => ({ package: 'deferred' }),
+      verify: () => ({ ok: true }),
+    } as any)).rejects.toThrow(/apply/);
   });
 
   it.each(['route', 'produce', 'apply'] as const)('stops visibly when %s fails', async (failure) => {
@@ -177,6 +186,50 @@ describe('five-stage Titan pipeline', () => {
     });
     await expect(run.promise).resolves.toBe(result);
     expect(applyInput).toHaveBeenCalledOnce();
+  });
+
+  it('defers the deterministic array engine apply and applies its verified package exactly once', async () => {
+    const applyPackage = vi.fn();
+    const packageValue = {
+      id: 'array-template',
+      tests: { passed: true },
+    } as any;
+    const result = {
+      status: 'success' as const,
+      runId: 'engine-array',
+      plan: { version: 1 as const, runId: 'engine-array', request: 'Jump Game DP', intent: 'create-algorithm' as const, jobs: [], createdAt: 1 },
+      summary: 'Created.',
+      package: packageValue,
+      input: { kind: 'array', text: '[2,3,1,1,4]' } as any,
+      steps: [{ explanation: 'Final', visualData: { type: 'variables', vars: { result: true } } }] as any,
+    };
+    const plans: string[][] = [];
+    const run = startArrayTemplatePipeline({
+      request: 'Jump Game DP çöz ve simüle et',
+      intent: { type: 'create-algorithm', template: 'jump-game-dp' },
+      locale: 'tr',
+      workspace: { steps: [], currentIndex: 0 } as any,
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan.jobs.map((job) => `${job.id}:${job.status}`)),
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Creation failed.',
+      startRun: (options) => {
+        expect(options.deferApply).toBe(true);
+        expect(options.applyPackage).toBe(applyPackage);
+        return { runId: 'engine-array', promise: Promise.resolve(result), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).resolves.toBe(result);
+    expect(applyPackage).toHaveBeenCalledTimes(1);
+    expect(applyPackage).toHaveBeenCalledWith(packageValue, run.runId);
+    expect(plans.at(-1)).toEqual([
+      'titan-route:completed',
+      'titan-produce:completed',
+      'titan-semantics:completed',
+      'titan-verify:completed',
+      'titan-apply:completed',
+    ]);
   });
 
   it('rejects a well-formed artifact whose carried trace disagrees with independent recomputation', async () => {

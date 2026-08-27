@@ -110,6 +110,21 @@ export interface AdaptInputPipelineOptions extends TitanModeOrchestratorOptions 
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
+export interface ArrayTemplatePipelineOptions extends TitanModeOrchestratorOptions {
+  verificationFailureMessage: string;
+  startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
+}
+
+const arrayTemplateIds = new Set([
+  'jump-game-dp',
+  'jump-game-greedy',
+  'lis-quadratic-dp',
+  'lis-binary-search',
+]);
+
+export const isArrayTemplateCreationIntent = (intent: TitanModeOrchestratorOptions['intent']): boolean =>
+  intent.type === 'create-algorithm' && arrayTemplateIds.has(intent.template);
+
 const sameTrace = (left: SimulationStep[], right: SimulationStep[]): boolean =>
   JSON.stringify(left) === JSON.stringify(right);
 
@@ -266,6 +281,84 @@ export const startAdaptInputPipeline = (
           : options.applyPackage(result.package, runId);
       }
       return options.applyInput(result.input, result.steps, runId);
+    },
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
+export const startArrayTemplatePipeline = (
+  options: ArrayTemplatePipelineOptions,
+): TitanModeRunHandle => {
+  const controller = new AbortController();
+  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  let activeRun: TitanModeRunHandle | null = null;
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  const publishPlan = (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan({
+      version: 1,
+      runId,
+      request: options.request,
+      intent: options.intent.type,
+      createdAt: Date.now(),
+      jobs: stageOrder.map((id, index) => {
+        const state = stages.get(id)!;
+        return {
+          id: `titan-${id}`,
+          role: stageRole[id],
+          label: id,
+          dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+          weight: 20,
+          status: stageStateStatus(state.status),
+          attempt: state.status === 'waiting' ? 0 : 1,
+          maxAttempts: 1,
+          summary: state.status === 'skipped' ? state.detail : undefined,
+          error: state.status === 'failed' ? state.detail : undefined,
+        };
+      }),
+    });
+  };
+  const promise = executeTitanPipeline({
+    route: () => options.intent,
+    produce: async () => {
+      if (!isArrayTemplateCreationIntent(options.intent)) {
+        throw new Error('The array-template pipeline only accepts deterministic array templates.');
+      }
+      activeRun = (options.startRun ?? startTitanEngineRun)({
+        ...options,
+        deferApply: true,
+        onPlan: () => undefined,
+        onEvent: undefined,
+      });
+      return activeRun.promise;
+    },
+    verify: (result) => {
+      if (result.status !== 'success') {
+        return { ok: false as const, reason: options.verificationFailureMessage };
+      }
+      const finalStep = result.steps?.at(-1);
+      return Boolean(result.package?.tests.passed)
+        && Boolean(result.steps?.length)
+        && Boolean(finalStep && Object.prototype.hasOwnProperty.call(finalStep.visualData.vars, 'result'))
+        ? { ok: true as const }
+        : { ok: false as const, reason: options.verificationFailureMessage };
+    },
+    apply: (result) => {
+      if (result.status !== 'success' || !result.package) throw new Error(options.verificationFailureMessage);
+      return options.applyPackage(result.package, runId);
     },
     signal: controller.signal,
     onStage: publishPlan,

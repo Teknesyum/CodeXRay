@@ -103,6 +103,14 @@ export interface TitanModeRunHandle {
 const createRunId = (): string =>
   `gm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+const applyPackageUnlessDeferred = (
+  options: TitanModeOrchestratorOptions,
+  packageValue: CustomSimulationPackageV1,
+  runId: string,
+): Promise<void> | void | string => options.deferApply
+  ? 'Package application deferred to the five-phase pipeline.'
+  : options.applyPackage(packageValue, runId);
+
 const job = (
   role: TitanModeAgentRole,
   label: string,
@@ -1076,7 +1084,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           setJob('critic-test-visual-and-trace-alignment', { summary });
           return summary;
         });
-        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('manager-apply-workspace-transaction', () => applyPackageUnlessDeferred(options, packageValue, runId));
         await runJob('trace-director-direct-live-teaching-checkpoints', () => {
           const summary = `${packageValue.checkpoints.length} checkpoints cover diagonal initialization, interval growth, decisions, and result.`;
           setJob('trace-director-direct-live-teaching-checkpoints', { summary });
@@ -1158,7 +1166,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           setJob('critic-test-visual-and-trace-alignment', { summary });
           return summary;
         });
-        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('manager-apply-workspace-transaction', () => applyPackageUnlessDeferred(options, packageValue, runId));
         await runJob('trace-director-direct-live-teaching-checkpoints', () => {
           const summary = `${packageValue.teachingPlan.checkpoints.length} grounded checkpoints prepared.`;
           setJob('trace-director-direct-live-teaching-checkpoints', { summary });
@@ -1242,7 +1250,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           setJob('critic-test-visual-and-trace-alignment', { summary });
           return summary;
         });
-        await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+        await runJob('manager-apply-workspace-transaction', () => applyPackageUnlessDeferred(options, packageValue, runId));
         await runJob('trace-director-direct-live-teaching-checkpoints', () => {
           const summary = `${packageValue.teachingPlan.checkpoints.length} grounded checkpoints include per-state visual differences.`;
           setJob('trace-director-direct-live-teaching-checkpoints', { summary });
@@ -1508,7 +1516,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         });
         return response;
       });
-      await runJob('manager-apply-workspace-transaction', () => options.applyPackage(packageValue, runId));
+      await runJob('manager-apply-workspace-transaction', () => applyPackageUnlessDeferred(options, packageValue, runId));
       await runJob('trace-director-direct-live-teaching-checkpoints', async () => {
         const response = await callOptionalAgent(
           'trace-director',

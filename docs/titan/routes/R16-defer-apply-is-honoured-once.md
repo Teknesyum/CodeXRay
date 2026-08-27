@@ -216,3 +216,70 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Verdict: closed.** Option A, as read. Head `3bc7712`, CI run `33054615649`, all three jobs
+green.
+
+### Remote gate (criterion 10)
+
+```
+71 passed (6.6m)
+2 passed (58.8s)
+TIMELINE_MEASUREMENTS {"playwright":{"min":1367.553957,"median":1648.0626699999993,"max":1783.356573},"inPage":{"min":246.59999999997672,"median":316.95000000001164,"max":457.79999999993015},"handler":{"min":1.1000000000931323,"median":1.2000000001862645,"max":1.8999999999068677},"deliberateDelayMs":0}
+```
+
+Zero flaky. `handler.median` 1.2 ms against R15's 10 ms gate — the metric R11 replaced the
+decayed one with is still holding an order of magnitude of margin, four routes on.
+
+### What I checked rather than accepted
+
+- **Criterion 2 is a real count.** `titanEngine.test.ts` iterates `[false, true]` over four
+  branches and asserts `toHaveBeenCalledTimes(deferApply ? 0 : 1)`. Eight measurements, not
+  four assertions that it looks right. The three unwired branches are counted too, which is
+  what makes R18 safe to write.
+- **Criterion 3's two halves live in two files, and that is correct.** The engine half is
+  measured against the real engine; the pipeline half stubs `startRun` and asserts the
+  options it was handed (`deferApply === true`, `applyPackage` identity). Neither test alone
+  would catch a double apply; together they pin both ends of the same handoff.
+- **Criterion 6 closes on unchanged specs, which is the right shape for a
+  did-not-change claim.** All four rewired templates — `jump-game-dp`, `jump-game-greedy`,
+  `lis-quadratic-dp`, `lis-binary-search` — are driven through the chat box in
+  `e2e/usage-scenarios.spec.ts`, user-visible, and those specs were not touched. A rewritten
+  spec passing would have proved nothing.
+
+### Where the handoff claims less than it could have, and is right to
+
+`verify` for the array path re-asserts the engine critic's own criteria from outside the
+engine. H16 says so plainly — "yeni bağımsız içerik doğrulayıcı icat etmedi" — and the route
+asked for exactly that honesty. It is worth naming what this does and does not buy: it
+catches a package that reaches the pipeline without having passed the critic, and it cannot
+catch a package the critic itself would wave through. That is strictly weaker than R15's
+`adapt-input` recomputation, and it is a different thing, not a lesser version of the same
+thing. **R15's lesson repeats one layer up:** wiring a phase called `verify` does not make
+the artifact verified, and now neither does putting a content check in it — what matters is
+whether the check has an independent source of truth. R18 must not inherit this one.
+
+### Criterion 4, stated precisely
+
+The forgotten-apply state is prevented by the type, not by a guard. `apply` is required on
+`TitanPipelineTasks`; a caller that omits it through `any` gets a runtime failure whose
+message contains `apply`. Loud, and adequate for the criterion as written — but it is a
+`TypeError` from calling `undefined`, not a designed rejection. If R18 ever makes `apply`
+conditional, that incidental loudness disappears with it.
+
+### The order change
+
+Accepted, and the route argued it before doing it. `R17-grounded-current-step-verification`
+stays deferred on a stated reason — nobody can yet define what a checkable claim is in free
+model prose — and `R18-model-authored-pipeline-verification` is now unblocked rather than
+merely renamed. **Sixth consecutive route whose objective was set by the call path rather
+than by the queued title** — R11, R12, R14, R15, R16, and the renumbering itself.
+
+### Architecture map
+
+`AGENTS.md` updated in this commit: the `titan/` entry now names all three pipeline entry
+points; the phase section records that `deferApply` is honoured 5/5 as of R16 with the
+counted exactly-once property; the per-intent `verify` list gains the array-template content
+check with its stated limit; and the two stale successor numbers are corrected to R17/R18.

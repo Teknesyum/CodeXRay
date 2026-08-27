@@ -116,8 +116,10 @@ testing another trusted CodeXRay gateway.
   offline algorithm implementations and dispatch.
 - `src/services/codeRegistry.ts` — preset support and explicit blocked reasons.
 - `src/services/titan/` — `titanPipeline.ts` (the five-phase executor, entered from
-  `AiAssistant.tsx` for `discuss-current-step`), `translate.ts` (cross-language source
-  translation, no production caller yet).
+  `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, and since R16 the four
+  deterministic array templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`,
+  and `lis-binary-search`), `translate.ts` (cross-language source translation, no
+  production caller yet).
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
@@ -210,12 +212,22 @@ The Titan pipeline has five phases, in order: **route → produce → semantics 
 apply**. `semantics` may be skipped only through its declared optional slot; phases are
 never reordered, and `apply` runs only after `verify` returns ok.
 
-**What each phase actually does, because the names alone mislead.** Only two intents run
-this pipeline: `adapt-input` and `discuss-current-step`, both from `AiAssistant.tsx`.
-`produce` is not a step beside the engine — it *is* the engine run, entered with
-`deferApply: true` and its own job events suppressed, so the engine's whole job graph
-happens inside one phase. `apply` is genuinely owned by the pipeline and is the reason
-`deferApply` exists.
+**What each phase actually does, because the names alone mislead.** Three entry points run
+this pipeline, all from `AiAssistant.tsx`: `adapt-input`, `discuss-current-step`, and since
+R16 the deterministic array templates. `produce` is not a step beside the engine — it *is*
+the engine run, entered with `deferApply: true` and its own job events suppressed, so the
+engine's whole job graph happens inside one phase. `apply` is genuinely owned by the
+pipeline and is the reason `deferApply` exists.
+
+**`deferApply` is honoured at every apply site as of R16.** Before R16 it was checked at one
+of five: `adapt-input` returned early, and the four creation branches applied the package
+unconditionally, so a creation intent wrapped in the pipeline would have changed the
+workspace during `produce`, before `verify` ran. All five now route through
+`applyPackageUnlessDeferred` in `titanEngine.ts`. Exactly-once is a counted property, not an
+asserted one: `titanEngine.test.ts` counts 1 eager / 0 deferred for all four creation
+branches, including the three still unwired, and `titanPipeline.test.ts` counts the
+pipeline's own apply as 1. **A path that defers and never applies is a type error** —
+`apply` is required on the executor's options — and omitting it through `any` throws.
 
 `verify` differs per intent and the difference matters:
 
@@ -224,15 +236,23 @@ happens inside one phase. `apply` is genuinely owned by the pipeline and is the 
   for a package or `generateSimulationSteps` otherwise) and compares it to the trace the
   artifact carries. A well-formed but internally inconsistent artifact is rejected. It fails
   closed: a throw is a rejection. Measured cost ~0.72 ms per check.
+- array templates — since R16, a content check that mirrors the engine's own critic: the
+  package's tests passed, the trace is non-empty, and the final step's `visualData.vars`
+  carries a `result` key. This re-asserts the critic's criteria from outside the engine
+  rather than recomputing anything independently, as R15's `adapt-input` check does. It
+  catches a package that reaches the pipeline without having passed the critic; it cannot
+  catch a package the critic itself would wave through.
 - `discuss-current-step` — still a shape check: the selected step exists and the answer is
   non-empty. It cannot reject a confidently wrong explanation. Deferred to
-  `R16-grounded-current-step-verification`.
+  `R17-grounded-current-step-verification`.
 
-Everything else — `create-algorithm`, `create-catalog-problem`, `clarify-algorithm`,
-`ui-control`, `deterministic` — does not run this pipeline at all. In particular
-`create-algorithm` with `template: 'model-authored'`, the one intent that puts
+Everything else — the remaining `create-algorithm` templates, `create-catalog-problem`,
+`clarify-algorithm`, `ui-control`, `deterministic` — does not run this pipeline at all. In
+particular `create-algorithm` with `template: 'model-authored'`, the one intent that puts
 model-authored source into the workspace, has no pipeline phase; its gates live in the
-engine's own job graph. Deferred to `R17-model-authored-pipeline-verification`.
+engine's own job graph. It was deliberately left unwired in R16 so the mechanism could be
+proven on a deterministic artifact first. Deferred to
+`R18-model-authored-pipeline-verification`.
 
 **Do not assume a new artifact type is checked because it sits behind `verify`.** For
 `adapt-input` the content guarantee comes from two places: the typed appliers in

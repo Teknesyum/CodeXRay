@@ -199,6 +199,44 @@ describe('five-stage Titan pipeline', () => {
   });
 
   it.each([
+    ['en', 'Code: Line 9 is active.\nData: i = 2.\nVisual: array.\nReasoning: selected.\nTime: 2 / 3.'],
+    ['en', 'Code: Executing the source at line 9.\nData: i is 2.\nVisual: array.\nReasoning: selected.\nTime: Currently 2/3.'],
+    ['en', 'Code: The source location is 9.\nData: The value of i: 2.\nVisual: array.\nReasoning: selected.\nTime: Position 2 / 3.'],
+    ['tr', 'Kod: 9. satır çalışıyor.\nVeri: i = 2.\nGörsel: dizi.\nMantık: seçili.\nZaman: 2 / 3.'],
+    ['tr', 'Kod: Kaynağın 9. satırı yürütülüyor.\nVeri: i değeri 2.\nGörsel: dizi.\nMantık: seçili.\nZaman: Şu anda 2/3.'],
+    ['tr', 'Kod: Kod konumu 9.\nVeri: i: 2.\nGörsel: dizi.\nMantık: seçili.\nZaman: Konum 2 / 3.'],
+  ] as const)('accepts differently phrased committed Code, Data, and Time facts in %s', (_locale, tutorAnswer) => {
+    const workspace = {
+      currentIndex: 1,
+      steps: [
+        { lineNumber: 4, visualData: { vars: {} } },
+        { lineNumber: 9, visualData: { vars: { i: 2 } } },
+        { lineNumber: 12, visualData: { vars: {} } },
+      ],
+    } as any;
+    expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+      workspace,
+      verificationFailureMessage: 'Verification failed.',
+    })).toEqual({ ok: true });
+  });
+
+  it('rejects an ambiguous Code slot with two distinct integers', () => {
+    const workspace = {
+      currentIndex: 1,
+      steps: [
+        { lineNumber: 4, visualData: { vars: {} } },
+        { lineNumber: 9, visualData: { vars: { i: 2 } } },
+        { lineNumber: 12, visualData: { vars: {} } },
+      ],
+    } as any;
+    const tutorAnswer = 'Code: Line 9 follows line 8.\nData: i = 2.\nVisual: array.\nReasoning: selected.\nTime: 2 / 3.';
+    expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+      workspace,
+      verificationFailureMessage: 'Verification failed.',
+    })).toEqual({ ok: false, reason: 'Verification failed.' });
+  });
+
+  it.each([
     ['en', 'The current-step explanation could not be verified. The workspace was not changed.'],
     ['tr', 'Geçerli adım açıklaması doğrulanamadı. Çalışma alanı değiştirilmedi.'],
   ] as const)('does not apply an unverified current-step artifact in %s', async (locale, message) => {

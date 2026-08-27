@@ -225,6 +225,24 @@ const extractFiveLenses = (answer: string): Map<string, string> | null => {
   return lenses.size === 5 ? lenses : null;
 };
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+
+const extractDistinctIntegers = (value: string): number[] => [
+  ...new Set([...value.matchAll(/(?<![\p{L}\p{N}_])-?\d+(?![\p{L}\p{N}_])/gu)]
+    .map((match) => Number(match[0]))),
+];
+
+const dataLensMatchesVariables = (dataLens: string, variables: Record<string, unknown>): boolean =>
+  Object.entries(variables).every(([key, value]) => {
+    const serialized = JSON.stringify(value);
+    if (serialized === undefined) return false;
+    const binding = new RegExp(
+      `(?:^|[^\\p{L}\\p{N}_])['"]?${escapeRegExp(key)}['"]?\\s*(?::|=|\\bis\\b|\\bvalue(?:\\s+is|\\s+of)?\\b|\\bdeğeri\\b)\\s*${escapeRegExp(serialized)}(?=$|[^\\p{L}\\p{N}_])`,
+      'iu',
+    );
+    return binding.test(dataLens);
+  });
+
 export const verifyCurrentStepArtifact = (
   result: TitanModeRunResult,
   options: Pick<DiscussCurrentStepPipelineOptions, 'workspace' | 'verificationFailureMessage'>,
@@ -238,12 +256,12 @@ export const verifyCurrentStepArtifact = (
   if (!lenses) return fail;
 
   const expectedLine = step.lineNumber;
-  const lineMatch = lenses.get('code')!.match(/(?:Active source line|Aktif kaynak satırı)\s+(\d+|result step|sonuç adımı)\b/iu);
+  const codeLens = lenses.get('code')!;
+  const lineNumbers = extractDistinctIntegers(codeLens);
   const lineMatches = expectedLine === null
-    ? /^(?:result step|sonuç adımı)$/iu.test(lineMatch?.[1] ?? '')
-    : Number(lineMatch?.[1]) === expectedLine;
-  const variables = JSON.stringify(step.visualData.vars).slice(0, 700);
-  const dataMatches = lenses.get('data')!.includes(variables);
+    ? lineNumbers.length === 0 && /(?:result|final|sonuç)\s+(?:step|adım)/iu.test(codeLens)
+    : lineNumbers.length === 1 && lineNumbers[0] === expectedLine;
+  const dataMatches = dataLensMatchesVariables(lenses.get('data')!, step.visualData.vars);
   const timeMatch = lenses.get('time')!.match(/(?:Step\s+)?(\d+)\s*\/\s*(\d+)(?:\.\s*adım)?/iu);
   const timeMatches = Number(timeMatch?.[1]) === options.workspace.currentIndex + 1
     && Number(timeMatch?.[2]) === options.workspace.steps.length;

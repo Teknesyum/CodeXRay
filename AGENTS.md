@@ -116,10 +116,10 @@ testing another trusted CodeXRay gateway.
   offline algorithm implementations and dispatch.
 - `src/services/codeRegistry.ts` — preset support and explicit blocked reasons.
 - `src/services/titan/` — `titanPipeline.ts` (the five-phase executor, entered from
-  `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, and since R16 the four
-  deterministic array templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`,
-  and `lis-binary-search`), `translate.ts` (cross-language source translation, no
-  production caller yet).
+  `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, the four deterministic array
+  templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`, and `lis-binary-search`
+  since R16, and `model-authored` since R18), `translate.ts` (cross-language source
+  translation, no production caller yet).
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
@@ -229,6 +229,21 @@ branches, including the three still unwired, and `titanPipeline.test.ts` counts 
 pipeline's own apply as 1. **A path that defers and never applies is a type error** —
 `apply` is required on the executor's options — and omitting it through `any` throws.
 
+**`previewSource` is the second workspace channel, and `deferApply` does not gate it.**
+`AiAssistant.tsx` implements it by pausing playback, setting the algorithm name, clearing
+`steps`, `currentIndex`, and `analysis`, then typing the draft into the editor — a mutation,
+not a read-only preview. Six engine sites call it, all during `produce`. This is safe because
+of a real rollback, not because it is harmless: the workspace is snapshotted before the run,
+`restoreSourcePreview` puts every field back, the snapshot is discarded only when a genuine
+apply commits, and any rejection — including a pipeline `verify` rejection — reaches the same
+restore. **For `model-authored` the ordering was changed rather than trusted to the rollback.**
+Since R18 that pipeline passes `previewSource: undefined` into the engine and replays the
+preview inside `apply`, after `verify`, so unverified model source is never displayed. The
+deterministic templates deliberately keep the old ordering: their previewed source is
+byte-identical to what will be applied, and `dp-family-titan-mode.spec.ts` asserts the typing
+element is visible while the produce phase is still running. Do not "unify" these two
+orderings without re-deciding that trade.
+
 `verify` differs per intent and the difference matters:
 
 - `adapt-input` — since R15, `verifyAdaptInputArtifact` recomputes the trace independently
@@ -242,17 +257,23 @@ pipeline's own apply as 1. **A path that defers and never applies is a type erro
   rather than recomputing anything independently, as R15's `adapt-input` check does. It
   catches a package that reaches the pipeline without having passed the critic; it cannot
   catch a package the critic itself would wave through.
+- `model-authored` — since R18, `verifyModelAuthoredArtifact` recompiles the package from
+  the artifact's own `program`, `input`, and `visualization` through
+  `compileCustomSimulationPackage` (each `structuredClone`d) and requires the carried
+  `source`, `steps`, and `tests.results` to equal the recomputed ones, with both test runs
+  passing. Independent in the same sense as R15's check and no further: it proves the
+  artifact is what its program deterministically produces. **It cannot prove the program
+  solves the request** — nothing in the system can, and no gate should be described as if it
+  did. Fails closed: a throw is a rejection.
 - `discuss-current-step` — still a shape check: the selected step exists and the answer is
   non-empty. It cannot reject a confidently wrong explanation. Deferred to
   `R17-grounded-current-step-verification`.
 
-Everything else — the remaining `create-algorithm` templates, `create-catalog-problem`,
-`clarify-algorithm`, `ui-control`, `deterministic` — does not run this pipeline at all. In
-particular `create-algorithm` with `template: 'model-authored'`, the one intent that puts
-model-authored source into the workspace, has no pipeline phase; its gates live in the
-engine's own job graph. It was deliberately left unwired in R16 so the mechanism could be
-proven on a deterministic artifact first. Deferred to
-`R18-model-authored-pipeline-verification`.
+Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
+and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,
+`ui-control`, and `deterministic` — does not run this pipeline at all. Their gates live in
+the engine's own job graph, run before apply only because they are earlier in the same
+function, and offer no point at which an external caller can refuse.
 
 **Do not assume a new artifact type is checked because it sits behind `verify`.** For
 `adapt-input` the content guarantee comes from two places: the typed appliers in

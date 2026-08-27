@@ -208,3 +208,82 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Verdict: closed.** Both options taken — B's verify with A's ordering, which is what the
+route hoped for and did not require. Head `ba5f74a`, CI run `33064313461`, all three jobs
+green.
+
+### Remote gate (criterion 9)
+
+```
+71 passed (4.8m)
+2 passed (43.7s)
+TIMELINE_MEASUREMENTS {"playwright":{"min":1037.6330650000018,"median":1180.7438069999998,"max":1333.7629120000006},"inPage":{"min":166.70000000001164,"median":188.35000000000582,"max":299.79999999998836},"handler":{"min":0.5,"median":0.7999999999883585,"max":1.1999999998952262},"deliberateDelayMs":0}
+```
+
+Zero flaky. `handler.median` 0.8 ms against R15's 10 ms gate.
+
+**What the browser gate covers for this route, stated as the criterion required.** More than
+I expected when writing it. `e2e/model-authored-titan-mode.spec.ts` stubs `navigator.gpu` and
+the agent worker, feeding a fixed `ProgramSpecV1` through the real orchestration. So the
+remote gate does cover the model-authored *wiring* — routing, pipeline ordering, verification,
+commit, and the grounded answer — end to end in a browser. What it does not cover is a real
+model producing that program. That distinction is the whole of criterion 7, and H18 states it
+plainly: `test:e2e:ai` ran, found no WebGPU adapter, and skipped before loading anything. **No
+live inference has been proven on this machine.** Recorded as unproven, not as passed.
+
+### The verify is genuinely independent, and its limit is worth writing down
+
+`verifyModelAuthoredArtifact` recompiles the package from the artifact's own `program`,
+`input`, and `visualization` and compares `source`, `steps`, and `tests.results`. That is the
+R15 shape, not the R16 shape — it recomputes rather than re-reading the engine's verdict, and
+R18 was named for exactly this.
+
+Its ceiling: it proves the artifact **is what its program deterministically produces**. It
+cannot prove the program solves the request. Nothing in the system can, and the danger now is
+the opposite of the one R15 found — a gate strong enough that its name starts to imply more
+than it does. `AGENTS.md` says so at the point of description.
+
+### Criterion 4 is met, and the handoff under-cited it
+
+H18 cites `titanPipeline.test.ts:271` for criterion 4. That test proves only the
+model-authored half — `previewSource` undefined into the engine, `['produce','preview','apply']`
+ordering out of it. No unit test asserts the second half, that a deterministic template still
+previews at its old point; `startArrayTemplatePipeline` gets it by spreading `...options`, and
+"by construction" is precisely what R16 disproved for `deferApply`.
+
+The evidence exists anyway, and is better than the unit test the criterion asked for.
+`e2e/dp-family-titan-mode.spec.ts:148` asserts `.titan-mode-code-typing` is visible and
+growing **while `.titan-mode-agent.running` still reads `Üret`** — a deterministic DP template
+previewing during produce, user-visibly, in an unmodified spec that passed on this head.
+Criterion 4 closes on that. Not reopened; recorded so the next reader does not re-derive it.
+
+### Criterion 3 proves something slightly different from what it asked
+
+The route asked that after a rejection the workspace equals the pre-run snapshot. The test at
+`titanPipeline.test.ts:354` asserts the workspace object was never mutated and that
+`previewSource` was never called. That is not the rollback firing — it is the rollback being
+unnecessary, which is the stronger result and a direct consequence of taking option A. Worth
+naming because "rollback proven" and "nothing to roll back" are different claims, and only the
+second is true here. The restore path still exists and still covers the deterministic
+templates, which do preview early.
+
+### The executor change nobody asked for, found by a test
+
+A failed pipeline left later phases `waiting`, leaving the UI disabled;
+`titan-mode-failures.spec.ts` caught it and `executeTitanPipeline` now terminalizes unreached
+phases as `cancelled`. This touches every intent that runs the pipeline, not just this one. It
+is listed under `## Discovered` and not under `## Deviations`, which is the wrong file — a
+behaviour change to shared code outside the route's stated objective is a deviation even when
+it is an improvement. Accepted as correct and in scope; the filing is noted, not held against
+the turn.
+
+### Architecture map
+
+`AGENTS.md` updated in this commit: the `titan/` entry adds `model-authored`; a new paragraph
+records `previewSource` as the second workspace channel, the rollback that makes it safe, and
+the deliberate split between model-authored ordering and deterministic ordering; the per-intent
+`verify` list gains `model-authored` with its stated ceiling; and the "everything else" list is
+corrected now that no successor route is pending against it.

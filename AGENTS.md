@@ -265,17 +265,20 @@ orderings without re-deciding that trade.
   artifact is what its program deterministically produces. **It cannot prove the program
   solves the request** — nothing in the system can, and no gate should be described as if it
   did. Fails closed: a throw is a rejection.
-- `discuss-current-step` — **partly wrong, and knowingly so; see `R17c`.**
-  `verifyCurrentStepArtifact` extracts the five EN/TR lenses and is fail-closed. `Code`
-  compares a single distinct integer from the slot against `step.lineNumber`, rejecting an
-  ambiguous slot rather than guessing; `Time` compares the answer's `N/M` against
-  `currentIndex + 1` and `steps.length`. Both are sound. `Data` requires **every** key in
-  `visualData.vars` to bind to its `JSON.stringify` value — and `deterministicFiveLens`
-  truncates its own `Data` lens at 700 characters, so above that size the deterministic
-  fallback fails the check it is supposed to define. Reachable with no model loaded: Merge Sort
-  on a 200-element array (`MAX_INPUT_ITEMS`, the largest legal input) peaks at 761 characters
-  and does not verify. `Reasoning` and `Visual` are required as slots and never verified — that
-  part is deliberate and stays.
+- `discuss-current-step` — since R17c, `verifyCurrentStepArtifact` extracts the five EN/TR
+  lenses and is fail-closed; an answer whose labels cannot be found does not verify. `Code`
+  compares the single distinct integer in the slot against `step.lineNumber` and rejects an
+  ambiguous slot rather than guessing. `Time` compares the answer's `N/M` against
+  `currentIndex + 1` and `steps.length`. `Data` requires at least one explicit binding and
+  requires every binding it finds to be JSON-exact against `visualData.vars` — **"says nothing
+  false", not "says everything true"**: an answer may omit variables, and a `{...}` that is not
+  parseable JSON fails the whole slot. `Visual` and `Reasoning` are required as slots and
+  **never verified**; all of their content can be wrong. `deterministicFiveLens` is the oracle
+  this check is measured against: it selects whole bindings smallest-first up to 700 characters
+  so it emits valid JSON of a subset, and `titanPipeline.test.ts` runs it over every supported
+  algorithm at the maximum legal input size in both locales. Two earlier attempts passed green
+  suites while broken because every fixture was small — never add a comparison rule here
+  without extending that sweep.
 
 Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
 and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,

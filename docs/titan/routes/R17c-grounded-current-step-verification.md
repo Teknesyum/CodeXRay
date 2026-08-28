@@ -195,3 +195,98 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Verdict: closed.** Option A, plus the oracle fix the route left open under "if the slice is
+the thing that should change". Head `2e75780`, CI run `33163494298`, all three jobs green.
+
+### Remote gate (criterion 8)
+
+```
+72 passed (5.3m)
+2 passed (48.0s)
+TIMELINE_MEASUREMENTS {"playwright":{"min":1181.116785000002,"median":1285.2400480000006,"max":1375.6903650000022},"inPage":{"min":171.30000000004657,"median":221,"max":349.19999999995343},"handler":{"min":0.9999999997671694,"median":1.2999999998719431,"max":1.7999999999301508},"deliberateDelayMs":0}
+```
+
+Zero flaky.
+
+### The regression, re-measured on my own harness
+
+Not by re-reading H17c's test. The same script that produced R17b's failure table, run against
+`9cf3610`:
+
+```
+size=20   steps=147   worstVarsChars=136  fallbackVerifies=true
+size=60   steps=535   worstVarsChars=277  fallbackVerifies=true
+size=120  steps=1191  worstVarsChars=484  fallbackVerifies=true
+size=200  steps=2143  worstVarsChars=761  fallbackVerifies=true
+```
+
+The last row was `false` before this turn. Fixed, independently confirmed. (H17c reports 764
+for the same case; the three-character difference is different array contents, not a
+disagreement.)
+
+### The fix is in the right place
+
+The route forbade enlarging the slice, and it was not enlarged. `deterministicFiveLens` now
+selects whole `key: value` bindings, smallest-serialization first with a `localeCompare`
+tiebreak, until 700 characters — so it emits **valid JSON of a subset** instead of a string cut
+mid-token. Deterministic, no clock, no randomness. The verifier no longer needs to know the
+number 700, which is exactly why Option B was rejected: the two sides are decoupled rather than
+kept in sync by hand.
+
+### Two limits I found that the handoff's ceiling table does not name
+
+Both measured against the shipped code, neither reachable through any simulator the registry
+supports today, and neither reopens the route.
+
+**The oracle can still emit `{}`.** If every variable at a step is individually larger than 700
+characters serialized, nothing is selected and both locales print `Live variables {}.` /
+`Canlı değişkenler {}.`, which the verifier rejects — `entries.length > 0` fails. Not reachable
+in practice, and the reason is the fix's own smallest-first ordering: I found a real step whose
+widest single binding is 1611 characters (Merge Sort, 200 wide-valued elements) and all 2143
+steps still verified in EN and TR, because a small scalar always rides along. It needs a step
+whose *every* variable is oversized. If a future simulator emits one large collection and
+nothing else, this fires.
+
+**A non-JSON brace pair rejects an otherwise correct answer.** The `Data` check takes the first
+`{` to the last `}` and hard-fails on a parse error, before the binding scan ever runs:
+
+```
+plain correct bindings                  verifies=true
+exact json blob                         verifies=true
+prose set braces plus correct binding   verifies=false   <- "The visited set {A, B} is tracked and i = 2."
+correct binding with a stray open brace verifies=true
+```
+
+Fail-closed, so it is within the route's invariant, and it can only bite when a real model is
+answering — the configuration this machine still cannot exercise. Recorded because it is the
+most likely source of a future "verification cries wolf" report.
+
+### The handoff's ceiling table is the right artifact
+
+`Data` is described as "says nothing false, not says everything true", in those words, as the
+route required. `Visual` and `Reasoning` are listed as required-slot-only with "all content can
+be wrong". That is the standard set by H16 and it is now met on the intent that started this
+whole line.
+
+### The R17 line, closed
+
+Three turns: `R17` compared a fixed sentence rather than a fact; `R17b` compared facts but was
+defeated by its oracle's truncation; `R17c` fixed the oracle and narrowed the claim to one that
+holds. **The route text was wrong in both retries, not the implementation** — R17's Option A
+described the sentence it wanted matched, R17b's Option A required every variable without
+noticing the truncation. Sole implemented both sentences exactly.
+
+The correction that ends the line is not a comparison rule. It is criterion 1: run the oracle
+over every supported algorithm at the maximum legal input size in both locales. Largest
+`JSON.stringify(vars)` encountered: **21,204 characters**. Every earlier fixture set was drawn
+from the same small, well-behaved region, which is why two green suites sat on top of two live
+defects.
+
+### Architecture map
+
+`AGENTS.md`'s `discuss-current-step` line is rewritten in this commit to describe the settled
+behaviour: which slots are verified, what each is compared against, and — named, not implied —
+that `Visual` and `Reasoning` are required slots that are never verified.

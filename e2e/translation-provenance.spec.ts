@@ -275,7 +275,7 @@ test('shows a refused Java fallback without changing workspace or persisted boun
   };
   const storageBefore = await page.evaluate(() => Object.fromEntries(
     Object.keys(localStorage)
-      .filter((key) => key.startsWith('codexray.') && key !== 'codexray.ai-chat.v1')
+      .filter((key) => key.startsWith('codexray.'))
       .sort()
       .map((key) => [key, localStorage.getItem(key)]),
   ));
@@ -290,7 +290,7 @@ test('shows a refused Java fallback without changing workspace or persisted boun
   if (workspaceBefore.step !== null) await expect(stepExplanation).toHaveText(workspaceBefore.step);
   const storageAfter = await page.evaluate(() => Object.fromEntries(
     Object.keys(localStorage)
-      .filter((key) => key.startsWith('codexray.') && key !== 'codexray.ai-chat.v1')
+      .filter((key) => key.startsWith('codexray.'))
       .sort()
       .map((key) => [key, localStorage.getItem(key)]),
   ));

@@ -230,6 +230,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
   const selectedCatalogProblemRef = useRef<{ id: string; source: string; title: string } | null>(null);
   const narratedCheckpointsRef = useRef(new Set<string>());
   const responseEpochRef = useRef(0);
+  const chatPersistenceOverrideRef = useRef<string | null | undefined>(undefined);
   const panelTitle = t('masterCoder', locale);
 
   const copyAiResponse = async (content: string, index: number) => {
@@ -346,6 +347,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   useEffect(() => {
     try {
+      const override = chatPersistenceOverrideRef.current;
+      if (override !== undefined) {
+        chatPersistenceOverrideRef.current = undefined;
+        if (override === null) localStorage.removeItem(CHAT_STORAGE_KEY);
+        else localStorage.setItem(CHAT_STORAGE_KEY, override);
+        return;
+      }
       localStorage.setItem(
         CHAT_STORAGE_KEY,
         JSON.stringify(chatHistory.slice(-MAX_STORED_MESSAGES)),
@@ -474,6 +482,12 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
 
   const submitQuestion = useCallback(async (userMessage: string | any) => {
     if (isExecutingQueue) return;
+    let persistedChatBeforeRequest: string | null | undefined;
+    try {
+      persistedChatBeforeRequest = localStorage.getItem(CHAT_STORAGE_KEY);
+    } catch {
+      persistedChatBeforeRequest = undefined;
+    }
     const responseEpoch = ++responseEpochRef.current;
     const history = [...chatHistory];
     const selectedCatalogProblem = selectedCatalogProblemRef.current;
@@ -596,7 +610,21 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           });
           webRunRef.current = run;
           setWebPlan(run.plan);
-          const outcome = await run.promise;
+          let outcome;
+          try {
+            outcome = await run.promise;
+          } catch (error) {
+            if (persistedChatBeforeRequest !== undefined) {
+              chatPersistenceOverrideRef.current = persistedChatBeforeRequest;
+              try {
+                if (persistedChatBeforeRequest === null) localStorage.removeItem(CHAT_STORAGE_KEY);
+                else localStorage.setItem(CHAT_STORAGE_KEY, persistedChatBeforeRequest);
+              } catch {
+                chatPersistenceOverrideRef.current = undefined;
+              }
+            }
+            throw error;
+          }
           webRunRef.current = null;
           if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
           const { package: translatedPackage, solution: reviewedJava } = outcome;

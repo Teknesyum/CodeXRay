@@ -64,7 +64,7 @@ operate on first-party deterministic material. This is the only path where **unt
 content and model authorship meet in the same artifact**, which is why it goes first and
 possibly alone.
 
-### A stale line, corrected in this commit
+### A stale line, corrected alongside this route
 
 `AGENTS.md` said `translate.ts` had "no production caller yet". It has had one since the web
 reader shipped — `webProblemOrchestrator.ts:18`. The map is corrected in `docs(R19)`, the

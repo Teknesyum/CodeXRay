@@ -546,6 +546,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       if (webIntent?.type === 'solve-web-problem') {
         if (!activeWebSession) throw new Error('No bound web problem is available.');
         const { isWebProblemSolveCapable, startJavaFallbackRun } = await import('../services/webProblemOrchestrator');
+        const { startWebProblemFallbackPipeline } = await import('../services/titan/titanPipeline');
         if (aiStatus !== 'ready' || !isWebProblemSolveCapable(aiModel)) {
           setChatHistory((previous) => [
             ...previous,
@@ -554,13 +555,43 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           return;
         }
         if (!activeWebSession.problem.simulationCompatibility.compatible) {
-          const run = startJavaFallbackRun({
+          const run = startWebProblemFallbackPipeline({
             request: userMessage,
-            problem: activeWebSession.problem,
-            locale,
-            modelId: aiModel,
+            verificationFailureMessage: t('titanCreationVerificationFailed', locale),
             onPlan: (plan) => {
               if (mountedRef.current) setWebPlan(plan);
+            },
+            startRun: () => startJavaFallbackRun({
+              request: userMessage,
+              problem: activeWebSession.problem,
+              locale,
+              modelId: aiModel,
+            }),
+            applyArtifact: ({ package: translatedPackage, solution: reviewedJava }, runId) => {
+              applySimulationPackage(translatedPackage, runId);
+              setTourSteps(translatedPackage.checkpoints.map((checkpoint) => checkpoint.stepIndex));
+              stateRef.current = {
+                ...stateRef.current,
+                algorithmName: translatedPackage.title,
+                code: translatedPackage.source.code,
+                simulationInput: translatedPackage.input.value,
+                steps: translatedPackage.steps,
+                analysis: translatedPackage.analysis,
+                inputError: null,
+                activeSimulationPackage: translatedPackage,
+                packageOutOfSync: false,
+              };
+              const solution: SolutionArtifactV1 = {
+                version: 1,
+                kind: 'validated-simulation',
+                sourceHash: activeWebSession.problem.sourceHash,
+                problemHash: activeWebSession.problem.id,
+                packageId: translatedPackage.id,
+                review: reviewedJava.review,
+              };
+              const nextSession = { ...activeWebSession, solution };
+              saveBoundWebSource(nextSession);
+              setWebSourceSession(nextSession);
             },
           });
           webRunRef.current = run;
@@ -569,30 +600,6 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           webRunRef.current = null;
           if (!mountedRef.current || responseEpoch !== responseEpochRef.current) return;
           const { package: translatedPackage, solution: reviewedJava } = outcome;
-          applySimulationPackage(translatedPackage, run.runId);
-          setTourSteps(translatedPackage.checkpoints.map((checkpoint) => checkpoint.stepIndex));
-          stateRef.current = {
-            ...stateRef.current,
-            algorithmName: translatedPackage.title,
-            code: translatedPackage.source.code,
-            simulationInput: translatedPackage.input.value,
-            steps: translatedPackage.steps,
-            analysis: translatedPackage.analysis,
-            inputError: null,
-            activeSimulationPackage: translatedPackage,
-            packageOutOfSync: false,
-          };
-          const solution: SolutionArtifactV1 = {
-            version: 1,
-            kind: 'validated-simulation',
-            sourceHash: activeWebSession.problem.sourceHash,
-            problemHash: activeWebSession.problem.id,
-            packageId: translatedPackage.id,
-            review: reviewedJava.review,
-          };
-          const nextSession = { ...activeWebSession, solution };
-          saveBoundWebSource(nextSession);
-          setWebSourceSession(nextSession);
           setChatHistory((previous) => [
             ...previous,
             {

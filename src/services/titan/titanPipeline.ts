@@ -5,6 +5,9 @@ import type { SimulationStep } from '../../types/simulation';
 import { generateSimulationSteps } from '../aiService';
 import { recompileSimulationInput } from '../recompileSimulationInput';
 import { compileCustomSimulationPackage } from '../customSimulationCompiler';
+import type { JavaFallbackRun } from '../webProblemOrchestrator';
+import type { AgentAttemptV1, ManagerPlanV2, SolutionArtifactV1 } from '../../types/webSource';
+import type { CustomSimulationPackageV1 } from '../../types/titan';
 
 export type TitanStageId = 'route' | 'produce' | 'semantics' | 'verify' | 'apply';
 export type TitanStageStatus = 'waiting' | 'running' | 'completed' | 'skipped' | 'failed' | 'cancelled';
@@ -184,6 +187,39 @@ export const verifyModelAuthoredArtifact = (
   }
   try {
     const candidate = result.package;
+    const recomputed = compileCustomSimulationPackage({
+      id: candidate.id,
+      title: candidate.title,
+      locale: candidate.locale,
+      program: structuredClone(candidate.program),
+      input: structuredClone(candidate.input),
+      visualization: structuredClone(candidate.visualization),
+      analysis: candidate.analysis,
+    });
+    const sourceMatches = JSON.stringify(candidate.source) === JSON.stringify(recomputed.source);
+    const traceMatches = sameTrace(candidate.steps, recomputed.steps);
+    const testsMatch = candidate.tests.passed
+      && recomputed.tests.passed
+      && JSON.stringify(candidate.tests.results) === JSON.stringify(recomputed.tests.results);
+    return sourceMatches && traceMatches && testsMatch
+      ? { ok: true }
+      : { ok: false, reason: verificationFailureMessage };
+  } catch {
+    return { ok: false, reason: verificationFailureMessage };
+  }
+};
+
+export interface WebProblemFallbackArtifact {
+  solution: SolutionArtifactV1;
+  package: CustomSimulationPackageV1;
+}
+
+export const verifyWebProblemFallbackArtifact = (
+  artifact: WebProblemFallbackArtifact,
+  verificationFailureMessage: string,
+): { ok: true } | { ok: false; reason: string } => {
+  try {
+    const candidate = artifact.package;
     const recomputed = compileCustomSimulationPackage({
       id: candidate.id,
       title: candidate.title,
@@ -564,6 +600,81 @@ export const startModelAuthoredPipeline = (
   }).then(({ artifact }) => artifact);
   return {
     runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
+export interface WebProblemFallbackPipelineOptions {
+  request: string;
+  verificationFailureMessage: string;
+  onPlan?: (plan: ManagerPlanV2) => void;
+  startRun: () => JavaFallbackRun;
+  applyArtifact: (artifact: WebProblemFallbackArtifact, runId: string) => void | Promise<void>;
+}
+
+export const startWebProblemFallbackPipeline = (
+  options: WebProblemFallbackPipelineOptions,
+): JavaFallbackRun => {
+  const controller = new AbortController();
+  const runId = `titan-web-pipeline-${crypto.randomUUID()}`;
+  let activeRun: JavaFallbackRun | null = null;
+  const createdAt = Date.now();
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  const buildPlan = (): ManagerPlanV2 => ({
+    version: 2,
+    runId,
+    request: options.request,
+    intent: 'solve-web-problem',
+    createdAt,
+    jobs: stageOrder.map((id, index) => {
+      const state = stages.get(id)!;
+      return {
+        version: 2,
+        id: `titan-${id}`,
+        role: stageRole[id],
+        label: id,
+        dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+        consumes: [],
+        produces: [],
+        resourceLocks: id === 'apply' ? ['workspace'] : [],
+        status: state.status === 'skipped' ? 'completed' : state.status,
+        attempt: state.status === 'waiting' ? 0 : 1,
+        maxAttempts: 1,
+        summary: state.status === 'skipped' ? state.detail : undefined,
+        error: state.status === 'failed' ? state.detail : undefined,
+      };
+    }),
+  });
+  const publishPlan = (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan?.(buildPlan());
+  };
+  const promise = executeTitanPipeline({
+    route: () => ({ type: 'solve-web-problem' as const }),
+    produce: async () => {
+      activeRun = options.startRun();
+      return activeRun.promise;
+    },
+    verify: (artifact) => verifyWebProblemFallbackArtifact(
+      artifact,
+      options.verificationFailureMessage,
+    ),
+    apply: (artifact) => options.applyArtifact(artifact, runId),
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    get plan() { return buildPlan(); },
+    get attempts(): AgentAttemptV1[] { return activeRun?.attempts ?? []; },
     promise,
     cancel: () => {
       controller.abort();

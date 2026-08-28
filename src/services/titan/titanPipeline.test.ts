@@ -5,8 +5,10 @@ import {
   startAdaptInputPipeline,
   startDiscussCurrentStepPipeline,
   startModelAuthoredPipeline,
+  startWebProblemFallbackPipeline,
   verifyAdaptInputArtifact,
   verifyCurrentStepArtifact,
+  verifyWebProblemFallbackArtifact,
   type TitanStageState,
 } from './titanPipeline';
 import { generateSimulationSteps } from '../aiService';
@@ -491,6 +493,100 @@ describe('five-stage Titan pipeline', () => {
     expect(previewSource).toHaveBeenCalledOnce();
     expect(applyPackage).toHaveBeenCalledWith(packageValue, run.runId);
     expect(applyPackage).toHaveBeenCalledOnce();
+  });
+
+  it('refuses a web fallback whose carried trace disagrees with independent recompilation', () => {
+    const packageValue = createModelAuthoredPackage();
+    const artifact = {
+      solution: {
+        version: 1,
+        kind: 'unexecuted-java17',
+        sourceHash: 'source-hash',
+        problemHash: 'problem-hash',
+        title: 'Reviewed Java',
+        code: 'class Solution {}',
+        explanation: 'Reviewed only.',
+        complexity: { time: 'O(n)', space: 'O(1)' },
+        review: { passed: true, summary: 'Reviewed.', findings: [] },
+      },
+      package: {
+        ...packageValue,
+        steps: [{ ...packageValue.steps[0], explanation: 'Tampered carried trace.' }],
+      },
+    } as any;
+    expect(verifyWebProblemFallbackArtifact(artifact, 'Web verification failed.'))
+      .toEqual({ ok: false, reason: 'Web verification failed.' });
+  });
+
+  it('keeps workspace and persisted web state unchanged when web fallback verify refuses', async () => {
+    const packageValue = createModelAuthoredPackage();
+    const artifact = {
+      solution: { review: { passed: true, summary: 'Reviewed.', findings: [] } },
+      package: {
+        ...packageValue,
+        steps: [{ ...packageValue.steps[0], explanation: 'Tampered carried trace.' }],
+      },
+    } as any;
+    const workspace = {
+      algorithmName: 'Committed Algorithm',
+      code: 'function committed() {}',
+      simulationInput: { kind: 'array', text: '[9,8,7]' },
+      steps: [{ explanation: 'Committed step' }],
+      currentIndex: 0,
+      analysis: 'Committed analysis',
+      inputError: 'Committed input error',
+      activeSimulationPackage: null,
+      packageOutOfSync: true,
+    };
+    const snapshot = structuredClone(workspace);
+    localStorage.setItem('codexray.web-source.v1', 'committed-session');
+    const applyArtifact = vi.fn(() => {
+      workspace.algorithmName = 'Mutated';
+      localStorage.setItem('codexray.web-source.v1', 'mutated-session');
+    });
+    const run = startWebProblemFallbackPipeline({
+      request: 'solve bound problem',
+      verificationFailureMessage: 'Web verification failed.',
+      onPlan: vi.fn(),
+      startRun: () => ({
+        runId: 'web-inner',
+        plan: {} as any,
+        attempts: [],
+        promise: Promise.resolve(artifact),
+        cancel: vi.fn(),
+      }),
+      applyArtifact,
+    });
+    await expect(run.promise).rejects.toThrow('Web verification failed.');
+    expect(applyArtifact).not.toHaveBeenCalled();
+    expect(workspace).toEqual(snapshot);
+    expect(localStorage.getItem('codexray.web-source.v1')).toBe('committed-session');
+    localStorage.removeItem('codexray.web-source.v1');
+  });
+
+  it('applies and persists a verified web fallback exactly once', async () => {
+    const packageValue = createModelAuthoredPackage();
+    const artifact = {
+      solution: { review: { passed: true, summary: 'Reviewed.', findings: [] } },
+      package: packageValue,
+    } as any;
+    const applyArtifact = vi.fn();
+    const run = startWebProblemFallbackPipeline({
+      request: 'solve bound problem',
+      verificationFailureMessage: 'Web verification failed.',
+      onPlan: vi.fn(),
+      startRun: () => ({
+        runId: 'web-inner',
+        plan: {} as any,
+        attempts: [],
+        promise: Promise.resolve(artifact),
+        cancel: vi.fn(),
+      }),
+      applyArtifact,
+    });
+    await expect(run.promise).resolves.toBe(artifact);
+    expect(applyArtifact).toHaveBeenCalledOnce();
+    expect(applyArtifact).toHaveBeenCalledWith(artifact, run.runId);
   });
 
   it('rejects an empty carried model trace before preview and preserves every workspace snapshot field', async () => {

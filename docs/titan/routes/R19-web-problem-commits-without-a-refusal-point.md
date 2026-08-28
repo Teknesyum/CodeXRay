@@ -67,9 +67,9 @@ possibly alone.
 ### A stale line, corrected in this commit
 
 `AGENTS.md` said `translate.ts` had "no production caller yet". It has had one since the web
-reader shipped — `webProblemOrchestrator.ts:18`. The map is corrected in the same commit that
-opens this route; the error was mine and it is the reason this path went unexamined for four
-routes.
+reader shipped — `webProblemOrchestrator.ts:18`. The map is corrected in `docs(R19)`, the
+commit immediately after this one; the error was mine and it is the reason this path went
+unexamined for four routes.
 
 ## Turn
 

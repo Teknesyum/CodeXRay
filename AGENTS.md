@@ -119,7 +119,9 @@ testing another trusted CodeXRay gateway.
   `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, the four deterministic array
   templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`, and `lis-binary-search`
   since R16, and `model-authored` since R18), `translate.ts` (cross-language source
-  translation, no production caller yet).
+  translation, reached in production from `webProblemOrchestrator.ts` on the Java fallback
+  path; `translateToVerifiedPackage` validates the SimLang program, compiles it, and throws
+  unless the trace is non-empty and its tests pass).
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.

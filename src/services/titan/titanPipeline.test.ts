@@ -12,6 +12,63 @@ import {
 import { generateSimulationSteps } from '../aiService';
 import { compileCustomSimulationPackage } from '../customSimulationCompiler';
 import { deterministicFiveLens } from '../titanEngine';
+import { algorithmRegistry } from '../codeRegistry';
+import { createInputPreset, getInputKindForAlgorithm } from '../inputPresets';
+import type { GraphDocumentV1, SimulationInput } from '../../types/simulation';
+
+const MAX_INPUT_ITEMS = 200;
+
+const createMaximumInput = (algorithmName: string): SimulationInput => {
+  const kind = getInputKindForAlgorithm(algorithmName);
+  const preset = createInputPreset(kind, 0, algorithmName);
+  if (kind === 'array') {
+    const arrayLength = /Matrix Chain Multiplication/iu.test(algorithmName) ? 30 : MAX_INPUT_ITEMS;
+    const values = /Dutch National Flag/iu.test(algorithmName)
+      ? Array.from({ length: arrayLength }, (_, index) => index % 3)
+      : /Binary Search|Ternary Search/iu.test(algorithmName)
+        ? Array.from({ length: arrayLength }, (_, index) => index)
+        : /Unique Paths/iu.test(algorithmName)
+          ? Array.from({ length: arrayLength }, () => 1)
+          : Array.from({ length: arrayLength }, (_, index) => arrayLength - index);
+    const parameters = /Knapsack/iu.test(algorithmName)
+      ? { ...preset.parameters, values: JSON.stringify(values.map((value) => value + 1)) }
+      : preset.parameters;
+    return { ...preset, text: JSON.stringify(values), parameters, origin: 'user' };
+  }
+  if (kind === 'string') {
+    return { ...preset, text: 'AB'.repeat(MAX_INPUT_ITEMS / 2), origin: 'user' };
+  }
+  const graphLimit = /Bellman-Ford/iu.test(algorithmName)
+    ? 60
+    : /Floyd-Warshall|Johnson/iu.test(algorithmName)
+      ? 40
+      : /Graph Coloring|Hamiltonian Cycle/iu.test(algorithmName)
+        ? 12
+        : MAX_INPUT_ITEMS;
+  const nodes = Array.from({ length: graphLimit }, (_, index) => ({
+    id: `n${index}`,
+    label: String(index),
+    x: index % 100,
+    y: Math.floor(index / 100) * 50,
+  }));
+  const graph: GraphDocumentV1 = {
+    version: 1,
+    mode: kind,
+    directed: preset.graph?.directed ?? false,
+    weighted: preset.graph?.weighted ?? kind === 'graph',
+    nodes,
+    edges: nodes.slice(1).map((node, index) => ({
+      id: `e${index}`,
+      from: nodes[index].id,
+      to: node.id,
+      weight: (preset.graph?.weighted ?? kind === 'graph') ? 1 : undefined,
+    })),
+    rootId: kind === 'tree' ? nodes[0].id : undefined,
+    startId: nodes[0].id,
+    targetId: nodes.at(-1)?.id,
+  };
+  return { ...preset, graph, origin: 'user' };
+};
 
 const createModelAuthoredPackage = () => compileCustomSimulationPackage({
   id: 'model-authored-package',
@@ -196,6 +253,56 @@ describe('five-stage Titan pipeline', () => {
       workspace,
       verificationFailureMessage: 'Verification failed.',
     })).toEqual({ ok: true });
+  });
+
+  it('accepts every Merge Sort fallback for the maximum 200-item input', async () => {
+    const input = createMaximumInput('Merge Sort');
+    const steps = await generateSimulationSteps('Merge Sort', '', input);
+    const worstVarsChars = Math.max(...steps.map((step) => JSON.stringify(step.visualData.vars).length));
+    expect(worstVarsChars).toBe(764);
+    for (const locale of ['en', 'tr'] as const) {
+      for (const [currentIndex, step] of steps.entries()) {
+        const tutorAnswer = deterministicFiveLens(locale, step, currentIndex, steps.length);
+        expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+          workspace: { steps, currentIndex } as any,
+          verificationFailureMessage: 'Verification failed.',
+        })).toEqual({ ok: true });
+      }
+    }
+  });
+
+  it('accepts every deterministic fallback at the maximum legal input size', async () => {
+    let largestVarsChars = 0;
+    for (const algorithm of algorithmRegistry.filter((candidate) => candidate.isSupported)) {
+      const steps = await generateSimulationSteps(
+        algorithm.name,
+        algorithm.code,
+        createMaximumInput(algorithm.name),
+      );
+      for (const [currentIndex, step] of steps.entries()) {
+        largestVarsChars = Math.max(largestVarsChars, JSON.stringify(step.visualData.vars).length);
+        for (const locale of ['en', 'tr'] as const) {
+          const tutorAnswer = deterministicFiveLens(locale, step, currentIndex, steps.length);
+          expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+            workspace: { steps, currentIndex } as any,
+            verificationFailureMessage: 'Verification failed.',
+          }), `${algorithm.name} step ${currentIndex + 1}/${steps.length} (${locale})`).toEqual({ ok: true });
+        }
+      }
+    }
+    expect(largestVarsChars).toBe(21_204);
+  }, 120_000);
+
+  it('rejects a Data binding that contradicts the committed variable value', () => {
+    const workspace = {
+      currentIndex: 0,
+      steps: [{ lineNumber: 9, visualData: { vars: { i: 2 } } }],
+    } as any;
+    const tutorAnswer = 'Code: Line 9 is active.\nData: i = 3.\nVisual: array.\nReasoning: selected.\nTime: 1 / 1.';
+    expect(verifyCurrentStepArtifact({ status: 'success', tutorAnswer } as any, {
+      workspace,
+      verificationFailureMessage: 'Verification failed.',
+    })).toEqual({ ok: false, reason: 'Verification failed.' });
   });
 
   it.each([

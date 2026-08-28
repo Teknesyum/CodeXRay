@@ -579,7 +579,15 @@ export const deterministicFiveLens = (
   if (!step) return locale === 'tr'
     ? 'Kod: Henüz simülasyon adımı yok.\nVeri: Input hazır değil.\nGörsel: Beklemede.\nMantık: Önce geçerli bir paket derlenmeli.\nZaman: Simülasyon başlamadı.'
     : 'Code: No simulation step exists yet.\nData: Input is not ready.\nVisual: Waiting.\nReasoning: A valid package must be compiled first.\nTime: Simulation has not started.';
-  const variables = JSON.stringify(step.visualData.vars).slice(0, 700);
+  const boundedEntries = Object.entries(step.visualData.vars)
+    .map(([key, value]) => [key, value, JSON.stringify({ [key]: value }).length] as const)
+    .sort((left, right) => left[2] - right[2] || left[0].localeCompare(right[0]));
+  const selectedEntries: Array<[string, unknown]> = [];
+  for (const [key, value] of boundedEntries) {
+    const candidate = JSON.stringify(Object.fromEntries([...selectedEntries, [key, value]]));
+    if (candidate.length <= 700) selectedEntries.push([key, value]);
+  }
+  const variables = JSON.stringify(Object.fromEntries(selectedEntries));
   return locale === 'tr'
     ? [
       `Kod: Aktif kaynak satırı ${step.lineNumber ?? 'sonuç adımı'}.`,

@@ -232,16 +232,41 @@ const extractDistinctIntegers = (value: string): number[] => [
     .map((match) => Number(match[0]))),
 ];
 
-const dataLensMatchesVariables = (dataLens: string, variables: Record<string, unknown>): boolean =>
-  Object.entries(variables).every(([key, value]) => {
+const dataLensMatchesVariables = (dataLens: string, variables: Record<string, unknown>): boolean => {
+  const objectStart = dataLens.indexOf('{');
+  const objectEnd = dataLens.lastIndexOf('}');
+  if (objectStart >= 0 && objectEnd > objectStart) {
+    try {
+      const stated = JSON.parse(dataLens.slice(objectStart, objectEnd + 1)) as unknown;
+      if (typeof stated !== 'object' || stated === null || Array.isArray(stated)) return false;
+      const entries = Object.entries(stated);
+      return entries.length > 0 && entries.every(([key, value]) =>
+        Object.hasOwn(variables, key)
+        && JSON.stringify(value) === JSON.stringify(variables[key]));
+    } catch {
+      return false;
+    }
+  }
+  let bindingCount = 0;
+  for (const [key, value] of Object.entries(variables)) {
     const serialized = JSON.stringify(value);
-    if (serialized === undefined) return false;
-    const binding = new RegExp(
-      `(?:^|[^\\p{L}\\p{N}_])['"]?${escapeRegExp(key)}['"]?\\s*(?::|=|\\bis\\b|\\bvalue(?:\\s+is|\\s+of)?\\b|\\bdeğeri\\b)\\s*${escapeRegExp(serialized)}(?=$|[^\\p{L}\\p{N}_])`,
-      'iu',
+    if (serialized === undefined) continue;
+    const prefix = new RegExp(
+      `(?:^|[^\\p{L}\\p{N}_])['"]?${escapeRegExp(key)}['"]?\\s*(?::|=|\\bis\\b|\\bvalue(?:\\s+is|\\s+of)?\\b|\\bdeğeri\\b)\\s*`,
+      'giu',
     );
-    return binding.test(dataLens);
-  });
+    for (const match of dataLens.matchAll(prefix)) {
+      bindingCount += 1;
+      const statedValue = dataLens.slice((match.index ?? 0) + match[0].length);
+      const committedValue = new RegExp(
+        `^${escapeRegExp(serialized)}(?=$|[^\\p{L}\\p{N}_])`,
+        'u',
+      );
+      if (!committedValue.test(statedValue)) return false;
+    }
+  }
+  return bindingCount > 0;
+};
 
 export const verifyCurrentStepArtifact = (
   result: TitanModeRunResult,

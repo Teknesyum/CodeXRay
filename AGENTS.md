@@ -118,10 +118,11 @@ testing another trusted CodeXRay gateway.
 - `src/services/titan/` — `titanPipeline.ts` (the five-phase executor, entered from
   `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, the four deterministic array
   templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`, and `lis-binary-search`
-  since R16, and `model-authored` since R18), `translate.ts` (cross-language source
-  translation, reached in production from `webProblemOrchestrator.ts` on the Java fallback
-  path; `translateToVerifiedPackage` validates the SimLang program, compiles it, and throws
-  unless the trace is non-empty and its tests pass).
+  since R16, `model-authored` since R18, and the web-problem Java fallback since R19 through
+  `startWebProblemFallbackPipeline`), `translate.ts` (cross-language source translation,
+  reached in production from `webProblemOrchestrator.ts` on the Java fallback path;
+  `translateToVerifiedPackage` validates the SimLang program, compiles it, and throws unless
+  the trace is non-empty and its tests pass).
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
@@ -267,6 +268,19 @@ orderings without re-deciding that trade.
   artifact is what its program deterministically produces. **It cannot prove the program
   solves the request** — nothing in the system can, and no gate should be described as if it
   did. Fails closed: a throw is a rejection.
+- web-problem Java fallback — since R19, `verifyWebProblemFallbackArtifact` is
+  `verifyModelAuthoredArtifact`'s check applied to `artifact.package`, and the two bodies are
+  byte-identical from their `try` onward. **On today's producer this comparison cannot fail.**
+  `translateToVerifiedPackage` returns `compileCustomSimulationPackage`'s own output, and
+  `compileCustomSimulationPackage` stores `program` verbatim, so recompiling from that program
+  is deterministically the same package. What R19 actually bought is the phase order:
+  `applySimulationPackage` and `saveBoundWebSource` moved inside a single `apply` callback that
+  runs only after `verify`, so the workspace and every `codexray.*` key are untouched on any
+  rejection anywhere in the run. **`artifact.solution` is never verified.** The persisted
+  `SolutionArtifactV1` is labelled `validated-simulation` and carries the model's own
+  `review`, schema-checked by `validateReview` and nothing more; `review.passed` still gates
+  the run inside the producer. R19 did not make the model critic non-decisive — it made
+  persistence conditional on the package.
 - `discuss-current-step` — since R17c, `verifyCurrentStepArtifact` extracts the five EN/TR
   lenses and is fail-closed; an answer whose labels cannot be found does not verify. `Code`
   compares the single distinct integer in the slot against `step.lineNumber` and rejects an
@@ -284,7 +298,9 @@ orderings without re-deciding that trade.
 
 Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
 and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,
-`ui-control`, and `deterministic` — does not run this pipeline at all. Their gates live in
+`ui-control`, and `deterministic` — does not run this pipeline at all. All of them operate on
+first-party deterministic material; the web fallback was the only committing path fed by
+untrusted external content, which is why it went first. Their gates live in
 the engine's own job graph, run before apply only because they are earlier in the same
 function, and offer no point at which an external caller can refuse.
 

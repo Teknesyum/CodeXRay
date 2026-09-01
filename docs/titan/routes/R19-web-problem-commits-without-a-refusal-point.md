@@ -211,3 +211,72 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Closed.** Option A. Close `a41c7a0`, corrective `c6cc861`, handoff `ce0f5b2`, all signed
+`iyott131@gmail.com`, none touching a frozen or T0-owned path. Remote CI on `ce0f5b2` —
+run `33534492069` — `quality`, `desktop`, and `browser` all green, `73 passed (6.8m)`.
+
+### What I checked myself rather than reading from the handoff
+
+The apply moved where the route asked. `applySimulationPackage` and `saveBoundWebSource` now
+appear once each on this path, both inside the `applyArtifact` callback at
+`AiAssistant.tsx:585` and `:607`, and `applyArtifact` is `executeTitanPipeline`'s `apply`
+option — so it is unreachable until `verify` returns ok. The remaining production sites
+(`:891`, `App.tsx:247`, `:549`) belong to other paths.
+
+### The check cannot fail on today's producer, and the handoff does not say so
+
+`verifyWebProblemFallbackArtifact` is `verifyModelAuthoredArtifact` byte-for-byte from its
+`try` onward, applied to `artifact.package`. Traced its input: `translateToVerifiedPackage`
+(`translate.ts:62`) returns `compileCustomSimulationPackage`'s own output, and that compiler
+stores `program: options.program` verbatim (`customSimulationCompiler.ts:191`). So `verify`
+recompiles the same program with the same input and visualization, and determinism — which
+this repository enforces everywhere — guarantees the same `source`, `steps`, and
+`tests.results`. **There is no artifact today's producer can hand over that this comparison
+rejects.**
+
+That is not a defect and it does not reopen the route. R19's objective was a caller that can
+refuse, and the value delivered is the phase order, not the comparison: a rejection anywhere
+in the run now leaves the workspace and every `codexray.*` key untouched, because the only
+writer sits behind `apply`. The comparison is insurance against a future producer that hands
+over a package it did not compile. But H19's ceiling table says the check "cannot prove the
+program solves the fetched problem" and stops there, which reads as though it rejects
+something today. It rejects a tampered artifact in a unit test and nothing in production.
+Recorded in `AGENTS.md` in those words.
+
+### `artifact.solution` is never verified
+
+`verify` reads `artifact.package` only. The thing that is persisted is a `SolutionArtifactV1`
+labelled `kind: 'validated-simulation'` carrying `review` — the model's own critic output,
+schema-checked by `validateReview` (`webProblemOrchestrator.ts:145`) and nothing more — and
+`review.passed` still decides inside the producer whether the run continues at all
+(`:363`). R19 chose A, so this is expected, not a deviation: **the model critic is still
+decisive; what changed is that its verdict no longer reaches storage unless the package
+independently recompiles.** Option B remains unbuilt and its cost is unchanged.
+
+### The chat-persistence fix is sound and self-limiting
+
+`c6cc861` restores `codexray.ai-chat.v1` through a one-shot ref consumed by the next
+`chatHistory` effect (`AiAssistant.tsx:350`). The refusal message is appended, the effect
+fires, writes the pre-request value, and clears the override; the next ordinary message
+persists normally — refusal included, because it is in `chatHistory`. So the criterion holds
+at rejection time and the refusal becomes reload-visible only if the user keeps talking.
+Correct, and worth knowing before someone reads criterion 3 as "the refusal is never stored".
+
+### Duplication now carries an invariant twice
+
+Two byte-identical 25-line verifies exist. R17's route forbade a shared abstraction *in that
+turn*; the reason has expired. The next turn that touches either must merge them or say why
+not — an invariant maintained in two places is the shape of every defect this route line has
+found.
+
+### Criteria
+
+All eleven met. Criterion 6 was met by extending `e2e/translation-provenance.spec.ts`, which
+existed at `c9e2c43`, rather than `privacy-network.spec.ts`; the route permitted either.
+Criterion 4's unit evidence measures a stub workspace object, not the real one — the real
+field-by-field claim rests on the e2e spec, which is the right shape for a user-visible
+criterion.
+

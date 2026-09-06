@@ -204,3 +204,68 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Closed.** Option A. Close `b54c034`, handoff `b54989f`, both signed `iyott131@gmail.com`,
+neither touching a frozen or T0-owned path. Remote CI on `b54989f` — run `34051401946`,
+`quality`, `desktop`, and `browser` all green.
+
+**Held by a delegated implementer, not Sole.** Sole's session state was unknown and the user
+released the turn. Implementation was delegated; verification below is T0's own and was not
+taken from the handoff.
+
+### The fix is structural, and reading it is the proof
+
+`routeBoundWebProblemRequest` is four lines. It takes `userMessage`, and the fetched text is
+not a parameter. There is no input by which page words can reach the router on this path, so
+no measurement is needed to establish it — the six-row test the handoff added is a regression
+guard, which is the right role for it.
+
+### The inversion was total, and only half of it was in the route
+
+I wrote R20 around the router reading the page. The other half is worse and I missed it:
+`titanModeRequest` was `userMessage` on **every** path at `2c025fe`, and
+`orchestratorOptions.request` reads it (`:847`). So on a compatible bound web solve the engine
+received the user's short sentence and never the problem at all. The router saw the fetched
+problem; the thing meant to solve it did not. The close commit fixed both halves —
+`:697` now passes `modelQuestion` as the engine request — and that change is listed as a
+deviation when it is the more consequential of the two repairs. Recorded in `AGENTS.md`.
+
+The handoff's `## Discovered` states this as "`modelQuestion` reached no model before R20".
+That is too broad: `askQuestionDetailed` at `:1062` consumes it on the ordinary chat path. It
+is true on the Titan path, which returns before that line, and the bound web solve always took
+the Titan path because the old router never returned `null` for a serialized problem.
+
+### Two consequences worth knowing before someone reads the diff
+
+**The bound web solve now always enters a creation intent.** The wrapper cannot return `null`,
+so a page that previously matched no rule and fell through to ordinary chat now runs the
+engine. That is safe here and only here: both web branches already require
+`aiStatus === 'ready'` and `isWebProblemSolveCapable(aiModel)` before the compatibility fork,
+so the `model-authored` default always has a model. Note that this path has never consulted
+the `titanModeEnabled` toggle — true before R20 as well, not introduced by it.
+
+**`hasReviewProvenance` discards stored records.** A solution persisted before R20 carries
+`review.passed` with no `reviewer`, fails the guard, and is dropped on load. That is the
+correct outcome — the dropped record is exactly the fabricated verdict this route exists to
+remove — but it is a silent data loss on first load after upgrade and is not called out as
+one anywhere.
+
+### Criteria
+
+All eleven met. Criterion 5 is met in the form the route demanded: the gap is stated, not
+claimed closed. Criterion 8's spec is a real one — it asserts the radio control is absent, the
+"no critic reviewed" line is present, the reader made exactly one request carrying only the
+requested URL, and, at `:123`, that the fetched problem still reaches the model inside its
+`EXTERNAL_WEB_CONTENT_BEGIN` delimiters. The handoff reports the spec failing on base
+behaviour when the routing line is reverted, which is the evidence a regression guard needs
+and which no previous route in this line supplied.
+
+### Still open after this route
+
+The non-pipelined creation templates. `predict-winner-interval-dp`, `bidirectional-bfs`, and
+`lcs-space-optimized-1d-dp` commit through `startTitanModeRun` with no caller that can refuse,
+reachable whenever a user names one. That is the last committing surface of this kind and it
+is now the only one left.
+

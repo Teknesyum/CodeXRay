@@ -304,6 +304,31 @@ untrusted external content, which is why it went first. Their gates live in
 the engine's own job graph, run before apply only because they are earlier in the same
 function, and offer no point at which an external caller can refuse.
 
+**What selects the intent on the bound web-solve path.** Since R20 the fetched problem never
+reaches `routeTitanModeRequest`. `AiAssistant.tsx:689` calls `routeBoundWebProblemRequest`
+with the **user's own message**; that wrapper keeps a `create-algorithm` result and otherwise
+falls back to `create-algorithm: model-authored`, so this path always enters a creation intent
+and R18's pipeline gates the default. Before R20 the router read `buildWebProblemPrompt`'s
+serialized page text, and page words could select `ui-control`, `adapt-input`, or a
+non-pipelined template. **The inversion was total: the router saw the problem and the engine
+did not** — `titanModeRequest` was `userMessage` on every path, so the engine was asked to
+solve a bound web problem without being shown it. R20 also fixed that half; the serialized
+problem is now the engine's `request`, still inside its `EXTERNAL_WEB_CONTENT` delimiters and
+still untrusted data. Never feed fetched content to a router again — the closed intent set is
+not a boundary when the page picks the member.
+
+**The gap R20 did not close.** `predict-winner-interval-dp`, `bidirectional-bfs`,
+`lcs-space-optimized-1d-dp`, and the other non-pipelined templates still commit through
+`startTitanModeRun` with no external refusal point. A user who names one still reaches it.
+R20 stopped the page from naming it; it did not gate the branch.
+
+**A persisted review says who reviewed.** `SolutionReviewRecordV1` is a discriminated union:
+`reviewer: 'model-critic'` carries the producer's real verdict and its `passed`, and
+`reviewer: 'none'` carries a summary with no verdict at all. The compatible web path records
+`'none'` and the user reads an EN/TR line saying no critic reviewed it. `loadBoundWebSource`
+drops a stored solution whose review cannot say who reviewed it, which also discards records
+written before R20. Never synthesize `passed: true`.
+
 **Do not assume a new artifact type is checked because it sits behind `verify`.** For
 `adapt-input` the content guarantee comes from two places: the typed appliers in
 `inputPatch.ts` inside `produce`, and R15's recomputation in `verify`. A new artifact type

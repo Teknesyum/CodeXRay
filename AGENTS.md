@@ -329,6 +329,27 @@ R20 stopped the page from naming it; it did not gate the branch.
 drops a stored solution whose review cannot say who reviewed it, which also discards records
 written before R20. Never synthesize `passed: true`.
 
+**A job summary says who wrote it.** `callOptionalAgent` returns
+`{ source: 'model' | 'fallback'; text }` since R21, because it returns the same sentence when no
+model exists, when the call throws, and when a model answers — and every caller used to record
+that sentence under an agent's name and a completed badge. `ManagerJobV1.provenance` is
+`'model'` only when the **adopted** content came from a model: the four sites that may discard a
+model answer (`titanEngine.ts:1046`/`:1050`, `:1375`, `:1443`, `:1621`) write the discriminant by
+hand rather than calling `provenanceOf`, and `runJob` defaults a completed job to
+`'deterministic'` so a forgotten `adopt` reads as "no agent" instead of as an answer. On a
+deterministic-template run `useAdvisoryModel` is false and **every** row is `deterministic`;
+`titanEngine.test.ts` asserts that for `jump-game-dp`. Never widen `'model'` to mean "a model was
+called".
+
+The critic at `critic-test-visual-and-trace-alignment` is fail-closed on a model answer since
+R21: if the critic actually answered and `safeJsonObject` cannot parse it, the run throws. This
+**rejects an unreadable answer, not an unapproving one** — a model returning `{}` still passes,
+because the rejection test is `parsed?.passed === false`. Do not describe this gate as approval.
+The two deterministic gates above it (`tests.passed`, non-empty `teachingPlan.checkpoints`) run
+first and are the real guarantee; the throw lands before
+`manager-apply-workspace-transaction`, so a rejected run has not touched the workspace. There is
+no retry around the critic.
+
 **Do not assume a new artifact type is checked because it sits behind `verify`.** For
 `adapt-input` the content guarantee comes from two places: the typed appliers in
 `inputPatch.ts` inside `produce`, and R15's recomputation in `verify`. A new artifact type

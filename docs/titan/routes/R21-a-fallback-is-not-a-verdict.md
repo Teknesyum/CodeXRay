@@ -227,3 +227,99 @@ $server = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev", "--", 
 $env:PLAYWRIGHT_EXTERNAL_SERVER = "1"
 npm run test:e2e
 ```
+
+## T0 reconciliation
+
+**Closed.** Option A. Close `8b3b188`, handoff `cc61056`, both DCO-signed
+`iyott131@gmail.com`, neither touching a frozen or T0-owned path — `git diff --name-only
+05e3307..HEAD` lists nine files, all in `src/**` or `docs/titan/`. Remote CI on `cc61056` —
+run `34053797901`, `quality`, `desktop`, and `browser` all green. T0 re-ran `lint`, `test`
+(`850 passed`, 119 files), and `build` (all budgets inside) locally; the verification below is
+T0's own reading of the diff and was not taken from the handoff.
+
+**Held by a delegated implementer, not Sole.** Sole's session state was unknown and the user
+released the turn.
+
+### The implementation is sharper than the route asked for
+
+The route asked for provenance meaning *did a model answer*. What shipped means *did the
+adopted content come from a model*, which is the more useful of the two and the harder one to
+get right. Four sites write the discriminant by hand instead of calling `provenanceOf`:
+`:1046`/`:1050` (architect — `model` only when the parsed contract was actually used, otherwise
+the deterministic fallback contract), `:1375`, `:1443`, and `:1621` (`useGenerated ? 'model' :
+'deterministic'`). So a job where the model answered and the answer was thrown away is marked
+`deterministic`, correctly. Deviation 5 files this as a deliberate non-use of the helper; it is
+the substance of the turn, not a deviation from it.
+
+`runJob` writes `target.provenance ?? 'deterministic'` on completion, so a job that never
+adopted anything is marked rather than left blank, and `adopt` cannot be forgotten silently at
+a new call site — the row would simply read "no agent".
+
+### The route's measurement contained an error, and the implementer said so
+
+R21's `### The measurement` claims `TitanModeProgress.tsx:288` "renders `job.summary` as the
+row's text and its tooltip". It does not. `AiAssistant.css:964-966` sets
+`.agent-summary { display: none; }`, so the sentence reaches the user only through the
+hover/focus tooltip built by `jobDetails` and through the row's accessible name. I verified
+this myself before accepting the handoff's claim.
+
+The finding is unharmed — a tooltip and an accessible name that attribute an engine literal to
+"Code Author" are the same misattribution — but the route overstated where it surfaces, and the
+right response was the one taken: report it in `## Discovered` and put the new marker in both
+places rather than quietly matching the wrong description.
+
+### My verification command went stale inside its own turn
+
+Deviation 2 is my error, not the implementer's. `Get-Content ... | Select-Object -Skip 1500
+-First 40` was written against base line numbers; the diff moved the two deterministic gates
+from `1505-1506` to `1549-1550`, so the window no longer contained what criterion 6 asked it to
+show. The command was still run verbatim and the evidence supplied from a wider window. A
+line-window command in a `## Verification` block is fragile by construction — future routes
+should grep for the assertion text, never for a line range.
+
+### What the new critic throw does and does not establish
+
+It rejects an **unreadable** answer, not an unapproving one. `answer.source === 'model' &&
+!parsed` throws only when `safeJsonObject` returns `null`; a model that returns `{}` — valid
+JSON, no `passed` key — still passes, because `parsed?.passed === false` is false. The guard is
+"the critic said something readable", not "the critic approved". That is the same shape as
+R17c's `Data` lens: says nothing false, not says everything true. Do not describe this gate as
+approval in any later document.
+
+The throw also lands before `manager-apply-workspace-transaction` (`:1549` critic, `:1578`
+apply), so a rejected run has not touched the workspace on the non-pipelined branches either.
+
+### Criteria
+
+All eleven met. Criterion 4 is met by a real reproduction: `titanEngine.test.ts` runs probe C
+against `model-authored` with a critic that answers in prose and asserts the run rejects with
+`/Critic returned an unreadable answer/` and the critic job ends `failed`. Probes A and B are
+permanent tests too, so the three measurements that opened this route are now the three that
+guard it.
+
+The behaviour change is stated where the route asked for it, with the surrounding retry count:
+there is **no** retry around the critic, so a weak local model answering the critic prompt in
+prose turns a previously-silent success into a visible failed run on the first occurrence, on
+`bidirectional-bfs` and its non-pipelined siblings. That is the intended direction. Whether a
+bounded critic retry belongs there is a later decision, not a defect of this one.
+
+### The e2e timeout sightings are now four
+
+Deviation 3 reports `titan-mode.spec.ts:22` and `ai-actions.spec.ts:112` timing out on two full
+local runs before a green one, with the base green under the same command and both specs
+passing in isolation. Added to `radio-controller.spec.ts` at H12 and H15, that is four local
+timeout sightings across three specs and none on CI — `browser` is green here. Still not a
+route. The next local timeout in any spec makes it one, and the first on CI makes it one
+immediately.
+
+### Still open after this route
+
+Unchanged from R20: `predict-winner-interval-dp`, `bidirectional-bfs`,
+`lcs-space-optimized-1d-dp`, and the other non-pipelined creation templates still commit
+through `startTitanModeRun` with no caller that can refuse. R21 gave their critic the ability
+to refuse; it did not give them a refusal point outside the engine. Those are different things
+and this route deliberately did not conflate them.
+
+Also pre-existing and untouched, recorded so a later determinism route is not surprised:
+`titanEngine.ts:105` uses `Math.random` for `runId`. It is an identifier, not simulation or
+trace state.

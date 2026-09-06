@@ -75,7 +75,9 @@ given. The selector's input is the defect, not the selector.
 
 - Route id: `R20`
 - Base: `b80f667` (`route(R19): reconcile and close`)
-- Holder: `sole`
+- Holder: `t0-delegated` — Sole's session state was unknown when this route opened and the
+  user released the turn. T0 delegates the implementation and still verifies it independently;
+  the handoff obligations are unchanged.
 - Expected size: 3–6 files, 2 commits (`route(R20): close`, `handoff(H20): record`)
 
 ## Expected Files

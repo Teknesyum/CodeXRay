@@ -35,6 +35,8 @@ export type AgentJobStatus =
   | 'cancelled'
   | 'rolled-back';
 
+export type AgentAnswerProvenance = 'model' | 'deterministic';
+
 export interface ManagerJobV1 {
   id: string;
   role: TitanModeAgentRole;
@@ -56,6 +58,7 @@ export interface ManagerJobV1 {
   finishReason?: string;
   summary?: string;
   reasoning?: string;
+  provenance?: AgentAnswerProvenance;
   error?: string;
 }
 
@@ -76,6 +79,7 @@ export interface AgentRunEventV1 {
   status: AgentJobStatus;
   timestamp: number;
   summary?: string;
+  provenance?: AgentAnswerProvenance;
   error?: string;
 }
 

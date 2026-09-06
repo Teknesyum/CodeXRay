@@ -978,7 +978,8 @@
   opacity: 0.82;
 }
 
-.agent-duration {
+.agent-duration,
+.agent-provenance {
   flex: 0 0 auto;
   color: var(--neon-lime);
   font-size: 0.5rem;

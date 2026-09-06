@@ -60,6 +60,7 @@ const jobElapsed = (
 const jobDetails = (
   job: ManagerPlanV1['jobs'][number] | ManagerPlanV2['jobs'][number],
   now: number,
+  locale: Locale,
 ): string | undefined => {
   const elapsed = jobElapsed(job, now);
   const timing = elapsed === null
@@ -74,7 +75,10 @@ const jobDetails = (
   const context = typeof job.contextWindow === 'number' && typeof job.promptTokens === 'number'
     ? `Context: ${job.promptTokensEstimated ? '~' : ''}${job.promptTokens + (job.completionTokens ?? 0)}/${job.contextWindow} tokens`
     : '';
-  return [job.error ?? job.summary, timing, context].filter(Boolean).join(' · ') || undefined;
+  const provenance = 'provenance' in job && job.provenance
+    ? t(`titanProvenance_${job.provenance}`, locale)
+    : '';
+  return [job.error ?? job.summary, provenance, timing, context].filter(Boolean).join(' · ') || undefined;
 };
 
 const compactTokens = (tokens: number): string => tokens >= 1_000
@@ -251,14 +255,14 @@ export const TitanModeProgress = ({
               event,
               t(agentKey(job.role), locale),
               t(`titanStatus_${job.status}`, locale),
-              jobDetails(job, now),
+              jobDetails(job, now, locale),
             )}
             onMouseLeave={() => setTooltip(null)}
             onFocus={(event) => showAgentTooltip(
               event,
               t(agentKey(job.role), locale),
               t(`titanStatus_${job.status}`, locale),
-              jobDetails(job, now),
+              jobDetails(job, now, locale),
             )}
             onBlur={() => setTooltip(null)}
           >
@@ -272,6 +276,11 @@ export const TitanModeProgress = ({
                     : <Circle size={9} />}
             </span>
             <span className="agent-role">{stageLabel(job.id, t(agentKey(job.role), locale), locale)}</span>
+            {'provenance' in job && job.provenance && (
+              <span className="agent-provenance">
+                {t(`titanProvenance_${job.provenance}`, locale)}
+              </span>
+            )}
             {jobElapsed(job, now) !== null && (
               <span className="agent-duration">
                 {(jobElapsed(job, now)! / 1_000).toFixed(1)}s

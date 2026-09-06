@@ -28,6 +28,22 @@ describe('TitanProgress', () => {
     expect(screen.getByLabelText('Anlamlandır: atlandı (gerekmedi)')).toBeInTheDocument();
   });
 
+  it('marks each agent row with the provenance of its answer in both locales', () => {
+    const props = { onCancel: vi.fn(), onDismiss: vi.fn(), onUndo: vi.fn(), onRedo: vi.fn(), onRetry: vi.fn(), canUndo: true, canRedo: true };
+    const provenancePlan = (): ManagerPlanV1 => {
+      const value = plan();
+      value.jobs[0].provenance = 'model';
+      value.jobs[1].provenance = 'deterministic';
+      return value;
+    };
+    const view = render(<TitanProgress plan={provenancePlan()} locale="en" {...props} />);
+    expect(screen.getByText('model')).toBeVisible();
+    expect(screen.getByText('no agent')).toBeVisible();
+    view.rerender(<TitanProgress plan={provenancePlan()} locale="tr" {...props} />);
+    expect(screen.getByText('model')).toBeVisible();
+    expect(screen.getByText('ajan yok')).toBeVisible();
+  });
+
   it('keeps cancel, undo, and redo controls keyboard accessible', () => {
     const onCancel = vi.fn();
     const onUndo = vi.fn();

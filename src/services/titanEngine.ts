@@ -1,5 +1,6 @@
 import type { Locale } from '../i18n/translations';
 import type {
+  AgentAnswerProvenance,
   AlgorithmDesignV1,
   CustomSimulationPackageV1,
   TitanModeAgentRole,
@@ -635,6 +636,16 @@ const deterministicPackageTour = (
   return deterministicFiveLens(locale, packageValue.steps[0], 0, packageValue.steps.length);
 };
 
+export type AgentAnswerSource = 'model' | 'fallback';
+
+export interface AgentAnswerV1 {
+  source: AgentAnswerSource;
+  text: string;
+}
+
+const provenanceOf = (answer: AgentAnswerV1): AgentAnswerProvenance =>
+  (answer.source === 'model' ? 'model' : 'deterministic');
+
 export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanModeRunHandle => {
   const runId = createRunId();
   const plan = createPlan(runId, options.request, options.intent);
@@ -668,7 +679,11 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
     try {
       const value = await task();
       ensureActive();
-      setJob(id, { status: 'completed', finishedAt: Date.now() });
+      setJob(id, {
+        status: 'completed',
+        finishedAt: Date.now(),
+        provenance: target.provenance ?? 'deterministic',
+      });
       return value;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Titan Mode job failed.';
@@ -760,14 +775,19 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
     fallback: string,
     responseSchema?: Record<string, unknown>,
     maxTokens?: number,
-  ): Promise<string> => {
-    if (!useAdvisoryModel) return fallback;
+  ): Promise<AgentAnswerV1> => {
+    if (!useAdvisoryModel) return { source: 'fallback', text: fallback };
     try {
-      return await callAgent(role, instructions, context, responseSchema, maxTokens);
+      const text = await callAgent(role, instructions, context, responseSchema, maxTokens);
+      return { source: 'model', text };
     } catch {
       ensureActive();
-      return fallback;
+      return { source: 'fallback', text: fallback };
     }
+  };
+  const adopt = (jobId: string, answer: AgentAnswerV1): string => {
+    setJob(jobId, { provenance: provenanceOf(answer) });
+    return answer.text;
   };
 
   publish();
@@ -776,17 +796,17 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
       if (options.intent.type === 'discuss-current-step') {
         await runJob('manager-freeze-and-route-discussion', () => 'Playback frozen.');
         await runJob('scout-capture-current-trace-step', () => options.workspace.steps[options.workspace.currentIndex]);
-        await runJob('trace-analyst-analyze-discussion-checkpoint', () =>
-          callOptionalAgent(
+        await runJob('trace-analyst-analyze-discussion-checkpoint', async () =>
+          adopt('trace-analyst-analyze-discussion-checkpoint', await callOptionalAgent(
             'trace-analyst',
             'Identify why the selected real trace step is worth discussing. Do not invent step numbers.',
             fiveLensContext(options.workspace, options.request),
             options.workspace.steps[options.workspace.currentIndex]?.explanation ?? 'No trace step.',
             undefined,
             260,
-          ));
-        const tutorAnswer = await runJob('tutor-explain-through-five-lenses', () =>
-          callOptionalAgent(
+          )));
+        const tutorAnswer = await runJob('tutor-explain-through-five-lenses', async () =>
+          adopt('tutor-explain-through-five-lenses', await callOptionalAgent(
             'tutor',
             'Explain the selected committed step under five short labels: Code, Data, Visual, Reasoning, Time.',
             fiveLensContext(options.workspace, options.request),
@@ -798,7 +818,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             ),
             undefined,
             650,
-          ));
+          )));
         return { status: 'success', runId, plan, summary: 'Current step discussed through five lenses.', tutorAnswer };
       }
 
@@ -1010,7 +1030,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         let problemSpec: ProblemSpecV2 | undefined;
         let algorithmPlan: DpFamilyContractV2 | undefined;
         await runJob('architect-design-algorithm-contract', async () => {
-          const response = await callOptionalAgent(
+          const answer = await callOptionalAgent(
             'architect',
             `Design the unified ProblemSpecV2 and DpFamilyContractV2 for the predict-winner interval-DP algorithm. Output matching the megaDpUpdateSchema.`,
             JSON.stringify({ request: options.request, numbers: resolved.numbers }),
@@ -1018,20 +1038,20 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             megaDpUpdateSchema,
             1200,
           );
-          const parsed = safeJsonObject(response) as any;
-          if (parsed?.problemSpec && parsed?.algorithmPlan) {
+          const parsed = safeJsonObject(answer.text) as any;
+          if (answer.source === 'model' && parsed?.problemSpec && parsed?.algorithmPlan) {
             problemSpec = parsed.problemSpec;
             algorithmPlan = parsed.algorithmPlan;
             const summary = `Extracted ProblemSpecV2 and DpFamilyContractV2 for ${problemSpec?.title}.`;
-            setJob('architect-design-algorithm-contract', { summary });
+            setJob('architect-design-algorithm-contract', { summary, provenance: 'model' });
             return summary;
           }
           const summary = 'Selected the validated deterministic predict-winner interval-DP contract fallback.';
-          setJob('architect-design-algorithm-contract', { summary });
+          setJob('architect-design-algorithm-contract', { summary, provenance: 'deterministic' });
           return summary;
         });
         await runJob('code-author-author-executable-program', async () => {
-          const summary = await callOptionalAgent(
+          const answer = await callOptionalAgent(
             'code-author',
             'Review the deterministic C++ Predict the Winner implementation. It must use a 2D interval-DP table and dp[i][j] = max(nums[i] - dp[i+1][j], nums[j] - dp[i][j-1]).',
             JSON.stringify({ request: options.request }),
@@ -1039,7 +1059,11 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             undefined,
             240,
           );
-          setJob('code-author-author-executable-program', { summary: summary.slice(0, 260) });
+          const summary = answer.text;
+          setJob('code-author-author-executable-program', {
+            summary: summary.slice(0, 260),
+            provenance: provenanceOf(answer),
+          });
           preparedPackage = compilePredictWinnerPackage({
             id: `predict-winner-${runId}`,
             request: options.request,
@@ -1058,7 +1082,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           return resolved;
         });
         await runJob('visual-designer-design-semantic-visual-language', async () => {
-          const summary = await callOptionalAgent(
+          const answer = await callOptionalAgent(
             'visual-designer',
             'Review a matrix visual with distinct base, dependency, active, computed, and final-result cell roles. The two recurrence dependencies must remain visible at every transition.',
             JSON.stringify({ dimensions: [resolved.numbers.length, resolved.numbers.length] }),
@@ -1066,7 +1090,11 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             undefined,
             220,
           );
-          setJob('visual-designer-design-semantic-visual-language', { summary: summary.slice(0, 260) });
+          const summary = answer.text;
+          setJob('visual-designer-design-semantic-visual-language', {
+            summary: summary.slice(0, 260),
+            provenance: provenanceOf(answer),
+          });
           return summary;
         });
         await runJob('layout-engineer-resolve-responsive-graph-layout', () => {
@@ -1104,15 +1132,15 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           return summary;
         });
         const groundedTour = deterministicPackageTour(options.locale, packageValue);
-        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () =>
-          callOptionalAgent(
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', async () =>
+          adopt('tutor-prepare-five-lens-live-tour', await callOptionalAgent(
             'tutor',
             'Introduce the committed interval-DP simulation under Code, Data, Visual, Reasoning, and Time labels. Explain that playback follows increasing interval length and that each active cell highlights dp[i+1][j] and dp[i][j-1].',
             fiveLensContext(options.workspace, options.request, packageValue),
             groundedTour,
             undefined,
             700,
-          ));
+          )));
         return {
           status: 'success',
           runId,
@@ -1185,13 +1213,16 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           setJob('result-analyst-ground-final-result-analysis', { summary });
           return summary;
         });
-        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', () => callOptionalAgent(
-          'tutor',
-          'Explain this committed package through Code, Data, Visual, Reasoning, and Time without inventing values.',
-          fiveLensContext(options.workspace, options.request, packageValue),
-          deterministicPackageTour(options.locale, packageValue),
-          undefined,
-          620,
+        const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', async () => adopt(
+          'tutor-prepare-five-lens-live-tour',
+          await callOptionalAgent(
+            'tutor',
+            'Explain this committed package through Code, Data, Visual, Reasoning, and Time without inventing values.',
+            fiveLensContext(options.workspace, options.request, packageValue),
+            deterministicPackageTour(options.locale, packageValue),
+            undefined,
+            620,
+          ),
         ));
         return {
           status: 'success', runId, plan,
@@ -1286,7 +1317,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
       }
       let design = defaultBidirectionalDesign(options.locale);
       await runJob('architect-design-algorithm-contract', async () => {
-        let response = creationIntent.template === 'bidirectional-bfs'
+        let answer: AgentAnswerV1 = creationIntent.template === 'bidirectional-bfs'
           ? await callOptionalAgent(
             'architect',
             'Design the requested algorithm contract. For bidirectional BFS, require two FIFO frontiers, two visited sets, two parent maps, a first-intersection condition, and shortest-path reconstruction.',
@@ -1295,7 +1326,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             architectureSchema,
             520,
           )
-          : await callAgent(
+          : { source: 'model', text: await callAgent(
             'architect',
             [
               'Design the requested algorithm contract using only SimLang-compatible data structures.',
@@ -1306,16 +1337,16 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             JSON.stringify({ request: options.request, workspace: options.workspace }),
             architectureSchema,
             520,
-          );
+          ) };
         let architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
-        let validation = validateArchitectureContract(response, architectJob?.finishReason);
+        let validation = validateArchitectureContract(answer.text, architectJob?.finishReason);
         if (creationIntent.template === 'model-authored' && 'stage' in validation && validation.stage === 'truncated') {
           setJob('architect-design-algorithm-contract', {
             status: 'retrying',
             attempt: (architectJob?.attempt ?? 1) + 1,
             summary: 'Retrying one compact Architect contract after token truncation.',
           });
-          response = await callAgent(
+          answer = { source: 'model', text: await callAgent(
             'architect',
             [
               'The previous contract reached the output limit.',
@@ -1326,9 +1357,9 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             JSON.stringify({ request: options.request, workspace: options.workspace }),
             architectureSchema,
             1_400,
-          );
+          ) };
           architectJob = plan.jobs.find((job) => job.id === 'architect-design-algorithm-contract');
-          validation = validateArchitectureContract(response, architectJob?.finishReason);
+          validation = validateArchitectureContract(answer.text, architectJob?.finishReason);
         }
         const parsed = validation.ok ? validation.value : null;
         if (parsed) design = parsed;
@@ -1341,6 +1372,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         design = { ...design, title: authoredTitle };
         setJob('architect-design-algorithm-contract', {
           summary: parsed ? `${parsed.title}: ${parsed.complexity.time}` : 'Validated deterministic architecture fallback selected.',
+          provenance: parsed && answer.source === 'model' ? 'model' : 'deterministic',
         });
         return design;
       });
@@ -1348,7 +1380,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
       let program: ProgramSpecV1;
       if (creationIntent.template === 'bidirectional-bfs') {
         program = await runJob('code-author-author-executable-program', async () => {
-          const response = await callOptionalAgent(
+          const answer = await callOptionalAgent(
             'code-author',
             'Review the bidirectional BFS design for missing source-level operations. Return a concise implementation note.',
             JSON.stringify(design),
@@ -1356,7 +1388,10 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             undefined,
             260,
           );
-          setJob('code-author-author-executable-program', { summary: response.slice(0, 260) });
+          setJob('code-author-author-executable-program', {
+            summary: answer.text.slice(0, 260),
+            provenance: provenanceOf(answer),
+          });
           const authoredProgram = createBidirectionalBfsProgram(options.locale);
           await options.previewSource?.(renderProgramSource(authoredProgram).code, design.title, runId);
           return authoredProgram;
@@ -1405,6 +1440,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             if (validation.valid && validation.program && validation.program.inputKind === design.inputKind) {
               setJob('code-author-author-executable-program', {
                 summary: `${validation.program.title}; ${validation.program.entry.length} top-level statements.`,
+                provenance: 'model',
               });
               await options.previewSource?.(renderProgramSource(validation.program).code, design.title, runId);
               return validation.program;
@@ -1422,7 +1458,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
 
       let input: InputContractV1 = await runJob('input-engineer-build-original-teaching-input', async () => {
         const value = createAgentInputContract(design, options.request, options.workspace);
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'input-engineer',
           'Review the proposed teaching input against the algorithm contract. Preserve user input when origin=user. Identify one pedagogically useful branch. Application validation is authoritative.',
           JSON.stringify(value),
@@ -1433,7 +1469,10 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         const origin = value.origin === 'fallback'
           ? `FALLBACK: ${value.fallbackReason ?? 'agent input generation failed'}`
           : value.origin === 'user' ? 'User input preserved.' : 'Original teaching input generated.';
-        setJob('input-engineer-build-original-teaching-input', { summary: `${origin} ${response}`.slice(0, 260) });
+        setJob('input-engineer-build-original-teaching-input', {
+          summary: `${origin} ${answer.text}`.slice(0, 260),
+          provenance: provenanceOf(answer),
+        });
         return value;
       });
       let visualization: VisualizationContract;
@@ -1450,7 +1489,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
             startId: '1',
           }, design.title);
         visualization = createVisualizationContractV2(design, input.value, provisionalLayout);
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'visual-designer',
           'Review the supplied semantic roles, frontier palette, result emphasis, and legend. Do not invent graph nodes or trace variables.',
           JSON.stringify({ request: options.request, design, visualization }),
@@ -1458,7 +1497,10 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           undefined,
           280,
         );
-        setJob('visual-designer-design-semantic-visual-language', { summary: response.slice(0, 260) });
+        setJob('visual-designer-design-semantic-visual-language', {
+          summary: answer.text.slice(0, 260),
+          provenance: provenanceOf(answer),
+        });
         return visualization;
       });
       await runJob('layout-engineer-resolve-responsive-graph-layout', async () => {
@@ -1472,7 +1514,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           value: { ...input.value, text: '', graph },
         };
         visualization = createVisualizationContractV2(design, input.value, layout);
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'layout-engineer',
           'Review the deterministic layout quality report and briefly state why the strategy fits this graph.',
           JSON.stringify({ strategy: layout.strategy, quality, graph }),
@@ -1480,7 +1522,10 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           undefined,
           220,
         );
-        setJob('layout-engineer-resolve-responsive-graph-layout', { summary: response.slice(0, 260) });
+        setJob('layout-engineer-resolve-responsive-graph-layout', {
+          summary: answer.text.slice(0, 260),
+          provenance: provenanceOf(answer),
+        });
         return input;
       });
       // The visual designer job always initializes this value before the layout job.
@@ -1504,7 +1549,7 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
       await runJob('critic-test-visual-and-trace-alignment', async () => {
         if (!packageValue.tests.passed) throw new Error('Deterministic package tests failed.');
         if (!packageValue.teachingPlan.checkpoints.length) throw new Error('Teaching plan has no grounded checkpoints.');
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'critic',
           'Review the validated package test report, semantic roles, and real teaching checkpoints. Report only concrete mismatches.',
           JSON.stringify({ design, tests: packageValue.tests, visualization: packageValue.visualization, checkpoints: packageValue.checkpoints, finalStep: packageValue.steps.at(-1) }),
@@ -1512,7 +1557,12 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           critiqueSchema,
           320,
         );
-        const parsed = safeJsonObject(response);
+        const parsed = safeJsonObject(answer.text);
+        if (answer.source === 'model' && !parsed) {
+          throw new Error(options.locale === 'tr'
+            ? 'Kritik ajanı çözümlenemeyen bir cevap döndürdü; paket onaylanmadı.'
+            : 'Critic returned an unreadable answer; the package was not approved.');
+        }
         if (parsed?.passed === false) {
           const issues = Array.isArray(parsed.issues)
             ? parsed.issues.filter((issue): issue is string => typeof issue === 'string').slice(0, 6)
@@ -1521,12 +1571,13 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
         }
         setJob('critic-test-visual-and-trace-alignment', {
           summary: typeof parsed?.summary === 'string' ? parsed.summary.slice(0, 260) : 'Deterministic tests passed.',
+          provenance: provenanceOf(answer),
         });
-        return response;
+        return answer.text;
       });
       await runJob('manager-apply-workspace-transaction', () => applyPackageUnlessDeferred(options, packageValue, runId));
       await runJob('trace-director-direct-live-teaching-checkpoints', async () => {
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'trace-director',
           'Review only the supplied real checkpoint narrations. Confirm that every referenced step and variable exists; do not invent any.',
           JSON.stringify(packageValue.teachingPlan.checkpoints),
@@ -1534,11 +1585,14 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           undefined,
           260,
         );
-        setJob('trace-director-direct-live-teaching-checkpoints', { summary: response.slice(0, 260) });
-        return response;
+        setJob('trace-director-direct-live-teaching-checkpoints', {
+          summary: answer.text.slice(0, 260),
+          provenance: provenanceOf(answer),
+        });
+        return answer.text;
       });
       await runJob('result-analyst-ground-final-result-analysis', async () => {
-        const response = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'result-analyst',
           'Review the deterministic final result analysis. Do not add metrics absent from the final snapshot.',
           JSON.stringify(packageValue.teachingPlan.finalResult),
@@ -1546,12 +1600,15 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           undefined,
           260,
         );
-        setJob('result-analyst-ground-final-result-analysis', { summary: response.slice(0, 260) });
-        return response;
+        setJob('result-analyst-ground-final-result-analysis', {
+          summary: answer.text.slice(0, 260),
+          provenance: provenanceOf(answer),
+        });
+        return answer.text;
       });
       const groundedTour = deterministicPackageTour(options.locale, packageValue);
       const tutorAnswer = await runJob('tutor-prepare-five-lens-live-tour', async () => {
-        const generated = await callOptionalAgent(
+        const answer = await callOptionalAgent(
           'tutor',
           'Introduce the generated algorithm through five short labels: Code, Data, Visual, Reasoning, Time. Ground every claim in the supplied committed package.',
           fiveLensContext(options.workspace, options.request, packageValue),
@@ -1559,7 +1616,11 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           undefined,
           700,
         );
-        return generated.trim().length >= 140 ? generated : groundedTour;
+        const useGenerated = answer.source === 'model' && answer.text.trim().length >= 140;
+        setJob('tutor-prepare-five-lens-live-tour', {
+          provenance: useGenerated ? 'model' : 'deterministic',
+        });
+        return useGenerated ? answer.text : groundedTour;
       });
       return {
         status: 'success',

@@ -767,6 +767,73 @@ describe('Titan Mode orchestrator', () => {
     expect(updated.steps.at(-1).visualData.vars.visitedCells).toBe(120);
   });
 
+  it('marks every advisory job deterministic when no agent runs (probe A)', async () => {
+    const plans: ManagerPlanV1[] = [];
+    const result = await startTitanModeRun({
+      request: 'jump game dp',
+      intent: { type: 'create-algorithm', template: 'jump-game-dp' },
+      locale: 'en',
+      workspace,
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+    }).promise;
+    expect(result.status).toBe('success');
+    const published = plans.at(-1);
+    expect(published).toBeDefined();
+    expect(published!.jobs.length).toBeGreaterThan(0);
+    expect(published!.jobs.map((job) => job.provenance))
+      .toEqual(published!.jobs.map(() => 'deterministic'));
+  });
+
+  it('records a rejected critic call as a fallback-sourced job (probe B)', async () => {
+    const plans: ManagerPlanV1[] = [];
+    const explodingCritic = (request: LocalAgentRequest): LocalAgentHandle => (request.role === 'critic'
+      ? { requestId: 3, promise: Promise.reject(new Error('model exploded')), cancel: vi.fn() }
+      : successfulModelAuthoredAgent(request));
+    const result = await startTitanModeRun({
+      request: 'scan the array',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'en',
+      workspace,
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      agentRunner: explodingCritic,
+    }).promise;
+    expect(result.status).toBe('success');
+    const critic = plans.at(-1)!.jobs.find((job) => job.id === 'critic-test-visual-and-trace-alignment');
+    expect(critic?.status).toBe('completed');
+    expect(critic?.provenance).toBe('deterministic');
+    expect(critic?.summary).toBe('Deterministic package tests passed.');
+  });
+
+  it('fails the run when a model critic answers unintelligibly (probe C)', async () => {
+    const plans: ManagerPlanV1[] = [];
+    const prosePassingCritic = (request: LocalAgentRequest): LocalAgentHandle => (request.role === 'critic'
+      ? {
+        requestId: 4,
+        promise: Promise.resolve('The package looks WRONG, the trace disagrees with the visual.'),
+        cancel: vi.fn(),
+      }
+      : successfulModelAuthoredAgent(request));
+    await expect(startTitanModeRun({
+      request: 'scan the array',
+      intent: { type: 'create-algorithm', template: 'model-authored' },
+      locale: 'en',
+      workspace,
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan),
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      agentRunner: prosePassingCritic,
+    }).promise).rejects.toThrow(/Critic returned an unreadable answer/);
+    const critic = plans.at(-1)!.jobs.find((job) => job.id === 'critic-test-visual-and-trace-alignment');
+    expect(critic?.status).toBe('failed');
+  });
+
   it('adapts predict_winner_interval_dp through the typed array patch and rebuilds its timeline', async () => {
     const activePackage = (await startTitanModeRun({
       request: 'interval dp yaz simüle et', intent: { type: 'create-algorithm', template: 'predict-winner-interval-dp' },

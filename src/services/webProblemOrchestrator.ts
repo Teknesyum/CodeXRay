@@ -5,6 +5,7 @@ import type {
   ManagerJobV2,
   ManagerPlanV2,
   SolutionArtifactV1,
+  SolutionReviewRecordV1,
   WebProblemSpecV1,
 } from '../types/webSource';
 import type { CustomSimulationPackageV1, InputContractV1, VisualizationContract } from '../types/titan';
@@ -142,13 +143,18 @@ const validateJavaCandidate = (value: unknown): JavaCandidate => {
   };
 };
 
-const validateReview = (value: unknown): SolutionArtifactV1['review'] => {
+const validateReview = (value: unknown): Extract<SolutionReviewRecordV1, { reviewer: 'model-critic' }> => {
   if (!isRecord(value) || value.version !== 1 || typeof value.passed !== 'boolean'
     || typeof value.summary !== 'string' || !Array.isArray(value.findings)
     || !value.findings.every((finding) => typeof finding === 'string')) {
     throw new Error('Critic returned an invalid review schema.');
   }
-  return { passed: value.passed, summary: value.summary, findings: value.findings as string[] };
+  return {
+    reviewer: 'model-critic',
+    passed: value.passed,
+    summary: value.summary,
+    findings: value.findings as string[],
+  };
 };
 
 export const isWebProblemSolveCapable = (modelId: string): boolean =>

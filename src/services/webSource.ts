@@ -358,6 +358,12 @@ export const normalizeWebProblem = (document: ExternalDocumentV1): WebProblemSpe
   };
 };
 
+const hasReviewProvenance = (value: unknown): boolean => {
+  if (!isRecord(value) || typeof value.summary !== 'string' || !Array.isArray(value.findings)) return false;
+  if (value.reviewer === 'none') return true;
+  return value.reviewer === 'model-critic' && typeof value.passed === 'boolean';
+};
+
 export const saveBoundWebSource = (session: BoundWebSourceSessionV1): void => {
   sessionStorage.setItem(WEB_SOURCE_SESSION_KEY, JSON.stringify(session));
 };
@@ -374,7 +380,8 @@ export const loadBoundWebSource = (): BoundWebSourceSessionV1 | null => {
     let solution: SolutionArtifactV1 | null = null;
     if (isRecord(parsed.solution) && parsed.solution.version === 1
       && parsed.solution.sourceHash === problem.sourceHash && parsed.solution.problemHash === problem.id
-      && (parsed.solution.kind === 'validated-simulation' || parsed.solution.kind === 'unexecuted-java17')) {
+      && (parsed.solution.kind === 'validated-simulation' || parsed.solution.kind === 'unexecuted-java17')
+      && hasReviewProvenance(parsed.solution.review)) {
       solution = parsed.solution as unknown as SolutionArtifactV1;
     }
     return { version: 1, document, problem, solution };

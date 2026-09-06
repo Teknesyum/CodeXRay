@@ -15,7 +15,7 @@ import {
 import { parseSimulationInput } from '../services/inputParsers';
 import { resolveAlgorithmPresetById } from '../services/codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../services/inputPresets';
-import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from '../services/titanModeRouting';
+import { extractDpDimensions, requestsUniqueDpInput, routeBoundWebProblemRequest, routeTitanModeRequest, routeWebSourceRequest } from '../services/titanModeRouting';
 import type { TitanModeOrchestratorOptions, TitanModeRunHandle } from '../services/titan/titanPipeline';
 import { dispatchTitanUiAction } from '../services/titanUiControl';
 import {
@@ -687,14 +687,14 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       }
 
       let titanModeIntent = webProblemForSimulation
-        ? routeTitanModeRequest(
-          modelQuestion,
+        ? routeBoundWebProblemRequest(
+          userMessage,
           stateRef.current.steps,
           currentIndex,
           stateRef.current.algorithmName,
         )
         : preliminaryTitanModeIntent;
-      let titanModeRequest = userMessage;
+      let titanModeRequest = webProblemForSimulation ? modelQuestion : userMessage;
 
       if (titanModeIntent?.type === 'create-catalog-problem' && selectedCatalogProblem) {
         const { preflightCatalogProblem } = await import('../services/titan/titanPipeline');
@@ -819,7 +819,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           window.clearTimeout(titanModeDismissTimerRef.current);
           titanModeDismissTimerRef.current = null;
         }
-        setLastTitanModeRequest(titanModeRequest);
+        setLastTitanModeRequest(webProblemForSimulation ? userMessage : titanModeRequest);
         if (titanModeIntent.type === 'discuss-current-step') pause();
         const workspaceSnapshot: WorkspaceSnapshotV1 = {
           version: 1,
@@ -975,7 +975,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             sourceHash: webProblemForSimulation.sourceHash,
             problemHash: webProblemForSimulation.id,
             packageId: (result as any).package.id,
-            review: { passed: true, summary: (result as any).summary, findings: [] },
+            review: { reviewer: 'none' as const, summary: (result as any).summary, findings: [] },
           };
           const nextSession = { ...activeWebSession, solution };
           saveBoundWebSource(nextSession);
@@ -986,7 +986,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           {
             role: 'ai' as const,
             content: webProblemForSimulation
-              ? `**${t('webValidatedSimulation', locale)}**\n\n${content}`
+              ? `**${t('webValidatedSimulation', locale)}**\n\n_${t('webNoCriticReview', locale)}_\n\n${content}`
               : content,
           },
         ].slice(-MAX_STORED_MESSAGES));

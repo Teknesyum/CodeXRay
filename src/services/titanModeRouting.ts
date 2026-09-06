@@ -307,3 +307,14 @@ export const routeTitanModeRequest = (
   void currentIndex;
   return null;
 };
+
+export const routeBoundWebProblemRequest = (
+  userMessage: string,
+  steps: SimulationStep[],
+  currentIndex: number,
+  algorithmName = '',
+): TitanModeIntent => {
+  const intent = routeTitanModeRequest(userMessage, steps, currentIndex, algorithmName);
+  if (intent?.type === 'create-algorithm') return intent;
+  return { type: 'create-algorithm', template: 'model-authored' };
+};

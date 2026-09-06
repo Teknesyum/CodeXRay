@@ -75,6 +75,10 @@ export interface SolutionReviewV1 {
   findings: string[];
 }
 
+export type SolutionReviewRecordV1 =
+  | ({ reviewer: 'model-critic' } & SolutionReviewV1)
+  | { reviewer: 'none'; summary: string; findings: string[] };
+
 export type SolutionArtifactV1 =
   | {
     version: 1;
@@ -82,7 +86,7 @@ export type SolutionArtifactV1 =
     sourceHash: string;
     problemHash: string;
     packageId: string;
-    review: SolutionReviewV1;
+    review: SolutionReviewRecordV1;
   }
   | {
     version: 1;
@@ -93,7 +97,7 @@ export type SolutionArtifactV1 =
     code: string;
     explanation: string;
     complexity: { time: string; space: string };
-    review: SolutionReviewV1;
+    review: SolutionReviewRecordV1;
   };
 
 export type WebArtifactKind =

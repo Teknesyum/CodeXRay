@@ -136,4 +136,45 @@ describe('web source client', () => {
     expect(loadBoundWebSource()).toBeNull();
     expect(sessionStorage.getItem(WEB_SOURCE_SESSION_KEY)).toBeNull();
   });
+
+  it('keeps a persisted solution only when its review states who reviewed it', () => {
+    const problem = normalizeWebProblem(document);
+    const base = {
+      version: 1 as const,
+      kind: 'validated-simulation' as const,
+      sourceHash: problem.sourceHash,
+      problemHash: problem.id,
+      packageId: 'package-1',
+    };
+    saveBoundWebSource({
+      version: 1,
+      document,
+      problem,
+      solution: { ...base, review: { reviewer: 'none', summary: 'Deterministic gates only.', findings: [] } },
+    });
+    const stored = loadBoundWebSource()?.solution;
+    expect(stored?.review).toEqual({ reviewer: 'none', summary: 'Deterministic gates only.', findings: [] });
+    expect(stored?.review).not.toHaveProperty('passed');
+
+    saveBoundWebSource({
+      version: 1,
+      document,
+      problem,
+      solution: {
+        ...base,
+        review: { reviewer: 'model-critic', passed: true, summary: 'The candidate matches.', findings: [] },
+      },
+    });
+    expect(loadBoundWebSource()?.solution?.review).toEqual({
+      reviewer: 'model-critic', passed: true, summary: 'The candidate matches.', findings: [],
+    });
+
+    sessionStorage.setItem(WEB_SOURCE_SESSION_KEY, JSON.stringify({
+      version: 1,
+      document,
+      problem,
+      solution: { ...base, review: { passed: true, summary: 'Legacy fabricated verdict.', findings: [] } },
+    }));
+    expect(loadBoundWebSource()?.solution).toBeNull();
+  });
 });

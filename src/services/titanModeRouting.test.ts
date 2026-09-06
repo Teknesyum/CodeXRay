@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { extractDpDimensions, requestsUniqueDpInput, routeTitanModeRequest, routeWebSourceRequest } from './titanModeRouting';
+import { extractDpDimensions, requestsUniqueDpInput, routeBoundWebProblemRequest, routeTitanModeRequest, routeWebSourceRequest } from './titanModeRouting';
+import { buildWebProblemPrompt } from './webSource';
+import type { WebProblemSpecV1 } from '../types/webSource';
 
 describe('Titan Mode routing', () => {
   it('preserves platform and numeric ID from the catalog drawer command', () => {
@@ -257,4 +259,98 @@ describe('Titan Mode routing', () => {
       expect(routeTitanModeRequest(request, [], 0)).toEqual({ type: 'clarify-algorithm' });
     },
   );
+});
+
+describe('bound web problem intent selection', () => {
+  const productionInstruction = 'Create, validate, compile, test, and visualize this algorithm in CodeXRay. Apply it only after every verification gate and critic pass.';
+
+  const problem = (title: string, description: string): WebProblemSpecV1 => ({
+    version: 1,
+    id: `problem-${title.toLowerCase().replace(/\s+/g, '-')}`,
+    sourceDocumentId: 'document-1',
+    sourceHash: 'hash-1',
+    title,
+    description,
+    inputFormat: 'One line with the array.',
+    outputFormat: 'One integer.',
+    examples: [],
+    constraints: [],
+    notes: [],
+    signature: 'public int compute(int[] nums)',
+    sourceSegmentIds: {
+      description: ['description'],
+      inputFormat: [],
+      outputFormat: [],
+      examples: [],
+      constraints: [],
+      notes: [],
+      signature: ['signature'],
+    },
+    simulationCompatibility: { compatible: true, reason: 'ok' },
+  });
+
+  const rows: Array<[string, string, string]> = [
+    ['neutral', 'Two Sum', 'Return indices.'],
+    ['interval dp wording', 'Predict the Winner', 'Classic interval dp problem'],
+    ['bidirectional bfs wording', 'Word Ladder', 'Use bidirectional BFS to reach the target word.'],
+    ['radio wording', 'Radio Signals', 'The radio must play a tone.'],
+    ['input wording', 'Grid', 'Change the input data to expand the grid.'],
+    ['jump game wording', 'Jump Game', 'Solve and simulate the jump game.'],
+  ];
+
+  it.each(rows)('page text no longer selects the intent: %s', (_label, title, description) => {
+    const pagePrompt = buildWebProblemPrompt(problem(title, description), productionInstruction);
+    const pageSelected = routeTitanModeRequest(pagePrompt, [], 0);
+    const userSelected = routeBoundWebProblemRequest('Solve https://example.com/problem and simulate it', [], 0);
+    expect(pageSelected).not.toEqual(userSelected);
+    expect(userSelected).toEqual({ type: 'create-algorithm', template: 'model-authored' });
+  });
+
+  it('records the routed intent of every measured row, before and after', () => {
+    const before = rows.map(([, title, description]) =>
+      routeTitanModeRequest(buildWebProblemPrompt(problem(title, description), productionInstruction), [], 0));
+    expect(before).toEqual([
+      { type: 'adapt-input' },
+      { type: 'create-algorithm', template: 'predict-winner-interval-dp' },
+      { type: 'create-algorithm', template: 'bidirectional-bfs' },
+      { type: 'ui-control', command: 'radio-play' },
+      { type: 'adapt-input' },
+      { type: 'create-algorithm', template: 'jump-game-dp' },
+    ]);
+    const after = rows.map(() =>
+      routeBoundWebProblemRequest('Solve https://example.com/problem and simulate it', [], 0));
+    expect(after).toEqual(Array.from({ length: rows.length }, () => ({
+      type: 'create-algorithm', template: 'model-authored',
+    })));
+  });
+
+  it('never lets a fetched page open the radio player', () => {
+    const pagePrompt = buildWebProblemPrompt(
+      problem('Radio Signals', 'The radio must play a tone.'),
+      productionInstruction,
+    );
+    expect(routeTitanModeRequest(pagePrompt, [], 0)).toEqual({ type: 'ui-control', command: 'radio-play' });
+    expect(routeBoundWebProblemRequest('Solve https://example.com/radio-signals and simulate it', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'model-authored' });
+  });
+
+  it('routes a neutral bound web solve to the model-authored creation default', () => {
+    expect(routeBoundWebProblemRequest('Solve this problem', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'model-authored' });
+    expect(routeBoundWebProblemRequest('Bu problemi çöz', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'model-authored' });
+  });
+
+  it('still lets the user name a template that commits without a pipeline', () => {
+    expect(routeBoundWebProblemRequest('Solve this with bidirectional BFS and build it', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'bidirectional-bfs' });
+    expect(routeBoundWebProblemRequest('Solve predict the winner and show it', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'predict-winner-interval-dp' });
+  });
+
+  it('discards a non-creation intent the user words would otherwise select', () => {
+    expect(routeTitanModeRequest('radyo oynat', [], 0)).toEqual({ type: 'ui-control', command: 'radio-play' });
+    expect(routeBoundWebProblemRequest('radyo oynat', [], 0))
+      .toEqual({ type: 'create-algorithm', template: 'model-authored' });
+  });
 });

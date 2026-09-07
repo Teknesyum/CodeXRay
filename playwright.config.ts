@@ -17,7 +17,7 @@ export default defineConfig({
       : '**/real-*.spec.ts',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  workers: configuredWorkers,
+  workers: configuredWorkers ?? 2,
   expect: { timeout: 15_000 },
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never' }]]

@@ -283,7 +283,11 @@ test('shows a refused Java fallback without changing workspace or persisted boun
 
   await chat.fill('Solve this problem');
   await chat.press('Enter');
-  await expect(page.getByText(/Translation verification failed/)).toBeVisible();
+  await expect(page.getByText(/Translation verification failed/)).toHaveCount(2);
+  await expect(page.locator('.chat-message.system-msg')
+    .getByText(/Translation verification failed/)).toBeVisible();
+  await expect(page.locator('.titan-mode-agent.failed .agent-summary'))
+    .toHaveText(/Translation verification failed/);
   await expect(page.getByText('Translated from JAVA · deterministically verified')).toHaveCount(0);
   await expect(preset).toHaveValue(workspaceBefore.preset);
   await expect(input).toHaveValue(workspaceBefore.input);

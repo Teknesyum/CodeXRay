@@ -199,6 +199,10 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   await expect(page.getByLabel(/Custom Algorithm.*execution/)).toHaveCount(0);
   await expect(question).toBeEnabled();
 
+  await page.reload();
+  await expect(page.locator('.titan-mode-progress')).toHaveCount(1);
+  await expect(page.locator('.titan-mode-agent.failed')).toHaveCount(1);
+
   await page.getByRole('button', { name: 'Clear conversation memory' }).click();
   await expect(page.locator('.titan-mode-progress')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('codexray.titan-mode.runs.v1')))

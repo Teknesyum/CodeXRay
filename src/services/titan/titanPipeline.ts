@@ -64,7 +64,11 @@ export const executeTitanPipeline = async <Route, Artifact>(
       return value;
     } catch (error) {
       if (states.get(id)?.status !== 'cancelled') {
-        publish(id, 'failed', error instanceof Error ? error.message : `${id} failed.`);
+        publish(
+          id,
+          tasks.signal?.aborted ? 'cancelled' : 'failed',
+          error instanceof Error ? error.message : `${id} failed.`,
+        );
       }
       throw error;
     }

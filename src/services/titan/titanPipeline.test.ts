@@ -195,6 +195,41 @@ describe('five-stage Titan pipeline', () => {
     expect(applied).not.toHaveBeenCalled();
   });
 
+  it('marks the running stage cancelled, not failed, when the run is cancelled mid-stage', async () => {
+    const controller = new AbortController();
+    const stages: TitanStageState[] = [];
+    await expect(executeTitanPipeline({
+      route: () => 'trace-code',
+      produce: async () => {
+        controller.abort();
+        throw new Error('Titan Mode run was cancelled.');
+      },
+      verify: () => ({ ok: true }),
+      apply: vi.fn(),
+      signal: controller.signal,
+      onStage: (stage) => stages.push(stage),
+    })).rejects.toThrow('Titan Mode run was cancelled.');
+    const final = new Map(stages.map((stage) => [stage.id, stage.status]));
+    expect(final.get('produce')).toBe('cancelled');
+    expect([...final.values()]).not.toContain('failed');
+  });
+
+  it('still marks a genuinely failed stage failed when nothing was cancelled', async () => {
+    const stages: TitanStageState[] = [];
+    await expect(executeTitanPipeline({
+      route: () => 'trace-code',
+      produce: () => {
+        throw new Error('produce failed');
+      },
+      verify: () => ({ ok: true }),
+      apply: vi.fn(),
+      signal: new AbortController().signal,
+      onStage: (stage) => stages.push(stage),
+    })).rejects.toThrow('produce failed');
+    const final = new Map(stages.map((stage) => [stage.id, stage.status]));
+    expect(final.get('produce')).toBe('failed');
+  });
+
   it('runs the current-step explanation through five visible ordered stages', async () => {
     const plans: string[][] = [];
     const applyResult = vi.fn();

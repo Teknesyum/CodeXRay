@@ -252,17 +252,24 @@ byte-identical to what will be applied, and `dp-family-titan-mode.spec.ts` asser
 element is visible while the produce phase is still running. Do not "unify" these two
 orderings without re-deciding that trade.
 
-**A pipelined preview only fires if the run ids are remapped, and one path does not.** The
-`AiAssistant.tsx` preview callback ignores any call whose `runId` is not the handle it is
-currently tracking, and it tracks the **pipeline's** id, `titan-pipeline-<uuid>`. The engine
+**A pipelined preview only fires if the run ids are remapped, and the type system now enforces
+it.** The `AiAssistant.tsx` preview callback ignores any call whose `runId` is not the handle it
+is currently tracking, and it tracks the **pipeline's** id, `titan-pipeline-<uuid>`. The engine
 calls `previewSource` with its own id, `gm-<...>` (`titanEngine.ts:104`). So a pipeline whose
-`produce` passes `previewSource` straight through has a preview that never runs.
-`startDeterministicTemplatePipeline` remaps it (`titanPipeline.ts:723-724`) and its nine
-templates preview correctly. **`startArrayTemplatePipeline` does not**, so the four array
-templates have had no source-typing animation since R16 — the e2e for them asserts only the
-final `.code-display`, which `apply` writes. Discovered at R23, not fixed there. Any new
-pipeline entry point must remap or deliberately suppress; passing the callback through
-unchanged is the broken third option.
+`produce` passed `previewSource` straight through had a preview that never ran — which is what
+`startArrayTemplatePipeline` did from R16 until R24, leaving the four array templates with no
+source-typing animation for eight routes. Nothing caught it because their e2e asserts only the
+final `.code-display`, which `apply` writes.
+
+Since R24 there is exactly one way to build engine options from a pipeline:
+`engineOptionsForPipeline` in `titanPipeline.ts`, which takes the pipeline's `runId` and an
+explicit `PipelineSourcePreviewForm` — `remap-to-pipeline-run` (array and deterministic
+templates), `replay-inside-apply` (model-authored), or `no-source-to-preview` (discuss,
+adapt-input). `PipelineRunId` is a branded string, so **the pass-through form does not compile**
+(`TS2345`). Pick a form; do not reintroduce a bare `previewSource`. The one engine caller outside
+this file is `titanEntry.ts:130` on the catalog-problem path, with its own `gm-catalog-…` id —
+correct today because it is not pipelined and matches itself, but outside the brand, so a
+wrapper written there could reintroduce the bug.
 
 `verify` differs per intent and the difference matters:
 

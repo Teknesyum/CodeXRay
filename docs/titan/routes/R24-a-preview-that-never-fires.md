@@ -221,3 +221,81 @@ npm run test:e2e
 - `inputRequestAdapter.test.ts:31` has a name describing production behaviour it no longer has,
   since R22 made the engine refuse what the adapter still returns. A rename, whenever that file
   is next opened.
+
+---
+
+## T0 reconciliation
+
+Closed at `b261c60`, handoff `55e1de2`. Option A. Verified independently: lint clean,
+`883 passed` against `882` at the base, build inside every budget, no frozen or T0-owned path in
+the file list. `AiAssistant.tsx` is byte-identical to the base — the fix is entirely on the
+pipeline side, which is where it belonged.
+
+**Both of this route's two hard criteria produced the strong form of their evidence.**
+
+Criterion 3, the base failure, is `element(s) not found` on `.titan-mode-code-typing` itself —
+not a downstream content assertion that happened to go red. The element was never rendered
+because the preview never ran, which is precisely the defect. Against the fix, `1 passed (4.6s)`.
+A regression test that fails for the actual reason is worth more than three that fail for
+adjacent ones.
+
+Criterion 5 shipped as a **type**, not a convention. `PipelineRunId` is a branded string, the
+host options type replaces `previewSource`'s `runId` with it, and one `engineOptionsForPipeline`
+helper takes an explicit `PipelineSourcePreviewForm` — `remap-to-pipeline-run`,
+`replay-inside-apply`, or `no-source-to-preview`. The implementer restored the old pass-through
+form temporarily and measured what happens: `TS2345`, quoted verbatim in the handoff. The three
+valid forms this route named in prose are now the three members of an enum a caller must pick
+from, and the broken fourth does not compile. That is the outcome the route wanted and did not
+know how to ask for.
+
+**Criterion 6 closed by not changing anything, which was the point of writing it that way.**
+Eight full-suite runs, `translation-provenance.spec.ts` green in all eight, no strict-mode
+violation, no locator narrowed. Two of those eight runs flaked elsewhere —
+`titan-mode-failures.spec.ts` once, `radio-controller.spec.ts` once — both untouched paths, both
+green in the other seven. The honest reading is that this suite has a low-rate parallelism flake
+that moves between specs rather than a defect in any one locator. Still zero on CI. I am
+recording the count and leaving it; the next sighting on CI, or a repeat in the same spec twice
+running, makes it a route.
+
+### The deviation is correct and I would have written the route differently
+
+`## Deviations` item 1: the route said not to touch `startDiscussCurrentStepPipeline` or
+`startAdaptInputPipeline`, and both were edited. That instruction and criterion 5 could not both
+be honoured — once `previewSource`'s `runId` is branded, every entry point either adopts the
+helper or keeps the exact copyable shape the criterion exists to delete. The implementer took
+the criterion, said so, and gave the reason.
+
+I verified the behaviour claim rather than accepting it: the first `previewSource` call in the
+engine is at `titanEngine.ts:1099`, after `const creationIntent`, and both the
+`discuss-current-step` and `adapt-input` branches return before reaching it. So passing
+`undefined` where a pass-through used to be changes nothing observable. `deferApply` was
+preserved per entry point — `false` for discuss (previously absent, therefore falsy) and `true`
+for adapt-input. `startWebProblemFallbackPipeline` was genuinely untouched.
+
+The fault is in the route: I wrote a freeze list by copying R23's, where it was right, into a
+turn whose whole purpose was to change a shared signature. **A "do not touch" that contradicts
+the route's own objective is a defect in the route, not a temptation for the implementer.**
+
+Smaller: the close commit is titled `route(R24): bind the array-template source preview to the
+pipeline run id` rather than the prescribed `route(R24): close`. Harmless and more informative;
+noted only so the pairing rule stays legible — the route/handoff pair is what closes a turn, not
+the commit subject.
+
+### Discovered, carried forward
+
+`titanEntry.ts:130` is a seventh production caller of the engine, on the catalog-problem path,
+with its own `gm-catalog-…` id. Correct today because it is not pipelined and so matches itself,
+but it is outside `titanPipeline.ts` and therefore outside the brand. A wrapper written there
+could reintroduce this exact bug. Not worth a route on its own; worth a sentence in `AGENTS.md`,
+which I have added.
+
+Also recorded: the array templates' **English** phrasing had never been exercised in e2e before
+this turn — `usage-scenarios.spec.ts` drives only Turkish.
+
+### Standing
+
+- `webSource.ts:298` — the trailing `\b` that cannot reject `int[][] nums`.
+- Structural trace intelligence inert across all 50 catalog algorithms; `traceQuery.ts` with no
+  production consumer.
+- `inputRequestAdapter.test.ts:31`'s name, since R22.
+- E2E parallelism flake: eight clean runs of the suspect spec, two unrelated single-run flakes.

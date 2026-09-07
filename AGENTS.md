@@ -134,10 +134,15 @@ testing another trusted CodeXRay gateway.
   `applyInputPatches` folds a sequence onto a candidate copy so a multi-op request is atomic;
   `applyAndRecompileInputPatches` is its production applier and the single-patch
   `applyAndRecompileInputPatch` delegates to it. Ambiguous requests still fall back to the
-  older heuristic adapter in `inputRequestAdapter.ts`. `set-param` is reachable since R13
-  through `createSemanticParameterPatches`. **Every op and every parameter key is reachable
-  from production as of R14 — 11/11 ops, 11/11 keys.** Numeric keys take a bare number; the
-  four text keys and Knapsack's `values` require an explicit literal, never an inference.
+  older heuristic adapter in `inputRequestAdapter.ts` — but only for a request that adapter
+  actually understands; since R22 an unmatched request on a workspace that already has an input
+  refuses instead of falling through to a preset. `set-param` is reachable since R13 through
+  `createSemanticParameterPatches`. **`InputPatchV1` has 13 ops, not the 11 this file claimed
+  from R14 to R22.** Until R22, 6 of the 13 were reachable without an active package and the
+  other 7 were produced and then discarded; **since R22 all 13 ops and all 11 parameter keys are
+  reachable from production with or without one**, through the same `packagelessContract`
+  fallback `set-param` already had. Numeric keys take a bare number; the four text keys and
+  Knapsack's `values` require an explicit literal, never an inference.
 - `src/services/algorithmInputs.ts` — `getAlgorithmParameterDefinitions` is **the authority
   on parameter keys**, per algorithm, with EN/TR labels and a declared type. Both the
   `CodeEditor.tsx` form and the request path read it; `applyInputPatch` rejects any
@@ -349,6 +354,18 @@ The two deterministic gates above it (`tests.passed`, non-empty `teachingPlan.ch
 first and are the real guarantee; the throw lands before
 `manager-apply-workspace-transaction`, so a rejected run has not touched the workspace. There is
 no retry around the critic.
+
+**`adapt-input` can now refuse, and the refusal is narrower than it sounds.** Since R22 the
+engine reads `SimulationInput.origin`: when `adaptSimulationInputFromRequest` returns
+`origin: 'preset'` and the workspace already had an input, no branch of the adapter matched, and
+the run throws an EN/TR message rather than replacing the user's input with a preset. A fresh
+workspace with no current input still receives a preset — that is not a failure. The
+discriminant means **"no branch matched"**, not "the intent was not served": a request that
+matches a branch and is understood *wrongly* still applies and still reports success, and
+nothing in the system gates that. `isUnderstoodInputAdaptation` is the single reader; the
+`predict_winner_interval_dp` exclusion beside it is inert, because that branch overwrites
+`origin` with `'user'` or `'agent'` before the check runs. Never describe R22 as intent
+verification.
 
 **Do not assume a new artifact type is checked because it sits behind `verify`.** For
 `adapt-input` the content guarantee comes from two places: the typed appliers in

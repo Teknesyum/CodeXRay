@@ -21,16 +21,19 @@ const phaseKind = (kind: RawTraceStepKind): TracePhase['kind'] => {
   return 'setup';
 };
 
+const groupKey = (step: RawTrace['steps'][number]): string => {
+  if (typeof step.phase === 'string') return `phase:${step.phase}`;
+  return `kind:${step.event?.t === 'result-write' ? 'result' : phaseKind(step.kind)}`;
+};
+
 export const buildTraceOutline = (trace: RawTrace): TracePhase[] => {
   const scored = scoreTrace(trace);
   const groups: Array<typeof scored> = [];
   for (const item of scored) {
-    const kind = item.step.event?.t === 'result-write' ? 'result' : phaseKind(item.step.kind);
+    const key = groupKey(item.step);
     const current = groups.at(-1);
-    const currentKind = current?.[0]
-      ? current[0].step.event?.t === 'result-write' ? 'result' : phaseKind(current[0].step.kind)
-      : null;
-    if (!current || currentKind !== kind) groups.push([item]);
+    const currentKey = current?.[0] ? groupKey(current[0].step) : null;
+    if (!current || currentKey !== key) groups.push([item]);
     else current.push(item);
   }
   return groups.map((group, index) => {

@@ -31,6 +31,7 @@ export const simulationStepsToRawTrace = (steps: SimulationStep[]): RawTrace => 
       : null;
     const mutated = explicitMutated ?? changedKeys(previous, scopes);
     const event = traceEvent(vars._traceEvent);
+    const phase = typeof vars.phase === 'string' && vars.phase.length ? vars.phase : undefined;
     const raw = {
       index,
       line: step.lineNumber ?? 0,
@@ -40,6 +41,7 @@ export const simulationStepsToRawTrace = (steps: SimulationStep[]): RawTrace => 
       scopes,
       mutated,
       event,
+      phase,
     };
     previous = scopes;
     return raw;

@@ -6,6 +6,11 @@ import {
   structuralCheckpointIndices,
   resolveTimelineTarget,
 } from './aiTimelineControl';
+import { algorithmRegistry } from './codeRegistry';
+import { createInputPreset, getInputKindForAlgorithm } from './inputPresets';
+import { generateSimulationSteps } from './aiService';
+import { simulationStepsToRawTrace } from './trace/simulationTrace';
+import { buildTraceOutline } from './trace/traceOutline';
 
 const steps: SimulationStep[] = Array.from({ length: 40 }, (_, index) => ({
   lineNumber: (index % 4) + 1,
@@ -81,5 +86,33 @@ describe('AI timeline control', () => {
   it('calculates bounded tour checkpoints during validation', () => {
     const result = validateActionPlan({ actions: [{ type: 'tour' }] }, steps);
     expect(result).toEqual([{ type: 'tour', checkpoints: structuralCheckpointIndices(steps) }]);
+  });
+});
+
+describe('checkpoints follow the simulator phases', () => {
+  const runPreset = async (name: string) => {
+    const entry = algorithmRegistry.find((preset) => preset.name === name);
+    if (!entry) throw new Error(`missing preset ${name}`);
+    const input = createInputPreset(getInputKindForAlgorithm(entry.name), 0, entry.name);
+    return generateSimulationSteps(entry.name, entry.code, input);
+  };
+
+  it('draws checkpoints from a multi-phase outline instead of a single filled phase', async () => {
+    const dfs = await runPreset('Depth First Search (DFS)');
+    const outline = buildTraceOutline(simulationStepsToRawTrace(dfs));
+    expect(outline.length).toBeGreaterThan(1);
+    const keyIndices = new Set(outline.map((phase) => phase.keyIndex));
+    const checkpoints = structuralCheckpointIndices(dfs);
+    const fromOutline = checkpoints.filter((index) => keyIndices.has(index));
+    expect(fromOutline.length).toBeGreaterThanOrEqual(checkpoints.length - 2);
+    expect(checkpoints).not.toEqual([0, 1, 5, 9, 14, 18, 22, 23]);
+  });
+
+  it('produces identical checkpoints for repeated runs of the same preset', async () => {
+    const first = await runPreset('Kosaraju\'s SCC');
+    const second = await runPreset('Kosaraju\'s SCC');
+    expect(structuralCheckpointIndices(second)).toEqual(structuralCheckpointIndices(first));
+    expect(buildTraceOutline(simulationStepsToRawTrace(second)))
+      .toEqual(buildTraceOutline(simulationStepsToRawTrace(first)));
   });
 });

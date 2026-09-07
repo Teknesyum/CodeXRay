@@ -34,6 +34,7 @@ export interface RawTraceStep {
   scopes: Record<string, TraceValue>;
   mutated: string[];
   event?: TraceEvent;
+  phase?: string;
 }
 
 export interface TraceBudget {

@@ -1,6 +1,6 @@
 import type { TitanModeOrchestratorOptions, TitanModeRunHandle, TitanModeRunResult } from '../titanEngine';
 import { startTitanModeRun as startTitanEngineRun, preflightCatalogProblem } from '../titanEntry';
-import type { AgentJobStatus, TitanModeAgentRole, ManagerJobV1, ManagerPlanV1 } from '../../types/titan';
+import type { AgentJobStatus, TitanModeAgentRole, ManagerJobV1, ManagerPlanV1, TitanModeIntent } from '../../types/titan';
 import type { SimulationStep } from '../../types/simulation';
 import { generateSimulationSteps } from '../aiService';
 import { recompileSimulationInput } from '../recompileSimulationInput';
@@ -594,6 +594,146 @@ export const startModelAuthoredPipeline = (
       if (result.status !== 'success' || !result.package) throw new Error(options.verificationFailureMessage);
       await options.previewSource?.(result.package.source.code, result.package.title, runId);
       await options.applyPackage(result.package, runId);
+    },
+    signal: controller.signal,
+    onStage: publishPlan,
+  }).then(({ artifact }) => artifact);
+  return {
+    runId,
+    promise,
+    cancel: () => {
+      controller.abort();
+      activeRun?.cancel();
+    },
+  };
+};
+
+export type DeterministicTemplateId = Exclude<
+  Extract<TitanModeIntent, { type: 'create-algorithm' }>['template'],
+  'jump-game-dp' | 'jump-game-greedy' | 'lis-quadratic-dp' | 'lis-binary-search' | 'model-authored'
+>;
+
+export const deterministicTemplateAnswerKeys: Record<DeterministicTemplateId, string> = {
+  'house-robber-1d-dp': 'result',
+  'lcs-2d-dp': 'result',
+  'lcs-space-optimized-1d-dp': 'result',
+  'longest-palindrome-interval-dp': 'result',
+  'coin-change-1d-dp': 'result',
+  'edit-distance-2d-dp': 'result',
+  'knapsack-2d-dp': 'result',
+  'predict-winner-interval-dp': 'winner',
+  'bidirectional-bfs': 'path',
+};
+
+export interface DeterministicTemplatePipelineOptions extends TitanModeOrchestratorOptions {
+  verificationFailureMessage: string;
+  startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
+}
+
+export const deterministicTemplateOf = (
+  intent: TitanModeOrchestratorOptions['intent'],
+): DeterministicTemplateId | null => {
+  if (intent.type !== 'create-algorithm') return null;
+  return Object.prototype.hasOwnProperty.call(deterministicTemplateAnswerKeys, intent.template)
+    ? intent.template as DeterministicTemplateId
+    : null;
+};
+
+export const isDeterministicTemplateCreationIntent = (
+  intent: TitanModeOrchestratorOptions['intent'],
+): boolean => deterministicTemplateOf(intent) !== null;
+
+export const verifyDeterministicTemplateArtifact = (
+  result: TitanModeRunResult,
+  template: DeterministicTemplateId,
+  verificationFailureMessage: string,
+): { ok: true } | { ok: false; reason: string } => {
+  const rejected = { ok: false as const, reason: verificationFailureMessage };
+  try {
+    if (result.status !== 'success' || !result.package) return rejected;
+    const candidate = result.package;
+    if (!candidate.tests.passed) return rejected;
+    if (!candidate.steps.length) return rejected;
+    if (!candidate.teachingPlan.checkpoints.length) return rejected;
+    const expectedKey = deterministicTemplateAnswerKeys[template];
+    if (typeof expectedKey !== 'string' || expectedKey.length === 0) return rejected;
+    const finalStep = candidate.steps.at(-1);
+    if (!finalStep) return rejected;
+    return Object.prototype.hasOwnProperty.call(finalStep.visualData.vars, expectedKey)
+      ? { ok: true as const }
+      : rejected;
+  } catch {
+    return rejected;
+  }
+};
+
+const createStagePlanPublisher = (
+  runId: string,
+  options: Pick<TitanModeOrchestratorOptions, 'request' | 'intent' | 'onPlan'>,
+): ((stage: TitanStageState) => void) => {
+  const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
+    id,
+    status: 'waiting',
+    detail: 'Waiting.',
+  }]));
+  return (stage: TitanStageState) => {
+    stages.set(stage.id, stage);
+    options.onPlan({
+      version: 1,
+      runId,
+      request: options.request,
+      intent: options.intent.type,
+      createdAt: Date.now(),
+      jobs: stageOrder.map((id, index) => {
+        const state = stages.get(id)!;
+        return {
+          id: `titan-${id}`,
+          role: stageRole[id],
+          label: id,
+          dependsOn: index === 0 ? [] : [`titan-${stageOrder[index - 1]}`],
+          weight: 20,
+          status: stageStateStatus(state.status),
+          attempt: state.status === 'waiting' ? 0 : 1,
+          maxAttempts: 1,
+          summary: state.status === 'skipped' ? state.detail : undefined,
+          error: state.status === 'failed' ? state.detail : undefined,
+        };
+      }),
+    });
+  };
+};
+
+export const startDeterministicTemplatePipeline = (
+  options: DeterministicTemplatePipelineOptions,
+): TitanModeRunHandle => {
+  const controller = new AbortController();
+  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  let activeRun: TitanModeRunHandle | null = null;
+  const publishPlan = createStagePlanPublisher(runId, options);
+  const template = deterministicTemplateOf(options.intent);
+  const promise = executeTitanPipeline({
+    route: () => options.intent,
+    produce: async () => {
+      if (!template) {
+        throw new Error('The deterministic-template pipeline only accepts declared deterministic templates.');
+      }
+      activeRun = (options.startRun ?? startTitanEngineRun)({
+        ...options,
+        deferApply: true,
+        previewSource: options.previewSource
+          ? (code, title) => options.previewSource!(code, title, runId)
+          : undefined,
+        onPlan: () => undefined,
+        onEvent: undefined,
+      });
+      return activeRun.promise;
+    },
+    verify: (result) => template
+      ? verifyDeterministicTemplateArtifact(result, template, options.verificationFailureMessage)
+      : { ok: false as const, reason: options.verificationFailureMessage },
+    apply: (result) => {
+      if (result.status !== 'success' || !result.package) throw new Error(options.verificationFailureMessage);
+      return options.applyPackage(result.package, runId);
     },
     signal: controller.signal,
     onStage: publishPlan,

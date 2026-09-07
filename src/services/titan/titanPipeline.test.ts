@@ -3,6 +3,10 @@ import {
   executeTitanPipeline,
   startArrayTemplatePipeline,
   startAdaptInputPipeline,
+  startDeterministicTemplatePipeline,
+  deterministicTemplateAnswerKeys,
+  isDeterministicTemplateCreationIntent,
+  verifyDeterministicTemplateArtifact,
   startDiscussCurrentStepPipeline,
   startModelAuthoredPipeline,
   startWebProblemFallbackPipeline,
@@ -13,7 +17,10 @@ import {
 } from './titanPipeline';
 import { generateSimulationSteps } from '../aiService';
 import { compileCustomSimulationPackage } from '../customSimulationCompiler';
-import { deterministicFiveLens } from '../titanEngine';
+import { deterministicFiveLens, startTitanModeRun } from '../titanEngine';
+import type { TitanModeOrchestratorOptions } from '../titanEngine';
+import type { LocalAgentHandle, LocalAgentRequest } from '../localAiService';
+import type { WorkspaceSnapshotV1 } from '../../types/titan';
 import { algorithmRegistry } from '../codeRegistry';
 import { createInputPreset, getInputKindForAlgorithm } from '../inputPresets';
 import type { GraphDocumentV1, SimulationInput } from '../../types/simulation';
@@ -742,4 +749,174 @@ describe('five-stage Titan pipeline', () => {
       timeline: [{ id: 'committed-step' }],
     });
   });
+});
+
+describe('deterministic template pipeline', () => {
+  const nineTemplates = [
+    'house-robber-1d-dp',
+    'lcs-2d-dp',
+    'lcs-space-optimized-1d-dp',
+    'longest-palindrome-interval-dp',
+    'coin-change-1d-dp',
+    'edit-distance-2d-dp',
+    'knapsack-2d-dp',
+    'predict-winner-interval-dp',
+    'bidirectional-bfs',
+  ] as const;
+
+  const templateWorkspace = (): WorkspaceSnapshotV1 => ({
+    version: 1,
+    algorithmName: 'Custom Code',
+    code: '',
+    simulationInput: { kind: 'array', text: '[3, 1, 2]' },
+    steps: [],
+    currentIndex: 0,
+    analysis: null,
+    inputError: null,
+    activePackageId: null,
+    packageOutOfSync: false,
+  });
+
+  const templateAgent = (request: LocalAgentRequest): LocalAgentHandle => {
+    const architect = {
+      version: 1,
+      title: 'Bidirectional BFS',
+      purpose: 'Find a shortest path from two endpoints.',
+      inputKind: 'graph',
+      dataStructures: ['two queues', 'two sets', 'two parent maps'],
+      invariants: ['Each side visits a node once.'],
+      termination: 'The frontiers meet or one becomes empty.',
+      complexity: { time: 'O(V + E)', space: 'O(V)' },
+    };
+    const text = request.role === 'architect'
+      ? JSON.stringify(architect)
+      : request.role === 'critic'
+        ? JSON.stringify({ passed: true, issues: [], summary: 'Validated.' })
+        : request.role + ' completed.';
+    return { requestId: 1, promise: Promise.resolve(text), cancel: vi.fn() };
+  };
+
+  const runTemplate = (
+    template: typeof nineTemplates[number],
+    overrides: Partial<Parameters<typeof startDeterministicTemplatePipeline>[0]> = {},
+  ) => {
+    const applyPackage = vi.fn();
+    const plans: string[][] = [];
+    const engineOptions: TitanModeOrchestratorOptions[] = [];
+    const run = startDeterministicTemplatePipeline({
+      request: 'create a deterministic teaching package',
+      intent: { type: 'create-algorithm', template },
+      locale: 'en',
+      workspace: templateWorkspace(),
+      activePackage: null,
+      onPlan: (plan) => plans.push(plan.jobs.map((job) => job.id + ':' + job.status)),
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Creation failed.',
+      startRun: (options) => {
+        engineOptions.push(options);
+        return startTitanModeRun({ ...options, agentRunner: templateAgent });
+      },
+      ...overrides,
+    });
+    return { run, applyPackage, plans, engineOptions };
+  };
+
+  it('declares exactly nine answer keys, one per non-pipelined template id', () => {
+    expect(Object.keys(deterministicTemplateAnswerKeys).sort()).toEqual([...nineTemplates].sort());
+    expect(Object.keys(deterministicTemplateAnswerKeys)).toHaveLength(9);
+    for (const template of nineTemplates) {
+      expect(isDeterministicTemplateCreationIntent({ type: 'create-algorithm', template })).toBe(true);
+    }
+    for (const template of ['jump-game-dp', 'jump-game-greedy', 'lis-quadratic-dp', 'lis-binary-search', 'model-authored'] as const) {
+      expect(isDeterministicTemplateCreationIntent({ type: 'create-algorithm', template })).toBe(false);
+    }
+  });
+
+  it.each(nineTemplates)('carries %s through five ordered stages and applies its verified package once', async (template) => {
+    const { run, applyPackage, plans, engineOptions } = runTemplate(template);
+    const result = await run.promise;
+    expect(result.status).toBe('success');
+    if (result.status !== 'success' || !result.package) throw new Error('Expected a compiled package.');
+    expect(engineOptions[0]?.deferApply).toBe(true);
+    expect(applyPackage).toHaveBeenCalledTimes(1);
+    expect(applyPackage).toHaveBeenCalledWith(result.package, run.runId);
+    expect(plans.at(-1)).toEqual([
+      'titan-route:completed',
+      'titan-produce:completed',
+      'titan-semantics:completed',
+      'titan-verify:completed',
+      'titan-apply:completed',
+    ]);
+    const finalStep = result.package.steps.at(-1);
+    expect(Object.keys(finalStep!.visualData.vars)).toContain(deterministicTemplateAnswerKeys[template]);
+    expect(verifyDeterministicTemplateArtifact(result, template, 'Creation failed.')).toEqual({ ok: true });
+  }, 60_000);
+
+  it('previews the deterministic source during produce because it is byte-identical to the applied package', async () => {
+    const previewed: Array<{ code: string; runId: string }> = [];
+    const { run, applyPackage } = runTemplate('house-robber-1d-dp', {
+      previewSource: (code, _title, previewRunId) => { previewed.push({ code, runId: previewRunId }); },
+    });
+    const result = await run.promise;
+    if (result.status !== 'success' || !result.package) throw new Error('Expected a compiled package.');
+    expect(previewed).toHaveLength(1);
+    expect(previewed[0].code).toBe(result.package.source.code);
+    expect(previewed[0].runId).toBe(run.runId);
+    expect(applyPackage).toHaveBeenCalledTimes(1);
+  }, 60_000);
+
+  it.each([
+    ['bidirectional-bfs', 'path'],
+    ['house-robber-1d-dp', 'result'],
+    ['predict-winner-interval-dp', 'winner'],
+  ] as const)('rejects %s when its declared %s key is missing and leaves the workspace untouched', async (template, key) => {
+    const compiled = await runTemplate(template).run.promise;
+    if (compiled.status !== 'success' || !compiled.package) throw new Error('Expected a compiled package.');
+    const mutated = structuredClone(compiled.package);
+    const finalStep = mutated.steps.at(-1)!;
+    expect(Object.prototype.hasOwnProperty.call(finalStep.visualData.vars, key)).toBe(true);
+    delete finalStep.visualData.vars[key];
+    const damaged = { ...compiled, package: mutated };
+    expect(verifyDeterministicTemplateArtifact(damaged, template, 'Creation failed.'))
+      .toEqual({ ok: false, reason: 'Creation failed.' });
+
+    const applyPackage = vi.fn();
+    const engineOptions: TitanModeOrchestratorOptions[] = [];
+    const run = startDeterministicTemplatePipeline({
+      request: 'create a deterministic teaching package',
+      intent: { type: 'create-algorithm', template },
+      locale: 'en',
+      workspace: templateWorkspace(),
+      activePackage: null,
+      onPlan: vi.fn(),
+      applyPackage,
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Creation failed.',
+      startRun: (options) => {
+        engineOptions.push(options);
+        return { runId: 'engine-template', promise: Promise.resolve(damaged), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).rejects.toThrow('Creation failed.');
+    expect(engineOptions[0]?.deferApply).toBe(true);
+    expect(applyPackage).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it('rejects an artifact whose tests failed, whose trace is empty, or whose checkpoints are empty', async () => {
+    const compiled = await runTemplate('coin-change-1d-dp').run.promise;
+    if (compiled.status !== 'success' || !compiled.package) throw new Error('Expected a compiled package.');
+    const failedTests = structuredClone(compiled.package);
+    failedTests.tests = { ...failedTests.tests, passed: false };
+    expect(verifyDeterministicTemplateArtifact({ ...compiled, package: failedTests }, 'coin-change-1d-dp', 'Creation failed.'))
+      .toEqual({ ok: false, reason: 'Creation failed.' });
+    const noCheckpoints = structuredClone(compiled.package);
+    noCheckpoints.teachingPlan = { ...noCheckpoints.teachingPlan, checkpoints: [] };
+    expect(verifyDeterministicTemplateArtifact({ ...compiled, package: noCheckpoints }, 'coin-change-1d-dp', 'Creation failed.'))
+      .toEqual({ ok: false, reason: 'Creation failed.' });
+    const noSteps = structuredClone(compiled.package);
+    noSteps.steps = [];
+    expect(verifyDeterministicTemplateArtifact({ ...compiled, package: noSteps }, 'coin-change-1d-dp', 'Creation failed.'))
+      .toEqual({ ok: false, reason: 'Creation failed.' });
+  }, 60_000);
 });

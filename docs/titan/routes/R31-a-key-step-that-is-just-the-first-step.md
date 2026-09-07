@@ -205,3 +205,118 @@ and leave no probe file in the tree.
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+---
+
+## T0 reconciliation
+
+Closed by `665442a` (`route(R31): close`) and `952c595` (`handoff(H31): record`). Handoff:
+`docs/titan/handoffs/H31-a-key-step-that-is-just-the-first-step.md`.
+
+### Independent T0 measurement
+
+Not taken from the handoff. T0 reran its own probe over all 60 supported algorithms on
+`952c595`:
+
+```
+totPhases=936 keyEqStart=882 single=763 multi=173 multiKeyEqStart=119 RESIDUAL=0 sigZero=7 sigZeroSurvivingByTie=0
+kinds=[["setup",4],["update",932]]
+```
+
+Gates, run by T0:
+
+```
+ Test Files  121 passed (121)
+      Tests  917 passed (917)
+Initial JavaScript: 422.6 / 425.0 KiB
+```
+
+`lint` clean, working tree clean, no simulator file touched, no guarded path touched.
+
+### The route's criterion 2 was satisfiable without changing anything a user sees
+
+`RESIDUAL` went 57 to 0. `multiKeyEqStart` went **119 to 119**. Every multi-step phase that
+picked its first step before still picks it. Four phases out of 936 changed `keyIndex` at all.
+
+The implementer reported this without being asked, in `## Discovered`, and was right to. T0
+records it as the route's own defect and the eighth in a row.
+
+The new variant is worth naming, because it is not the R25–R30 one. Those routes stated a
+*number* where they meant a *property*. R31 correctly stated a property — and picked a property
+of the **mechanism** (can the scorer distinguish?) when the finding was about the
+**observable** (does the key step change?). R28's residual worked because there the two were the
+same thing: a string is either translated or it is not. Here they came apart cleanly, and the
+route passed while the thing it opened over stayed exactly as it was.
+
+The lesson is not "always measure the observable" — sometimes only the mechanism is measurable,
+which is precisely the oracle problem this route documents. It is that **when a route deliberately
+measures the mechanism, it must say what the observable is expected to do and accept the answer
+"nothing"** as a result, not as a pass.
+
+### What R31 actually bought
+
+- `mostSignificantIndex` no longer survives on a tie anywhere: 19 of 60 returned index 0, **all
+  19 by tie**; 7 still return 0 and **all 7 win on score**. That is a real, checkable change and
+  it is what moves the guided tour — 16 of 60 algorithms now produce a different tour, DFS from
+  `1,2,4,7,11,14,23,24` to `1,2,5,9,13,14,23,24`, asserted in production by
+  `e2e/checkpoint-phases.spec.ts`. That spec awaits `toHaveCount(8)` before any absence
+  assertion, so it does not repeat R29's mount-race.
+- `TracePhase.kind` is no longer taken from an arbitrary first step. The rule is defensible and
+  stated: `result` if any step in the run carries `result-write`, else the majority kind, earliest
+  on a tie. `setup` exists again — in 4 of 936 phases. Small, and honest about being small.
+- `decision` needed **no new field**. `publicScopes` in `simulationTrace.ts:13` already copies
+  every non-`_trace` var onto `step.scopes`, so the scorer reads `step.scopes.decision`
+  directly. The route offered a field on `RawTraceStep` and the implementer correctly declined
+  it.
+- Total new weight is capped at 0.19, and with `numericDelta`'s 0.3 stays under the smallest
+  existing kind gap of 0.5. The teaching weights are intact; the terms break ties and nothing
+  else. That is exactly what the route asked for, and it is also why `keyIndex` barely moved.
+
+### Why `keyIndex` did not move, and why no route should force it to
+
+`mutationBreadth` favours the step with the most mutated variables, and in a contiguous run of
+one teaching label that is usually the **opening** step: entering a phase is where the variables
+change, and the rest of the run repeats the shape. So the first step keeps winning — now on
+score rather than by tie.
+
+That is evidence against the route's own framing. R31 opened on "`keyIndex` silently means
+`startIndex`", implying the value was uninformative. On this measurement the first step is
+frequently the phase's substance, and the old behaviour was accidentally right far more often
+than it was wrong. **Do not open a follow-up that makes a different step win.** Nothing here can
+say a later step teaches better, the route says so in `### The oracle problem`, and a rule
+written to move the number would be exactly the invented oracle both R30 and R31 warn against.
+
+`keyIndex` is now chosen rather than defaulted. That is the whole claim, and it is enough.
+
+### Criteria
+
+1. **Met.** Table reproduced on the base before any source change; the implementer's numbers
+   match T0's.
+2. **Met as written, and the route says above why "as written" is doing work here.** 57 → 0.
+3. **Met.** The 16 signal-free phases were reported and left alone.
+4. **Met, and this is the criterion that carried the route.** 19 → 7, `sigZeroSurvivingByTie`
+   0 in T0's own run.
+5. **Met.** All 763 single-step phases still have `keyIndex === startIndex`.
+6. **Met, fixed rather than left**, with the rule stated above.
+7. **Met.** `git diff --name-only` matches no simulator path; no `Math.random`, no wall-clock.
+8. **Met.** 909 → 917 unit tests (+8); initial JS unchanged at 422.6 / 425.0 KiB, so the 2.4 KiB
+   of headroom survives.
+9. **Met at product level**, not on a unit test: `e2e/checkpoint-phases.spec.ts` asserts the DFS
+   tour's stops in the running application, with both lists.
+
+### Still deferred
+
+- **Option C is now decidable and still not decided.** `eventWeight` reads `step.event?.t` and no
+  simulator emits an event, so it contributes nothing to any of the 936 phases. R31 added terms
+  beside it and deliberately did not remove it. A route that deletes it must first say whether the
+  custom-simulation path (`customSimulationCompiler.ts`) can produce events, because the 60
+  registry simulators are not the only trace producer.
+- `AiAssistant.tsx:857` persists before the dismissed guard, making `:1462`'s removal and
+  `:1455`'s sanitize map unreachable.
+- `ArrayView` and `RowsView` display `decision` but not `phase`.
+- The three e2e specs at 3–4x the suite median: `accessibility-axe.spec.ts:37` 9.9 s,
+  `ai-actions.spec.ts:112` 12.5 s, `radio-controller.spec.ts:3` 8.1 s.
+- Initial-JS budget: 2.4 KiB of headroom, `translations.ts` the growth vector.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.

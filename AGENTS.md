@@ -209,13 +209,31 @@ testing another trusted CodeXRay gateway.
   `startIndex`/`endIndex` and the tour walks them in order, so phases must be contiguous. An
   alternating simulator therefore emits one phase per run — 936 phases against 282 distinct
   labels, and DFS alone emits 17 phases from 4 labels. This is correct; do not "fix" it toward
-  the distinct count. `TracePhase.kind` is still taken from the group's first step and has read
-  `update` for all 60 since R27, losing its `setup` value; nothing branches on it, but the model
-  reads it through `renderOutlineForModel`.
-  `scoreTrace` is phase-blind and `mostSignificantIndex` still returns 0 for 19 of the 60. R27
-  did not change that and must not be read as having done so. No simulator emits a trace `event`,
-  so `eventWeight` contributes nothing to any score, and `traceQuery.ts` has no production
-  consumer at all.
+  the distinct count. `TracePhase.kind` since R31 is the group's **dominant** kind — `result` if
+  any step in the run carries `result-write`, else the majority kind, earliest on a tie — rather
+  than its first step's, which was arbitrary once groups became label runs. `setup` exists again,
+  in 4 of 936 phases. Nothing branches on `kind`, but the model reads it through
+  `renderOutlineForModel`.
+  `scoreTrace` gained three tie-breaking terms in R31 — `mutationBreadth` (0.08),
+  `decisionBreadth` (0.09 across novelty, change and introduction order) and `firstWriteBreadth`
+  (0.02). Their total 0.19, plus `numericDelta`'s 0.3, stays under the smallest existing kind gap
+  of 0.5, so the teaching weights still decide and these only break ties. `decision` needed no new
+  field: `publicScopes` (`simulationTrace.ts:13`) already copies every non-`_trace` var onto
+  `step.scopes`.
+  **What R31 changed and what it did not.** `mostSignificantIndex` returned 0 for 19 of 60 and
+  **all 19 were ties**; it now returns 0 for 7 and all 7 win on score. That is what moved the
+  guided tour — 16 of 60 algorithms produce a different tour, asserted in production by
+  `e2e/checkpoint-phases.spec.ts`. `keyIndex` selection is **unchanged**: 882 of 936 phases still
+  equal `startIndex`, and so do all 119 of the multi-step phases that did before. `mutationBreadth`
+  favours the step with the most mutated variables, which in a run of one label is usually the
+  opening step — entering a phase is where variables change. The first step is frequently the
+  phase's substance, so **do not open a route that makes a later step win**; nothing here can
+  prove one teaches better, and a rule written to move the number would be an invented oracle.
+  `keyIndex` is now chosen rather than defaulted, and that is the whole claim.
+  No simulator emits a trace `event`, so `eventWeight` contributes nothing to any of the 936
+  phases; R31 added terms beside it and deliberately left it. Deleting it requires first
+  establishing whether `customSimulationCompiler.ts` can emit events — the 60 registry simulators
+  are not the only trace producer. `traceQuery.ts` still has no production consumer at all.
 - `src/services/input/inputPatch.ts` — the closed `InputPatchV1` op union, its parser, and
   **the only implementation of input mutation**. Reachable on the production `adapt-input`
   path: whole-input replacement ops since R07, the semantic array ops `resize-array`,

@@ -239,3 +239,104 @@ npm run test:e2e
   reachable by a future wrapper.
 - E2E parallelism flake: eight clean runs of `translation-provenance.spec.ts` at H24, two
   unrelated single-run flakes elsewhere. Zero on CI.
+
+---
+
+## T0 reconciliation
+
+Closed at `050f834`. Route opened `ea3b2d5`, closed `19a3e76`, handoff `050f834`.
+Verified independently by T0; the handoff was read, not trusted.
+
+### Independently confirmed
+
+T0 ran its own probe at HEAD — twenty-one signatures through `normalizeWebProblem`, the real
+production entry, not a transcribed body. Verbatim:
+
+```
+int solve(int[][] nums) | solve it                   compatible=false code=multi-dimensional-array
+int solve(int[][]nums) | solve it                    compatible=false code=multi-dimensional-array
+int solve(char[][] board) | solve it                 compatible=false code=multi-dimensional-array
+double solve(double[] xs) | solve it                 compatible=false code=unsupported-element-type
+int f(Object[] items) | solve it                     compatible=false code=unsupported-element-type
+int[][] solve(int[] nums) | solve it                 compatible=false code=multi-dimensional-array
+int solve(int[] a, int[] b) | solve it               compatible=false code=multiple-array-parameters
+int solve(int[] nums) | solve it                     compatible=true  code=fits-simlang
+int solve(String s) | solve it                       compatible=true  code=fits-simlang
+int solve(int n) | solve it                          compatible=true  code=fits-simlang
+int solve(int[] nums) | walk the matrix              compatible=false code=unsupported-shape-in-description
+int solve(int[] nums) | reverse a linked list        compatible=false code=unsupported-shape-in-description
+ListNode f(ListNode head) | solve it                 compatible=false code=unsupported-element-type
+int f(Map<String,Integer> m) | solve it              compatible=false code=unsupported-element-type
+int f(Set<Integer> s) | solve it                     compatible=false code=unsupported-element-type
+int solve(int[] grid) | solve it                     compatible=false code=unsupported-shape-in-description
+void solve(int[] nums) | solve it                    compatible=true  code=fits-simlang
+int solve(int... nums) | solve it                    compatible=true  code=fits-simlang
+int solve(List<List<Integer>> g) | solve it          compatible=false code=unsupported-element-type
+int solve(int[][][] c) | solve it                    compatible=false code=multi-dimensional-array
+public static int solve(final int[] nums) | solve it compatible=true  code=fits-simlang
+```
+
+That closes criteria 1, 2, 3, 4, 5, 6 and 8 on T0's own evidence. Also T0-run: `lint` exit 0,
+`test` **890 passed / 119 files** (base 883, +7), `build` exit 0 within every budget.
+`git diff --name-only 590f4bd..HEAD` lists ten files; the only `docs/titan/routes/` entry is
+this route, written by T0's own `ea3b2d5`. No frozen path touched. Grep over the added lines
+for `eval(`, `new Function`, `Math.random`, `Date.now`, `fetch(`, `localStorage`: none.
+
+The flip table is real and reproduces the route's ordering: 16 flips, **all `true` → `false`,
+zero in the other direction**, each with its signature text.
+
+### What the route got wrong
+
+**The route's Option A draft rejected a signature it meant to keep.** Written literally,
+"check the return type by the same rule" rejects `solve(int[] nums)` — a constructor-shaped
+head with no return type at all. The implementer's first draft did exactly that, its own
+measurement caught it, and `declaredReturnType` now returns `null` under two tokens. My
+prose specified a rule for a case I had not enumerated. The measurement in the route was of
+the **defect**; there was no measurement of the **fix's** own edge cases, and one turn later
+that is where the bug was.
+
+**The route under-described `multiArray`.** I wrote that it "matches `int[]` once inside
+`int[][]`". The implementer established the sharper fact: it counts array *occurrences*, not
+array *parameters*, which is a second and independent reason a matrix was never caught. Two
+guards, both blind to the same shape, for two different reasons.
+
+### What shipped beyond the route
+
+Option A as read, and larger in the right direction. `List<List<Integer>>`, `int[][][]`,
+`float[]`, `Integer[][]`, `TreeNode` — none named anywhere in the route or in the old pattern —
+are now rejected structurally. That is the whole argument for A over B, and it is measured
+rather than asserted: nine of the sixteen flips are element-type rejections, and only four of
+the sixteen are the ones the route's title is about.
+
+Criterion 8 shipped as a closed union, `SimulationCompatibilityCodeV1`, with the reason string
+resolved through `t()` per locale rather than stored English. The verdict object now carries the
+code, so `localizedCompatibilityReason` renders EN/TR from one source. Stronger than "reasons are
+distinguishable", and the same shape R23 established: make the set closed and let the compiler
+hold it.
+
+Criterion 11 closed as *unchanged*: both `translation-provenance.spec.ts` fixtures use
+`public int solve(int[][] grid)`, which the base rejected on the word `grid` and HEAD rejects
+structurally. Same branch, different code. Worth stating plainly — an e2e that keeps passing
+across a filter rewrite is only evidence if you show *why* the verdict was stable.
+
+### Deviations, all accepted
+
+Five files outside the forecast: `src/types/webSource.ts` (the union criterion 8 needs),
+`src/components/AiAssistant.tsx` (the EN/TR string's real consumer at `:555`; the path-selecting
+branch at `:572` untouched), `e2e/translation-provenance.spec.ts` (one assertion — criterion 11
+claims user-visible behaviour and cannot close on a unit test), and two fixtures gaining the new
+required `code` field. Each is inside the criteria. `DOD.md` untouched: this turn closes no row.
+
+### Recorded
+
+**Measuring the defect is not measuring the fix.** R25's route carried an unusually strong
+measurement of what was broken and none at all of what the replacement would do at its own
+edges — and the one bug in the turn was in the replacement's edge, caught by the implementer's
+measurement rather than by mine. A route that proposes a parser should name the shapes the
+parser must *keep*, not only the ones it must reject. Criterion 6 did some of this by accident;
+it should have been the rule, not one line.
+
+**Sixth consecutive turn on the same finding class:** a check whose description is broader than
+what it establishes. R21 provenance, R22 refusal, R23 the ungated nine, R24 a preview that never
+fired, R25 four alternatives that never matched. The accepting branch here even said the
+signature "fits" — for four shapes it could not have said anything else.

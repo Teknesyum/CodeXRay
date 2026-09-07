@@ -123,12 +123,32 @@ measured the two timings before touching either side. **When an absence assertio
 intermittent, measure when the element mounts before calling it a flake**; the same ~290 ms gap
 decided the strict-mode violation in `translation-provenance.spec.ts:155`.
 
-Separately, the suite's per-test budget is 30 s and several specs exceed it under four parallel
-workers on a loaded machine — `accessibility-axe.spec.ts:37`, `radio-controller.spec.ts:3`,
-`ai-actions.spec.ts:112` have each been seen timing out, a different set each run, with
-`Test timeout of 30000ms exceeded` and no assertion error. That is machine load, not a
-regression; confirm which you are looking at by re-running the specs alone before attributing
-them to a turn.
+### The e2e worker count, which is now chosen rather than inherited
+
+Until R30 `playwright.config.ts` read `workers: configuredWorkers`, so an unset
+`CODEXRAY_E2E_WORKERS` meant Playwright's own default — half the logical cores, 8 on the
+reference machine. At that count the suite failed a **different** set of specs on every run,
+always `Test timeout of 30000ms exceeded` with no assertion error;
+`accessibility-axe.spec.ts:37`, `radio-controller.spec.ts:3` and `ai-actions.spec.ts:112` were
+the ones seen, and they take 9.9 s, 8.1 s and 12.5 s alone against a 3.1 s suite median. Slow
+specs lose the race; contention is what makes it a race. Since R30 the line is
+`workers: configuredWorkers ?? 2` and the unset invocation is reproducibly green.
+
+**Two, not four.** A single green run at 4 workers is what R30 originally recommended; three
+consecutive runs at 4 produced one timeout. One observation of a nondeterministic failure cannot
+tell "green" from "green this time" — if you change this number, change it against at least
+three consecutive runs.
+
+`.github/workflows/ci.yml:32` still pins `CODEXRAY_E2E_WORKERS: 1` and
+`playwright.config.ts:19` still gives CI two retries, so **CI has never run the profile a
+developer gets**. That asymmetry is deliberate: matching CI locally would slow the gate,
+matching local on CI would hide contention behind retries. `scripts/run-e2e.mjs:67` also splits
+the run — 82 tests `--grep-invert @performance`, then 2 `@performance` at `--workers=1`
+regardless of this default — so a green suite prints two summary lines totalling 84, not one.
+
+H02, H17c and H19 each hit this, hand-set the variable inside their own run, and recorded it
+nowhere durable; four later turns then attributed the timeouts to flakes. Do not work around
+this in a handoff again.
 
 ### Model cache origins
 

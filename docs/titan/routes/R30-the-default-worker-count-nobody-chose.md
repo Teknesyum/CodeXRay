@@ -150,3 +150,105 @@ same table shape.
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+---
+
+## T0 reconciliation
+
+Closed by `2b8e49d` (`route(R30): close`) and `044c2f7` (`handoff(H30): record`). Handoff:
+`docs/titan/handoffs/H30-the-default-worker-count-nobody-chose.md`.
+
+### The route was wrong about the number, again
+
+R30 named 4 workers. The implementer ran three consecutive suites at 4 and one of them failed
+`ai-actions.spec.ts:112` with `Test timeout of 30000ms exceeded` — the same contention symptom
+the route attributes to 8, at 4. Six runs at 2 were clean, so `workers: configuredWorkers ?? 2`
+shipped.
+
+**T0's 4 came from a single green run.** The route's own table says `CODEXRAY_E2E_WORKERS=4 →
+84 passed (1.7m)` and treats it as a profile; it was one sample of a nondeterministic failure,
+and one sample cannot distinguish "green" from "green this time". T0 had written, four
+paragraphs earlier, that the failing set differs on every run — and then priced a
+recommendation off a single observation of exactly that.
+
+This is the seventh consecutive route carrying a T0 defect, and the same one as R25–R29:
+**T0 states a number where it means a property.** R30 even opens with a section explaining that
+it would not do this. The escape clause in `## A note on this route's own criteria` — *"If four
+workers turns out not to be green on the implementer's machine, that is a finding, not a
+failure"* — is what made the route survivable, and it is the pattern to keep: when T0 must name
+a number it has only sampled, name it as a starting point and say out loud what the implementer
+should do when it does not hold.
+
+### Independent T0 verification
+
+Not taken from the handoff. Run by T0 on `044c2f7`, external server, `CODEXRAY_E2E_WORKERS`
+confirmed unset:
+
+```
+Running 82 tests using 2 workers
+  82 passed (2.7m)
+Running 2 tests using 1 worker
+  2 passed (35.3s)
+```
+
+```
+ Test Files  120 passed (120)
+      Tests  909 passed (909)
+Initial JavaScript: 422.6 / 425.0 KiB
+```
+
+`npm run lint` clean. Working tree clean apart from the three permanently-untracked guarded
+paths.
+
+**The 82/84 split is not a shortfall.** `scripts/run-e2e.mjs:67` runs the suite as
+`--grep-invert @performance` and then `--grep @performance --workers=1`; 82 + 2 = the 84 that
+`npx playwright test --list` reports. Criterion 1's "whole suite" is satisfied. A future route
+reading a bare `82 passed` should know the second batch exists and is pinned to one worker
+regardless of this default.
+
+### Criteria
+
+1. **Met.** Three consecutive unset runs green in the handoff, plus T0's independent fourth
+   above.
+2. **Met.** `CODEXRAY_E2E_WORKERS=3` produced `Running 5 tests using 3 workers`; the variable
+   still wins. CI's `=1` in `.github/workflows/ci.yml:32` is untouched.
+3. **Met.** Every run quotes Playwright's own `Running N tests using K workers` line.
+4. **Met.** `git diff --stat 77d59ba..HEAD` is one line of `playwright.config.ts` plus the route
+   and the handoff. No spec, no application file, no timeout value. No guarded path.
+5. **Met.** 909/909 unit tests against the base's 909 — R30 adds no test, correctly: a worker
+   count is not a thing a test can assert about itself.
+6. **Met, and the answer is yes.** All 82 durations sorted give median 3.1 s; the three specs
+   that time out under contention are 9.9 s, 12.5 s and 8.1 s — three to four times the median.
+   **T0 names this and does not fix it here.** These three being the slowest is why they are the
+   ones that lose the race, but the defect R30 removed is the contention, not their duration. A
+   route that wants them faster must first say what it expects them to cost.
+
+### What R30 does not establish
+
+Two workers is green on **this** machine, sixteen cores, at this suite size. It is not a proof
+about any other machine, and the suite grows. The durable protection is not the number: it is
+that the number is now written down in one place, with `CODEXRAY_E2E_WORKERS` still overriding
+it, so the next turn that has to change it changes it once instead of rediscovering the
+workaround inside its own handoff — which is what H02, H17c and H19 each did.
+
+CI still runs a profile no developer runs (`=1`, two retries). R30 deliberately does not touch
+that: making CI match the local default would slow the gate, and making local match CI would
+hide contention behind retries. The asymmetry is now intentional and documented rather than
+accidental.
+
+### Still deferred
+
+Unchanged from the route's own list, minus nothing. The three slow specs above join it:
+
+- `accessibility-axe.spec.ts:37` (9.9 s), `ai-actions.spec.ts:112` (12.5 s),
+  `radio-controller.spec.ts:3` (8.1 s) are 3–4x the 3.1 s median. Not a defect; a cost nobody
+  has priced.
+- `AiAssistant.tsx:857` persists before the dismissed guard.
+- Option B: `scoreTrace` is phase-blind; `mostSignificantIndex` returns 0 for 19 of 60.
+  `TracePhase.kind`'s lost `setup` value belongs here.
+- Option C: no simulator emits a trace `event`; `eventWeight` is dead weight.
+- `ArrayView` and `RowsView` display `decision` but not `phase`.
+- Initial-JS budget: 2.4 KiB of headroom, `translations.ts` the growth vector.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.

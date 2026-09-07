@@ -211,3 +211,136 @@ one.
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+## T0 reconciliation
+
+Closed, and **criterion 2 is withdrawn as a T0 defect rather than left open**. `6eaba20`
+(close) and `f2060b8` (handoff) over base `07aa7f3`. Verified on T0's own evidence.
+
+### What was written
+
+Eight files, none of them guarded, no simulator touched — both `Select-String` guards printed
+nothing for T0 as well. 46 new `runtimeReplacements` patterns, all anchored `^…$`; a `TeachingHud`
+component extracted in `DynamicVisualizer.tsx`; three unit tests in each of two files; a new
+`e2e/decision-localization.spec.ts`; and a build-budget line.
+
+Gates re-run by T0 on `f2060b8` with a clean tree: `lint` clean, `test` **907 passed / 120
+files** (base 901), `build` clean at `Initial JavaScript: 422.6 / 425.0 KiB`.
+
+### Independent measurement
+
+T0's own probe, unrelated to the handoff's:
+
+```
+decisions    total=175  untouched=47
+phases       total=275  untouched=0
+explanations total=923  untouched=0
+```
+
+169 to 47, and the 47 reproduce exactly the set the handoff names. T0 read all 47: every one is
+`min=B–C:2`, `4+-2<∞ ⇒ 2`, `low[F]=disc[F] ⇒ SCC 1`, `low[E]=4 ≥ disc[D]=4` — symbols,
+bracketed identifiers and node names. **There is no English word in any of them.**
+
+Criterion 3's residual token set, recomputed by T0 over every Turkish-locale decision string
+across all 60, contains no English word: the only ASCII-alphabetic tokens are `DFS`, `SCC`,
+`low`, `min`, `disc`, `Leaf`, and `code`, `data`, `design`, `plan`, `review`, `ship`, `test` —
+the last seven being node names from the Topological Sort preset input, not vocabulary. The rest
+are Turkish fragments split by the ASCII-only token pattern. Criterion 3 passes on T0's
+measurement, and no word was added to the allowlist to make it pass.
+
+Criterion 5 was re-run by T0 directly, not accepted from the handoff:
+
+```
+Running 2 tests using 2 workers
+[1/2] [chromium] › e2e\decision-localization.spec.ts:49:1 › shows the Longest Increasing Subsequence decision in the rows view in both locales
+[2/2] [chromium] › e2e\decision-localization.spec.ts:37:1 › shows the Binary Search decision in the array view in both locales
+  2 passed (3.0s)
+```
+
+Criterion 6 holds by inspection of the diff: `TeachingHud` emits the same `<div className>` with
+the same `role="status"`, the same `<strong>` and `<span>`, and its `if (!phase && !decision)
+return null` is the old `(phase || decision) &&` guard moved inside. Graph and matrix output is
+unchanged.
+
+### Criterion 2 was self-contradictory, and the handoff was right to refuse it
+
+**The route contradicted itself in writing.** Criterion 2 demanded `169 → 0`. The Decision
+section, four paragraphs above it, said of the notation family: *"`low[F]=disc[F] ⇒ SCC 1` is
+not English and must not be 'translated' into anything."* Both cannot hold. Satisfying criterion
+2 literally would have required inventing a Turkish rendering of `4+-2<∞ ⇒ 2`, which is the
+outcome the Decision section exists to forbid.
+
+The route's own closing note anticipated this — *"if a criterion here turns out to be
+unsatisfiable as written, say so in the handoff and satisfy what it was reaching for; that is a
+route defect and will be recorded as one"* — and the implementer did exactly that: refused it,
+named the contradiction, satisfied criterion 3 instead, and marked the handoff `status:
+partial` rather than claiming a pass.
+
+**Criterion 2 is hereby withdrawn and replaced by what it was reaching for:** every decision
+string containing an English word is localized; a string that is pure notation is exempt.
+Criterion 3 is the gate, as the route itself said. No `R28b`; there is no work left to do.
+
+This is the **fifth consecutive turn whose defect is in the route, not the implementation**
+(R25 rejected a signature it meant to keep, R26 named a vitest flag that does not exist, R27
+specified a count the design cannot produce, R28 specified a count its own Decision section
+forbids). The pattern is now specific enough to name: **T0 keeps writing a criterion as a number
+when what it means is a property.** A number is checkable and therefore tempting; it is also a
+prediction, and T0 has now been wrong about that prediction four times running. Criterion 3 of
+this route — a residual set that must be empty — is the shape that worked. Prefer it.
+
+### The route's other error
+
+Half B told the implementer to *"use the markup and class names those two views already use for
+`phase`"*. **`ArrayView` and `RowsView` do not render `phase` and never did.** T0 asserted a
+render site it had not read; the sites it had actually measured were `GraphView` (:244),
+`MatrixView` (:283) and `StringMatchView` (:351). The implementer reused the matrix HUD instead,
+which is the right resolution, and disclosed the mismatch as deviation 3.
+
+A consequence T0 accepts and defers rather than smuggling in: **the array and rows views still do
+not display `phase`.** They now display `decision` and pass `phase={null}`. Widening them to show
+the phase label is a behaviour change beyond this route's scope and belongs to its own turn.
+
+### Deviations — all three accepted
+
+1. **`scripts/check-build-size.mjs` initial-JS budget 420 → 425 KiB.** Accepted. The measured
+   figure is 422.6 KiB and the 46 patterns are ~4.3 KiB of unavoidable string data; the base had
+   1.7 KiB of headroom. Raising a budget to accommodate real growth is not the same as
+   suppressing it, and the number is stated rather than hidden. **But the headroom is now 2.4
+   KiB**, and `translations.ts` is the fastest-growing thing in the initial bundle. The next
+   route that adds a comparable number of patterns will hit this wall and must not answer it by
+   raising the budget again. Deferred below.
+2. **Criterion 2**, resolved above.
+3. **The route's false claim about `phase` in array/rows**, resolved above.
+
+### Discovered, and what T0 does with it
+
+1. **`titan-mode-failures.spec.ts:3` is not a flake.** It fails in roughly three of four
+   full-suite runs and passes in isolation, and the implementer attributed it by *measurement* —
+   a worktree at base `07aa7f3` with `node_modules` copied in, where the same test failed — then
+   pruned the worktree. That is the right way to establish "pre-existing" and T0 accepts it
+   without re-running. The standing rule was that a spec earns a route after failing twice in a
+   row on one commit; three of four runs on two different commits clears that comfortably. **This
+   becomes R29** and is no longer on flake watch.
+2. **Two different string counts are both correct.** Globally distinct across the registry gives
+   275 / 923 / 175; per-algorithm distinct, summed, gives 282 / 1063 / 220. R27 quoted 282 and
+   R28 quoted 275 and neither said which it meant. `AGENTS.md` is corrected to say so. A route
+   quoting a string count must name the counting rule.
+3. **`AutoFitVisual` wraps a single child**, which is why the two views gained
+   `visual-matrix-shell` rather than a bare sibling. Recorded as the reason, not as a preference.
+4. **The six array/rows algorithms already leaked English into the Variables & Trace panel**
+   through `VariablesPanel.tsx:50`, in the Turkish locale, before this turn. Half A fixed that as
+   a side effect. Worth stating because it means the defect was larger than the visualizer.
+
+### Still deferred
+
+- Option B: `scoreTrace` is phase-blind; `mostSignificantIndex` returns 0 for 19 of 60. Needs an
+  oracle before it needs code. `TracePhase.kind`'s lost `setup` value belongs to this route.
+- Option C: no simulator emits a trace `event`; `eventWeight` is dead weight in every score.
+- `ArrayView` and `RowsView` display `decision` but not `phase`.
+- The initial-JS budget has 2.4 KiB of headroom and `translations.ts` is the growth vector.
+  Whether the Turkish table can leave the initial bundle at all is an open question —
+  `translateRuntimeText` is called synchronously during render, so lazy loading is not a
+  drop-in. Answer that before the next translation sweep, not during one.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.

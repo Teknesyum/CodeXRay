@@ -463,6 +463,46 @@ describe('five-stage Titan pipeline', () => {
     ]);
   });
 
+  it('binds the array-template preview callback to the pipeline run id, not the engine run id', async () => {
+    const previewed: Array<{ code: string; title: string; runId: string }> = [];
+    const packageValue = {
+      id: 'array-template',
+      title: 'LeetCode 55 — Jump Game (DP)',
+      source: { code: 'int[] dp = new int[n];' },
+      tests: { passed: true },
+    } as any;
+    const result = {
+      status: 'success' as const,
+      runId: 'engine-array',
+      plan: { version: 1 as const, runId: 'engine-array', request: 'Jump Game DP', intent: 'create-algorithm' as const, jobs: [], createdAt: 1 },
+      summary: 'Created.',
+      package: packageValue,
+      input: { kind: 'array', text: '[2,3,1,1,4]' } as any,
+      steps: [{ explanation: 'Final', visualData: { type: 'variables', vars: { result: true } } }] as any,
+    };
+    const run = startArrayTemplatePipeline({
+      request: 'Jump Game DP çöz ve simüle et',
+      intent: { type: 'create-algorithm', template: 'jump-game-dp' },
+      locale: 'tr',
+      workspace: { steps: [], currentIndex: 0 } as any,
+      activePackage: null,
+      onPlan: vi.fn(),
+      previewSource: (code, title, previewRunId) => { previewed.push({ code, title, runId: previewRunId }); },
+      applyPackage: vi.fn(),
+      applyInput: vi.fn(),
+      verificationFailureMessage: 'Creation failed.',
+      startRun: (options) => {
+        options.previewSource?.(packageValue.source.code, packageValue.title, 'engine-array');
+        return { runId: 'engine-array', promise: Promise.resolve(result), cancel: vi.fn() };
+      },
+    });
+    await expect(run.promise).resolves.toBe(result);
+    expect(previewed).toHaveLength(1);
+    expect(previewed[0].runId).toBe(run.runId);
+    expect(previewed[0].runId).not.toBe('engine-array');
+    expect(run.runId.startsWith('titan-pipeline-')).toBe(true);
+  });
+
   it('independently verifies a model-authored package before previewing and applying it exactly once', async () => {
     const packageValue = createModelAuthoredPackage();
     const ordering: string[] = [];

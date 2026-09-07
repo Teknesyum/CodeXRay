@@ -112,23 +112,52 @@ const stageStateStatus = (status: TitanStageStatus): AgentJobStatus => {
   return status;
 };
 
-export interface DiscussCurrentStepPipelineOptions extends TitanModeOrchestratorOptions {
+declare const pipelineRunIdBrand: unique symbol;
+
+export type PipelineRunId = string & { readonly [pipelineRunIdBrand]: true };
+
+const createPipelineRunId = (): PipelineRunId =>
+  `titan-pipeline-${crypto.randomUUID()}` as PipelineRunId;
+
+export interface TitanPipelineHostOptions extends Omit<TitanModeOrchestratorOptions, 'previewSource'> {
+  previewSource?: (code: string, title: string, runId: PipelineRunId) => Promise<void> | void;
+}
+
+export type PipelineSourcePreviewForm =
+  | 'remap-to-pipeline-run'
+  | 'replay-inside-apply'
+  | 'no-source-to-preview';
+
+const engineOptionsForPipeline = (
+  options: TitanPipelineHostOptions,
+  settings: { runId: PipelineRunId; preview: PipelineSourcePreviewForm; deferApply: boolean },
+): TitanModeOrchestratorOptions => ({
+  ...options,
+  deferApply: settings.deferApply,
+  previewSource: settings.preview === 'remap-to-pipeline-run' && options.previewSource
+    ? (code, title) => options.previewSource!(code, title, settings.runId)
+    : undefined,
+  onPlan: () => undefined,
+  onEvent: undefined,
+});
+
+export interface DiscussCurrentStepPipelineOptions extends TitanPipelineHostOptions {
   verificationFailureMessage: string;
   applyResult: (result: TitanModeRunResult) => void | Promise<void>;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
-export interface AdaptInputPipelineOptions extends TitanModeOrchestratorOptions {
+export interface AdaptInputPipelineOptions extends TitanPipelineHostOptions {
   verificationFailureMessage: string;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
-export interface ArrayTemplatePipelineOptions extends TitanModeOrchestratorOptions {
+export interface ArrayTemplatePipelineOptions extends TitanPipelineHostOptions {
   verificationFailureMessage: string;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
 
-export interface ModelAuthoredPipelineOptions extends TitanModeOrchestratorOptions {
+export interface ModelAuthoredPipelineOptions extends TitanPipelineHostOptions {
   verificationFailureMessage: string;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
@@ -333,7 +362,7 @@ export const startDiscussCurrentStepPipeline = (
   options: DiscussCurrentStepPipelineOptions,
 ): TitanModeRunHandle => {
   const controller = new AbortController();
-  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  const runId = createPipelineRunId();
   let activeRun: TitanModeRunHandle | null = null;
   const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
     id,
@@ -368,11 +397,11 @@ export const startDiscussCurrentStepPipeline = (
   const promise = executeTitanPipeline({
     route: () => options.intent,
     produce: async () => {
-      activeRun = (options.startRun ?? startTitanEngineRun)({
-        ...options,
-        onPlan: () => undefined,
-        onEvent: undefined,
-      });
+      activeRun = (options.startRun ?? startTitanEngineRun)(engineOptionsForPipeline(options, {
+        runId,
+        preview: 'no-source-to-preview',
+        deferApply: false,
+      }));
       return activeRun.promise;
     },
     verify: (result) => verifyCurrentStepArtifact(result, options),
@@ -394,7 +423,7 @@ export const startAdaptInputPipeline = (
   options: AdaptInputPipelineOptions,
 ): TitanModeRunHandle => {
   const controller = new AbortController();
-  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  const runId = createPipelineRunId();
   let activeRun: TitanModeRunHandle | null = null;
   const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
     id,
@@ -429,12 +458,11 @@ export const startAdaptInputPipeline = (
   const promise = executeTitanPipeline({
     route: () => options.intent,
     produce: async () => {
-      activeRun = (options.startRun ?? startTitanEngineRun)({
-        ...options,
+      activeRun = (options.startRun ?? startTitanEngineRun)(engineOptionsForPipeline(options, {
+        runId,
+        preview: 'no-source-to-preview',
         deferApply: true,
-        onPlan: () => undefined,
-        onEvent: undefined,
-      });
+      }));
       return activeRun.promise;
     },
     verify: (result) => verifyAdaptInputArtifact(result, options),
@@ -464,7 +492,7 @@ export const startArrayTemplatePipeline = (
   options: ArrayTemplatePipelineOptions,
 ): TitanModeRunHandle => {
   const controller = new AbortController();
-  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  const runId = createPipelineRunId();
   let activeRun: TitanModeRunHandle | null = null;
   const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
     id,
@@ -502,12 +530,11 @@ export const startArrayTemplatePipeline = (
       if (!isArrayTemplateCreationIntent(options.intent)) {
         throw new Error('The array-template pipeline only accepts deterministic array templates.');
       }
-      activeRun = (options.startRun ?? startTitanEngineRun)({
-        ...options,
+      activeRun = (options.startRun ?? startTitanEngineRun)(engineOptionsForPipeline(options, {
+        runId,
+        preview: 'remap-to-pipeline-run',
         deferApply: true,
-        onPlan: () => undefined,
-        onEvent: undefined,
-      });
+      }));
       return activeRun.promise;
     },
     verify: (result) => {
@@ -542,7 +569,7 @@ export const startModelAuthoredPipeline = (
   options: ModelAuthoredPipelineOptions,
 ): TitanModeRunHandle => {
   const controller = new AbortController();
-  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  const runId = createPipelineRunId();
   let activeRun: TitanModeRunHandle | null = null;
   const stages = new Map<TitanStageId, TitanStageState>(stageOrder.map((id) => [id, {
     id,
@@ -580,13 +607,11 @@ export const startModelAuthoredPipeline = (
       if (!isModelAuthoredCreationIntent(options.intent)) {
         throw new Error('The model-authored pipeline only accepts the model-authored template.');
       }
-      activeRun = (options.startRun ?? startTitanEngineRun)({
-        ...options,
+      activeRun = (options.startRun ?? startTitanEngineRun)(engineOptionsForPipeline(options, {
+        runId,
+        preview: 'replay-inside-apply',
         deferApply: true,
-        previewSource: undefined,
-        onPlan: () => undefined,
-        onEvent: undefined,
-      });
+      }));
       return activeRun.promise;
     },
     verify: (result) => verifyModelAuthoredArtifact(result, options.verificationFailureMessage),
@@ -625,7 +650,7 @@ export const deterministicTemplateAnswerKeys: Record<DeterministicTemplateId, st
   'bidirectional-bfs': 'path',
 };
 
-export interface DeterministicTemplatePipelineOptions extends TitanModeOrchestratorOptions {
+export interface DeterministicTemplatePipelineOptions extends TitanPipelineHostOptions {
   verificationFailureMessage: string;
   startRun?: (options: TitanModeOrchestratorOptions) => TitanModeRunHandle;
 }
@@ -707,7 +732,7 @@ export const startDeterministicTemplatePipeline = (
   options: DeterministicTemplatePipelineOptions,
 ): TitanModeRunHandle => {
   const controller = new AbortController();
-  const runId = `titan-pipeline-${crypto.randomUUID()}`;
+  const runId = createPipelineRunId();
   let activeRun: TitanModeRunHandle | null = null;
   const publishPlan = createStagePlanPublisher(runId, options);
   const template = deterministicTemplateOf(options.intent);
@@ -717,15 +742,11 @@ export const startDeterministicTemplatePipeline = (
       if (!template) {
         throw new Error('The deterministic-template pipeline only accepts declared deterministic templates.');
       }
-      activeRun = (options.startRun ?? startTitanEngineRun)({
-        ...options,
+      activeRun = (options.startRun ?? startTitanEngineRun)(engineOptionsForPipeline(options, {
+        runId,
+        preview: 'remap-to-pipeline-run',
         deferApply: true,
-        previewSource: options.previewSource
-          ? (code, title) => options.previewSource!(code, title, runId)
-          : undefined,
-        onPlan: () => undefined,
-        onEvent: undefined,
-      });
+      }));
       return activeRun.promise;
     },
     verify: (result) => template

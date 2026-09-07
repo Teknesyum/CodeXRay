@@ -174,7 +174,21 @@ testing another trusted CodeXRay gateway.
 - `webSource.ts`, `webProblemOrchestrator.ts`, `types/webSource.ts` — versioned
   first-party web-reader client and source/problem/solution artifacts. Only the requested
   URL may leave the browser; cleaned content, prompts, attempts, chat, and workspace state
-  stay local.
+  stay local. `simulationCompatibility` **parses the signature since R25**; before that it
+  scanned a lowercased blob of signature-plus-description for eleven substrings, four of which
+  (`object[]`, `double[]`, `char[][]`, `int[][]`) never matched, because the pattern's trailing
+  `\b` finds no boundary between `]` and a space. Those four were exactly the array-shape
+  alternatives, so a matrix was rejected only when its parameter happened to be **named**
+  `matrix` or `grid`, and `int solve(int[][]nums)` and `int solve(int[][] nums)` disagreed on
+  whitespace alone. Now the parameter list is split at top level, each declared type is
+  classified, and two or more `[]` pairs or an element type outside
+  `int/long/char/boolean/String` is rejected, return type included; the seven word alternatives
+  that did work survive as a separate description scan. The verdict **selects a path** at
+  `AiAssistant.tsx:572` — `false` enters the R19 Java fallback, `true` the R18 model-authored
+  pipeline — and both are gated, so this was never an ungated path: a wrong `true` asked the
+  model-authored pipeline for a shape SimLang V1 cannot express. `SimulationCompatibilityCodeV1`
+  is a closed six-member union so a caller can tell the rejection classes apart; never widen it
+  by adding a substring.
 - `simLang.ts`, `simLangSchema.ts`, `customSimulationCompiler.ts` — validated SimLangV1
   interpreter, model-facing schema, deterministic renderer, trace compiler, budgets.
 - `localAiService.ts`, `localAi.worker.ts`, `localAiModels.ts` — optional WebGPU model

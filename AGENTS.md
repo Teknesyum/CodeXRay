@@ -111,6 +111,25 @@ created; never terminate all Node processes. This workaround is for the test run
 environment, not an application defect. A real test timeout still emits Playwright test
 output and should be debugged from its error context and trace.
 
+### An e2e assertion that lands before a lazy panel mounts
+
+`TitanModeProgress` is a `React.lazy` import behind `Suspense`. After a `page.reload()` the first
+Playwright poll lands at **+39–64 ms** and the panel mounts at **+312–347 ms**, so an assertion
+that something is *absent* has a ~250–280 ms window in which it passes without having checked
+anything. `titan-mode-failures.spec.ts:3` sat in that window for four routes: it passed in
+isolation, failed in roughly three of four full-suite runs, and was carried as a flake. It was
+never flaky — the product defect reproduced 100% of the time and the green runs were wrong. R29
+measured the two timings before touching either side. **When an absence assertion is
+intermittent, measure when the element mounts before calling it a flake**; the same ~290 ms gap
+decided the strict-mode violation in `translation-provenance.spec.ts:155`.
+
+Separately, the suite's per-test budget is 30 s and several specs exceed it under four parallel
+workers on a loaded machine — `accessibility-axe.spec.ts:37`, `radio-controller.spec.ts:3`,
+`ai-actions.spec.ts:112` have each been seen timing out, a different set each run, with
+`Test timeout of 30000ms exceeded` and no assertion error. That is machine load, not a
+regression; confirm which you are looking at by re-running the specs alone before attributing
+them to a turn.
+
 ### Model cache origins
 
 `localhost`, `127.0.0.1`, and `https://serkanozel.me` are separate browser origins with
@@ -133,7 +152,20 @@ testing another trusted CodeXRay gateway.
   `AiAssistant.tsx` for `adapt-input`, `discuss-current-step`, the four deterministic array
   templates `jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`, and `lis-binary-search`
   since R16, `model-authored` since R18, and the web-problem Java fallback since R19 through
-  `startWebProblemFallbackPipeline`), `translate.ts` (cross-language source translation,
+  `startWebProblemFallbackPipeline`). **`executeTitanPipeline` consults `ensureActive` at phase
+  entry and on success; until R29 it did not consult it in the `catch`**, so a phase rejected by
+  the pipeline's own `abort()` published `failed`. A cancelled run therefore persisted
+  `titan-produce: failed` — three of its five phases were already `cancelled`, only that one was
+  wrong — and `AiAssistant.tsx:205` restores any plan with a `failed` job, so a user who
+  cancelled and refreshed saw the cancelled run again, framed as a failure. Since R29 the catch
+  publishes `cancelled` when `tasks.signal?.aborted`. The engine's own cancel path
+  (`titanEngine.ts:691`, `:1674`) was always correct and is not part of this; **the persisted plan
+  on the cancel path is the pipeline's `titan-pipeline-…`, not the engine's `gm-…`.**
+  `AiAssistant.tsx:205` is the only reader of a persisted plan and it restores on `failed` only —
+  `'cancelled'` is deliberately in neither branch. Do not make a reload case pass by widening that
+  rule to restore nothing: a genuinely failed run must still come back, and
+  `e2e/titan-mode-failures.spec.ts` asserts it.
+  `translate.ts` (cross-language source translation,
   reached in production from `webProblemOrchestrator.ts` on the Java fallback path;
   `translateToVerifiedPackage` validates the SimLang program, compiles it, and throws unless
   the trace is non-empty and its tests pass).

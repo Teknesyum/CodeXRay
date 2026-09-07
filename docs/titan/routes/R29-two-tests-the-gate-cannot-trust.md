@@ -200,3 +200,164 @@ it is wrong, say so; that costs this route nothing and saves the next one.
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+## T0 reconciliation
+
+Closed. `624e5b8` (close) and `c628a7b` (handoff) over base `244bda8`. Verified on T0's own
+evidence, and one criterion is reported as **not established on T0's machine** — see below.
+
+### What was written
+
+Six files, none guarded. **The production change is five lines in one file**,
+`titanPipeline.ts:64`:
+
+```ts
+publish(
+  id,
+  tasks.signal?.aborted ? 'cancelled' : 'failed',
+  error instanceof Error ? error.message : `${id} failed.`,
+);
+```
+
+`AiAssistant.tsx` and `titanModeRunStore.ts` — both in the route's forecast — were never touched.
+The measurement moved the defect somewhere the route had not looked.
+
+Gates re-run by T0 on `c628a7b` with a clean tree: `lint` clean, `test` **909 passed / 120
+files** (base 907), `build` clean.
+
+### Criterion 1 — the route's hypothesis was half wrong, and that is the finding
+
+The route said, in as many words, that its explanation was a hypothesis. It was, and the
+measurement corrected it in two places. The real job statuses of a cancelled plan:
+
+```
+titan-route      = completed
+titan-produce    = failed  ("Titan Mode run was cancelled.")
+titan-semantics  = cancelled
+titan-verify     = cancelled
+titan-apply      = cancelled
+```
+
+- **Right:** one job really is `failed`, and the reload rule at `AiAssistant.tsx:205` restores
+  the panel because of it.
+- **Wrong about scope:** the route implied the cancel path marks *its jobs* `failed`. Three of
+  the five were already `cancelled`. Exactly one phase was wrong.
+- **Wrong about the module:** the persisted plan is not the engine's `gm-…` plan but the
+  pipeline's `titan-pipeline-…` plan. `titanEngine.ts`'s cancel path (`:691`, `:1674`) is correct
+  and was never implicated. The defect is in `executeTitanPipeline`'s own `catch`: `ensureActive`
+  is consulted at phase entry and on success and **not in the catch**, so the pipeline classified
+  the rejection caused by its own `abort()` as a failure.
+
+A route that had guessed one module and asserted it would have sent the implementer to the wrong
+file. Criterion 1 existed because T0 knew it was guessing; it earned its place.
+
+### Criterion 8 — why it passed in isolation, measured
+
+The implementer measured the timing rather than calling it flaky, and the answer inverts the
+usual reading of an intermittent test:
+
+```
+reload resolves            → first poll at +39–64 ms   (count 0, assertion passes)
+panel (React.lazy/Suspense) → mounts at +312–347 ms
+```
+
+**The product defect reproduces 100% of the time, in isolation too.** The panel always comes
+back. In isolation the assertion simply ran during the ~250–280 ms window before the lazy chunk
+mounted, and passed for a reason that had nothing to do with what it was checking. Under four
+workers the window closed and the same defect became visible as `31 × locator resolved to 1
+element`.
+
+So this test was never flaky. It was **wrong when it passed**, which is the worse of the two
+states, and it is the same finding class this relay has now hit for the ninth consecutive turn:
+a check whose green means less than its name. The second failure is the same shape — chat element
+at ~+110 ms, panel element at ~+405 ms, a ~290 ms gap that decided which side of a strict-mode
+violation the run landed on.
+
+### Criterion 5 — the assertion was strengthened, not weakened
+
+The two matching elements were `.chat-message.system-msg > p` and
+`.titan-mode-agent.failed .agent-summary`: two legitimate surfaces showing the same message. The
+spec now asserts `toHaveCount(2)` and checks each one separately. No `.first()`, no new
+`data-testid`. That is the right resolution to a strict-mode violation and T0 accepts it as
+written.
+
+### Criterion 6 — the guard is real
+
+`e2e/titan-mode-failures.spec.ts` gained a case asserting that a genuinely failed run **is** still
+restored after reload. The route forbade trading the restore-on-failure behaviour away to make
+the cancel case pass, and this is the test that would catch it.
+
+### Criteria 2 and 3 — green for the implementer, not reproduced by T0
+
+The handoff records four consecutive full-suite runs, all exit 0, `82 passed` each. T0 ran the
+full suite twice on `c628a7b` and got neither result:
+
+```
+--- run 1 ---
+  2 failed
+    accessibility-axe.spec.ts:37   has no serious WCAG A/AA violations across themes and languages
+    radio-controller.spec.ts:3     honors confirmed playback, transport, audio, loop, and minimize contracts
+  82 passed (1.9m)
+--- run 2 ---
+  3 failed
+    accessibility-axe.spec.ts:37
+    ai-actions.spec.ts:112         builds and applies bidirectional BFS through the visible Titan Mode queue
+    radio-controller.spec.ts:3
+  81 passed (2.2m)
+```
+
+**Neither of R29's two targets appears in either list**, and every one of these five failures
+carries the same error:
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+Not an assertion — the 30-second per-test budget. A different set of specs each run. T0's machine
+was doing other work; the implementer's was not. T0 then ran the two targets alone, three times
+each, under the same conditions that produced the list above:
+
+```
+  12 passed (8.9s)
+```
+
+**R29's own work is verified.** What is not verified is criterion 2's stronger claim that the
+suite is green on a clean tree, because on a loaded machine it is not, for reasons this route did
+not create and did not touch. T0 records criterion 2 as satisfied for what R29 changed and
+**explicitly not satisfied as a statement about the suite**, and opens the remainder as R30
+rather than crediting it here. The route's premise — a gate nobody can trust — turned out to have
+a second half.
+
+### Deviations — all three accepted
+
+1. Forecast paths `AiAssistant.tsx` and `titanModeRunStore.ts` unwritten. Correct; the forecast is
+   a forecast and the measurement moved the defect.
+2. **`src/components/AiAssistant.test.tsx` does not exist.** T0 put a non-existent file in the
+   forecast. A sixth route defect, minor, and disclosed rather than quietly worked around.
+3. Four temporary measurement specs created and deleted, never committed, outputs pasted verbatim.
+
+### Discovered, and what T0 does with it
+
+**`AiAssistant.tsx:857` calls `persistTitanModePlan(plan)` before the dismissed guard**, so the
+`removeTitanModePlan` at `:1462` never becomes durable and the sanitize map at `:1455` never
+reaches `titan-produce`. The implementer found it, saw it is now harmless because the status is
+correct at the source, and left it to T0 rather than fixing it inside a route that did not ask
+for it. **That was the right call and T0 leaves it in place.** A one-line change to dead-but-
+harmless code is exactly the kind of thing that turns a verifiable turn into an unverifiable one.
+It goes on the deferred list, where it will be fixed by a route that can say what its correctness
+depends on.
+
+### Still deferred
+
+- The e2e suite times out at the 30 s per-test budget under parallel load, on a spec-
+  nondeterministic set. **This becomes R30.**
+- `AiAssistant.tsx:857` persists before the dismissed guard, making `:1462`'s removal and
+  `:1455`'s sanitize map unreachable.
+- Option B: `scoreTrace` is phase-blind; `mostSignificantIndex` returns 0 for 19 of 60. Needs an
+  oracle before it needs code. `TracePhase.kind`'s lost `setup` value belongs to this route.
+- Option C: no simulator emits a trace `event`; `eventWeight` is dead weight in every score.
+- `ArrayView` and `RowsView` display `decision` but not `phase`.
+- The initial-JS budget has 2.4 KiB of headroom and `translations.ts` is the growth vector.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.

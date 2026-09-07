@@ -141,7 +141,10 @@ testing another trusted CodeXRay gateway.
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
   **All 60 supported simulators already label every step** with a `visualData.vars.phase`
-  string — 282 distinct labels across the 60, minimum 3 each. Until R27 `simulationTrace.ts`
+  string — 282 distinct labels across the 60, minimum 3 each. That 282 is the **per-algorithm
+  distinct count, summed**; globally distinct across the registry the same labels number 275,
+  and the two counting rules differ for every runtime string family (explanations 1063 vs 923,
+  decisions 220 vs 175). A route quoting a string count must say which rule it means. Until R27 `simulationTrace.ts`
   dropped that label when building the `RawTrace`, so `buildTraceOutline` fell back to grouping
   by step kind and produced a **single phase for 54 of the 60**; every consumer of the outline
   — the guided tour, next/prev checkpoint, and the model's "important steps" — degraded to
@@ -232,6 +235,24 @@ testing another trusted CodeXRay gateway.
 - `siteReset.ts`, `aiResponse.ts`, `PlaylistRadio.tsx` (keep the external player unmounted
   until user interaction and preserve its fallback link), `src/i18n/translations.ts`,
   `scripts/publish-to-site.mjs`.
+- `src/i18n/translations.ts` — `t()` for authored keys and `runtimeReplacements`, a 748-entry
+  `Array<[RegExp, string]>` that `translateRuntimeText` folds over any English string produced at
+  runtime. **A correct `translateRuntimeText` call site proves nothing**: from before R15 until
+  R28, `DynamicVisualizer.tsx` rendered `visualData.vars.decision` through it while the table
+  held no entry for 169 of the 175 strings that reached it, so 25 algorithms showed English
+  decisions under Turkish phase labels. Phase labels and step explanations were fully covered the
+  whole time; only this one field was never swept. Since R28 the 128 decision strings that
+  contain an English word are localized and the 47 that are pure notation
+  (`low[F]=disc[F] ⇒ SCC 1`, `4+-2<∞ ⇒ 2`) are deliberately left alone — **do not "translate"
+  notation**. The gate that matters is the residual one: no English word may survive in
+  Turkish-locale output, which is stronger than "the string changed".
+  The table ships in the initial bundle because `translateRuntimeText` is called synchronously
+  during render. R28 raised the initial-JS budget from 420 to 425 KiB and the measured figure is
+  **422.6 KiB — 2.4 KiB of headroom**. The next comparable sweep will hit that wall and must not
+  answer it by raising the budget again.
+- `DynamicVisualizer.tsx` — `TeachingHud` since R28 renders the phase/decision strip for the
+  graph, matrix, array, and rows views. Array and rows pass `phase={null}`: they display the
+  decision and still do not display the phase label.
 
 ## Data contracts
 

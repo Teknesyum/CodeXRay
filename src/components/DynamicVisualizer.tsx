@@ -109,7 +109,7 @@ const ArrayView = ({ data }: { data: ArrayVisualData }) => (
   <div className="visual-matrix-shell">
     <TeachingHud
       className="matrix-teaching-hud"
-      phase={null}
+      phase={typeof data.vars.phase === 'string' ? data.vars.phase : null}
       decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
     />
     <div className="visual-array">
@@ -376,7 +376,13 @@ const StringMatchView = ({ data }: { data: StringMatchVisualData }) => {
 const BarView = ({ data }: { data: BarVisualData }) => {
   const { locale } = useTimeline();
   const maximum = Math.max(1, ...data.values.map((value, index) => value + (data.water[index] ?? 0)));
-  return <div className="bar-view" role="img" aria-label={locale === 'tr' ? 'Yükseklik çubukları ve biriken su' : 'Height bars and trapped water'}>{data.values.map((value, index) => (
+  return <div className="visual-matrix-shell">
+  <TeachingHud
+    className="matrix-teaching-hud"
+    phase={typeof data.vars.phase === 'string' ? data.vars.phase : null}
+    decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
+  />
+  <div className="bar-view" role="img" aria-label={locale === 'tr' ? 'Yükseklik çubukları ve biriken su' : 'Height bars and trapped water'}>{data.values.map((value, index) => (
     <div className="bar-column" key={index} role="img" aria-label={locale === 'tr'
       ? `Sütun ${index}: yükseklik ${value}, su ${data.water[index] ?? 0}`
       : `Column ${index}: height ${value}, water ${data.water[index] ?? 0}`}>
@@ -385,17 +391,28 @@ const BarView = ({ data }: { data: BarVisualData }) => {
       <small>{index}</small>
       {Object.entries(data.pointers ?? {}).filter(([, at]) => at === index).map(([name]) => <b key={name}>{name}</b>)}
     </div>
-  ))}</div>;
+  ))}</div>
+</div>;
 };
 
 const IntervalView = ({ data }: { data: IntervalVisualData }) => {
   const { locale } = useTimeline();
+  const hud = <TeachingHud
+    className="matrix-teaching-hud"
+    phase={typeof data.vars.phase === 'string' ? data.vars.phase : null}
+    decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
+  />;
   const domain = [...data.intervals, ...data.merged, ...(data.current ? [data.current] : [])];
-  if (domain.length === 0) return <div className="interval-view" role="region" aria-label={locale === 'tr' ? 'Sayı doğrusundaki aralıklar' : 'Intervals on number line'} />;
+  if (domain.length === 0) return <div className="visual-matrix-shell">
+  {hud}
+  <div className="interval-view" role="region" aria-label={locale === 'tr' ? 'Sayı doğrusundaki aralıklar' : 'Intervals on number line'} />
+</div>;
   const minimum = Math.min(...domain.map(([start]) => start));
   const maximum = Math.max(...domain.map(([, end]) => end));
   const span = Math.max(1, maximum - minimum);
-  return <div className="interval-view" role="region" aria-label={locale === 'tr' ? 'Sayı doğrusundaki aralıklar' : 'Intervals on number line'}>
+  return <div className="visual-matrix-shell">
+  {hud}
+  <div className="interval-view" role="region" aria-label={locale === 'tr' ? 'Sayı doğrusundaki aralıklar' : 'Intervals on number line'}>
     {[...data.intervals, ...data.merged].map(([start, end], index) => {
       const merged = index >= data.intervals.length;
       const current = data.current?.[0] === start && data.current?.[1] === end;
@@ -406,7 +423,8 @@ const IntervalView = ({ data }: { data: IntervalVisualData }) => {
         <span style={{ left: `${((start - minimum) / span) * 100}%`, width: `${((end - start) / span) * 100}%` }}>{start}–{end}</span>
       </div>;
     })}
-  </div>;
+  </div>
+</div>;
 };
 
 const RowsView = ({ data }: { data: RowsVisualData }) => {
@@ -414,7 +432,7 @@ const RowsView = ({ data }: { data: RowsVisualData }) => {
   return <div className="visual-matrix-shell">
   <TeachingHud
     className="matrix-teaching-hud"
-    phase={null}
+    phase={typeof data.vars.phase === 'string' ? data.vars.phase : null}
     decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
   />
   <div className={`rows-view rows-${data.mode}`} role="grid" aria-label={locale === 'tr' ? `${data.mode} öğretim satırları` : `${data.mode} teaching rows`}>

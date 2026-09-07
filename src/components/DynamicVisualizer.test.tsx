@@ -150,6 +150,31 @@ const PopulateDecisionTrace = () => {
   </>;
 };
 
+const PopulateBarIntervalPhaseTrace = () => {
+  const { setSteps, setCurrentIndex, setLocale } = useTimeline();
+  useEffect(() => {
+    setSteps([
+      { lineNumber: 1, explanation: 'Fill water.', visualData: {
+        type: 'bars', values: [3, 0, 2], water: [0, 2, 0], pointers: { left: 0 },
+        vars: { phase: 'Trapping Rain Water · initialize boundaries' },
+      } },
+      { lineNumber: 2, explanation: 'Merge spans.', visualData: {
+        type: 'intervals', intervals: [[1, 3], [2, 5]], merged: [[1, 5]], current: [1, 5],
+        vars: { phase: 'Merge Intervals · merge overlap' },
+      } },
+      { lineNumber: 3, explanation: 'Nothing to draw.', visualData: {
+        type: 'intervals', intervals: [], merged: [],
+        vars: { phase: 'Merge Intervals · complete' },
+      } },
+    ]);
+  }, [setSteps]);
+  return <>
+    <button type="button" onClick={() => setCurrentIndex(1)}>Show interval phase</button>
+    <button type="button" onClick={() => setCurrentIndex(2)}>Show empty intervals</button>
+    <button type="button" onClick={() => setLocale('tr')}>Switch to Turkish</button>
+  </>;
+};
+
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem('codexray.locale', 'en');
@@ -255,13 +280,38 @@ describe('DynamicVisualizer pinned watch strip', () => {
     const arrayHud = await screen.findByRole('status');
     expect(arrayHud).toHaveClass('matrix-teaching-hud');
     expect(arrayHud).toHaveTextContent('mid<target ⇒ discard left half');
-    expect(arrayHud).not.toHaveTextContent('Binary Search · inspect midpoint');
+    expect(arrayHud).toHaveTextContent('Binary Search · inspect midpoint');
 
     await user.click(screen.getByRole('button', { name: 'Show decision rows' }));
+    expect(screen.getByRole('status')).toHaveTextContent('LIS · scan predecessors');
     expect(screen.getByRole('status')).toHaveTextContent('not increasing ⇒ reject');
 
     await user.click(screen.getByRole('button', { name: 'Switch to Turkish' }));
     expect(screen.getByRole('status')).toHaveTextContent('artan değil ⇒ reddedilir');
+  });
+
+  it('renders the phase in the bar and interval views in both locales', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    const user = userEvent.setup();
+    render(
+      <TimelineProvider>
+        <PopulateBarIntervalPhaseTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    const barHud = await screen.findByRole('status');
+    expect(barHud).toHaveClass('matrix-teaching-hud');
+    expect(barHud).toHaveTextContent('Trapping Rain Water · initialize boundaries');
+
+    await user.click(screen.getByRole('button', { name: 'Show interval phase' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Merge Intervals · merge overlap');
+
+    await user.click(screen.getByRole('button', { name: 'Show empty intervals' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Merge Intervals · complete');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to Turkish' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Aralık Birleştirme · tamamlandı');
+    expect(screen.getByRole('status')).not.toHaveTextContent('Merge Intervals');
   });
 
   it('keeps the graph teaching hud markup byte-identical', async () => {

@@ -22,12 +22,14 @@ const run = async (page: Page, label: string) => {
   await page.getByRole('button', { name: /Simulate/ }).click();
 };
 
-const advanceUntilVisible = async (page: Page, hud: Locator) => {
+const advanceUntilDecision = async (page: Page, hud: Locator, decision: RegExp) => {
   const pause = page.getByRole('button', { name: 'Pause', exact: true });
   if (await pause.isVisible().catch(() => false)) await pause.click();
   const next = page.getByRole('button', { name: 'Next step' });
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    if (await hud.isVisible().catch(() => false)) return;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (await hud.isVisible().catch(() => false)) {
+      if (decision.test(await hud.textContent() ?? '')) return;
+    }
     if (!await next.isEnabled()) break;
     await next.click();
   }
@@ -38,8 +40,9 @@ test('shows the Binary Search decision in the array view in both locales', async
   await run(page, 'Binary Search');
   await expect(page.getByLabel('Binary Search execution')).toBeVisible();
   const hud = page.locator('.visualizer-content .matrix-teaching-hud');
-  await advanceUntilVisible(page, hud);
-  await expect(hud).toHaveText(/mid<target ⇒ discard left half|mid>target ⇒ discard right half|equal ⇒ found/);
+  const binaryDecision = /mid<target ⇒ discard left half|mid>target ⇒ discard right half|equal ⇒ found/;
+  await advanceUntilDecision(page, hud, binaryDecision);
+  await expect(hud).toHaveText(binaryDecision);
 
   await switchToTurkish(page);
   await expect(hud).toHaveText(/orta<hedef ⇒ sol yarı elenir|orta>hedef ⇒ sağ yarı elenir|eşit ⇒ bulundu/);
@@ -50,8 +53,9 @@ test('shows the Longest Increasing Subsequence decision in the rows view in both
   await run(page, 'Longest Increasing Subsequence');
   await expect(page.getByLabel('Longest Increasing Subsequence execution')).toBeVisible();
   const hud = page.locator('.visualizer-content .matrix-teaching-hud');
-  await advanceUntilVisible(page, hud);
-  await expect(hud).toHaveText(/not increasing ⇒ reject|extend predecessor subsequence|does not improve current length/);
+  const lisDecision = /not increasing ⇒ reject|extend predecessor subsequence|does not improve current length/;
+  await advanceUntilDecision(page, hud, lisDecision);
+  await expect(hud).toHaveText(lisDecision);
 
   await switchToTurkish(page);
   await expect(hud).toHaveText(/artan değil ⇒ reddedilir|öncül alt diziyi genişlet|mevcut uzunluğu iyileştirmez/);

@@ -218,3 +218,97 @@ e2e uses the external-server procedure in `AGENTS.md`. Clean up only the PIDs th
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+---
+
+## T0 reconciliation
+
+Closed at `9aad8e5`. Route opened `5d680d4`, closed `9fcdfa5`, handoff `9aad8e5`.
+Verified independently by T0.
+
+### Independently confirmed
+
+T0 tested the detector rather than reading about it: removed the added `afterEach(() =>
+cleanup())` from `TitanProgress.test.tsx`, ran that file alone, restored it. Verbatim:
+
+```
+ ❯ src/components/TitanProgress.test.tsx (3 tests | 3 failed) 118ms
+ FAIL  src/components/TitanProgress.test.tsx > TitanProgress > renders exactly five ordered stages and an explicit skipped state in both locales
+Error: 1 interval timer(s) were still running when the test finished.
+An interval that outlives its test keeps firing after the jsdom environment is torn down,
+Error: interval registered here
+```
+
+`git diff --stat src/components/TitanProgress.test.tsx` after restoring: empty. That closes
+criterion 3 on T0's own evidence, and it closes something the handoff could only assert — the
+detector **names the test that leaked**, which is the whole point of B.
+
+Also T0-run: `lint` exit 0, `test:coverage` **120 files / 895 tests passed** (base 119 / 890),
+`build` exit 0 within budget. `git diff --name-only a3b577e..HEAD` lists seven files, no frozen
+or T0-owned path; the only `docs/titan/routes/` entry is this route from T0's own `5d680d4`.
+
+Criterion 6 checked as a delta, not a snapshot: `.skip(`/`.todo(` count 0 at HEAD,
+`dangerouslyIgnoreUnhandledErrors` absent, `git diff a3b577e..HEAD -- vitest.config.ts` empty.
+The suite is five tests larger and no quieter.
+
+CI green on `a3b577e` (`34146604596`) and on `5d680d4` (`34146858615`).
+
+### The claim, endorsed as written
+
+Criterion 7 answered **probably fixed**, not proven. T0 endorses that and will not upgrade it.
+A real leak of the right shape was found in the right file and removed; the CI `ReferenceError`
+itself never reproduced in 35 runs, so the last link — that *this* interval caused *that* error —
+is argument, not measurement. The mechanism is sound: under vitest's jsdom, `window.setInterval`
+is Node's `setInterval`, `dom.window.close()` does not stop it, and teardown deletes
+`globalThis.window`, leaving a ~2 ms window in which a 250 ms interval firing hits a missing
+`window`. That is consistent with 1-in-40; it is not proof of it.
+
+If it recurs on CI, this route was wrong and the next one starts from a suite that can now name
+its own leaks — which is worth more than the guess.
+
+### What the route got wrong
+
+**The route named a flag that does not exist.** `--poolOptions.threads.singleThread` is vitest 3
+syntax; this repository runs vitest 4.1.10, where it is rejected outright:
+
+```
+CACError: Unknown option `--poolOptions`
+```
+
+I wrote a verification command without running it. The implementer substituted
+`--pool=threads --no-file-parallelism --no-isolate` and said so. **A `## Verification` block is
+the one part of a route that is executable, and an unexecuted command in it is a defect** — the
+same class as R25's Option A draft rejecting a signature it meant to keep, two turns running.
+
+**The route's twenty-run bound was too small to be informative and the implementer was right to
+exceed it.** 35 runs across four scheduling configurations, all reported with their
+distribution, including four non-zero exits under `--sequence.shuffle` that were unrelated
+order-dependencies and correctly not counted — the criterion was scored on
+`grep "window is not defined"`, not on exit code. That distinction is the implementer's, not the
+route's, and it is the right one.
+
+### What shipped beyond the route
+
+The detector found a **second** leak, in `ProblemRichText.test.tsx`, which nothing in the route
+predicted and no CI run has ever attributed to anything. That is B working as intended: it finds
+real leaks whether or not they are *the* leak.
+
+`--no-isolate` deterministically breaks 16 tests. Measured in passing, not chased. Not a defect
+of this turn; worth knowing before anyone reaches for it as a speed-up.
+
+### Deviations, all accepted
+
+Five, each argued: the detector as its own module rather than inline in `setup.ts`, the second
+test file, the vitest 4 flag substitution, scoring by log content rather than exit code, and 35
+runs instead of 20. The third and fourth correct the route.
+
+One unrelated e2e flake seen once (`radio-controller.spec.ts`), passing alone and on rerun. Third
+sighting of an e2e flake in this relay and still not the same spec twice — the standing rule
+holds: not yet a route.
+
+### Recorded
+
+**A verification block is code.** R24 taught that a route must not contradict its own objective;
+R25 that measuring the defect is not measuring the fix; R26 adds that the commands a route hands
+the implementer must have been run by the person who wrote them. Three turns, three defects in
+routes rather than in implementations. The routes are now the weaker half of this relay.

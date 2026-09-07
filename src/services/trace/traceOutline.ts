@@ -21,6 +21,26 @@ const phaseKind = (kind: RawTraceStepKind): TracePhase['kind'] => {
   return 'setup';
 };
 
+const stepKind = (step: RawTrace['steps'][number]): TracePhase['kind'] =>
+  step.event?.t === 'result-write' ? 'result' : phaseKind(step.kind);
+
+const dominantKind = (steps: Array<RawTrace['steps'][number]>): TracePhase['kind'] => {
+  if (steps.some((step) => step.event?.t === 'result-write')) return 'result';
+  const counts = new Map<TracePhase['kind'], number>();
+  let winner = stepKind(steps[0]);
+  let best = 0;
+  for (const step of steps) {
+    const kind = stepKind(step);
+    const count = (counts.get(kind) ?? 0) + 1;
+    counts.set(kind, count);
+    if (count > best) {
+      best = count;
+      winner = kind;
+    }
+  }
+  return winner;
+};
+
 const groupKey = (step: RawTrace['steps'][number]): string => {
   if (typeof step.phase === 'string') return `phase:${step.phase}`;
   return `kind:${step.event?.t === 'result-write' ? 'result' : phaseKind(step.kind)}`;
@@ -38,7 +58,7 @@ export const buildTraceOutline = (trace: RawTrace): TracePhase[] => {
   }
   return groups.map((group, index) => {
     const best = group.reduce((winner, item) => item.score > winner.score ? item : winner);
-    const kind = group[0].step.event?.t === 'result-write' ? 'result' : phaseKind(group[0].step.kind);
+    const kind = dominantKind(group.map((item) => item.step));
     return {
       id: `p${index + 1}`,
       label: `${kind} ${group[0].step.line}-${group.at(-1)?.step.line ?? group[0].step.line}`,

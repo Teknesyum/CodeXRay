@@ -40,6 +40,37 @@ const numericDelta = (previous: RawTraceStep | undefined, step: RawTraceStep): n
   return Math.min(1, largest) * 0.3;
 };
 
+const decisionLabel = (step: RawTraceStep): string | null => {
+  const value = step.scopes.decision;
+  return typeof value === 'string' && value.length ? value : null;
+};
+
+const mutationBreadth = (step: RawTraceStep): number => {
+  const count = step.mutated.length;
+  return 0.08 * (count / (count + 1));
+};
+
+const decisionBreadth = (
+  step: RawTraceStep,
+  previous: RawTraceStep | undefined,
+  introduction: Map<string, { index: number; rank: number }>,
+): number => {
+  const label = decisionLabel(step);
+  if (label === null) return 0;
+  const introduced = introduction.get(label);
+  if (!introduced) return 0;
+  const novel = introduced.index === step.index ? 0.05 : 0;
+  const shifted = decisionLabel(previous ?? step) !== label ? 0.03 : 0;
+  const rank = 0.01 * (1 - 1 / (introduced.rank + 1));
+  return novel + shifted + rank;
+};
+
+const firstWriteBreadth = (step: RawTraceStep, alreadyWritten: Set<string>): number => {
+  let novel = 0;
+  for (const name of step.mutated) if (!alreadyWritten.has(name)) novel += 1;
+  return 0.02 * (novel / (novel + 1));
+};
+
 export interface ScoredTraceStep {
   step: RawTraceStep;
   score: number;
@@ -47,15 +78,30 @@ export interface ScoredTraceStep {
 
 export const scoreTrace = (trace: RawTrace): ScoredTraceStep[] => {
   const repetitions = new Map<string, number>();
+  const introduction = new Map<string, { index: number; rank: number }>();
+  for (const step of trace.steps) {
+    const label = decisionLabel(step);
+    if (label !== null && !introduction.has(label)) {
+      introduction.set(label, { index: step.index, rank: introduction.size + 1 });
+    }
+  }
+  const alreadyWritten = new Set<string>();
   return trace.steps.map((step, index) => {
     const signature = `${step.line}:${step.event?.t ?? step.kind}`;
     const repeated = (repetitions.get(signature) ?? 0) + 1;
     repetitions.set(signature, repeated);
     const penalty = repeated > 3 ? 0.5 : 0;
-    return {
+    const scored = {
       step,
-      score: Math.max(0, eventWeight(step) || kindWeight(step)) + numericDelta(trace.steps[index - 1], step) - penalty,
+      score: Math.max(0, eventWeight(step) || kindWeight(step))
+        + numericDelta(trace.steps[index - 1], step)
+        + mutationBreadth(step)
+        + decisionBreadth(step, trace.steps[index - 1], introduction)
+        + firstWriteBreadth(step, alreadyWritten)
+        - penalty,
     };
+    for (const name of step.mutated) alreadyWritten.add(name);
+    return scored;
   });
 };
 

@@ -30,7 +30,7 @@ const openDfsTour = async (page: Page) => {
 
 test('the guided tour stops on the phases the simulator writes', async ({ page }) => {
   const tour = await openDfsTour(page);
-  await expect(tour).toHaveText(['1', '2', '4', '7', '11', '14', '23', '24']);
+  await expect(tour).toHaveText(['1', '2', '5', '9', '13', '14', '23', '24']);
 });
 
 test('the same tour was evenly spaced filler before the phase label was carried', async ({ page }) => {
@@ -44,7 +44,14 @@ test('the same tour was evenly spaced filler before the phase label was carried'
     });
   });
   const tour = await openDfsTour(page);
-  await expect(tour).toHaveText(['1', '2', '6', '10', '15', '19', '23', '24']);
+  await expect(tour).toHaveText(['1', '2', '5', '8', '13', '18', '23', '24']);
+});
+
+test('the tour reaches steps the tie-keeping scorer never selected', async ({ page }) => {
+  const tour = await openDfsTour(page);
+  const stops = await tour.allTextContents();
+  for (const reached of ['5', '9', '13']) expect(stops).toContain(reached);
+  for (const abandoned of ['4', '7', '11']) expect(stops).not.toContain(abandoned);
 });
 
 test('walking next-checkpoint lands on a phase boundary rather than a sampled index', async ({ page }) => {

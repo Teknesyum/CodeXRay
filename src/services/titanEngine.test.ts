@@ -3,6 +3,7 @@ import type { LocalAgentHandle, LocalAgentProgress, LocalAgentRequest } from './
 import type { ManagerPlanV1, WorkspaceSnapshotV1 } from '../types/titan';
 import { startTitanModeRun, validateArchitectureContract } from './titanEngine';
 import { compileMatrixTemplatePackage } from './matrixCompiler';
+import { createInputPreset } from './inputPresets';
 
 const modelAuthoredProgram = {
   version: 1 as const,
@@ -852,5 +853,106 @@ describe('Titan Mode orchestrator', () => {
     expect(updated.program.id).toBe('predict_winner_interval_dp');
     expect(updated.input.value.text).toBe('[4,9,2,11,6]');
     expect(updated.steps.length).toBeGreaterThan(0);
+  });
+});
+
+describe('adapt-input without an active package', () => {
+  const arrayWorkspace: WorkspaceSnapshotV1 = {
+    ...workspace,
+    algorithmName: 'Bubble Sort',
+    simulationInput: { kind: 'array', text: '[9, 4, 7, 1, 3]', origin: 'user' },
+  };
+
+  const graphInput = createInputPreset('graph', 2, 'Breadth First Search (BFS)');
+  const graphWorkspace: WorkspaceSnapshotV1 = {
+    ...workspace,
+    algorithmName: 'Breadth First Search (BFS)',
+    simulationInput: graphInput,
+  };
+
+  const run = (overrides: Record<string, unknown>) => startTitanModeRun({
+    intent: { type: 'adapt-input' },
+    locale: 'en',
+    activePackage: null,
+    onPlan: vi.fn(),
+    applyPackage: vi.fn(),
+    applyInput: vi.fn(),
+    agentRunner: undefined,
+    ...overrides,
+  } as any).promise as Promise<any>;
+
+  it.each([
+    'diziyi karıştır',
+    'sort the array',
+    'diziyi ters çevir',
+    'make it interesting',
+  ])('refuses %s and leaves the workspace untouched', async (request) => {
+    const applyInput = vi.fn();
+    const applyPackage = vi.fn();
+    await expect(run({ request, workspace: arrayWorkspace, applyInput, applyPackage }))
+      .rejects.toThrow('not understood');
+    expect(applyInput).not.toHaveBeenCalled();
+    expect(applyPackage).not.toHaveBeenCalled();
+    expect(arrayWorkspace.simulationInput.text).toBe('[9, 4, 7, 1, 3]');
+  });
+
+  it('refuses in Turkish and says the input was left unchanged', async () => {
+    await expect(run({
+      request: 'make it interesting',
+      workspace: arrayWorkspace,
+      locale: 'tr',
+    })).rejects.toThrow('değiştirilmeden bırakıldı');
+  });
+
+  it('still presets when the workspace has no input of the required kind', async () => {
+    const applyInput = vi.fn();
+    await run({
+      request: 'make it interesting',
+      workspace: { ...workspace, algorithmName: 'Bubble Sort', simulationInput: { kind: 'string', text: 'abc' } },
+      applyInput,
+    });
+    expect(applyInput).toHaveBeenCalledOnce();
+    expect(applyInput.mock.calls[0]?.[0].kind).toBe('array');
+  });
+
+  it('applies a semantic array op with no active package', async () => {
+    const applyInput = vi.fn();
+    const result = await run({
+      request: 'diziyi azalan sırala',
+      workspace: arrayWorkspace,
+      locale: 'tr',
+      applyInput,
+    });
+    expect(JSON.parse(result.input.text)).toEqual([9, 7, 4, 3, 1]);
+    expect(applyInput).toHaveBeenCalledOnce();
+    expect(JSON.parse(applyInput.mock.calls[0]?.[0].text)).toEqual([9, 7, 4, 3, 1]);
+  });
+
+  it('applies a structural graph op with no active package', async () => {
+    const applyInput = vi.fn();
+    const connectorId = graphInput.graph!.nodes[1]!.id;
+    const result = await run({
+      request: `X node'unu ekle, ${connectorId} ile X arasında bağlantı kur`,
+      workspace: graphWorkspace,
+      locale: 'tr',
+      applyInput,
+    });
+    const graph = result.input.graph;
+    expect(graph.nodes.some((node: { id: string }) => node.id === 'X')).toBe(true);
+    expect(graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: connectorId, to: 'X' }),
+    ]));
+    expect(applyInput).toHaveBeenCalledOnce();
+  });
+
+  it('fails a rejected graph request with no active package', async () => {
+    const applyInput = vi.fn();
+    await expect(run({
+      request: 'add node X and connect X to missing',
+      workspace: graphWorkspace,
+      applyInput,
+    })).rejects.toThrow('endpoints');
+    expect(applyInput).not.toHaveBeenCalled();
+    expect(graphWorkspace.simulationInput.graph?.nodes.some((node) => node.id === 'X')).toBe(false);
   });
 });

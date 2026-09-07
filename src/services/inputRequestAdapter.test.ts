@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
+import { adaptSimulationInputFromRequest, isUnderstoodInputAdaptation } from './inputRequestAdapter';
 
 describe('natural-language input adaptation', () => {
   it('creates a rectangular 8 by 15 matrix for a matrix simulation', () => {
@@ -65,5 +65,53 @@ describe('natural-language input adaptation', () => {
     const values = JSON.parse(input.text) as number[];
     expect(values).toHaveLength(8);
     expect(values.every((value) => value >= 0)).toBe(true);
+  });
+});
+
+describe('unrecognised input adaptation', () => {
+  const current = { kind: 'array' as const, text: '[9, 4, 7, 1, 3]', origin: 'user' as const };
+
+  it.each([
+    'diziyi karıştır',
+    'sort the array',
+    'diziyi ters çevir',
+    'make it interesting',
+  ])('reports %s as not understood instead of silently presetting', (request) => {
+    const result = adaptSimulationInputFromRequest({
+      request,
+      current,
+      kind: 'array',
+      algorithmName: 'Bubble Sort',
+    });
+    expect(result.origin).toBe('preset');
+    expect(isUnderstoodInputAdaptation(result, current)).toBe(false);
+  });
+
+  it('still treats a preset as understood when there is no current input', () => {
+    const result = adaptSimulationInputFromRequest({
+      request: 'make it interesting',
+      current: null,
+      kind: 'array',
+      algorithmName: 'Bubble Sort',
+    });
+    expect(result.origin).toBe('preset');
+    expect(isUnderstoodInputAdaptation(result, null)).toBe(true);
+  });
+
+  it('treats every understood branch as understood', () => {
+    const explicit = adaptSimulationInputFromRequest({
+      request: 'inputu [4,9,2] yap',
+      current,
+      kind: 'array',
+      algorithmName: 'Bubble Sort',
+    });
+    expect(isUnderstoodInputAdaptation(explicit, current)).toBe(true);
+    const expanded = adaptSimulationInputFromRequest({
+      request: 'inputu genişlet',
+      current,
+      kind: 'array',
+      algorithmName: 'Bubble Sort',
+    });
+    expect(isUnderstoodInputAdaptation(expanded, current)).toBe(true);
   });
 });

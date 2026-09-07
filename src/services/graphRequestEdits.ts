@@ -22,7 +22,9 @@ const requestedNodeCount = (request: string): number => {
   if (digit) return Math.min(5, Math.max(0, Number(digit)));
   if (/(?:iki|two)\s+(?:node|d[uü][gğ][uü]m)/.test(normalized)) return 2;
   if (/(?:[uü][cç]|three)\s+(?:node|d[uü][gğ][uü]m)/.test(normalized)) return 3;
-  if (/(?:bir|one|a)\s+(?:node|d[uü][gğ][uü]m)/.test(normalized)) return 1;
+  if (/(?:bir|one)\s+(?:node|d[uü][gğ][uü]m)/.test(normalized)) return 1;
+  if (/(?:add|ekle)\s+a\s+node\b/.test(normalized)) return 1;
+  if (/\ba\s+node\s+(?:add|ekle)\b/.test(normalized)) return 1;
   return 0;
 };
 

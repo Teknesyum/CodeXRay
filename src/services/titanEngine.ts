@@ -38,7 +38,7 @@ import { compilePredictWinnerPackage, resolvePredictWinnerNumbers } from './inte
 import { compileDpTemplatePackage, type DpTemplateId } from './dpTemplateCompiler';
 import { runVerificationGates } from './verificationGates';
 import type { ProblemSpecV2, DpFamilyContractV2 } from '../types/titan';
-import { adaptSimulationInputFromRequest } from './inputRequestAdapter';
+import { adaptSimulationInputFromRequest, isUnderstoodInputAdaptation } from './inputRequestAdapter';
 import { recompileSimulationInput } from './recompileSimulationInput';
 import {
   applyAndRecompileInputPatch,
@@ -857,22 +857,37 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
           const semanticPatch = current?.kind === 'array' && !isMatrixPackage
             ? createSemanticArrayPatch(options.request)
             : null;
-          if (semanticPatch && options.activePackage && current) {
-            const semanticResult = applyAndRecompileInputPatch({
-              activePackage: options.activePackage,
-              currentInput: current,
-              patch: semanticPatch,
-              locale: options.locale,
-              workspace: options.workspace,
+          const packagelessContract = (value: SimulationInput) => ({
+            version: 1 as const,
+            kind,
+            description: options.workspace.algorithmName,
+            constraints: [],
+            value,
+            origin: 'user' as const,
+          });
+          if (semanticPatch && current) {
+            const semanticSummary = options.locale === 'tr'
+              ? `${semanticPatch.op} işlemi doğrulandı ve deterministik olarak uygulandı.`
+              : `${semanticPatch.op} was validated and applied deterministically.`;
+            if (options.activePackage) {
+              const semanticResult = applyAndRecompileInputPatch({
+                activePackage: options.activePackage,
+                currentInput: current,
+                patch: semanticPatch,
+                locale: options.locale,
+                workspace: options.workspace,
+              });
+              if (semanticResult.ok === false) throw new Error(semanticResult.reason);
+              semanticPackage = semanticResult.package;
+              setJob('input-engineer-build-compatible-input', { summary: semanticSummary });
+              return semanticResult.input;
+            }
+            const applied = applyInputPatches(current, [semanticPatch], packagelessContract(current), {
+              algorithmName: options.workspace.algorithmName,
             });
-            if (semanticResult.ok === false) throw new Error(semanticResult.reason);
-            semanticPackage = semanticResult.package;
-            setJob('input-engineer-build-compatible-input', {
-              summary: options.locale === 'tr'
-                ? `${semanticPatch.op} işlemi doğrulandı ve deterministik olarak uygulandı.`
-                : `${semanticPatch.op} was validated and applied deterministically.`,
-            });
-            return semanticResult.input;
+            if (applied.ok === false) throw new Error(applied.reason);
+            setJob('input-engineer-build-compatible-input', { summary: semanticSummary });
+            return applied.input;
           }
           const parameterPatches = current
             ? createSemanticParameterPatches(options.request, options.workspace.algorithmName)
@@ -890,37 +905,39 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
               semanticPackage = semanticResult.package;
               return semanticResult.input;
             }
-            const applied = applyInputPatches(current, parameterPatches, {
-              version: 1,
-              kind,
-              description: options.workspace.algorithmName,
-              constraints: [],
-              value: current,
-              origin: 'user',
-            }, { algorithmName: options.workspace.algorithmName });
+            const applied = applyInputPatches(current, parameterPatches, packagelessContract(current), {
+              algorithmName: options.workspace.algorithmName,
+            });
             if (applied.ok === false) throw new Error(applied.reason);
             return applied.input;
           }
           const graphPatches = current?.graph && !visualOnly
             ? createStructuralGraphPatches(current.graph, options.request)
             : null;
-          if (graphPatches?.ok === false) throw new Error(graphPatches.reason);
-          if (graphPatches?.patches.length && options.activePackage && current) {
-            const semanticResult = applyAndRecompileInputPatches({
-              activePackage: options.activePackage,
-              currentInput: current,
-              patches: graphPatches.patches,
-              locale: options.locale,
-              workspace: options.workspace,
+          if (graphPatches?.ok === false && current) throw new Error(graphPatches.reason);
+          if (graphPatches?.ok === true && graphPatches.patches.length && current) {
+            const graphSummary = options.locale === 'tr'
+              ? `${graphPatches.patches.length} grafik işlemi atomik olarak doğrulandı ve uygulandı.`
+              : `${graphPatches.patches.length} graph operations were validated and applied atomically.`;
+            if (options.activePackage) {
+              const semanticResult = applyAndRecompileInputPatches({
+                activePackage: options.activePackage,
+                currentInput: current,
+                patches: graphPatches.patches,
+                locale: options.locale,
+                workspace: options.workspace,
+              });
+              if (semanticResult.ok === false) throw new Error(semanticResult.reason);
+              semanticPackage = semanticResult.package;
+              setJob('input-engineer-build-compatible-input', { summary: graphSummary });
+              return semanticResult.input;
+            }
+            const applied = applyInputPatches(current, graphPatches.patches, packagelessContract(current), {
+              algorithmName: options.workspace.algorithmName,
             });
-            if (semanticResult.ok === false) throw new Error(semanticResult.reason);
-            semanticPackage = semanticResult.package;
-            setJob('input-engineer-build-compatible-input', {
-              summary: options.locale === 'tr'
-                ? `${graphPatches.patches.length} grafik işlemi atomik olarak doğrulandı ve uygulandı.`
-                : `${graphPatches.patches.length} graph operations were validated and applied atomically.`,
-            });
-            return semanticResult.input;
+            if (applied.ok === false) throw new Error(applied.reason);
+            setJob('input-engineer-build-compatible-input', { summary: graphSummary });
+            return applied.input;
           }
           let generated = adaptSimulationInputFromRequest({
             request: options.request,
@@ -936,6 +953,12 @@ export const startTitanModeRun = (options: TitanModeOrchestratorOptions): TitanM
               text: JSON.stringify(resolved.numbers),
               origin: resolved.origin === 'user' ? 'user' : 'agent',
             };
+          }
+          if (options.activePackage?.program.id !== 'predict_winner_interval_dp'
+            && !isUnderstoodInputAdaptation(generated, current)) {
+            throw new Error(options.locale === 'tr'
+              ? 'Bu girdi isteği anlaşılamadı; girdiniz değiştirilmeden bırakıldı. Açık bir değer verin, örneğin "diziyi [3, 1, 4, 1, 5] yap".'
+              : 'This input request was not understood, so your input was left unchanged. Give an explicit value, for example "set the array to [3, 1, 4, 1, 5]".');
           }
           if (generated.graph && visualOnly) {
             generated = { ...generated, text: '', graph: spreadGraphLayout(generated.graph) };

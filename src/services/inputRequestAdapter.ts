@@ -77,6 +77,11 @@ const arrayCompatibleWithProgram = (programId: string | undefined, values: numbe
   return compatible;
 };
 
+export const isUnderstoodInputAdaptation = (
+  result: SimulationInput,
+  current: SimulationInput | null | undefined,
+): boolean => !(result.origin === 'preset' && Boolean(current));
+
 export const adaptSimulationInputFromRequest = (options: {
   request: string;
   current: SimulationInput | null;

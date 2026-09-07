@@ -162,3 +162,28 @@ describe('natural-language graph edits', () => {
     expect(result.patches.map((patch) => patch.op)).toContain(expectedOp);
   });
 });
+
+describe('the English article is not a node count', () => {
+  const named: GraphDocumentV1 = {
+    ...source,
+    nodes: [
+      { id: 'A', label: 'A', x: 10, y: 10 },
+      { id: 'B', label: 'B', x: 90, y: 90 },
+    ],
+    edges: [{ id: 'base', from: 'A', to: 'B', weight: 4 }],
+    startId: 'A',
+    targetId: 'B',
+  };
+
+  it('removes only the named node for "A düğümünü sil"', () => {
+    const result = createStructuralGraphPatches(named, 'A düğümünü sil');
+    if (result.ok === false) throw new Error(result.reason);
+    expect(result.patches).toEqual([{ op: 'graph-remove', id: 'A' }]);
+  });
+
+  it('still counts an explicit English "add a node"', () => {
+    const result = createStructuralGraphPatches(named, 'add a node');
+    if (result.ok === false) throw new Error(result.reason);
+    expect(result.patches.filter((patch) => patch.op === 'graph-add-node')).toHaveLength(1);
+  });
+});

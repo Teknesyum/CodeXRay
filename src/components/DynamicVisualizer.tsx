@@ -90,8 +90,29 @@ const AutoFitVisual = ({
   );
 };
 
+const TeachingHud = ({ className, phase, decision }: {
+  className: string;
+  phase: string | null;
+  decision: string | null;
+}) => {
+  const { locale } = useTimeline();
+  if (!phase && !decision) return null;
+  return (
+    <div className={className} role="status">
+      {phase && <strong>{translateRuntimeText(phase, locale)}</strong>}
+      {decision && <span>{translateRuntimeText(decision, locale)}</span>}
+    </div>
+  );
+};
+
 const ArrayView = ({ data }: { data: ArrayVisualData }) => (
-  <div className="visual-array">
+  <div className="visual-matrix-shell">
+    <TeachingHud
+      className="matrix-teaching-hud"
+      phase={null}
+      decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
+    />
+    <div className="visual-array">
     {data.values.map((value, index) => {
       const pointers = Object.entries(data.pointers ?? {})
         .filter(([, pointerIndex]) => pointerIndex === index)
@@ -121,6 +142,7 @@ const ArrayView = ({ data }: { data: ArrayVisualData }) => (
         </div>
       );
     })}
+    </div>
   </div>
 );
 
@@ -238,12 +260,7 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
       {isTopological && (
         <Suspense fallback={null}><TopologicalOutput locale={locale} nodeCount={data.nodes.length} vars={data.vars} /></Suspense>
       )}
-      {(phase || decision) && (
-        <div className="graph-teaching-hud" role="status">
-          {phase && <strong>{translateRuntimeText(phase, locale)}</strong>}
-          {decision && <span>{translateRuntimeText(decision, locale)}</span>}
-        </div>
-      )}
+      <TeachingHud className="graph-teaching-hud" phase={phase} decision={decision} />
       <div className="graph-legend" aria-label={t('graphLegend', locale)}>
         {legend ? legend.map((item) => (
           <span
@@ -277,12 +294,7 @@ const MatrixView = ({ data }: { data: MatrixVisualData }) => {
     data.highlights.find((cell) => cell.row === row && cell.column === column);
   return (
     <div className="visual-matrix-shell">
-      {(phase || decision) && (
-        <div className="matrix-teaching-hud" role="status">
-          {phase && <strong>{translateRuntimeText(phase, locale)}</strong>}
-          {decision && <span>{translateRuntimeText(decision, locale)}</span>}
-        </div>
-      )}
+      <TeachingHud className="matrix-teaching-hud" phase={phase} decision={decision} />
       <div className="matrix-fill-direction">
         {locale === 'tr' ? 'Dolum yönü' : 'Fill direction'}: {data.fillDirection === 'diagonal'
           ? locale === 'tr' ? 'köşegen / artan aralık' : 'diagonal / increasing interval'
@@ -399,7 +411,13 @@ const IntervalView = ({ data }: { data: IntervalVisualData }) => {
 
 const RowsView = ({ data }: { data: RowsVisualData }) => {
   const { locale } = useTimeline();
-  return <div className={`rows-view rows-${data.mode}`} role="grid" aria-label={locale === 'tr' ? `${data.mode} öğretim satırları` : `${data.mode} teaching rows`}>
+  return <div className="visual-matrix-shell">
+  <TeachingHud
+    className="matrix-teaching-hud"
+    phase={null}
+    decision={typeof data.vars.decision === 'string' ? data.vars.decision : null}
+  />
+  <div className={`rows-view rows-${data.mode}`} role="grid" aria-label={locale === 'tr' ? `${data.mode} öğretim satırları` : `${data.mode} teaching rows`}>
   {data.rows.map((row, rowIndex) => <div className="rows-line" key={`${row.label}-${rowIndex}`} role="row">
     <b>{translateRuntimeText(row.label, locale)}</b>
     <div className="rows-cells">{row.values.map((value, column) => {
@@ -407,6 +425,7 @@ const RowsView = ({ data }: { data: RowsVisualData }) => {
       return <span className={`rows-cell rows-${role}`} key={column} role="gridcell" aria-label={`${translateRuntimeText(row.label, locale)}[${column}]: ${String(value)}; ${translateRuntimeText(role, locale)}`}><small>{column}</small>{String(value)}</span>;
     })}</div>
   </div>)}
+</div>
 </div>;
 };
 

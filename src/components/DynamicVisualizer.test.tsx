@@ -55,6 +55,27 @@ const PopulateMatrixTrace = () => {
   return null;
 };
 
+const PopulateMatrixDecisionTrace = () => {
+  const { setAlgorithmName, setSteps } = useTimeline();
+  useEffect(() => {
+    setAlgorithmName('0/1 Knapsack');
+    setSteps([{
+      lineNumber: 9,
+      explanation: 'Process one knapsack item.',
+      visualData: {
+        type: 'matrix',
+        values: [[0, 0], [0, 3]],
+        rowLabels: ['i=0', 'i=1'],
+        columnLabels: ['w=0', 'w=1'],
+        fillDirection: 'row',
+        highlights: [{ row: 1, column: 1, role: 'active', label: 'dp[1][1] = 3' }],
+        vars: { phase: 'Knapsack · fill row', decision: 'include current item' },
+      },
+    }]);
+  }, [setAlgorithmName, setSteps]);
+  return null;
+};
+
 const PopulatePedagogicalGraphTrace = () => {
   const { setAlgorithmName, setSteps } = useTimeline();
   useEffect(() => {
@@ -105,6 +126,27 @@ const PopulateSpecializedVisualTrace = () => {
     <button type="button" onClick={() => setCurrentIndex(1)}>Show bars</button>
     <button type="button" onClick={() => setCurrentIndex(2)}>Show intervals</button>
     <button type="button" onClick={() => setCurrentIndex(3)}>Show rows</button>
+  </>;
+};
+
+const PopulateDecisionTrace = () => {
+  const { setAlgorithmName, setSteps, setCurrentIndex, setLocale } = useTimeline();
+  useEffect(() => {
+    setAlgorithmName('Binary Search');
+    setSteps([
+      { lineNumber: 1, explanation: 'Inspect the binary-search midpoint.', visualData: {
+        type: 'array', values: [1, 3, 5], pointers: { mid: 1 },
+        vars: { phase: 'Binary Search · inspect midpoint', decision: 'mid<target ⇒ discard left half' },
+      } },
+      { lineNumber: 2, explanation: 'Show dependencies.', visualData: {
+        type: 'rows', mode: 'rows', rows: [{ label: 'source', values: [3, 1] }],
+        vars: { phase: 'LIS · scan predecessors', decision: 'not increasing ⇒ reject' },
+      } },
+    ]);
+  }, [setAlgorithmName, setSteps]);
+  return <>
+    <button type="button" onClick={() => setCurrentIndex(1)}>Show decision rows</button>
+    <button type="button" onClick={() => setLocale('tr')}>Switch to Turkish</button>
   </>;
 };
 
@@ -200,5 +242,59 @@ describe('DynamicVisualizer pinned watch strip', () => {
     await user.click(screen.getByRole('button', { name: 'Show rows' }));
     expect(screen.getByRole('gridcell', { name: 'prefix[1]: 4; result' })).toHaveClass('rows-result');
     expect(screen.getByRole('gridcell', { name: 'source[1]: 1; dependency' })).toHaveClass('rows-dependency');
+  });
+  it('renders the decision in the array and rows views in both locales', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    const user = userEvent.setup();
+    render(
+      <TimelineProvider>
+        <PopulateDecisionTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    const arrayHud = await screen.findByRole('status');
+    expect(arrayHud).toHaveClass('matrix-teaching-hud');
+    expect(arrayHud).toHaveTextContent('mid<target ⇒ discard left half');
+    expect(arrayHud).not.toHaveTextContent('Binary Search · inspect midpoint');
+
+    await user.click(screen.getByRole('button', { name: 'Show decision rows' }));
+    expect(screen.getByRole('status')).toHaveTextContent('not increasing ⇒ reject');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to Turkish' }));
+    expect(screen.getByRole('status')).toHaveTextContent('artan değil ⇒ reddedilir');
+  });
+
+  it('keeps the graph teaching hud markup byte-identical', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    render(
+      <TimelineProvider>
+        <PopulatePedagogicalGraphTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    const status = await screen.findByRole('status');
+    expect(status.outerHTML).toBe(
+      '<div class="graph-teaching-hud" role="status">'
+      + '<strong>Kruskal · reject cycle</strong>'
+      + '<span>A and C already share component A.</span>'
+      + '</div>',
+    );
+  });
+
+  it('keeps the matrix teaching hud markup byte-identical', async () => {
+    localStorage.setItem('codexray.pinned-variables.v1', '[]');
+    render(
+      <TimelineProvider>
+        <PopulateMatrixDecisionTrace />
+        <DynamicVisualizer collapsed={false} onToggleCollapse={() => undefined} />
+      </TimelineProvider>,
+    );
+    const status = await screen.findByRole('status');
+    expect(status.outerHTML).toBe(
+      '<div class="matrix-teaching-hud" role="status">'
+      + '<strong>Knapsack · fill row</strong>'
+      + '<span>include current item</span>'
+      + '</div>',
+    );
   });
 });

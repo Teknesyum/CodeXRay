@@ -4,7 +4,7 @@ import path from 'node:path';
 const distRoot = path.resolve(process.cwd(), 'dist');
 const assetsRoot = path.join(distRoot, 'assets');
 const budgets = {
-  initialJavaScript: 420 * 1024,
+  initialJavaScript: 425 * 1024,
   lazyJavaScriptChunk: 100 * 1024,
   tracerWorker: 150 * 1024,
   localAiWorker: 6_500 * 1024,

@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { configure } from '@testing-library/react';
+import { afterEach, expect } from 'vitest';
+import { installTimerLeakDetector, type TimerHost } from './timerLeakDetector';
 
 configure({ asyncUtilTimeout: 5_000 });
 
@@ -20,4 +22,18 @@ Object.defineProperty(globalThis, 'localStorage', {
     key: (index: number) => Array.from(mockStorage.keys())[index] ?? null,
   } as unknown as Storage,
   writable: true,
+});
+
+const timerLeakDetector = installTimerLeakDetector(
+  globalThis as unknown as TimerHost,
+  () => {
+    const state = expect.getState();
+    return state.currentTestName ?? `module scope of ${state.testPath ?? 'an unknown file'}`;
+  },
+  () => typeof (globalThis as { window?: unknown }).window === 'undefined',
+);
+
+afterEach(() => {
+  const leak = timerLeakDetector.collect();
+  if (leak) throw new Error(leak);
 });

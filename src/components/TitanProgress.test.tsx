@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManagerPlanV1 } from '../types/titan';
 import { TitanProgress } from './TitanProgress';
+
+afterEach(() => cleanup());
 
 const plan = (): ManagerPlanV1 => ({
   version: 1,

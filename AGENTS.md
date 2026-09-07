@@ -252,6 +252,18 @@ byte-identical to what will be applied, and `dp-family-titan-mode.spec.ts` asser
 element is visible while the produce phase is still running. Do not "unify" these two
 orderings without re-deciding that trade.
 
+**A pipelined preview only fires if the run ids are remapped, and one path does not.** The
+`AiAssistant.tsx` preview callback ignores any call whose `runId` is not the handle it is
+currently tracking, and it tracks the **pipeline's** id, `titan-pipeline-<uuid>`. The engine
+calls `previewSource` with its own id, `gm-<...>` (`titanEngine.ts:104`). So a pipeline whose
+`produce` passes `previewSource` straight through has a preview that never runs.
+`startDeterministicTemplatePipeline` remaps it (`titanPipeline.ts:723-724`) and its nine
+templates preview correctly. **`startArrayTemplatePipeline` does not**, so the four array
+templates have had no source-typing animation since R16 — the e2e for them asserts only the
+final `.code-display`, which `apply` writes. Discovered at R23, not fixed there. Any new
+pipeline entry point must remap or deliberately suppress; passing the callback through
+unchanged is the broken third option.
+
 `verify` differs per intent and the difference matters:
 
 - `adapt-input` — since R15, `verifyAdaptInputArtifact` recomputes the trace independently
@@ -301,13 +313,26 @@ orderings without re-deciding that trade.
   suites while broken because every fixture was small — never add a comparison rule here
   without extending that sweep.
 
-Everything else — the remaining `create-algorithm` templates including `bidirectional-bfs`
-and the interval/DP families, plus `create-catalog-problem`, `clarify-algorithm`,
-`ui-control`, and `deterministic` — does not run this pipeline at all. All of them operate on
-first-party deterministic material; the web fallback was the only committing path fed by
-untrusted external content, which is why it went first. Their gates live in
-the engine's own job graph, run before apply only because they are earlier in the same
-function, and offer no point at which an external caller can refuse.
+- the nine remaining deterministic creation templates — since R23,
+  `verifyDeterministicTemplateArtifact` behind `startDeterministicTemplatePipeline`. Same
+  content-check family as R16's: the package's tests passed, `steps` is non-empty,
+  `teachingPlan.checkpoints` is non-empty, and the final step's `visualData.vars` carries the
+  answer key **this template is declared to answer under**. R16's hardcoded `result` holds for
+  the seven DP templates only; `predict-winner-interval-dp` answers under `winner` and
+  `bidirectional-bfs` under `path`, so copying that check verbatim would have rejected two of
+  the nine on correct packages. The keys live in `deterministicTemplateAnswerKeys`, typed as a
+  `Record` over a `DeterministicTemplateId` derived from the intent union, so a new template with
+  no declared key is a **compile error**. Prefer that shape over a runtime count test. Never
+  derive the expected key from the package being checked. Like R16's, this re-asserts criteria
+  from outside the engine rather than recomputing anything: it proves the package produced *an*
+  answer under the right name, never that the answer is correct.
+
+**14 of 14 `create-algorithm` templates enter the pipeline as of R23** (5 before it). What does
+not: `create-catalog-problem`, `clarify-algorithm`, `ui-control`, and `deterministic`. None of
+them compiles a package, so there is nothing a package `verify` could check; a route that wants
+them pipelined must first say what its `verify` would establish. Their gates live in the
+engine's own job graph, run before apply only because they are earlier in the same function, and
+offer no point at which an external caller can refuse.
 
 **What selects the intent on the bound web-solve path.** Since R20 the fetched problem never
 reaches `routeTitanModeRequest`. `AiAssistant.tsx:689` calls `routeBoundWebProblemRequest`
@@ -322,9 +347,11 @@ problem is now the engine's `request`, still inside its `EXTERNAL_WEB_CONTENT` d
 still untrusted data. Never feed fetched content to a router again — the closed intent set is
 not a boundary when the page picks the member.
 
-**The gap R20 did not close.** `predict-winner-interval-dp`, `bidirectional-bfs`,
-`lcs-space-optimized-1d-dp`, and the other non-pipelined templates still commit through
-`startTitanModeRun` with no external refusal point. A user who names one still reaches it.
+**The gap R20 did not close, closed at R23.** `predict-winner-interval-dp`,
+`bidirectional-bfs`, `lcs-space-optimized-1d-dp` and the six other non-pipelined templates
+committed through `startTitanModeRun` with no external refusal point; a user who named one
+reached it. All nine now enter `startDeterministicTemplatePipeline`. R20 stopped the page from
+naming a template; R23 gated the branch.
 R20 stopped the page from naming it; it did not gate the branch.
 
 **A persisted review says who reviewed.** `SolutionReviewRecordV1` is a discriminated union:

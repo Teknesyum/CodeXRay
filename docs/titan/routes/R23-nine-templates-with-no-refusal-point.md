@@ -241,3 +241,76 @@ npm run test:e2e
   `ai-actions.spec.ts:112`, `radio-controller.spec.ts` at H12 and H15,
   `translation-provenance.spec.ts` at H22), zero on CI. The next one is a route wherever it
   lands.
+
+---
+
+## T0 reconciliation
+
+Closed at `aacbcb6`, handoff `ada17bd`. Option A. I verified the diff and the gates myself:
+lint clean, `882 passed` against `867` at the base, build inside every budget, no frozen or
+T0-owned path in the file list. **5/14 → 14/14** `create-algorithm` templates now enter the
+pipeline; `create-catalog-problem`, `clarify-algorithm`, `ui-control` and `deterministic` still
+do not, deliberately and for the reason the route gave.
+
+**Criterion 3 came out better than it was written.** The route asked for a runtime test that the
+table has nine entries. The implementation derives `DeterministicTemplateId` by `Exclude`ing the
+five already-pipelined templates from the intent union and types the table as a `Record` over it,
+so a tenth template added to `TitanModeIntent` without an answer key is a compile error, not a
+test failure. That is the stronger form of the same guarantee and I am recording it as the
+standard for this kind of table.
+
+The answer keys shipped as declared: `result` for the seven DP templates, `winner` for
+`predict-winner-interval-dp`, `path` for `bidirectional-bfs`. Nothing inferred from the package.
+
+### The turn found a live production defect, and it is not this turn's
+
+`## Discovered` item 1. I verified it independently rather than taking the report:
+
+- `titanEngine.ts:104-105` — the engine's own run id is `` `gm-${...}` ``.
+- `titanPipeline.ts` — a pipeline run id is `` `titan-pipeline-${crypto.randomUUID()}` ``.
+- `AiAssistant.tsx:958` sets `sourcePreviewRunRef.current = run.runId`, the **pipeline's** id.
+- `AiAssistant.tsx:870` guards with `if (!mountedRef.current || sourcePreviewRunRef.current !== runId) return;`
+- `startArrayTemplatePipeline`'s `produce` spreads `...options` and passes `previewSource`
+  through untouched, so the engine invokes it with `gm-…`.
+
+The two ids never match. **The source-typing animation for the four array templates —
+`jump-game-dp`, `jump-game-greedy`, `lis-quadratic-dp`, `lis-binary-search` — has silently not
+played since R16.** `e2e/usage-scenarios.spec.ts:24,34,39` asserts only the final
+`.code-display` content, which is written by `apply`, so nothing caught it.
+
+`AGENTS.md` says `dp-family-titan-mode.spec.ts` asserts the typing element visible during
+`produce`. That was true, and it stayed true through this turn — but only because the DP family
+was *not* pipelined until now, and because this turn's new entry point remaps the id at
+`titanPipeline.ts:723-724`. Had the implementer wired the nine the obvious way, that spec would
+have gone red and the cause would have been three levels away. It did not, because the route
+required `previewSource` ordering to be decided out loud rather than inherited. The instruction
+that caught this was about writing down a reason, not about run ids.
+
+This is the third consecutive turn to surface the same shape: **a mechanism whose description is
+broader than its effect.** R21's fallback that read as a verdict, R22's inert program-id
+exclusion, and now a rollback-protected preview that never fires. In every case the code was
+defensible line by line and the sentence describing it was not.
+
+The array-template fix is deliberately not in this turn — the route froze
+`startArrayTemplatePipeline`, correctly, because changing a shipped path while wiring nine new
+ones would have made a red test ambiguous. It is R24.
+
+### What this route did not buy
+
+The new `verify` is not independent recomputation in R15's or R18's sense. It proves the package
+produced *an* answer under the key that algorithm answers under; it cannot prove the answer is
+right. `## Discovered` item 4 says this in the implementer's own words, unprompted. Do not let a
+later document promote it.
+
+### Standing
+
+- **R24 (next):** the `previewSource` run-id mismatch in `startArrayTemplatePipeline`.
+- `webSource.ts:298` — the trailing `\b` that cannot reject `int[][] nums`.
+- Structural trace intelligence inert across all 50 catalog algorithms; `traceQuery.ts` with no
+  production consumer.
+- E2E flakes: six local sightings across four specs now, `translation-provenance.spec.ts:155`
+  twice under full-suite parallelism (H22 and H23), green in isolation both times. Zero on CI.
+  Two sightings of the same locator in consecutive turns is no longer noise — it goes in the
+  R24 route as a second, cheap criterion.
+- `.code-display` does not exist before the first run; a cold-start spec must read
+  `.code-textarea`.

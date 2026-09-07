@@ -246,3 +246,107 @@ e2e uses the external-server procedure in `AGENTS.md`. Clean up only the PIDs th
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+## T0 reconciliation
+
+Closed. `efbeff7` (close) and `0cad778` (handoff) over base `fc3a8fa`. Verified on T0's own
+evidence, not on the handoff's.
+
+### What was actually written
+
+Eight files. Production is three files and sixteen lines: `phase?: string` on `RawTraceStep`,
+a two-line capture in `simulationTrace.ts`, and the `groupKey` swap in `traceOutline.ts`.
+Exactly Option A as routed, with kind-grouping preserved as the no-phase fallback.
+
+**No simulator file was touched.** Criterion 8's grep printed nothing for me too. This is the
+point of the route: `AGENTS.md` and every prior estimate priced this work as "emit events from
+60 simulators", and the measurement disproved that before a line was written. All 60 already
+labelled every step; the adapter was throwing the label away.
+
+### Independent measurement
+
+T0 wrote its own probe over all 60 `isSupported` entries, unrelated to the handoff's:
+
+```
+total=60 single=0 sigZero=19 evenlySum=91 phaseSum=936 distinctSum=282
+Depth First Search (DFS)   steps=24 sig=0 phases=17 distinct=4 cps=[0,1,3,6,10,13,22,23]
+Breadth First Search (BFS) steps=17 sig=0 phases=13 distinct=4 cps=[0,1,2,7,9,12,15,16]
+Kosaraju's SCC             steps=32 sig=0 phases=13 distinct=7 cps=[0,1,16,21,23,27,30,31]
+Trapping Rain Water        steps=14 sig=2 phases=3  distinct=3 cps=[0,1,2,5,7,10,12,13]
+```
+
+`single=0`, `sigZero=19`, `phaseSum=936`, `distinctSum=282` reproduce the handoff exactly. The
+DFS checkpoint set matches the e2e's after-state `1,2,4,7,11,14,23,24` under 1-based display.
+Against the pre-turn baseline recorded in the route, `single` went 54 to 0 and DFS moved off
+`[0,1,5,9,14,18,22,23]`.
+
+`evenlySum` differs from the handoff's 129: T0 counted a checkpoint as filler-sourced only when
+it is absent from `{0, last, mostSignificantIndex} ∪ keyIndices`, and seeded `mostSignificantIndex`
+only when non-null. Both are large drops from 250 and both are measured; the disagreement is in
+the definition, not in the code, and neither number gates a criterion.
+
+Gates re-run by T0 on `0cad778` with a clean tree: `lint` clean, `test` **901 passed / 120
+files** (base 895), `build` within every budget (tracer 141.0/150.0 KiB, styles 91.3/100.0 KiB).
+
+### Criterion 2 was mine to get wrong
+
+**The route's criterion 2 was mis-specified.** It asked that the outline phase count equal the
+distinct-label count, or that the difference be explained. `outlinePhaseSum` is 936 against
+`distinctSum` 282 — 41 of 60 exceed, 19 match, none is below. The handoff's explanation is
+correct and the code is not: grouping is on **consecutive runs**, so a simulator that alternates
+`descend`/`inspect edge` emits one group per run. Contiguity is forced, not chosen —
+`TracePhase` carries `startIndex`/`endIndex` and the guided tour walks them in order, so a
+grouping keyed on the label alone would emit overlapping phases.
+
+I wrote a criterion that would have been satisfied only by a broken implementation. The
+implementer took the route's decision literally, measured the consequence, named the 19 exact
+matches and the worst outliers, and said so. That is the right resolution.
+
+This is the **fourth consecutive route with a defect in the route rather than the
+implementation** (R25 rejected a signature it meant to keep, R26 named a vitest flag that does
+not exist, R27 specified a count the design cannot produce). The finding recorded at R26 stands
+and hardens: the routes are the weaker half of this relay. A criterion that asserts a number is
+code, and an unmeasured number in a route is an unrun command.
+
+### Criterion 9
+
+Answered plainly, as required: `sigZero` is **19 before and 19 after**. This turn did not touch
+`scoreTrace`, and criterion 1's improvement must not be read as having moved significance.
+
+### Deviations — all five accepted
+
+1. `e2e/checkpoint-phases.spec.ts` outside the forecast: required by criterion 6, inside Sole's
+   ownership. The forecast is a forecast.
+2. `aiTimelineControl.ts` never edited: correct. `structuralCheckpointIndices` already read the
+   outline; only what the outline returned changed. The route implied an edit that was not needed.
+3. The e2e's "before" state produced by intercepting the served module rather than checking out
+   the base: the same technique `e2e/titan-pipeline-verification.spec.ts:5-11` already uses, and
+   the only way one spec can show a change. Accepted.
+4. Root probe files written and deleted, per the route's own instruction.
+5. A one-time `titan-mode-failures.spec.ts:3` flake disclosed instead of retried away. See below.
+
+### Discovered, and what T0 does with it
+
+**`TracePhase.kind` lost its `setup` value across all 60.** Under phase grouping, `kind` is still
+taken from `group[0].step.kind`, and the first step of every group is now a `mutate` step. Nothing
+reads `TracePhase.kind` for a user-visible decision; it reaches the model through `label` and
+`renderOutlineForModel`'s row text. This is a fidelity loss in a field the model reads, not a
+behavioural regression — accepted for this turn and added to the deferred list, to be fixed with
+`kind` derived from the group's majority or the label's own suffix.
+
+### Flake watch
+
+`titan-mode-failures.spec.ts:3` has now been seen once at R24 and once at R27; `radio-controller.spec.ts`
+once at R26. The standing rule is that a spec earns a route when it fails twice in a row on one
+commit, which neither has. Both stay on watch.
+
+### Still deferred
+
+- Option B: `scoreTrace` is phase-blind; `mostSignificantIndex` returns 0 for 19 of 60. Needs an
+  oracle before it needs code. `TracePhase.kind`'s lost `setup` belongs to this route.
+- Option C: no simulator emits a trace `event`; `eventWeight` is dead weight in every score.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+- Phase labels render untranslated at `DynamicVisualizer.tsx:158`, `:274`, `:348`. This route made
+  them load-bearing for the guided tour, which raises the cost of leaving them EN-only.

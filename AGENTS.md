@@ -140,6 +140,27 @@ testing another trusted CodeXRay gateway.
 - `src/services/trace/` — `parser.ts`, `interpreter.ts`, `semantics.ts`, `jsTracer.ts`,
   `tracerWorkerClient.ts`, `adapter.ts`, `simulationTrace.ts`, `traceOutline.ts`,
   `traceQuery.ts`, `significance.ts`, `types.ts`. Deterministic trace production and query.
+  **All 60 supported simulators already label every step** with a `visualData.vars.phase`
+  string — 282 distinct labels across the 60, minimum 3 each. Until R27 `simulationTrace.ts`
+  dropped that label when building the `RawTrace`, so `buildTraceOutline` fell back to grouping
+  by step kind and produced a **single phase for 54 of the 60**; every consumer of the outline
+  — the guided tour, next/prev checkpoint, and the model's "important steps" — degraded to
+  `evenlySample` over the whole trace. Since R27 `RawTraceStep` carries `phase?: string`, the
+  adapter reads it, and `groupKey` groups on the label, falling back to kind only when no label
+  is present. Single-phase outlines: 54 → 0. **Any estimate that prices phase work as "make the
+  simulators emit something" is wrong** — that was this file's own standing assumption and the
+  measurement disproved it before a line was written.
+  Grouping is on **consecutive runs of a label, not on the label**: `TracePhase` carries
+  `startIndex`/`endIndex` and the tour walks them in order, so phases must be contiguous. An
+  alternating simulator therefore emits one phase per run — 936 phases against 282 distinct
+  labels, and DFS alone emits 17 phases from 4 labels. This is correct; do not "fix" it toward
+  the distinct count. `TracePhase.kind` is still taken from the group's first step and has read
+  `update` for all 60 since R27, losing its `setup` value; nothing branches on it, but the model
+  reads it through `renderOutlineForModel`.
+  `scoreTrace` is phase-blind and `mostSignificantIndex` still returns 0 for 19 of the 60. R27
+  did not change that and must not be read as having done so. No simulator emits a trace `event`,
+  so `eventWeight` contributes nothing to any score, and `traceQuery.ts` has no production
+  consumer at all.
 - `src/services/input/inputPatch.ts` — the closed `InputPatchV1` op union, its parser, and
   **the only implementation of input mutation**. Reachable on the production `adapt-input`
   path: whole-input replacement ops since R07, the semantic array ops `resize-array`,

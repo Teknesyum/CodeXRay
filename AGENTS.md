@@ -76,6 +76,20 @@ changed.
 Shell is Windows PowerShell 5.1: no `&&`, no `||`, no ternary. Ports 4173 and 5173 belong
 to whoever holds the turn.
 
+### Timers that outlive their test
+
+`src/test/setup.ts` installs `timerLeakDetector` since R26: an `afterEach` that fails a test
+leaving a live interval or timeout and **names that test**. Under vitest's jsdom,
+`window.setInterval` is Node's `setInterval`, `dom.window.close()` does not stop it, and teardown
+deletes `globalThis.window` — so a leaked 250 ms interval firing in the ~2 ms after teardown
+raises `ReferenceError: window is not defined`, which vitest reports as an unhandled error and
+attributes to **whichever file the worker was running**, not the file that leaked. That failed
+CI once in 40 runs, on a commit that changed no source. A component test that renders something
+with an interval needs `afterEach(() => cleanup())`. Never silence this by suppressing the
+unhandled-error report or setting `dangerouslyIgnoreUnhandledErrors`; the signal is correct.
+
+`--no-isolate` deterministically breaks 16 tests. It is not a safe speed-up here.
+
 ### Playwright on Codex Desktop for Windows
 
 The Playwright `webServer` helper can silently wait for its child Vite process in the

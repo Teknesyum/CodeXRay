@@ -172,3 +172,126 @@ delete `test-results/` before finishing, and leave no probe file in the tree.
 - `src/services/trace/traceQuery.ts` has no production consumer.
 - `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
 - `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.
+
+---
+
+## T0 reconciliation
+
+Closed by `a17fd5b` (`route(R32): close`) and `53aefdd` (`handoff(H32): record`). Handoff:
+`docs/titan/handoffs/H32-the-teaching-strip-four-views-never-got.md`.
+
+### Independent T0 verification
+
+The residual is structural, not sampled. There are exactly seven visual types in the
+measurement, and after R32 there are exactly seven sites rendering a phase:
+
+```
+distinctPhases=275 viewTypes=["array","bars","graph","intervals","matrix","rows","string-match"]
+```
+
+```
+112  ArrayView        phase={typeof data.vars.phase === 'string' ? ... }
+263  GraphView        <TeachingHud className="graph-teaching-hud" phase={phase} ... />
+297  MatrixView       <TeachingHud className="matrix-teaching-hud" phase={phase} ... />
+363  StringMatchView  <strong className="string-phase" role="status">
+382  BarView          phase={typeof data.vars.phase === 'string' ? ... }
+402  IntervalView     phase={typeof data.vars.phase === 'string' ? ... }
+435  RowsView         phase={typeof data.vars.phase === 'string' ? ... }
+```
+
+Every type in the union renders it, so no step can carry a phase into a view that hides one.
+350 → 0.
+
+T0 ran its own Turkish sweep over all 275 distinct phase strings with a **wider** English token
+list than the implementer's — 60-odd words including `minimum`, `pivot`, `bit`, `sort`, `range`,
+`window`. It flagged 7, and all 7 are false positives:
+
+```
+minimum  <<  Edmonds-Karp · minimum kesite ulaşıldı
+Minimum  <<  Minimum Pencere · gereksinimleri başlat
+Minimum  <<  Minimum Pencere · sağı genişlet
+Minimum  <<  Minimum Pencere · en iyi geçerli pencereyi güncelle
+Minimum  <<  Minimum Pencere · solu daralt
+Minimum  <<  Minimum Pencere · tamamlandı
+pivot    <<  Hızlı Sıralama · pivot aralığını seç
+```
+
+`minimum` and `pivot` are ordinary Turkish. The genuine residual is **0**, and the wider sweep
+confirms the implementer's narrower one rather than merely agreeing with it.
+
+Gates, run by T0 on `53aefdd`:
+
+```
+ Test Files  121 passed (121)
+      Tests  918 passed (918)
+Initial JavaScript: 422.8 / 425.0 KiB
+Running 87 tests using 2 workers
+  87 passed (2.4m)
+Running 2 tests using 1 worker
+  2 passed (36.7s)
+```
+
+`lint` clean, tree clean, no simulator, trace, or guarded path touched, no CSS file changed.
+
+### Criterion 4 found a defect this route did not open on, and it is the same family again
+
+The route expected no translation work: `AGENTS.md` recorded phase coverage as
+`total=275 untouched=0`, and it was true — every string had an entry. Seven of them still emitted
+English, because five entries kept the English sort name inside the Turkish replacement and one
+did it structurally through a `$1` capture that re-emitted whatever it matched.
+
+So `AGENTS.md`'s R28 lesson — *a correct `translateRuntimeText` call site proves nothing* — now
+has a sibling: **a present table entry proves nothing either.** Only the residual does. That is
+recorded in `AGENTS.md` alongside the R28 note, and the exemption list is stated (`minimum`,
+`pivot`, `bit` are Turkish; notation stays notation).
+
+This is the ninth consecutive route to turn up a finding of the class *"the thing is wired
+correctly and does something narrower than its name"*. Here the wiring was right and the
+**value** was `null`.
+
+### The two test changes, both strengthening
+
+- `DynamicVisualizer.test.tsx:258` asserted `not.toHaveTextContent('Binary Search · inspect
+  midpoint')` — a test that pinned the defect in place. Inverted, plus a new case covering bars,
+  intervals, the empty-interval early return, and Turkish.
+- `e2e/decision-localization.spec.ts`'s `advanceUntilVisible` assumed *hud visible* implied *hud
+  has a decision*. Once the phase renders, the hud is visible from step 0, and two tests failed on
+  the implementer's first full e2e run. The helper became `advanceUntilDecision`; **the assertions
+  themselves are unchanged.** This is the honest fix — the old helper was relying on an accident.
+
+### Criterion 6
+
+`StringMatchView` left alone, with the reason stated: folding it into `TeachingHud` would change
+198 steps of rendered output, and those six algorithms carry no `decision`, so the unified
+component buys nothing. R28's byte-identical standard is not met, so the route's own instruction
+applies. Recorded in `AGENTS.md` so a later turn does not "tidy" it.
+
+### Criteria
+
+1. Met — table reproduced on the base, numbers match T0's.
+2. Met — 350 → 0, verified structurally above rather than by sampling.
+3. Met — decision rendering untouched; the only decision-path edit is an e2e helper.
+4. Met, and it did real work. Residual 0 under a wider token list than the route asked for.
+5. Met — no third implementation; `TeachingHud` plus the pre-existing `string-phase`.
+6. Met, left rather than folded, with the reason.
+7. Met with one forced deviation: `translations.ts` changed because criterion 4 required it.
+   Initial JS 422.6 → 422.8 KiB, headroom 2.4 → **2.2 KiB**.
+8. Met — 917 → 918 unit tests.
+9. Met at product level — `e2e/phase-teaching-strip.spec.ts`, 4 specs, both locales; e2e 84 → 89.
+
+### Still deferred
+
+- **The initial-JS headroom is now 2.2 KiB.** Two routes have each spent a little of it on
+  `translations.ts`. The next one that needs the table will hit the wall, and `AGENTS.md` forbids
+  answering that by raising the budget again. Lazy-loading is not a drop-in because
+  `translateRuntimeText` is called synchronously during render — that is the real route here and
+  nobody has scoped it.
+- `AiAssistant.tsx:857` persists before the dismissed guard, making `:1462`'s removal and
+  `:1455`'s sanitize map unreachable.
+- `eventWeight` contributes nothing to any of the 936 phases; deleting it requires first
+  establishing whether `customSimulationCompiler.ts` can emit events.
+- The three e2e specs at 3–4x the suite median: `accessibility-axe.spec.ts:37` 9.9 s,
+  `ai-actions.spec.ts:112` 12.5 s, `radio-controller.spec.ts:3` 8.1 s.
+- `src/services/trace/traceQuery.ts` has no production consumer.
+- `inputRequestAdapter.test.ts:31`'s name has described no production behaviour since R22.
+- `titanEntry.ts:130` is the one engine caller outside `PipelineRunId`'s brand.

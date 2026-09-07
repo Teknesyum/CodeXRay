@@ -316,13 +316,30 @@ testing another trusted CodeXRay gateway.
   (`low[F]=disc[F] ⇒ SCC 1`, `4+-2<∞ ⇒ 2`) are deliberately left alone — **do not "translate"
   notation**. The gate that matters is the residual one: no English word may survive in
   Turkish-locale output, which is stronger than "the string changed".
+  **A present entry proves nothing either**, which R32 found: all 275 phase strings had an entry,
+  and 7 still emitted an English word — five sort families kept their English name inside the
+  Turkish replacement, one structurally through a `$1` capture that re-emitted the matched English
+  name. Splitting that one alternation into three literal entries fixed it. So the gate is neither
+  "is there an entry" nor "did the string change" but **the residual: no English word survives in
+  Turkish-locale output**. Loanwords that are ordinary Turkish (`minimum`, `pivot`, `bit`) are not
+  residue; pure notation stays untranslated.
   The table ships in the initial bundle because `translateRuntimeText` is called synchronously
-  during render. R28 raised the initial-JS budget from 420 to 425 KiB and the measured figure is
-  **422.6 KiB — 2.4 KiB of headroom**. The next comparable sweep will hit that wall and must not
-  answer it by raising the budget again.
-- `DynamicVisualizer.tsx` — `TeachingHud` since R28 renders the phase/decision strip for the
-  graph, matrix, array, and rows views. Array and rows pass `phase={null}`: they display the
-  decision and still do not display the phase label.
+  during render. R28 raised the initial-JS budget from 420 to 425 KiB; after R32 the measured
+  figure is **422.8 KiB — 2.2 KiB of headroom**. The next comparable sweep will hit that wall and
+  must not answer it by raising the budget again.
+- `DynamicVisualizer.tsx` — `TeachingHud` renders the phase/decision strip. Since R32 **all seven
+  visual types display the phase**: `graph` and `matrix` through `TeachingHud` since R28, `array`,
+  `rows`, `bars` and `intervals` through it since R32, and `string-match` through its own
+  `<strong className="string-phase">` at `:363`. That last one is deliberate, not an oversight —
+  folding it into `TeachingHud` would change 198 steps of rendered output (0.72 rem plain text
+  becomes a 0.68 rem bordered box) and those six algorithms carry no `decision`, so the second slot
+  buys nothing. R28's byte-identical standard is what keeps it separate; keep it that way unless
+  the visual difference is resolved first.
+  `AutoFitVisual` wraps a **single** child, so a view that gains a hud needs a real wrapper element
+  (`visual-matrix-shell`), never a fragment. `IntervalView` has an empty-domain early return that
+  needs the wrapper too.
+  350 steps across 20 algorithms hid a phase label their simulator had computed, from R28 to R32.
+  The call sites were all correct; the value was passed as `null`.
 
 ## Data contracts
 

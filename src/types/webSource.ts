@@ -63,10 +63,21 @@ export interface WebProblemSpecV1 {
   notes: string[];
   signature: string | null;
   sourceSegmentIds: Record<'description' | 'inputFormat' | 'outputFormat' | 'examples' | 'constraints' | 'notes' | 'signature', string[]>;
-  simulationCompatibility: {
-    compatible: boolean;
-    reason: string;
-  };
+  simulationCompatibility: SimulationCompatibilityV1;
+}
+
+export type SimulationCompatibilityCodeV1 =
+  | 'fits-simlang'
+  | 'no-signature'
+  | 'multi-dimensional-array'
+  | 'unsupported-element-type'
+  | 'multiple-array-parameters'
+  | 'unsupported-shape-in-description';
+
+export interface SimulationCompatibilityV1 {
+  compatible: boolean;
+  code: SimulationCompatibilityCodeV1;
+  reason: string;
 }
 
 export interface SolutionReviewV1 {

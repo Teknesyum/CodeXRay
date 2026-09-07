@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WEB_SOURCE_SESSION_KEY, buildWebProblemPrompt, clearBoundWebSource, extractFirstPublicHttpsUrl, loadBoundWebSource, normalizeWebProblem, readWebSource, saveBoundWebSource } from './webSource';
+import { WEB_SOURCE_SESSION_KEY, buildWebProblemPrompt, clearBoundWebSource, extractFirstPublicHttpsUrl, loadBoundWebSource, localizedCompatibilityReason, normalizeWebProblem, readWebSource, saveBoundWebSource } from './webSource';
 import type { ExternalDocumentV1 } from '../types/webSource';
 
 const document: ExternalDocumentV1 = {
@@ -99,6 +99,81 @@ describe('web source client', () => {
   it('routes matrix signatures to Java fallback', () => {
     const problem = normalizeWebProblem({ ...document, segments: document.segments.map((segment) => segment.kind === 'signature' ? { ...segment, text: 'public int solve(int[][] grid)' } : segment) });
     expect(problem.simulationCompatibility.compatible).toBe(false);
+  });
+
+  const compatibilityOf = (signature: string | null, description = 'Solve the described task.') => normalizeWebProblem({
+    ...document,
+    segments: [
+      { id: 'statement-1', kind: 'statement', text: description },
+      ...(signature ? [{ id: 'signature-1', kind: 'signature' as const, text: signature }] : []),
+    ],
+  }).simulationCompatibility;
+
+  it('rejects the four array shapes the old pattern named but never matched', () => {
+    expect(compatibilityOf('int solve(int[][] nums)')).toMatchObject({ compatible: false, code: 'multi-dimensional-array' });
+    expect(compatibilityOf('int solve(char[][] board)')).toMatchObject({ compatible: false, code: 'multi-dimensional-array' });
+    expect(compatibilityOf('double solve(double[] xs)')).toMatchObject({ compatible: false, code: 'unsupported-element-type' });
+    expect(compatibilityOf('int f(Object[] items)')).toMatchObject({ compatible: false, code: 'unsupported-element-type' });
+  });
+
+  it('does not let whitespace decide a verdict', () => {
+    expect(compatibilityOf('int solve(int[][]nums)')).toEqual(compatibilityOf('int solve(int[][] nums)'));
+    expect(compatibilityOf('int solve(int[]nums)')).toEqual(compatibilityOf('int solve(int[] nums)'));
+    expect(compatibilityOf('int solve(int [] nums)')).toEqual(compatibilityOf('int solve(int[] nums)'));
+  });
+
+  it('rejects a two-dimensional return type', () => {
+    expect(compatibilityOf('int[][] solve(int[] nums)')).toMatchObject({ compatible: false, code: 'multi-dimensional-array' });
+  });
+
+  it('keeps rejecting the seven shape hints that worked before', () => {
+    expect(compatibilityOf('int f(int[] matrix)').compatible).toBe(false);
+    expect(compatibilityOf('int f(int[] grid)').compatible).toBe(false);
+    expect(compatibilityOf('ListNode f(ListNode head)').compatible).toBe(false);
+    expect(compatibilityOf(null, 'reverse a linked list').compatible).toBe(false);
+    expect(compatibilityOf(null, 'a binary tree node value').compatible).toBe(false);
+    expect(compatibilityOf('int f(Map<String,Integer> m)').compatible).toBe(false);
+    expect(compatibilityOf('int f(Set<Integer> s)').compatible).toBe(false);
+  });
+
+  it('keeps rejecting two array parameters', () => {
+    expect(compatibilityOf('int solve(int[] a, int[] b)')).toMatchObject({ compatible: false, code: 'multiple-array-parameters' });
+  });
+
+  it('keeps the bounded array, string, and scalar shapes compatible', () => {
+    expect(compatibilityOf('int solve(int[] nums)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+    expect(compatibilityOf('int solve(String s)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+    expect(compatibilityOf('int solve(int n)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+    expect(compatibilityOf('public int[] twoSum(int[] nums, int target)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+    expect(compatibilityOf('boolean solve(String s, char c)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+    expect(compatibilityOf('public static long fib(int n)')).toMatchObject({ compatible: true, code: 'fits-simlang' });
+  });
+
+  it('distinguishes every rejection class in both locales', () => {
+    const codes = [
+      compatibilityOf('int solve(int[][] nums)').code,
+      compatibilityOf('double solve(double[] xs)').code,
+      compatibilityOf('int solve(int[] a, int[] b)').code,
+      compatibilityOf(null, 'reverse a linked list').code,
+      compatibilityOf(null, 'The only input line contains n.').code,
+    ];
+    expect(new Set(codes).size).toBe(5);
+    expect(codes).toEqual([
+      'multi-dimensional-array',
+      'unsupported-element-type',
+      'multiple-array-parameters',
+      'unsupported-shape-in-description',
+      'no-signature',
+    ]);
+    for (const code of codes) {
+      const english = localizedCompatibilityReason({ compatible: false, code, reason: '' }, 'en');
+      const turkish = localizedCompatibilityReason({ compatible: false, code, reason: '' }, 'tr');
+      expect(english).not.toBe(`webCompatibility_${code.replaceAll('-', '_')}`);
+      expect(turkish).not.toBe(`webCompatibility_${code.replaceAll('-', '_')}`);
+      expect(turkish).not.toBe(english);
+    }
+    expect(compatibilityOf('int solve(int[][] nums)').reason)
+      .toBe(localizedCompatibilityReason(compatibilityOf('int solve(int[][] nums)'), 'en'));
   });
 
   it('marks external content as untrusted prompt data', () => {

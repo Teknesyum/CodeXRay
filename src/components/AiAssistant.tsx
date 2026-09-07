@@ -30,6 +30,7 @@ import {
   clearBoundWebSource,
   extractFirstPublicHttpsUrl,
   loadBoundWebSource,
+  localizedCompatibilityReason,
   normalizeWebProblem,
   readWebSource,
   saveBoundWebSource,
@@ -551,7 +552,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         if (webIntent.type === 'read-web-source') {
           setChatHistory((previous) => [
             ...previous,
-            { role: 'ai' as const, content: `${t('webSourceReady', locale)}\n\n**${problem.title}**` },
+            { role: 'ai' as const, content: `${t('webSourceReady', locale)}\n\n**${problem.title}**\n\n${localizedCompatibilityReason(problem.simulationCompatibility, locale)}` },
           ].slice(-MAX_STORED_MESSAGES));
           return;
         }

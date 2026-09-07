@@ -7,7 +7,11 @@ import type {
   WebSourceSegmentV1,
   WebSourceSegmentKind,
   SolutionArtifactV1,
+  SimulationCompatibilityCodeV1,
+  SimulationCompatibilityV1,
 } from '../types/webSource';
+import type { Locale } from '../i18n/translations';
+import { t } from '../i18n/translations';
 import { isDesktopRuntime, readWebSourceFromDesktop } from './desktopAiService';
 
 export const WEB_SOURCE_SESSION_KEY = 'codexray.web-source.v1';
@@ -295,17 +299,118 @@ const parseExamples = (segments: WebSourceSegmentV1[]): ProblemExampleV1[] =>
     return { input, output, ...(explanation ? { explanation } : {}), sourceSegmentIds: [segment.id] };
   });
 
-const simulationCompatibility = (signature: string | null, description: string) => {
-  const combined = `${signature ?? ''}\n${description}`.toLowerCase();
-  const unsupported = /\b(matrix|grid|listnode|linked list|binary tree node|object\[\]|map<|set<|double\[\]|char\[\]\[\]|int\[\]\[\])\b/;
-  const parameters = signature?.match(/\(([^)]*)\)/)?.[1] ?? '';
-  const multiArray = (parameters.match(/(?:int|long|string|char)\s*\[\]/gi)?.length ?? 0) > 1;
-  if (unsupported.test(combined) || multiArray) {
-    return { compatible: false, reason: 'The required input shape is outside SimLang V1.' };
+const SHAPE_WORDS = /\b(matrix|grid|listnode|linked list|binary tree node|map<|set<)\b/;
+const DECLARATION_MODIFIERS = new Set([
+  'public', 'private', 'protected', 'static', 'final', 'abstract', 'synchronized',
+  'native', 'strictfp', 'default', 'virtual', 'inline', 'const', 'unsigned', 'signed',
+]);
+const SUPPORTED_ELEMENT_TYPES = new Set([
+  'void', 'int', 'integer', 'long', 'char', 'character', 'boolean', 'bool', 'string', 'str',
+]);
+const TYPE_PREFIX = /^([A-Za-z_$][\w.$]*(?:<[^>]*>)?(?:\[\])*)/;
+
+const collapseTypeWhitespace = (text: string): string => {
+  let depth = 0;
+  let collapsed = '';
+  for (const character of text) {
+    if (character === '<') depth += 1;
+    else if (character === '>') depth = Math.max(0, depth - 1);
+    if (depth > 0 && /\s/.test(character)) continue;
+    collapsed += character;
   }
-  if (!signature) return { compatible: false, reason: 'No deterministic callable signature was found.' };
-  return { compatible: true, reason: 'The signature fits a bounded array/string/scalar SimLang input.' };
+  return collapsed.replace(/\s*\[\s*\]/g, '[]');
 };
+
+const splitTopLevel = (text: string): string[] => {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const character of text) {
+    if (character === '<') depth += 1;
+    else if (character === '>') depth = Math.max(0, depth - 1);
+    if (character === ',' && depth === 0) {
+      parts.push(current);
+      current = '';
+      continue;
+    }
+    current += character;
+  }
+  parts.push(current);
+  return parts.map((part) => part.trim()).filter(Boolean);
+};
+
+const declarationTokens = (text: string): string[] => text.trim().split(/\s+/).filter((token) => (
+  Boolean(token) && !DECLARATION_MODIFIERS.has(token.toLowerCase())
+));
+
+const declaredParameterType = (text: string): string | null => {
+  const tokens = declarationTokens(text);
+  if (tokens.length === 0) return null;
+  if (tokens.length === 1) return TYPE_PREFIX.exec(tokens[0])?.[1] ?? tokens[0];
+  return tokens[tokens.length - 2];
+};
+
+const declaredReturnType = (head: string): string | null => {
+  const tokens = declarationTokens(head);
+  return tokens.length >= 2 ? tokens[tokens.length - 2] : null;
+};
+
+type DeclaredTypeVerdict = 'supported' | 'multi-dimensional-array' | 'unsupported-element-type';
+
+const classifyDeclaredType = (type: string): DeclaredTypeVerdict => {
+  const normalized = type.replace(/\.\.\./g, '[]');
+  if ((normalized.match(/\[\]/g) ?? []).length >= 2) return 'multi-dimensional-array';
+  const element = normalized.replace(/\[\]/g, '').replace(/^.*\./, '');
+  if (!SUPPORTED_ELEMENT_TYPES.has(element.toLowerCase())) return 'unsupported-element-type';
+  return 'supported';
+};
+
+const isArrayType = (type: string): boolean => /\[\]|\.\.\./.test(type);
+
+const compatibilityTranslationKey = (code: SimulationCompatibilityCodeV1): string =>
+  `webCompatibility_${code.replaceAll('-', '_')}`;
+
+const compatibilityVerdict = (
+  code: SimulationCompatibilityCodeV1,
+  compatible: boolean,
+): SimulationCompatibilityV1 => ({
+  compatible,
+  code,
+  reason: t(compatibilityTranslationKey(code), 'en'),
+});
+
+const simulationCompatibility = (
+  signature: string | null,
+  description: string,
+): SimulationCompatibilityV1 => {
+  if (signature) {
+    const normalized = collapseTypeWhitespace(signature);
+    const openParenthesis = normalized.indexOf('(');
+    const closeParenthesis = normalized.lastIndexOf(')');
+    if (openParenthesis >= 0 && closeParenthesis > openParenthesis) {
+      const returnType = declaredReturnType(normalized.slice(0, openParenthesis));
+      const parameterTypes = splitTopLevel(normalized.slice(openParenthesis + 1, closeParenthesis))
+        .map((parameter) => declaredParameterType(parameter))
+        .filter((type): type is string => type !== null);
+      for (const type of [...(returnType === null ? [] : [returnType]), ...parameterTypes]) {
+        const verdict = classifyDeclaredType(type);
+        if (verdict !== 'supported') return compatibilityVerdict(verdict, false);
+      }
+      if (parameterTypes.filter(isArrayType).length > 1) {
+        return compatibilityVerdict('multiple-array-parameters', false);
+      }
+    }
+  }
+  const combined = `${signature ?? ''}\n${description}`.toLowerCase();
+  if (SHAPE_WORDS.test(combined)) return compatibilityVerdict('unsupported-shape-in-description', false);
+  if (!signature) return compatibilityVerdict('no-signature', false);
+  return compatibilityVerdict('fits-simlang', true);
+};
+
+export const localizedCompatibilityReason = (
+  compatibility: SimulationCompatibilityV1,
+  locale: Locale,
+): string => t(compatibilityTranslationKey(compatibility.code), locale);
 
 export const normalizeWebProblem = (document: ExternalDocumentV1): WebProblemSpecV1 => {
   const statements = document.segments.filter((segment) => segment.kind === 'statement');

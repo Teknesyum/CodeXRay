@@ -262,6 +262,7 @@ test('shows a refused Java fallback without changing workspace or persisted boun
   await chat.fill('Read https://example.com/refused-matrix-scan');
   await chat.press('Enter');
   await expect(page.getByLabel('Bound web source').getByText('Refused Matrix Scan')).toBeVisible();
+  await expect(page.getByText('A two-dimensional array type is outside SimLang V1.')).toBeVisible();
 
   const preset = page.getByLabel('Algorithm preset');
   const input = page.getByRole('textbox', { name: 'Array Simulation Input:' });

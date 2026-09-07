@@ -286,7 +286,7 @@ describe('bound web problem intent selection', () => {
       notes: [],
       signature: ['signature'],
     },
-    simulationCompatibility: { compatible: true, reason: 'ok' },
+    simulationCompatibility: { compatible: true, code: 'fits-simlang', reason: 'ok' },
   });
 
   const rows: Array<[string, string, string]> = [

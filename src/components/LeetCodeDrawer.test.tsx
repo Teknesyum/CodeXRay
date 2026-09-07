@@ -52,7 +52,7 @@ vi.mock('../services/catalogProblemDetails', () => ({
       notes: ['Try a smaller prefix first.'],
       signature: 'public int solve(int[] values)',
       sourceSegmentIds: { description: [], inputFormat: [], outputFormat: [], examples: [], constraints: [], notes: [], signature: [] },
-      simulationCompatibility: { compatible: true, reason: 'test' },
+      simulationCompatibility: { compatible: true, code: 'fits-simlang', reason: 'test' },
     },
   })),
 }));

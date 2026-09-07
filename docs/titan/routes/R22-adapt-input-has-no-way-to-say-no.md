@@ -268,3 +268,75 @@ recorded here so the next planner does not re-measure them.
   Fixing it means emitting events from 60 simulators; it deserves its own route.
   Related and smaller: `src/services/trace/traceQuery.ts` has no production consumer — its only
   caller is `traceIntelligence.test.ts`.
+
+---
+
+## T0 reconciliation
+
+Closed at `1adf406`, handoff `d4f5c5e`. Option A, both halves. I verified the diff, the file
+list, and the gates myself rather than reading the handoff's copy of them: `lint` clean,
+`867 passed` against `850` at the base, `build` inside every budget. No frozen or T0-owned path
+appears in `git diff --name-only ff9071d..HEAD`.
+
+**Item 2 came in cheaper than the estimate, and the estimate was wrong in an instructive way.**
+The route hedged that `applyInputPatches` might not accept a graph op without a compiled
+package. It does — a synthetic `packagelessContract` around the current input is enough, and the
+change is the same seven lines `set-param` already had, lifted into a shared helper and used
+three times. My hedge was written from reading the call sites; one probe against
+`applyInputPatches` would have removed it. Cheaper to measure than to hedge.
+
+**The count is 13, not 11.** `InputPatchV1` has thirteen members. `AGENTS.md` has said eleven
+since R14 and I repeated it in this route's own Objective without counting. Reachable without an
+active package: **6/13 before, 13/13 after**. I have corrected the map entry; the sentence now
+gives the number and says the qualifier out loud.
+
+**`graphRequestEdits.ts` was fixed in the same turn, as the route required.** The deferred
+finding said `"A düğümünü sil"` produced three ops because the English article `a` matched the
+node-count pattern. Item 2 would have made that reachable. The fix narrows `a` to the two
+phrasings where it is genuinely a count — `add a node`, `a node add` — and leaves `bir`/`one`
+alone. This is the correct order: a deferred finding that a live route would activate is not
+deferred, it is part of that route.
+
+### The exclusion is inert, and the handoff overstates it
+
+`titanEngine.ts:956` excludes `predict_winner_interval_dp` from the refusal. `## Discovered`
+item 5 justifies it as necessary, because that branch replaces `generated` wholesale after the
+adapter runs so the adapter's `origin` is not the discriminant there. The first half is true.
+The conclusion is not: the replacement at `:948-954` sets `origin` from
+`resolved.origin === 'user' ? 'user' : 'agent'`, which cannot produce `'preset'`, so
+`isUnderstoodInputAdaptation` already returns `true` for that program on every path.
+
+The guard changes no behaviour. I am leaving the code as it is — it is a correct statement of
+an intent, and removing it would spend a turn to delete a line — but the *description* is the
+thing that must be right, because the next route reads the description. This is R21's finding at
+one-tenth scale, and it surfaced inside the turn that was written to hunt it: **a guard whose
+stated reason is broader than its effect.** The implementer reported it under `## Discovered`
+rather than presenting it as load-bearing, which is why it was catchable. That is the behaviour
+the protocol is for.
+
+### What this route did not buy
+
+The refusal reads `origin`, and `origin` is set by the adapter's own branch structure. It means
+"no branch of `inputRequestAdapter.ts` matched", not "the user's intent was not served". A
+request that matches a branch and is understood *wrongly* still applies and still reports
+success. There is no gate anywhere in the system for that, and none of R15's, R16's, R18's or
+this turn's checks is one. Do not let a later document describe R22 as intent verification.
+
+Criterion 4 held: the six existing adapter cases pass unmodified. One of them,
+`inputRequestAdapter.test.ts:31`, now has a name that describes production behaviour it no
+longer has — the adapter still returns the preset, but the engine refuses it. The implementer
+left it alone because the criterion forbade touching it and said so, rather than quietly
+renaming it. Correct call; the rename belongs to whoever next opens that file.
+
+### Standing
+
+Four route-worthy findings remain measured and unclaimed: the nine non-pipelined creation
+templates that still commit with no external refusal point (open since R20),
+`webSource.ts:298`'s signature filter, the inert structural trace layer across all 50 catalog
+algorithms, and `traceQuery.ts` with no production consumer.
+
+E2E timeout sightings are now five local across four specs — `titan-mode.spec.ts:22`,
+`ai-actions.spec.ts:112`, `radio-controller.spec.ts` at H12 and H15, and this turn's
+`translation-provenance.spec.ts` strict-mode violation under full-suite parallelism, green on
+two subsequent full runs. Still zero on CI. The next one makes it a route regardless of where
+it lands.

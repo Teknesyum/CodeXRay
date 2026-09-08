@@ -3,10 +3,11 @@
 - `PROTOCOL.md` canonical turn protocol, single source of truth. Read before acting.
 - `DOD.md` live definition-of-done table; Sole writes evidence cells only.
 - `SOLE_BOOTSTRAP.md` one-time opening prompt for Sole (Codex CLI).
+- `ROADMAP.md` ordered next routes with price and reason. **Claude writes it.** Planning only.
 - `routes/R<nn>-<slug>.md` routes. **Claude writes these.**
 - `handoffs/H<nn>-<slug>.md` handoff reports. **Sole writes these.**
 ## Ownership
-Claude owns `PROTOCOL.md`, `SOLE_BOOTSTRAP.md`, `routes/*`. Sole owns `handoffs/*` and the
+Claude owns `PROTOCOL.md`, `ROADMAP.md`, `SOLE_BOOTSTRAP.md`, `routes/*`. Sole owns `handoffs/*` and the
 `DOD.md` evidence cells. Neither edits the other's files; append-only naming means no shared
 line is ever touched.
 ## Why there is no STATE.md

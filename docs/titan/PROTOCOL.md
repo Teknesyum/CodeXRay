@@ -25,13 +25,14 @@ Directory layout:
 | `docs/titan/routes/R<nn>-<slug>.md` | Claude | Route |
 | `docs/titan/handoffs/H<nn>-<slug>.md` | Sole | Handoff report |
 | `docs/titan/AGENTS.md` | Claude | Router file, under 20 lines |
+| `docs/titan/ROADMAP.md` | Claude | Ordered plan of the next routes with price and reason; planning material, never an instruction to write code |
 
 ## Ownership table
 
 | Owner | Paths |
 |---|---|
 | **Sole** | `src/**`, `e2e/**`, `src-tauri/**`, `.github/**`, `scripts/**`, `package.json`, `docs/titan/handoffs/H*.md`, `docs/titan/DOD.md` (evidence cells only) |
-| **Claude** | `docs/titan/PROTOCOL.md`, `docs/titan/routes/R*.md`, `docs/DEVIRALAN.md`, `AGENTS.md` and every `*/AGENTS.md`, `CLAUDE.md`, `docs/README.md`, `docs/titan/SOLE_BOOTSTRAP.md` |
+| **Claude** | `docs/titan/PROTOCOL.md`, `docs/titan/ROADMAP.md`, `docs/titan/routes/R*.md`, `docs/DEVIRALAN.md`, `AGENTS.md` and every `*/AGENTS.md`, `CLAUDE.md`, `docs/README.md`, `docs/titan/SOLE_BOOTSTRAP.md` |
 | **Nobody** | `.claude/**`, `.agents/AGENTS.md`, `docs/tasks/**`, `docs/legacy/**`, `CodeXray-readme-neon.svg`, `docs/TITAN_MODE_YOL_HARITASI.md` |
 
 A path owned by nobody is frozen. It is not edited, moved, or deleted by either side.
@@ -50,7 +51,7 @@ A path owned by nobody is frozen. It is not edited, moved, or deleted by either 
    ```
 
    The first command must exit 0. The second must list only Claude-owned paths
-   (`docs/titan/PROTOCOL.md`, `docs/titan/routes/**`, `docs/titan/SOLE_BOOTSTRAP.md`,
+   (`docs/titan/PROTOCOL.md`, `docs/titan/ROADMAP.md`, `docs/titan/routes/**`, `docs/titan/SOLE_BOOTSTRAP.md`,
    `docs/DEVIRALAN.md`, `AGENTS.md`, `*/AGENTS.md`, `CLAUDE.md`, `docs/README.md`).
    Anything else means another writer touched the tree — stop and report.
 

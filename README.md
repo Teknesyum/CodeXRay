@@ -1,7 +1,12 @@
+<!-- lang -->
+
+[<img src="assets/badge-lang.svg" alt="English selected, switch to Türkçe" width="124" height="44">](README.tr.md)
+
 <div align="center">
   <img src="public/favicon.svg" alt="CodeXRay logo" width="120" />
   <h1>CodeXRay ⚡</h1>
   <p><strong>See algorithms execute, one state change at a time.</strong></p>
+  <p><a href="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml"><img src="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
 </div>
 
 CodeXRay is a bilingual English/Turkish algorithm visualizer available as a
@@ -38,7 +43,7 @@ OpenAI-compatible server.
 - Model choices range from the fast Qwen2.5 Coder 0.5B to Qwen3.5 9B for
   16 GB-class GPUs. Cached models initialize automatically on later visits and
   each stored model can be removed independently from Settings.
-- A click-to-load CodeXRay Radio using the requested YouTube Music playlist,
+- A click-to-load CodeXRay Radio using a curated YouTube Music playlist,
   with a direct playlist fallback when a track disallows embedding.
 - Browser autosave for the current input workspace.
 - Instant English/Turkish switching, including existing simulation explanations.
@@ -79,6 +84,20 @@ question. The newest workspace snapshot—current code, input, progress, selecte
 line, complete current visual state, and nearby trace—always overrides older
 chat. Conversation memory can be cleared from the assistant header.
 
+## Download
+
+Prebuilt Windows x64 binaries are published on the
+[latest release](https://github.com/Teknesyum/CodeXRay/releases/latest) page:
+
+- `CodeXRay_<version>_windows_x64_setup.exe` — NSIS installer; downloads the
+  WebView2 runtime through the bootstrapper when it is missing.
+- `CodeXRay_<version>_windows_x64_portable.exe` — single portable executable;
+  requires WebView2 to already be installed.
+- `SHA256SUMS.txt` — checksums for both files.
+
+Release builds are unsigned, so Windows SmartScreen may warn until code signing
+is introduced. Version history is in [CHANGELOG.md](CHANGELOG.md).
+
 ## Quick Start & Installation
 
 To run CodeXRay locally, you'll need [Node.js](https://nodejs.org/) (version 22 or newer) installed on your system.
@@ -88,7 +107,7 @@ To run CodeXRay locally, you'll need [Node.js](https://nodejs.org/) (version 22 
 1. Download and install [Git for Windows](https://gitforwindows.org/) and [Node.js](https://nodejs.org/).
 2. Open PowerShell or Command Prompt and run:
    ```cmd
-   git clone https://github.com/srknzl/CodeXRay.git
+   git clone https://github.com/Teknesyum/CodeXRay.git
    cd CodeXRay
    npm ci
    npm run dev
@@ -99,7 +118,7 @@ To run CodeXRay locally, you'll need [Node.js](https://nodejs.org/) (version 22 
 1. Ensure Git and Node.js are installed via your package manager (e.g., `brew install git node` for macOS, or `sudo apt install git nodejs` for Ubuntu).
 2. Open your terminal and run:
    ```bash
-   git clone https://github.com/srknzl/CodeXRay.git
+   git clone https://github.com/Teknesyum/CodeXRay.git
    cd CodeXRay
    npm ci
    npm run dev
@@ -122,11 +141,7 @@ npm run desktop:build   # Build Windows x64 executable and NSIS installer
 ```
 
 Desktop development additionally requires Rust stable, the MSVC C++ Build
-Tools, and the Tauri Windows prerequisites. Release builds produce an unsigned
-NSIS installer and a portable executable; Windows SmartScreen may warn until
-code signing is introduced. The portable build requires WebView2 to already be
-installed, while the NSIS package uses the WebView2 download bootstrapper when
-needed.
+Tools, and the Tauri Windows prerequisites.
 
 The real-AI suite is intentionally separate because it requires a WebGPU-capable
 browser, downloads the selected model into browser-managed storage, and can take
@@ -247,32 +262,21 @@ intentionally discards the older unbalanced right-column defaults. The Examples
 menu renders above the assistant stacking layer and remains scrollable rather
 than being clipped by the Controls panel.
 
-## Publish to serkanozel.me
-
-The production app is hosted at:
-
-```text
-https://serkanozel.me/codexray/
-```
-
-Preview the publication without changing the website repository:
-
-```powershell
-npm run publish:site -- --target "C:\Users\serkan\git\serkanozelme" --dry-run
-```
-
-Build, test, copy, validate, commit, push, and wait for Cloudflare with:
-
-```powershell
-npm run publish:site -- --target "C:\Users\serkan\git\serkanozelme"
-```
-
-Use `--no-push` to create and validate the target commit without pushing it.
-The command refuses dirty, divergent, or unexpected repositories and stages
-only `blog/public/codexray/**`.
-
 ## License
 
 AGPL-3.0-or-later — see [LICENSE](LICENSE).
 
 Copyright (C) 2026 Teknesyum
+
+<!-- signature -->
+<div align="center">
+
+<a href="https://github.com/sponsors/Teknesyum"><img src="assets/badge-sponsor.svg" alt="Support Teknesyum" height="38"></a>
+&nbsp;
+<a href="LICENSE"><img src="assets/badge-license.svg" alt="License AGPL-3.0" height="38"></a>
+
+<br><br>
+
+**Teknesyum** · [github.com/Teknesyum](https://github.com/Teknesyum)
+
+</div>

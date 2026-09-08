@@ -65,7 +65,6 @@ npm run test:e2e:radio-live # real external player
 npm run desktop:dev
 npm run desktop:check       # version check + cargo fmt/clippy/test
 npm run desktop:build
-npm run publish:site
 ```
 
 Gates before a handoff: `lint`, `test`, `build`, and `desktop:check` when `src-tauri/**`
@@ -303,8 +302,7 @@ testing another trusted CodeXRay gateway.
   lifecycle and the single VRAM/context/response-token registry that drives service,
   worker, UI labels, and tests.
 - `siteReset.ts`, `aiResponse.ts`, `PlaylistRadio.tsx` (keep the external player unmounted
-  until user interaction and preserve its fallback link), `src/i18n/translations.ts`,
-  `scripts/publish-to-site.mjs`.
+  until user interaction and preserve its fallback link), `src/i18n/translations.ts`.
 - `src/i18n/translations.ts` — `t()` for authored keys and `runtimeReplacements`, a 748-entry
   `Array<[RegExp, string]>` that `translateRuntimeText` folds over any English string produced at
   runtime. **A correct `translateRuntimeText` call site proves nothing**: from before R15 until
@@ -604,16 +602,10 @@ fallback** — never degrade to a partial trace without telling the user which l
 
 ## Deployment
 
-After a clean, committed source state:
-
-```bash
-npm run publish:site -- --target "C:\path\to\serkanozelme" --dry-run
-npm run publish:site -- --target "C:\path\to\serkanozelme"
-```
-
-The publisher must only stage `blog/public/codexray/**`, require a clean and synchronized
-target `main`, validate both builds, then let the target repo's Cloudflare integration
-deploy. Preserve unrelated work in both repositories.
+Windows desktop releases are built by `.github/workflows/desktop-release.yml` on a
+`v*` tag push; `scripts/check-desktop-version.mjs` requires the tag to match the
+version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`.
+The former personal site publisher lives in `trash/publish-to-site.mjs`.
 
 ## Never touch
 

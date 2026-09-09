@@ -9,6 +9,7 @@ import {
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { GraphDocumentV1, SimulationInput, SimulationStep } from '../types/simulation';
 import { LOCAL_AI_MODELS } from '../services/localAiService';
+import { isRuntimeTextReady, loadRuntimeText } from '../i18n/translations';
 import type { Locale } from '../i18n/translations';
 import type { CustomSimulationPackageV1 } from '../types/titan';
 import { compileCustomSimulationPackage } from '../services/customSimulationCompiler';
@@ -466,9 +467,30 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
     return Number.isInteger(parsed) && parsed >= 1 && parsed <= 16 ? parsed : 2;
   });
   const [isAiMaximized, setIsAiMaximized] = useState(false);
-  const [locale, setLocale] = useState<Locale>(() =>
+  const [locale, setLocaleState] = useState<Locale>(() =>
     readStorage('codexray.locale') === 'en' ? 'en' : 'tr',
   );
+  const [, setRuntimeTextVersion] = useState(0);
+  const runtimeTextReady = isRuntimeTextReady(locale);
+  useEffect(() => {
+    if (runtimeTextReady) return;
+    let active = true;
+    loadRuntimeText(locale).then(
+      () => { if (active) setRuntimeTextVersion((version) => version + 1); },
+      (error: unknown) => { console.error(error); },
+    );
+    return () => { active = false; };
+  }, [locale, runtimeTextReady]);
+  const setLocale = useCallback((next: Locale) => {
+    if (isRuntimeTextReady(next)) {
+      setLocaleState(next);
+      return;
+    }
+    loadRuntimeText(next).then(
+      () => setLocaleState(next),
+      (error: unknown) => { console.error(error); },
+    );
+  }, []);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = readStorage('codexray.theme');
     return saved === 'dark' || saved === 'light' || saved === 'neon' ? saved : 'neon';
@@ -797,7 +819,7 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
       guidedMode,
       setGuidedMode,
     }}>
-      {children}
+      {runtimeTextReady ? children : null}
     </TimelineContext.Provider>
   );
 };

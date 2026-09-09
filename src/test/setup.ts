@@ -2,8 +2,11 @@ import '@testing-library/jest-dom/vitest';
 import { configure } from '@testing-library/react';
 import { afterEach, expect } from 'vitest';
 import { installTimerLeakDetector, type TimerHost } from './timerLeakDetector';
+import { loadRuntimeText } from '../i18n/translations';
 
 configure({ asyncUtilTimeout: 5_000 });
+
+await loadRuntimeText('tr');
 
 if (!globalThis.crypto.randomUUID) {
   Object.defineProperty(globalThis.crypto, 'randomUUID', {

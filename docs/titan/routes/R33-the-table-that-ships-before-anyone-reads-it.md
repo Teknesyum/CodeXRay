@@ -236,3 +236,54 @@ created, delete `test-results/` before finishing, and leave no probe file in the
 - `eventWeight`, `traceQuery.ts`, `inputRequestAdapter.test.ts:31`, `titanEntry.ts` — R35.
 - The three slow e2e specs — R36.
 - Anything in `docs/titan/ROADMAP.md` below R33.
+
+## T0 reconciliation
+
+Closed by `7efe377` (`route(R33): close`) and `07fabbc` (`handoff(H33): record`). Handoff:
+`docs/titan/handoffs/H33-the-table-that-ships-before-anyone-reads-it.md`.
+
+### Independent T0 verification
+
+All four gates re-run on `7efe377`, exit 0 each: lint, `923 / 123` unit, build, `89 + 2` e2e.
+The route's own numbers reproduce.
+
+```
+Initial JavaScript: 358.9 / 376.0 KiB
+dist/assets/runtime-replacements-D5dbM4BF.js          66.21 kB │ gzip:  19.87 kB
+```
+
+```
+PS> Select-String -Path dist/assets/index-*.js -Pattern 'orta ve sağ üçte birler elenir' | Measure-Object | Select-Object -ExpandProperty Count
+0
+PS> (Select-String -Path dist/assets/*.js -Pattern 'orta ve sağ üçte birler elenir').Filename | Select-Object -Unique
+runtime-replacements-D5dbM4BF.js
+```
+
+422.8 → 358.9 KiB is a **63.9 KiB** drop against a 40 KiB floor; the budget went 425 → 376, the
+direction the roadmap's standing rule requires. One `import()`, 29 unchanged call sites,
+`Ekleme Sıralaması` gone from `src/`, 275 distinct phase strings with 0 untouched by `tr`.
+
+### What the residual sweep actually says
+
+The phase-string probe reports **36** residual tokens, not H32's 0, on the same corpus. The
+output is unchanged; the whitelists differ. 27 of the 36 are proper names or acronyms
+(`Dijkstra`, `KMP`, `LCS`), 9 are the loanword and traversal-name class `AGENTS.md` already
+declares is not residue (`hash`, `inorder`, `link`, `minimum`, `per`, `pivot`, `postorder`,
+`preorder`, `terminal`). The English-word residual is 0. **A route that wants this sweep as a
+committed test must first choose one whitelist**; two probes with different whitelists cannot be
+compared across turns, and this is the second time that has cost a reader a paragraph.
+
+### Deviation accepted
+
+`f975c56..HEAD` carries a human commit, `71b09b3`, which touches `AGENTS.md` — a T0-owned path —
+along with README, CHANGELOG, badges, `package.json` and `scripts/publish-to-site.mjs → trash/`.
+It is not a turn violation: the R33 close commit's own nine files contain no protected path, and
+all nine are inside `## Expected Files`. Recorded rather than reverted.
+
+### Carried forward
+
+- Nothing from `71b09b3` was left dangling: it moved `scripts/publish-to-site.mjs` to `trash/`
+  and reconciled both `package.json` and `AGENTS.md`'s `## Deployment` block itself.
+- The residual-whitelist question above, unowned.
+- Everything R32 deferred and R33 did not take: `AiAssistant.tsx:857` (R34), `eventWeight` /
+  `traceQuery.ts` / `titanEntry.ts` (R35), the three slow e2e specs (R36).

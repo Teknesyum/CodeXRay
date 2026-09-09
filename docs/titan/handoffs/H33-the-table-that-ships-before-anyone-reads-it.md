@@ -297,9 +297,9 @@ The R33 close commit itself is 9 files:
   probe used, so a phase-string residual probe reports 36 tokens where H32 reported 0 on the same
   corpus. Neither number is wrong; the sweeps are not comparable unless the whitelist is stated.
   A future route that wants a committed phase-residual test must first pick one whitelist.
-- `scripts/publish-to-site.mjs` was moved to `trash/` by `71b09b3` while `AGENTS.md`'s
-  `## Deployment` section still described it as live. `package.json`'s script entry was removed in
-  the same commit; the `AGENTS.md` prose was reconciled by T0 after this handoff.
+- `scripts/publish-to-site.mjs` was moved to `trash/` by `71b09b3`, which also removed its
+  `package.json` entry and rewrote `AGENTS.md`'s `## Deployment` block to point at `trash/`.
+  Nothing was left dangling; `npm run publish:site` no longer exists.
 
 ## Untouched
 

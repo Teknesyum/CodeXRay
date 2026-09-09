@@ -2,22 +2,22 @@
 
 ## Özet
 
-R32 kapandı; 32 rotanın hepsinin handoff'u var, sıra T0'da. Bu dosya sıradaki rotaların
+R33 kapandı; 33 rotanın hepsinin handoff'u var, sıra T0'da. Bu dosya sıradaki rotaların
 sırasını, gerekçesini ve fiyatını tutar; kod yazma yetkisi taşımaz, o yetki yalnız açık rotadadır.
 Sırayı T0 yazar, insan değiştirir; bir rota açılınca buradaki satırı değil `routes/R<nn>` dosyası kazanır.
 
-## Durum (2026-09-08, `575d76c`)
+## Durum (2026-09-09, `07fabbc`)
 
 | Ölçü | Değer |
 |---|---|
-| Birim test | 918 / 121 dosya |
-| e2e | 87 + 2 `@performance` |
-| Başlangıç JS | 422.8 / 425.0 KiB — **2.2 KiB pay** |
-| `runtimeReplacements` | 750 satır, kaynakta 69 177 bayt, başlangıç paketinde |
+| Birim test | 923 / 123 dosya |
+| e2e | 89 + 2 `@performance` |
+| Başlangıç JS | 358.9 / 376.0 KiB — **17.1 KiB pay** |
+| `runtimeReplacements` | 750 satır, `src/i18n/runtimeReplacements.ts`, lazy parça (66.21 kB) |
 | DoD | 8 kapalı, 4 açık (1, 3, 11, 12), 1 ertelenmiş (13) |
 
 Ölçüm komutları: `npm run build` çıktısındaki `Initial JavaScript` satırı;
-`sed -n 825,1577p src/i18n/translations.ts | wc -c`; `grep -c "^  \[/" src/i18n/translations.ts`.
+`grep -c "^  \[/" src/i18n/runtimeReplacements.ts`.
 
 ## Sıra
 
@@ -26,7 +26,7 @@ yükseltilmez. Fiyat = beklenen dosya sayısı + kapanış commit sayısı; Sole
 
 | # | Rota | Neden şimdi | Fiyat |
 |---|---|---|---|
-| R33 | Çeviri tablosu başlangıç paketinden çıkar; `Insertion Sort` adı tekilleşir | Pay 2.2 KiB. Bir sonraki i18n süpürmesi duvara çarpar ve `AGENTS.md` bütçeyi yükseltmeyi yasaklar. Tablo yalnız çalışma zamanı metni içindir; `en` kullanıcısı için tamamen ölü yük. H32 insan maddesi 3 aynı dosyada. | ~8 dosya, 1 commit |
+| ~~R33~~ | **Kapandı** (`7efe377` + `07fabbc`). Çeviri tablosu başlangıç paketinden çıkar; `Insertion Sort` adı tekilleşir | Pay 2.2 KiB. Bir sonraki i18n süpürmesi duvara çarpar ve `AGENTS.md` bütçeyi yükseltmeyi yasaklar. Tablo yalnız çalışma zamanı metni içindir; `en` kullanıcısı için tamamen ölü yük. H32 insan maddesi 3 aynı dosyada. | ~8 dosya, 1 commit |
 | R34 | `AiAssistant.tsx:857` — `persistTitanModePlan` reddedilmiş-plan korumasından önce çalışıyor | `:1462`'deki silme ve `:1455`'teki temizleme haritası erişilemez; iptal edilen plan depoya yazılıyor. Kullanıcıya görünür: yenilemede hayalet plan. | ~3 dosya, 1 commit |
 | R35 | Ölü ağırlık: `eventWeight`, `traceQuery.ts`, `inputRequestAdapter.test.ts:31` adı, `titanEntry.ts` markasız motor çağrısı | Ölçüldü: üretim kodunda `event:` atayan sıfır yer (`grep -rn "event: {" src/services` yalnız testler); `traceQuery` yalnız `traceIntelligence.test.ts`'ten import ediliyor. Silme kuralı gereği grep rotaya yapıştırılır, "sıfır üretim çağıranı" ile "sıfır çağıran" ayrı yazılır. | ~6 dosya, 1 commit |
 | R36 | Üç yavaş e2e: `accessibility-axe:37` 9.9 s, `ai-actions:112` 12.5 s, `radio-controller:3` 8.1 s | Suite medyanının 3–4 katı; 2 işçiyle 2.4 dk'nın belirleyicisi. Önce ölçüm: her spec'te zamanın nereye gittiği. Bekleme kısaltmak yasak; sebep bulunur. | ~3 dosya, 1 commit |
@@ -43,7 +43,8 @@ yükseltilmez. Fiyat = beklenen dosya sayısı + kapanış commit sayısı; Sole
 
 ## Değişmeyen kurallar
 
-- Başlangıç JS bütçesi yükseltilmez; R33 sonrası ölçülen değere kilitlenir.
+- Başlangıç JS bütçesi yükseltilmez; R33 onu 425 → **376 KiB**'ye indirdi ve kilit budur.
+  Sonraki süpürmenin payı 17.1 KiB; tükenirse cevap bütçeyi yükseltmek değil, yine taşımaktır.
 - `AGENTS.md`'deki ders: bağlanmış olmak işini yaptığı anlamına gelmez; mevcut tablo girdisi de
   Türkçe çıktı anlamına gelmez. Kapatan tek ölçü kalıntıdır.
 - Rota sırasını yalnız bu dosya ve insan değiştirir; bir handoff'un `## Blockers` bölümü sırayı

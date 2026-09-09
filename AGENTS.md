@@ -303,9 +303,10 @@ testing another trusted CodeXRay gateway.
   worker, UI labels, and tests.
 - `siteReset.ts`, `aiResponse.ts`, `PlaylistRadio.tsx` (keep the external player unmounted
   until user interaction and preserve its fallback link), `src/i18n/translations.ts`.
-- `src/i18n/translations.ts` — `t()` for authored keys and `runtimeReplacements`, a 748-entry
-  `Array<[RegExp, string]>` that `translateRuntimeText` folds over any English string produced at
-  runtime. **A correct `translateRuntimeText` call site proves nothing**: from before R15 until
+- `src/i18n/translations.ts` — `t()` for authored keys, and the loader for
+  `runtimeReplacements`, a 750-entry `Array<[RegExp, string]>` that `translateRuntimeText` folds
+  over any English string produced at runtime. Since R33 the table itself lives in
+  `src/i18n/runtimeReplacements.ts` and is **not in the initial bundle**. **A correct `translateRuntimeText` call site proves nothing**: from before R15 until
   R28, `DynamicVisualizer.tsx` rendered `visualData.vars.decision` through it while the table
   held no entry for 169 of the 175 strings that reached it, so 25 algorithms showed English
   decisions under Turkish phase labels. Phase labels and step explanations were fully covered the
@@ -321,10 +322,20 @@ testing another trusted CodeXRay gateway.
   "is there an entry" nor "did the string change" but **the residual: no English word survives in
   Turkish-locale output**. Loanwords that are ordinary Turkish (`minimum`, `pivot`, `bit`) are not
   residue; pure notation stays untranslated.
-  The table ships in the initial bundle because `translateRuntimeText` is called synchronously
-  during render. R28 raised the initial-JS budget from 420 to 425 KiB; after R32 the measured
-  figure is **422.8 KiB — 2.2 KiB of headroom**. The next comparable sweep will hit that wall and
-  must not answer it by raising the budget again.
+  The table shipped in the initial bundle until R33, because `translateRuntimeText` is called
+  synchronously during render. R28 raised the budget from 420 to 425 KiB and R32 left **2.2 KiB
+  of headroom at 422.8**; R33 moved the table to its own lazy chunk
+  (`runtime-replacements-*.js`, 66 kB), measured **358.9 KiB**, and **lowered** the budget to
+  **376 KiB**. The budget is never raised — lowering it is how a gain is locked, and 17.1 KiB is
+  what the next sweep has.
+  `translateRuntimeText` stays synchronous and its 29 production call sites did not change. It
+  reads a module-level table that is `null` until loaded, and a `tr` call before
+  `loadRuntimeText` resolves **throws** — there is no silent English fallback. The single
+  `import()` is `translations.ts:835`; `TimelineContext.tsx:822` withholds the provider's
+  `children` while `locale === 'tr'` and the table is not ready, and `setLocale`
+  (`TimelineContext.tsx:481`) loads before it switches, so a Turkish session never paints English
+  first. Unit tests preload through `src/test/setup.ts:8` — a test that compares an English input
+  against an English output proves nothing.
 - `DynamicVisualizer.tsx` — `TeachingHud` renders the phase/decision strip. Since R32 **all seven
   visual types display the phase**: `graph` and `matrix` through `TeachingHud` since R28, `array`,
   `rows`, `bars` and `intervals` through it since R32, and `string-match` through its own

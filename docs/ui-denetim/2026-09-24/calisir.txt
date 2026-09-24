@@ -1,0 +1,11 @@
+$ npx vitest run --exclude 'trash/**'
+ Test Files  123 passed (123)
+      Tests  923 passed (923)
+   Start at  20:56:04
+   Duration  22.10s (transform 16.40s, setup 29.86s, import 21.75s, tests 47.43s, environment 189.92s)
+
+
+$ npx vite build
+dist/assets/index-DobupB8H.js                        367.53 kB │ gzip: 114.46 kB
+
+✓ built in 455ms

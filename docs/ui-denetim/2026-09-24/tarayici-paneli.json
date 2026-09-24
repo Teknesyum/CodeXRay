@@ -1,0 +1,134 @@
+{
+ "arac": "Claude_Browser javascript_tool",
+ "pencere": "1440x900",
+ "snippet": "denetim.js --snippet (esik 7, hedef 24)",
+ "zaman": "2026-09-24, düzeltmelerden sonra; açık tema uyarı bandı düzeltmesinden önce",
+ "sonuc": [
+  {
+   "ekran": "ana",
+   "neon": {
+    "checked": 27,
+    "kontrast": 0,
+    "hedef": 10
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 21
+   }
+  },
+  {
+   "ekran": "graf-girdi",
+   "neon": {
+    "checked": 67,
+    "kontrast": 0,
+    "hedef": 38
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 30
+   }
+  },
+  {
+   "ekran": "katalog",
+   "neon": {
+    "checked": 260,
+    "kontrast": 0,
+    "hedef": 18
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 81
+   }
+  },
+  {
+   "ekran": "simulasyon",
+   "neon": {
+    "checked": 253,
+    "kontrast": 0,
+    "hedef": 17
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 74
+   }
+  },
+  {
+   "ekran": "ornekler",
+   "neon": {
+    "checked": 260,
+    "kontrast": 0,
+    "hedef": 18
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 81
+   }
+  },
+  {
+   "ekran": "ayarlar-yz",
+   "neon": {
+    "checked": 283,
+    "kontrast": 0,
+    "hedef": 22
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 100
+   }
+  },
+  {
+   "ekran": "ayarlar-arayuz",
+   "neon": {
+    "checked": 278,
+    "kontrast": 0,
+    "hedef": 19
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 94
+   }
+  },
+  {
+   "ekran": "ayarlar-radyo",
+   "neon": {
+    "checked": 278,
+    "kontrast": 0,
+    "hedef": 21
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 93
+   }
+  },
+  {
+   "ekran": "radyo",
+   "neon": {
+    "checked": 354,
+    "kontrast": 0,
+    "hedef": 21
+   },
+   "dark": {
+    "kontrast": 0
+   },
+   "light": {
+    "kontrast": 174
+   }
+  }
+ ]
+}

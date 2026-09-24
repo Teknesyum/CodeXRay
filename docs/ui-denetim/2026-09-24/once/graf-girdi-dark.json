@@ -1,0 +1,468 @@
+{
+ "ekran": "graf-girdi",
+ "tema": "dark",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 68,
+  "pairs": [
+   {
+    "text": "Eklemek için çift tıkla · düzenlemek için tıkla · düğümü taş",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-builder-canvas > span.canvas-hint",
+    "fg": "#ffffff 35%",
+    "bg": "#0d0d0d",
+    "ratio": 3.16,
+    "uncertain": true
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Simülasyonu göster",
+    "width": 123.1,
+    "height": 21
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "2 ile 3 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 211.3
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "4 ile 5 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "5 ile 6 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "6 ile 7 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "8 ile 9 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 105.6
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "9 ile 10 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 105.6
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "11 ile 12 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "12 ile 13 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "13 ile 14 arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 70.4
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "1 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "2 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "3 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "4 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "5 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "6 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "7 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "8 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "9 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "10 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "11 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "12 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "13 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "14 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "15 düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > details.graph-import-export > summary",
+    "text": "İçe / dışa aktar",
+    "width": 946,
+    "height": 15
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "target-size",
+   "nodes": [
+    {
+     "target": "button[aria-label=\"1 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"2 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"3 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"4 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"5 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"6 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"7 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"8 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"9 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"10 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"11 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"12 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"13 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"14 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"15 düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

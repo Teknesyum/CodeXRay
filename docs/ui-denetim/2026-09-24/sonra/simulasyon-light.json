@@ -1,0 +1,806 @@
+{
+ "ekran": "simulasyon",
+ "tema": "light",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 254,
+  "pairs": [
+   {
+    "text": "A düğümü 0 uzaklığıyla başlar; diğer tüm düğümler ∞ ile başl",
+    "selector": "div.visual-auto-fit-content > div.visual-graph > div.graph-teaching-hud > span",
+    "fg": "#212121",
+    "bg": "#232630",
+    "ratio": 1.07,
+    "uncertain": true
+   },
+   {
+    "text": "Dijkstra · cepheyi başlat",
+    "selector": "div.visual-auto-fit-content > div.visual-graph > div.graph-teaching-hud > strong",
+    "fg": "#075ca8",
+    "bg": "#232630",
+    "ratio": 2.23,
+    "uncertain": true
+   },
+   {
+    "text": "d:0",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-active > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "d:∞",
+    "selector": "div.visual-graph > div.graph-stage > div.graph-node.node-idle > small.graph-node-badge",
+    "fg": "#075ca8",
+    "bg": "#080c15",
+    "ratio": 2.89,
+    "uncertain": true
+   },
+   {
+    "text": "Örnekler",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.leetcode-open-btn",
+    "fg": "#075ca8",
+    "bg": "#e1eaf4",
+    "ratio": 5.57,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "10",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > span",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > span",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "2",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "3",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "4",
+    "selector": "div.editor-content > div.code-display > div.code-line.highlighted > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "5",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "6",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "7",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "8",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "9",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "10",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "11",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "12",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "13",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "14",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "15",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "16",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "17",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "18",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "Kaynak Kod",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Inputu kaydet",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > button.input-save-btn",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Değişkenler ve İz",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Bilgiç Dede",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.3,
+    "uncertain": true
+   },
+   {
+    "text": "Dizi(1)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "Dizi(0)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "Nesne(7)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "Nesne(0)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "Nesne(0)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "Dizi(0)",
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.32,
+    "uncertain": false
+   },
+   {
+    "text": "⚡",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.simulate-btn",
+    "fg": "#f8f9fa",
+    "bg": "#075ca8",
+    "ratio": 6.42,
+    "uncertain": false
+   },
+   {
+    "text": "Titan Mode",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "fg": "#a40f4c",
+    "bg": "#f7e9ef",
+    "ratio": 6.47,
+    "uncertain": true
+   },
+   {
+    "text": "Dijkstra En Kısa Yol",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.step-explanation > strong",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "Adım 1/17",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span.context-chip",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "💡",
+    "selector": "div.control-bar > div.control-group > div.qs-menu-container > button.neon-button.qs-btn",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "−",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "phase",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "decision",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "current",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "openSet",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "[",
+    "selector": "details.trace-collection > ol > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "closedSet",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "distances",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "A",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "B",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "C",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "D",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "E",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "F",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "G",
+    "selector": "details.trace-collection > ul > li > span.trace-key",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "parent",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "heuristicScale",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "fScores",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "treeEdges",
+    "selector": "div.vars-grid > section.var-item.changed > div.var-item-header > span.var-name",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(1)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(7)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Girdiyi düzenle",
+    "width": 105.3,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "color-contrast-enhanced",
+   "nodes": [
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(1)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(2)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(3)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": "section[data-testid=\"variable-phase\"] > .var-item-header > .var-name",
+     "data": [
+      {
+       "fgColor": "#075ca8",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.76,
+       "fontSize": "9.0pt (12px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": "section[data-testid=\"variable-decision\"] > .var-item-header > .var-name",
+     "data": [
+      {
+       "fgColor": "#075ca8",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.76,
+       "fontSize": "9.0pt (12px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": "section[data-testid=\"variable-current\"] > .var-item-header > .var-name",
+     "data": [
+      {
+       "fgColor": "#075ca8",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.76,
+       "fontSize": "9.0pt (12px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".simulate-btn",
+     "data": [
+      {
+       "fgColor": "#f8f9fa",
+       "bgColor": "#075ca8",
+       "contrastRatio": 6.41,
+       "fontSize": "8.6pt (11.52px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

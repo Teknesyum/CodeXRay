@@ -1,0 +1,284 @@
+{
+ "ekran": "ornekler",
+ "tema": "neon",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 203,
+  "pairs": [
+   {
+    "text": "void dijkstra(int src) { priority_queue<pair<int, int>, vect",
+    "selector": "div.code-editor > div.editor-content > div.code-edit-layer > textarea.code-textarea",
+    "fg": "#000000 0%",
+    "bg": "#0a0a0e",
+    "ratio": 1,
+    "uncertain": true
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Simülasyonu göster",
+    "width": 123.1,
+    "height": 21
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "B ile D arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "C ile F arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "E ile G arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "E ile F arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 105.6
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "A düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "B düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "C düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "D düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "E düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "F düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "G düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > details.graph-import-export > summary",
+    "text": "İçe / dışa aktar",
+    "width": 946,
+    "height": 15
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.qs-menu-container > div.qs-dropdown > div.qs-dropdown-header > button.close-btn",
+    "text": "×",
+    "width": 14,
+    "height": 28
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "target-size",
+   "nodes": [
+    {
+     "target": "button[aria-label=\"A düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"B düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"C düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"D düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"E düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"F düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"G düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

@@ -1,0 +1,246 @@
+[
+ {
+  "ekran": "ana",
+  "tema": "neon",
+  "kontrast": 9,
+  "hedef": 10,
+  "durum": 9,
+  "axe": {}
+ },
+ {
+  "ekran": "simulasyon",
+  "tema": "neon",
+  "kontrast": 31,
+  "hedef": 17,
+  "durum": 11,
+  "axe": {}
+ },
+ {
+  "ekran": "ornekler",
+  "tema": "neon",
+  "kontrast": 20,
+  "hedef": 26,
+  "durum": 12,
+  "axe": {
+   "target-size": 7
+  }
+ },
+ {
+  "ekran": "katalog",
+  "tema": "neon",
+  "kontrast": 78,
+  "hedef": 12,
+  "durum": 3,
+  "axe": {}
+ },
+ {
+  "ekran": "graf-girdi",
+  "tema": "neon",
+  "kontrast": 16,
+  "hedef": 38,
+  "durum": 11,
+  "axe": {
+   "target-size": 15
+  }
+ },
+ {
+  "ekran": "ayarlar-yz",
+  "tema": "neon",
+  "kontrast": 20,
+  "hedef": 15,
+  "durum": 13,
+  "axe": {}
+ },
+ {
+  "ekran": "ayarlar-arayuz",
+  "tema": "neon",
+  "kontrast": 15,
+  "hedef": 12,
+  "durum": 14,
+  "axe": {}
+ },
+ {
+  "ekran": "ayarlar-radyo",
+  "tema": "neon",
+  "kontrast": 14,
+  "hedef": 14,
+  "durum": 14,
+  "axe": {}
+ },
+ {
+  "ekran": "radyo",
+  "tema": "neon",
+  "kontrast": 99,
+  "hedef": 14,
+  "durum": 11,
+  "axe": {}
+ },
+ {
+  "ekran": "ana",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 10,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "simulasyon",
+  "tema": "dark",
+  "kontrast": 0,
+  "hedef": 17,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "ornekler",
+  "tema": "dark",
+  "kontrast": 2,
+  "hedef": 26,
+  "durum": 0,
+  "axe": {
+   "target-size": 7
+  }
+ },
+ {
+  "ekran": "katalog",
+  "tema": "dark",
+  "kontrast": 11,
+  "hedef": 12,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "graf-girdi",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 38,
+  "durum": 0,
+  "axe": {
+   "target-size": 15
+  }
+ },
+ {
+  "ekran": "ayarlar-yz",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 15,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "ayarlar-arayuz",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 12,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "ayarlar-radyo",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 14,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "radyo",
+  "tema": "dark",
+  "kontrast": 1,
+  "hedef": 14,
+  "durum": 0,
+  "axe": {}
+ },
+ {
+  "ekran": "ana",
+  "tema": "light",
+  "kontrast": 21,
+  "hedef": 10,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4
+  }
+ },
+ {
+  "ekran": "simulasyon",
+  "tema": "light",
+  "kontrast": 74,
+  "hedef": 17,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 8
+  }
+ },
+ {
+  "ekran": "ornekler",
+  "tema": "light",
+  "kontrast": 38,
+  "hedef": 26,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 5,
+   "target-size": 7
+  }
+ },
+ {
+  "ekran": "katalog",
+  "tema": "light",
+  "kontrast": 130,
+  "hedef": 12,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4
+  }
+ },
+ {
+  "ekran": "graf-girdi",
+  "tema": "light",
+  "kontrast": 30,
+  "hedef": 38,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4,
+   "target-size": 15
+  }
+ },
+ {
+  "ekran": "ayarlar-yz",
+  "tema": "light",
+  "kontrast": 40,
+  "hedef": 15,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 6
+  }
+ },
+ {
+  "ekran": "ayarlar-arayuz",
+  "tema": "light",
+  "kontrast": 34,
+  "hedef": 12,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4
+  }
+ },
+ {
+  "ekran": "ayarlar-radyo",
+  "tema": "light",
+  "kontrast": 33,
+  "hedef": 14,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4
+  }
+ },
+ {
+  "ekran": "radyo",
+  "tema": "light",
+  "kontrast": 114,
+  "hedef": 14,
+  "durum": 0,
+  "axe": {
+   "color-contrast-enhanced": 4
+  }
+ }
+]

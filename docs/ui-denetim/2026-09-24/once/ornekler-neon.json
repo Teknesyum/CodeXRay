@@ -1,0 +1,545 @@
+{
+ "ekran": "ornekler",
+ "tema": "neon",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 203,
+  "pairs": [
+   {
+    "text": "void dijkstra(int src) { priority_queue<pair<int, int>, vect",
+    "selector": "div.code-editor > div.editor-content > div.code-edit-layer > textarea.code-textarea",
+    "fg": "#000000 0%",
+    "bg": "#09090e",
+    "ratio": 1,
+    "uncertain": true
+   },
+   {
+    "text": "Eklemek için çift tıkla · düzenlemek için tıkla · düğümü taş",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-builder-canvas > span.canvas-hint",
+    "fg": "#ffffff 35%",
+    "bg": "#030306",
+    "ratio": 3.04,
+    "uncertain": true
+   },
+   {
+    "text": "🔍",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+    "fg": "#ff00ff",
+    "bg": "#0a0a0f",
+    "ratio": 6.31,
+    "uncertain": true
+   },
+   {
+    "text": "while",
+    "selector": "div.code-edit-layer > pre.code-highlight-overlay > span > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "for",
+    "selector": "div.code-edit-layer > pre.code-highlight-overlay > span > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "if",
+    "selector": "div.code-edit-layer > pre.code-highlight-overlay > span > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "Henüz izlenen değişken yok…",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-content > div.no-vars",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#8892b0",
+    "bg": "#07070b",
+    "ratio": 6.49,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#8892b0",
+    "bg": "#07070b",
+    "ratio": 6.49,
+    "uncertain": true
+   },
+   {
+    "text": "Girdi Oluşturucu",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.visualizer-header > h2",
+    "fg": "#ff00ff",
+    "bg": "#030306",
+    "ratio": 6.55,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyonu göster",
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "fg": "#ff00ff",
+    "bg": "#030306",
+    "ratio": 6.55,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "Mod",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-toolbar > label",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "Yönlü",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-toolbar > label.check-label",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "Ağırlıklı",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-toolbar > label.check-label",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "Başlangıç",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-toolbar > label",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "Hedef",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > div.graph-toolbar > label",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "İçe / dışa aktar",
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > details.graph-import-export > summary",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Simülasyonu göster",
+    "width": 123.1,
+    "height": 21
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-toolbar > label.check-label > input",
+    "text": "",
+    "width": 13,
+    "height": 13
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "B ile D arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "C ile F arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "E ile G arasındaki kenarı düzenle",
+    "width": 264.3,
+    "height": 0
+   },
+   {
+    "selector": "div.graph-builder-canvas > svg.builder-edges > g > line.edge-hit-target",
+    "text": "E ile F arasındaki kenarı düzenle",
+    "width": 0,
+    "height": 105.6
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "A düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "B düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "C düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "D düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "E düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "F düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.graph-input-editor > div.graph-builder-canvas > div.builder-node-shell > button.node-connector",
+    "text": "G düğümünden bağlantı başlat",
+    "width": 12,
+    "height": 12
+   },
+   {
+    "selector": "div.dynamic-visualizer > div.graph-input-editor > details.graph-import-export > summary",
+    "text": "İçe / dışa aktar",
+    "width": 946,
+    "height": 15
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.qs-menu-container > div.qs-dropdown > div.qs-dropdown-header > button.close-btn",
+    "text": "×",
+    "width": 14,
+    "height": 28
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "target-size",
+   "nodes": [
+    {
+     "target": "button[aria-label=\"A düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"B düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"C düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"D düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"E düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"F düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    },
+    {
+     "target": "button[aria-label=\"G düğümünden bağlantı başlat\"]",
+     "data": [
+      {
+       "minSize": 24,
+       "width": 12,
+       "height": 12
+      },
+      {
+       "closestOffset": 12,
+       "minOffset": 24
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": [
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#030305",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "i",
+   "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+   "fg": "#8892b0",
+   "bg": "#040405",
+   "ratio": 6.64,
+   "uncertain": true
+  },
+  {
+   "durum": "odak",
+   "text": "i",
+   "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+   "fg": "#8892b0",
+   "bg": "#040405",
+   "ratio": 6.64,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#030305",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "Simülasyonu göster",
+   "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+   "fg": "#050508",
+   "bg": "#ff00ff",
+   "ratio": 6.49,
+   "uncertain": false
+  },
+  {
+   "durum": "odak",
+   "text": "Simülasyonu göster",
+   "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+   "fg": "#ff00ff",
+   "bg": "#030306",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#020203",
+   "ratio": 6.62,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#020203",
+   "ratio": 6.62,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "🔍",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+   "fg": "#050508",
+   "bg": "#ff00ff",
+   "ratio": 6.49,
+   "uncertain": false
+  },
+  {
+   "durum": "odak",
+   "text": "🔍",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+   "fg": "#ff00ff",
+   "bg": "#0a0a0f",
+   "ratio": 6.31,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "×",
+   "selector": "div.qs-menu-container > div.qs-dropdown > div.qs-dropdown-header > button.close-btn",
+   "fg": "#ff00ff",
+   "bg": "#082127",
+   "ratio": 5.32,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#050508",
+   "ratio": 6.48,
+   "uncertain": true
+  }
+ ]
+}

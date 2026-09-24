@@ -1,0 +1,1074 @@
+{
+ "ekran": "radyo",
+ "tema": "light",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 123,
+  "pairs": [
+   {
+    "text": "3",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#212121",
+    "bg": "#071317",
+    "ratio": 1.17,
+    "uncertain": true
+   },
+   {
+    "text": "Demons",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#212121",
+    "bg": "#071317",
+    "ratio": 1.17,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Verisi Bekleniyor...",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.visualizer-empty > p",
+    "fg": "#00f3ff 50%",
+    "bg": "#ffffff",
+    "ratio": 1.24,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item.active > span.track-number",
+    "fg": "#075ca8",
+    "bg": "#072023",
+    "ratio": 2.5,
+    "uncertain": true
+   },
+   {
+    "text": "Up",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item.active > span.track-title",
+    "fg": "#075ca8",
+    "bg": "#072023",
+    "ratio": 2.5,
+    "uncertain": true
+   },
+   {
+    "text": "0:00",
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-progress > span.time-text",
+    "fg": "#596273",
+    "bg": "#0a0a0d",
+    "ratio": 3.22,
+    "uncertain": true
+   },
+   {
+    "text": "3:11",
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-progress > span.time-text",
+    "fg": "#596273",
+    "bg": "#0a0a0d",
+    "ratio": 3.22,
+    "uncertain": true
+   },
+   {
+    "text": "25",
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-volume > span.time-text",
+    "fg": "#596273",
+    "bg": "#0a0a0d",
+    "ratio": 3.22,
+    "uncertain": true
+   },
+   {
+    "text": "2",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Imitation",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "4",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Our Music (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "5",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Imitation (Piano Version)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "6",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "The Game Has Changed (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "7",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Warriors Fall",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "8",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Mekansm",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "9",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Saturday",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "10",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Renew (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "11",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Terrasque",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "12",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Revenge in Numbers (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "13",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Nero",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "14",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "The Beast (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "15",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Don't Go (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "16",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Time",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "17",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Legacy",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "18",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Cell",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "19",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Hex",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "20",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Once Again (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "21",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Earthshatter",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "22",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Stalker",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "23",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Launch",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "24",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Drive (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "25",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "After Dark",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "26",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Rampage",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "27",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Echoes of the End",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "28",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Mind",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "29",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Above All",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "30",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Ultra",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "31",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Misery",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "32",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Skyline (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "33",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "March of the Machines",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "34",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "2 You",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "35",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Rise",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "36",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Six Lions",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "37",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Deeper Nights Deeper Dreams",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "38",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "FaceSmash (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "39",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Won't Stay Down",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "40",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Final Walk",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "41",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Fight Epic (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "42",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Caves",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "43",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Pink",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "44",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Balanço da Vida",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "45",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-number",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "The Test (Remastered 2025)",
+    "selector": "aside.playlist-radio > div.radio-playlist-menu > button.playlist-item > span.track-title",
+    "fg": "#596273",
+    "bg": "#08080a",
+    "ratio": 3.26,
+    "uncertain": true
+   },
+   {
+    "text": "Örnekler",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.leetcode-open-btn",
+    "fg": "#075ca8",
+    "bg": "#e1eaf4",
+    "ratio": 5.57,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Henüz izlenen değişken yok…",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-content > div.no-vars",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "Kaynak Kod",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Inputu kaydet",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > button.input-save-btn",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Değişkenler ve İz",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Bilgiç Dede",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.3,
+    "uncertain": true
+   },
+   {
+    "text": "Model yüklenmedi. Gelişmiş özellikler için modeli yükleyin.",
+    "selector": "div.panel-right > section.visualizer-container.panel-region > div.ai-load-warning-banner > span",
+    "fg": "#a8243a",
+    "bg": "#fff1f3",
+    "ratio": 6.42,
+    "uncertain": false
+   },
+   {
+    "text": "Titan Mode",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "fg": "#a40f4c",
+    "bg": "#f7e9ef",
+    "ratio": 6.47,
+    "uncertain": true
+   },
+   {
+    "text": "Kod bağlamı",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span.context-chip",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "⚡",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.simulate-btn",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "−",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Girdiyi düzenle",
+    "width": 105.3,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   },
+   {
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-progress > input.progress-slider.neon-slider",
+    "text": "Radyo oynatma konumu",
+    "width": 140,
+    "height": 3
+   },
+   {
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-volume > button.mute-btn.time-text",
+    "text": "Radyonun sesini kapat",
+    "width": 35,
+    "height": 15
+   },
+   {
+    "selector": "main.app-container > aside.playlist-radio > div.playlist-radio-volume > input.neon-slider.progress-slider",
+    "text": "Radyo ses düzeyi",
+    "width": 140,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "color-contrast-enhanced",
+   "nodes": [
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(1)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(2)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(3)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".ai-load-warning-banner > span",
+     "data": [
+      {
+       "fgColor": "#a8243a",
+       "bgColor": "#fff1f3",
+       "contrastRatio": 6.42,
+       "fontSize": "10.2pt (13.6px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

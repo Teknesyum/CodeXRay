@@ -1,0 +1,109 @@
+{
+  "version": "1.1.0",
+  "template": "neon",
+  "off": false,
+  "targets": [
+    "css"
+  ],
+  "typography": {
+    "sans": "'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif",
+    "mono": "'Cascadia Mono', Consolas, ui-monospace, monospace",
+    "scale": [
+      10,
+      13,
+      14,
+      18,
+      24
+    ]
+  },
+  "signature": {
+    "off": false,
+    "text": "by Teknesyum",
+    "github": "https://github.com/Teknesyum",
+    "sponsor": "https://github.com/sponsors/Teknesyum",
+    "supportText": "Buy me a coffee"
+  },
+  "note": "",
+  "palette": {
+    "primary": "#00f3ff",
+    "secondary": "#ff00ea",
+    "tertiary": "#b026ff",
+    "surface": "#08090a",
+    "dark": true
+  },
+  "installedAt": "2026-09-24T17:31:17.667Z",
+  "ignore": [
+    {
+      "rule": "okunurluk/pair-contrast",
+      "file": "src/themeContrast.css",
+      "line": 61,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada --text-main #212121 / #ffffff = 16.10:1 (sonra/*-light.json)"
+    },
+    {
+      "rule": "okunurluk/pair-contrast",
+      "file": "src/themeContrast.css",
+      "line": 152,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada --text-main #212121 / #ffffff = 16.10:1 (sonra/*-light.json)"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 159,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #003f50 / #ffffff = 11.50:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 185,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #172033 / #ffffff = 16.27:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 190,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #8b124f / #ffffff = 9.14:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 195,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #07589c / #ffffff = 7.28:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 200,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #17652c / #ffffff = 7.16:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 205,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #824600 / #ffffff = 7.43:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 210,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #12602a / #ffffff = 7.69:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 215,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #4c5968 / #ffffff = 7.15:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/themeContrast.css",
+      "line": 219,
+      "reason": "açık tema kuralı; tarayıcı :root (neon) değeriyle ya da siyaha karşı ölçüyor, canlı açık temada #334155 / #ffffff = 10.35:1"
+    },
+    {
+      "rule": "core/contrast",
+      "file": "src/components/ControlBar.css",
+      "line": 331,
+      "reason": "açık tema düğmesinin önizlemesi; #212121 beyaz %80 zemin üstünde, siyaha karşı değil: 16.10:1"
+    }
+  ]
+}

@@ -70,7 +70,7 @@
   border-radius: 6px;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity var(--tk-t-fast), transform var(--tk-t-fast);
   font-size: 0.85rem;
 }
 
@@ -105,13 +105,13 @@
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  transition: all 0.3s ease;
+  transition: opacity var(--tk-t-base) ease, transform var(--tk-t-base) ease;
   box-shadow: inset 0 0 5px rgba(0, 243, 255, 0.2);
 }
 
 .neon-button:hover {
   background: var(--neon-cyan);
-  color: var(--bg-dark);
+  color: var(--on-neon-cyan);
   box-shadow: 0 0 15px var(--neon-cyan), inset 0 0 10px var(--neon-cyan);
 }
 
@@ -122,9 +122,10 @@
 }
 
 .analyze-btn:hover {
-  background: var(--neon-magenta);
-  color: var(--bg-dark);
-  box-shadow: 0 0 15px var(--neon-magenta), inset 0 0 10px var(--neon-magenta);
+  border-color: var(--neon-cyan);
+  background: var(--neon-cyan);
+  color: var(--on-neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan), inset 0 0 10px var(--neon-cyan);
 }
 
 /* Icon Buttons */
@@ -138,7 +139,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .icon-btn:hover:not(:disabled) {
@@ -199,7 +200,7 @@
   background: var(--neon-magenta);
   cursor: pointer;
   box-shadow: 0 0 8px var(--neon-magenta);
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .neon-slider::-webkit-slider-thumb:hover {
@@ -228,7 +229,7 @@
   flex-direction: column;
   max-height: calc(100vh - 24px);
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: opacity var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1), transform var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .settings-modal-header {
@@ -254,11 +255,11 @@
   color: var(--text-muted);
   font-size: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .close-btn:hover {
-  color: var(--neon-magenta);
+  color: var(--text-main);
   text-shadow: 0 0 10px var(--neon-magenta);
 }
 
@@ -277,7 +278,7 @@
   font-family: var(--font-sans);
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .tab-btn:hover {
@@ -306,7 +307,7 @@
   font-family: var(--font-sans);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .theme-btn:hover {
@@ -435,7 +436,7 @@
   color: var(--text-primary);
   background: color-mix(in srgb, var(--neon-magenta) 7%, var(--bg-secondary));
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition: border-color var(--tk-t-fast) ease, background var(--tk-t-fast) ease, box-shadow var(--tk-t-fast) ease;
 }
 
 .provider-preset-chip:hover:not(:disabled),
@@ -751,7 +752,7 @@
   outline: none;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
   box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
 }
 
@@ -793,7 +794,7 @@
   cursor: pointer;
   padding: 10px 25px;
   border-radius: 6px;
-  transition: all 0.3s ease;
+  transition: opacity var(--tk-t-base) ease, transform var(--tk-t-base) ease;
   font-size: 1rem;
 }
 
@@ -846,7 +847,7 @@
   font-family: var(--font-mono);
   font-size: 1rem;
   outline: none;
-  transition: all 0.3s ease;
+  transition: opacity var(--tk-t-base) ease, transform var(--tk-t-base) ease;
 }
 
 .api-key-input:focus, .api-provider-select:focus {

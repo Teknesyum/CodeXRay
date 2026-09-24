@@ -1,0 +1,494 @@
+{
+ "ekran": "ayarlar-yz",
+ "tema": "light",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 52,
+  "pairs": [
+   {
+    "text": "Yaklaşık 1.1 GB GPU belleği gerekir. Cihaz desteği değişebil",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-model-settings > p.model-requirement",
+    "fg": "#ffcf70",
+    "bg": "#ffffff",
+    "ratio": 1.46,
+    "uncertain": true
+   },
+   {
+    "text": "4096 token bağlam · en fazla 520 yanıt tokenı ve bir sınırlı",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-model-settings > p.model-requirement",
+    "fg": "#ffcf70",
+    "bg": "#ffffff",
+    "ratio": 1.46,
+    "uncertain": true
+   },
+   {
+    "text": "Örnekler",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.leetcode-open-btn",
+    "fg": "#075ca8",
+    "bg": "#e1eaf4",
+    "ratio": 5.57,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Henüz izlenen değişken yok…",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-content > div.no-vars",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "×",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-modal-header > button.close-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "🎨 Arayüz",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-tabs > button.tab-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "📻 Radyo",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-tabs > button.tab-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "Ollama ve OpenAI-compatible endpointler Windows masaüstü uyg",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-provider-settings > p.local-ai-note",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "WebLLM, WebGPU ile yerelde çalışır. Yalnız istediğiniz linki",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > p.local-ai-note.ai-privacy-note",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "İlk kullanımda modelin indirilmesi gerekir",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.local-storage-status > span",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "Depolama daralırsa tarayıcı yerel önbelleği temizleyebilir",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.local-storage-status > span",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "Modeller tarayıcı depolamasında kalır ve önbellekteki ağırlı",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > p.local-ai-note.ai-storage-note",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "Bu site için saklanmış model dosyası yok.",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.stored-models > p.local-ai-note",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "Kaynak Kod",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Inputu kaydet",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > button.input-save-btn",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Değişkenler ve İz",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "CodeXRay",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > footer.settings-version-footer > span",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Bilgiç Dede",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.3,
+    "uncertain": true
+   },
+   {
+    "text": "Titan Mode",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "fg": "#a40f4c",
+    "bg": "#f7e9ef",
+    "ratio": 6.47,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Verisi Bekleniyor...",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.visualizer-empty > p",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "Kod bağlamı",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span.context-chip",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "⚡",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.simulate-btn",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "−",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "Ayarlar",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-modal-header > h2",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "🤖 YZ Ayarları",
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-tabs > button.tab-btn.active",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "Yapay zekâ sağlayıcısı",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-provider-settings > div.settings-title",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "Cihaz üzerindeki model",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-model-settings > div.settings-title",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "Saklanan modeller",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.stored-models > div.settings-title",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "Yerel modeli yükle",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.ai-load-actions > button.neon-button.ai-load-button",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "YZ yükleme tercihleri",
+    "selector": "div.settings-modal.glass-panel > div.settings-modal-content.ai-settings-layout > div.settings-section.ai-load-preferences > div.settings-title",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": true
+   },
+   {
+    "text": "−",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Girdiyi düzenle",
+    "width": 105.3,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   },
+   {
+    "selector": "div.settings-container > div.settings-modal.glass-panel > div.settings-modal-header > button.close-btn",
+    "text": "×",
+    "width": 14,
+    "height": 28
+   },
+   {
+    "selector": "div.settings-modal-content.ai-settings-layout > div.settings-section.ai-load-preferences > label.neon-checkbox-label > input.neon-checkbox",
+    "text": "",
+    "width": 18,
+    "height": 18
+   },
+   {
+    "selector": "div.settings-modal-content.ai-settings-layout > div.settings-section.ai-load-preferences > label.neon-checkbox-label > input.neon-checkbox",
+    "text": "",
+    "width": 18,
+    "height": 18
+   },
+   {
+    "selector": "div.settings-modal-content.ai-settings-layout > div.settings-section.ai-load-preferences > label.neon-checkbox-label > input.neon-checkbox",
+    "text": "",
+    "width": 18,
+    "height": 18
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "color-contrast-enhanced",
+   "nodes": [
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(1)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(2)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(3)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".local-storage-status > span:nth-child(1)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.6pt (11.52px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".local-storage-status > span:nth-child(2)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.6pt (11.52px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

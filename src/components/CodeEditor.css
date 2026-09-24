@@ -81,7 +81,7 @@
   font-family: var(--font-mono);
   font-size: 0.85rem;
   outline: none;
-  transition: all 0.3s ease;
+  transition: opacity var(--tk-t-base) ease, transform var(--tk-t-base) ease;
 }
 
 .parameter-field {
@@ -128,7 +128,7 @@
   font: 700 0.68rem var(--font-mono);
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color var(--tk-t-fast) ease, box-shadow var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .input-save-btn:hover,
@@ -171,7 +171,7 @@
   font-size: 0.7rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity var(--tk-t-fast), transform var(--tk-t-fast);
 }
 
 .preset-btn:hover {
@@ -273,7 +273,7 @@
     0 0 4px currentColor,
     0 0 10px color-mix(in srgb, currentColor 78%, transparent),
     0 0 15px color-mix(in srgb, currentColor 48%, transparent);
-  animation: titan-mode-new-code 420ms ease-out both;
+  animation: titan-mode-new-code var(--tk-t-slow) ease-out both;
 }
 
 .titan-mode-code-new-text .code-token {
@@ -354,7 +354,7 @@
 }
 
 .code-token {
-  transition: color 160ms ease, text-shadow 160ms ease, filter 160ms ease;
+  transition: color var(--tk-t-fast) ease, text-shadow var(--tk-t-fast) ease, filter var(--tk-t-fast) ease;
 }
 
 .code-token.keyword,
@@ -399,5 +399,5 @@
   filter: brightness(1.2) saturate(1.15);
 }
 
-.leetcode-open-btn { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 5px 9px; color: var(--neon-cyan); border: 1px solid color-mix(in srgb, var(--neon-cyan) 42%, var(--text-muted)); border-radius: 7px; background: color-mix(in srgb, var(--neon-cyan) 7%, transparent); font: 700 11px var(--font-mono); cursor: pointer; transition: .18s ease; }
+.leetcode-open-btn { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 5px 9px; color: var(--neon-cyan); border: 1px solid color-mix(in srgb, var(--neon-cyan) 42%, var(--text-muted)); border-radius: 7px; background: color-mix(in srgb, var(--neon-cyan) 7%, transparent); font: 700 11px var(--font-mono); cursor: pointer; transition: var(--tk-t-slow) ease; }
 .leetcode-open-btn:hover { border-color: var(--neon-cyan); background: color-mix(in srgb, var(--neon-cyan) 13%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--neon-cyan) 28%, transparent); transform: translateY(-1px); }

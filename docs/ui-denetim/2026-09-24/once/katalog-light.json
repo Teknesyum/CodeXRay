@@ -1,0 +1,1190 @@
+{
+ "ekran": "katalog",
+ "tema": "light",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 188,
+  "pairs": [
+   {
+    "text": "Simülasyon Verisi Bekleniyor...",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.visualizer-empty > p",
+    "fg": "#00f3ff 50%",
+    "bg": "#ffffff",
+    "ratio": 1.24,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Medium",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-medium",
+    "fg": "#ffd15c",
+    "bg": "#fff8e9",
+    "ratio": 1.37,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Easy",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-easy",
+    "fg": "#39eba5",
+    "bg": "#e7fbf4",
+    "ratio": 1.43,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Hard",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-difficulty.is-hard",
+    "fg": "#ff6b8a",
+    "bg": "#ffeaef",
+    "ratio": 2.36,
+    "uncertain": true
+   },
+   {
+    "text": "Platform",
+    "selector": "div.examples-drawer > section.examples-filters > label > span",
+    "fg": "#596273",
+    "bg": "#d1d1d1",
+    "ratio": 4.01,
+    "uncertain": true
+   },
+   {
+    "text": "Zorluk",
+    "selector": "div.examples-drawer > section.examples-filters > label > span",
+    "fg": "#596273",
+    "bg": "#d1d1d1",
+    "ratio": 4.01,
+    "uncertain": true
+   },
+   {
+    "text": "Problem tipi",
+    "selector": "div.examples-drawer > section.examples-filters > label > span",
+    "fg": "#596273",
+    "bg": "#d1d1d1",
+    "ratio": 4.01,
+    "uncertain": true
+   },
+   {
+    "text": "Başlık, ID veya etiket ara…",
+    "selector": "div.examples-drawer > section.examples-filters > label.examples-search > span.sr-only",
+    "fg": "#596273",
+    "bg": "#dcdcdc",
+    "ratio": 4.5,
+    "uncertain": true
+   },
+   {
+    "text": "Örnekler",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.leetcode-open-btn",
+    "fg": "#075ca8",
+    "bg": "#e1eaf4",
+    "ratio": 5.57,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#596273",
+    "bg": "#f2f6f9",
+    "ratio": 5.64,
+    "uncertain": true
+   },
+   {
+    "text": "Algoritma problemlerini incele, filtrele ve doğrulanmış olan",
+    "selector": "header.examples-header > div.examples-heading > div > p",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "3236",
+    "selector": "main.examples-content > section.examples-list-pane > div.examples-list-meta > span",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "main.examples-content > section.examples-list-pane > nav.examples-pagination > span",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "Ayrıntılarını görmek için bir problem seç.",
+    "selector": "main.examples-content > aside.examples-detail-pane > div.examples-empty-detail > p",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "Henüz izlenen değişken yok…",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-content > div.no-vars",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.12,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "#",
+    "selector": "ul.examples-problem-list > li > button.examples-problem-row > span.examples-problem-id",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#596273",
+    "bg": "#ffffff",
+    "ratio": 6.14,
+    "uncertain": false
+   },
+   {
+    "text": "Kaynak Kod",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Inputu kaydet",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > button.input-save-btn",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Değişkenler ve İz",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > h2",
+    "fg": "#075ca8",
+    "bg": "#f2f6f9",
+    "ratio": 6.21,
+    "uncertain": true
+   },
+   {
+    "text": "Bilgiç Dede",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span",
+    "fg": "#216e27",
+    "bg": "#ffffff",
+    "ratio": 6.3,
+    "uncertain": true
+   },
+   {
+    "text": "Model yüklenmedi. Gelişmiş özellikler için modeli yükleyin.",
+    "selector": "div.panel-right > section.visualizer-container.panel-region > div.ai-load-warning-banner > span",
+    "fg": "#a8243a",
+    "bg": "#fff1f3",
+    "ratio": 6.42,
+    "uncertain": false
+   },
+   {
+    "text": "Titan Mode",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "fg": "#a40f4c",
+    "bg": "#f7e9ef",
+    "ratio": 6.47,
+    "uncertain": true
+   },
+   {
+    "text": "Örnekler",
+    "selector": "h2#examples-title",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "Kod bağlamı",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > span.context-chip",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "⚡",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.simulate-btn",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.74,
+    "uncertain": true
+   },
+   {
+    "text": "−",
+    "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   },
+   {
+    "text": "−",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+    "fg": "#075ca8",
+    "bg": "#ffffff",
+    "ratio": 6.76,
+    "uncertain": false
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.examples-drawer > section.examples-filters > label.examples-search > input",
+    "text": "",
+    "width": 591.3,
+    "height": 16
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Girdiyi düzenle",
+    "width": 105.3,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "color-contrast-enhanced",
+   "nodes": [
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(1)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(2)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".preset-btn[type=\"button\"]:nth-child(3)",
+     "data": [
+      {
+       "fgColor": "#596273",
+       "bgColor": "#ffffff",
+       "contrastRatio": 6.14,
+       "fontSize": "8.4pt (11.2px)",
+       "fontWeight": "bold",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    },
+    {
+     "target": ".ai-load-warning-banner > span",
+     "data": [
+      {
+       "fgColor": "#a8243a",
+       "bgColor": "#fff1f3",
+       "contrastRatio": 6.42,
+       "fontSize": "10.2pt (13.6px)",
+       "fontWeight": "normal",
+       "messageKey": null,
+       "expectedContrastRatio": "7:1"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "durumlar": []
+}

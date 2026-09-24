@@ -1,0 +1,42 @@
+AGENTS.md:514  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+AGENTS.md:595  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/ALGORITHM_VISUALIZATION_AUDIT.md:22  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/DEVIRALAN.md:96  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/DEVIRALAN.md:413  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/DEVIRALAN.md:414  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/DEVIRALAN.md:476  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/DEVIRALAN.md:478  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/legacy/AGENTS_pre_titan.md:221  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/legacy/CODEXRAY_MASTER_REQUIREMENTS_AND_ACCEPTANCE_TESTS.md:2452  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/legacy/CODEXRAY_MASTER_REQUIREMENTS_AND_ACCEPTANCE_TESTS.md:2589  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/tasks/T3-tracer-core.md:47  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H02-trustworthy-browser-gate.md:41  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H07-adapt-input-on-the-seam.md:252  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H08-clarification-budget-validity.md:16  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H08-clarification-budget-validity.md:35  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H08-clarification-budget-validity.md:73  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H08-clarification-budget-validity.md:273  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H09-unit-suite-budget-validity.md:85  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H09-unit-suite-budget-validity.md:86  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H11-timeline-commit-budget-validity.md:19  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H17c-grounded-current-step-verification.md:123  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H17c-grounded-current-step-verification.md:171  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H21-a-fallback-is-not-a-verdict.md:587  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H26-the-interval-that-outlived-its-test.md:167  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H30-the-default-worker-count-nobody-chose.md:1  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H30-the-default-worker-count-nobody-chose.md:134  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H30-the-default-worker-count-nobody-chose.md:154  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/handoffs/H31-a-key-step-that-is-just-the-first-step.md:542  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R08-clarification-budget-validity.md:54  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R09-unit-suite-budget-validity.md:54  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R11-timeline-commit-budget-validity.md:84  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R30-the-default-worker-count-nobody-chose.md:1  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R30-the-default-worker-count-nobody-chose.md:23  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R31-a-key-step-that-is-just-the-first-step.md:190  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R32-the-teaching-strip-four-views-never-got.md:158  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R33-the-table-that-ships-before-anyone-reads-it.md:229  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+docs/titan/routes/R34-the-plan-that-comes-back-after-you-cancelled-it.md:204  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+e2e/theme-contrast.spec.ts:78  forms/turkish-casing  Turkish casing: use toLocaleUpperCase('tr') / toLocaleLowerCase('tr').
+README.md:232  forms/unmeasured-label  Unmeasured number: carry the (default, unmeasured) label.
+… 1060 more
+447 files · 1100 open · 0 fixed · 955 error(s) · 12 ignored

@@ -32,7 +32,7 @@
   color: inherit;
   background: transparent;
   cursor: pointer;
-  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: color var(--tk-t-fast) ease, background var(--tk-t-fast) ease, box-shadow var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .radio-launcher-open {
@@ -52,12 +52,12 @@
 }
 
 .radio-launcher-open:hover {
-  color: var(--bg-dark);
-  background: var(--neon-magenta);
+  color: var(--on-neon-cyan);
+  background: var(--neon-cyan);
 }
 
 .radio-launcher-playback:hover {
-  color: var(--bg-dark);
+  color: var(--on-neon-cyan);
   background: var(--neon-cyan);
   box-shadow: 0 0 12px color-mix(in srgb, var(--neon-cyan) 55%, transparent);
 }
@@ -74,7 +74,7 @@
   border-radius: 10px;
   background: rgba(5, 5, 8, 0.98);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 0, 255, 0.18);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: opacity var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1), transform var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .playlist-radio-header {
@@ -151,7 +151,7 @@
   color: var(--text-muted);
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
 }
 
 .control-btn:hover {
@@ -218,7 +218,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.2s;
+  transition: opacity var(--tk-t-fast);
 }
 
 .mute-btn:disabled {
@@ -273,7 +273,7 @@
   justify-content: center;
   position: relative;
   z-index: 2;
-  transition: color 0.2s;
+  transition: color var(--tk-t-fast);
 }
 
 .minimize-btn:hover {
@@ -294,7 +294,7 @@
   stroke-width: 2;
   stroke-dasharray: 74;
   stroke-dashoffset: 0;
-  animation: countdown 4s linear forwards;
+  animation: countdown var(--tk-t-slow) linear forwards;
 }
 
 @keyframes countdown {
@@ -365,7 +365,7 @@
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--tk-t-base);
 }
 
 .radio-visualizer.playing .wave-1,
@@ -484,7 +484,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity var(--tk-t-fast), transform var(--tk-t-fast);
   text-align: left;
 }
 

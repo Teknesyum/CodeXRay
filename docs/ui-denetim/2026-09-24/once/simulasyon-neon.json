@@ -1,0 +1,466 @@
+{
+ "ekran": "simulasyon",
+ "tema": "neon",
+ "canli": {
+  "url": "http://localhost:5317/",
+  "esik": 7,
+  "hedef": 24,
+  "checked": 254,
+  "pairs": [
+   {
+    "text": "🔍",
+    "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+    "fg": "#ff00ff",
+    "bg": "#0a0a0f",
+    "ratio": 6.31,
+    "uncertain": true
+   },
+   {
+    "text": "while",
+    "selector": "div.code-display > div.code-line > pre > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "for",
+    "selector": "div.code-display > div.code-line > pre > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "if",
+    "selector": "div.code-display > div.code-line > pre > span.code-token.keyword",
+    "fg": "#ff00ff",
+    "bg": "#09090e",
+    "ratio": 6.34,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "2",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "3",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "4",
+    "selector": "div.editor-content > div.code-display > div.code-line.highlighted > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "5",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "6",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "7",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "8",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "9",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "10",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "11",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "12",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "13",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "14",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "15",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "16",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "17",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "18",
+    "selector": "div.editor-content > div.code-display > div.code-line > span.line-number",
+    "fg": "#8892b0",
+    "bg": "#09090e",
+    "ratio": 6.42,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Girdisi:",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > label",
+    "fg": "#8892b0",
+    "bg": "#07070b",
+    "ratio": 6.49,
+    "uncertain": true
+   },
+   {
+    "text": "Ör: GraphDocumentV1 JSON",
+    "selector": "section.left-top.panel-region > div.code-editor > div.input-config > span.input-format-help",
+    "fg": "#8892b0",
+    "bg": "#07070b",
+    "ratio": 6.49,
+    "uncertain": true
+   },
+   {
+    "text": "10",
+    "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > span",
+    "fg": "#8892b0",
+    "bg": "#060609",
+    "ratio": 6.53,
+    "uncertain": true
+   },
+   {
+    "text": "Simülasyon Görünümü",
+    "selector": "section.visualizer-container.panel-region > div.dynamic-visualizer > div.visualizer-header > h2",
+    "fg": "#ff00ff",
+    "bg": "#030306",
+    "ratio": 6.55,
+    "uncertain": true
+   },
+   {
+    "text": "Girdiyi düzenle",
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "fg": "#ff00ff",
+    "bg": "#030306",
+    "ratio": 6.55,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "i",
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "fg": "#8892b0",
+    "bg": "#040405",
+    "ratio": 6.64,
+    "uncertain": true
+   },
+   {
+    "text": "1",
+    "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > span",
+    "fg": "#8892b0",
+    "bg": "#030306",
+    "ratio": 6.64,
+    "uncertain": true
+   }
+  ],
+  "targets": [
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i1",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i2",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+    "text": "i3",
+    "width": 31.5,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-left > div.panel-splitter.horizontal",
+    "text": "Kod ve değişken panellerini yeniden boyu",
+    "width": 460,
+    "height": 6
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(1)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(7)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Nesne(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "section.var-item.changed > div.var-value > details.trace-collection > summary",
+    "text": "Dizi(0)",
+    "width": 403,
+    "height": 19
+   },
+   {
+    "selector": "div#root > main.app-container > div.split-layout > div.panel-splitter.vertical",
+    "text": "Sol ve sağ panelleri yeniden boyutlandır",
+    "width": 6,
+    "height": 900
+   },
+   {
+    "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+    "text": "Girdiyi düzenle",
+    "width": 105.3,
+    "height": 21
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Görselleştirici ve asistan panellerini y",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Titan Mode",
+    "width": 88.4,
+    "height": 20
+   },
+   {
+    "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.titan-mode-toggle.active",
+    "text": "Kritik noktalarda otomatik durma açık",
+    "width": 24,
+    "height": 18
+   },
+   {
+    "selector": "main.app-container > div.split-layout > div.panel-right > div.panel-splitter.horizontal",
+    "text": "Asistan ve kontrol panellerini yeniden b",
+    "width": 974,
+    "height": 6
+   },
+   {
+    "selector": "div.control-bar > div.control-group.right-controls > div.speed-control > input.neon-slider",
+    "text": "Oynatma hızı",
+    "width": 82,
+    "height": 3
+   }
+  ]
+ },
+ "axe": [],
+ "durumlar": [
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.left-top.panel-region > div.code-editor > div.editor-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#030305",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "i",
+   "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+   "fg": "#8892b0",
+   "bg": "#040405",
+   "ratio": 6.64,
+   "uncertain": true
+  },
+  {
+   "durum": "odak",
+   "text": "i",
+   "selector": "div.code-editor > div.input-config > div.preset-buttons > button.preset-btn",
+   "fg": "#8892b0",
+   "bg": "#040405",
+   "ratio": 6.64,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.left-bottom.panel-region > div.variables-panel.glass-panel > div.variables-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#030305",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "Girdiyi düzenle",
+   "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+   "fg": "#050508",
+   "bg": "#ff00ff",
+   "ratio": 6.49,
+   "uncertain": false
+  },
+  {
+   "durum": "odak",
+   "text": "Girdiyi düzenle",
+   "selector": "div.visualizer-header > div.visualizer-header-actions > div.visualizer-mode-toggle > button",
+   "fg": "#ff00ff",
+   "bg": "#030306",
+   "ratio": 6.55,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "div.dynamic-visualizer > div.visualizer-header > div.visualizer-header-actions > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#020203",
+   "ratio": 6.62,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.assistant-container.panel-region > div.ai-assistant > div.ai-header > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#020203",
+   "ratio": 6.62,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "🔍",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+   "fg": "#050508",
+   "bg": "#ff00ff",
+   "ratio": 6.49,
+   "uncertain": false
+  },
+  {
+   "durum": "odak",
+   "text": "🔍",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group > button.neon-button.analyze-btn",
+   "fg": "#ff00ff",
+   "bg": "#0a0a0f",
+   "ratio": 6.31,
+   "uncertain": true
+  },
+  {
+   "durum": "hover",
+   "text": "−",
+   "selector": "section.control-container.panel-region > div.control-bar > div.control-group.right-controls > button.panel-toggle",
+   "fg": "#ff00ff",
+   "bg": "#050508",
+   "ratio": 6.48,
+   "uncertain": true
+  }
+ ]
+}

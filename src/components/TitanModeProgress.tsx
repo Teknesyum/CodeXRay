@@ -9,7 +9,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { ManagerPlanV1 } from '../types/titan';
 import type { ManagerPlanV2 } from '../types/webSource';
@@ -173,6 +173,7 @@ export const TitanModeProgress = ({
           onClick={onUndo}
           disabled={!canUndo || Boolean(running)}
           aria-label={t('titanModeUndo', locale)}
+          title={t('titanModeUndo', locale)}
           onMouseEnter={(event) => showControlTooltip(event, t('titanModeUndo', locale))}
           onMouseLeave={() => setTooltip(null)}
           onFocus={(event) => showControlTooltip(event, t('titanModeUndo', locale))}
@@ -186,6 +187,7 @@ export const TitanModeProgress = ({
           onClick={onRedo}
           disabled={!canRedo || Boolean(running)}
           aria-label={t('titanModeRedo', locale)}
+          title={t('titanModeRedo', locale)}
           onMouseEnter={(event) => showControlTooltip(event, t('titanModeRedo', locale))}
           onMouseLeave={() => setTooltip(null)}
           onFocus={(event) => showControlTooltip(event, t('titanModeRedo', locale))}
@@ -242,7 +244,7 @@ export const TitanModeProgress = ({
         )}
       </div>
       <div className="titan-mode-real-progress" aria-label={t('titanModeProgress', locale)}>
-        <div style={{ width: `${progress}%` }} />
+        <div style={{ '--tk-titan-progress': progress / 100 } as CSSProperties} />
       </div>
       <div className="titan-mode-agent-list">
         {plan.jobs.map((job) => (
@@ -266,7 +268,7 @@ export const TitanModeProgress = ({
             )}
             onBlur={() => setTooltip(null)}
           >
-            <span className="agent-state-icon" aria-hidden="true">
+            <span className="agent-state-icon" data-tk-loading aria-hidden="true">
               {job.status === 'completed' || job.status === 'completed_with_fallback'
                 ? <Check size={12} />
                 : job.status === 'running' || job.status === 'retrying'
@@ -311,7 +313,7 @@ export const TitanModeProgress = ({
             <span>{t(agentKey(reasoningJob.role), locale)}</span>
             <span>{t('titanAgentThinking', locale)}</span>
             {liveReasoningJob?.id === reasoningJob.id && (
-              <span className="titan-mode-thinking-live">{t('titanAgentThinkingLive', locale)}</span>
+              <span className="titan-mode-thinking-live" data-tk-loading>{t('titanAgentThinkingLive', locale)}</span>
             )}
           </summary>
           <pre>{reasoningJob.reasoning}</pre>

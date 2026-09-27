@@ -59,7 +59,7 @@ test('changes language and every theme mid-run without regenerating timeline sem
 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: '🎨 UI Settings' }).click();
-  for (const theme of ['Dark', 'Light', 'Neon (Default)']) {
+  for (const theme of ['Dark', 'Neon (Default)']) {
     await page.getByRole('button', { name: theme, exact: true }).click();
     await expect(progress).toHaveText(progressBefore ?? '');
     expect(await page.locator('.graph-node').evaluateAll((nodes) => nodes.map((node) => ({

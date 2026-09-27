@@ -135,7 +135,7 @@ test('translates a reviewed Java web solution into a verified simulation badge',
   });
 
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('Solve https://example.com/matrix-scan and simulate it');
   await chat.press('Enter');
@@ -257,7 +257,7 @@ test('shows a refused Java fallback without changing workspace or persisted boun
   });
 
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('Read https://example.com/refused-matrix-scan');
   await chat.press('Enter');

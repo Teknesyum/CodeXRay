@@ -4,10 +4,21 @@
 
 <div align="center">
   <img src="public/favicon.svg" alt="CodeXRay logosu" width="120" />
-  <h1>CodeXRay ⚡</h1>
+  <h1>CodeXRay</h1>
   <p><strong>Algoritmaların çalışmasını, her seferinde tek bir durum değişikliğiyle izleyin.</strong></p>
   <p><a href="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml"><img src="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
 </div>
+
+## Bir Bakışta
+
+| Ölçü | Değer |
+| --- | --- |
+| Deterministik simülatör | 60 |
+| Arayüz dili | 2 (İngilizce, Türkçe) |
+| Titan Modu aşaması | 5 |
+| Uzak yapay zekâ çağrısı | 0 |
+
+## Nedir
 
 CodeXRay, React/Vite tarayıcı uygulaması ve Tauri 2 Windows masaüstü uygulaması
 olarak sunulan, İngilizce/Türkçe iki dilli bir algoritma görselleştiricisidir.
@@ -61,6 +72,31 @@ loopback Ollama ya da OpenAI uyumlu sunucuya bağlanabilir.
 - Değişkenler ve İz'in üstünde kalan ve canlı değerleri yatay kaydırılabilir
   görselleştirme izleme şeridine yansıtan kalıcı değişken iğneleri.
 
+## VisuAlgo bunu zaten yapmıyor mu?
+
+VisuAlgo ve benzeri siteler klasik algoritmaları iyi canlandırır; ders anlatımı tarzı bir
+gezinti için CodeXRay onların yerini tutmaz. CodeXRay'in eklediği:
+
+- İz sizin girdinizden üretilir ve her adımdaki her değişken Değişkenler ve İz panelinde
+  kesilmeden gösterilir.
+- İngilizce ve Türkçe arasında anında geçilir; önceden simüle edilmiş adımlar da çevrilir.
+- İsteğe bağlı yerel model adımları açıklar ve girdiyi düzenler, ama izi asla yazmaz;
+  izi deterministik yorumlayıcı üretir.
+- Windows masaüstü sürümü çevrimdışı çalışır ve yerel bir Ollama ya da OpenAI uyumlu
+  sunucuyla konuşabilir.
+
+## Yapmadıkları
+
+- Uzak yapay zekâ çağrısı yapmaz; çalışma alanı, sohbet ya da istem makineden çıkmaz.
+  Tarayıcıdan yalnız web okuyucusuna getirmesini istediğiniz URL çıkar.
+- Kullanıcı ya da model kaynağını asla `eval` veya `new Function` ile çalıştırmaz.
+- İzleyici `async`/`await`, üreteçler ve `Symbol.iterator` desteklemez; desteklenmeyen
+  yapılar satır numarasıyla bildirilir.
+- Ollama, LM Studio ya da başka bir çalışma zamanını kurmaz, başlatmaz, yönetmez.
+- Doğrulama, üretilen simülasyonun programının ürettiği şey olduğunu kanıtlar; programın
+  sorununuzu çözdüğünü değil.
+- Sürüm derlemeleri kod imzalı değildir.
+
 ## Titan Modu
 
 Titan Modu, CodeXRay'in önce-deterministik çalışma alanı orkestratörüdür.
@@ -75,6 +111,11 @@ göre denetlenir ve yalnızca tüm deterministik kapılar geçildikten sonra
 uygulanır. CodeXRay kullanıcı ya da model kaynağını asla `eval` ya da
 `new Function` ile çalıştırmaz. Desteklenmeyen işlemler ve başarısız doğrulama
 sessizce geri düşmek yerine görünür kalır.
+
+```mermaid
+flowchart LR
+  A[Yönlendir] --> B[Üret] --> C[Anlam] --> D[Doğrula] --> E[Uygula]
+```
 
 Titan Modu beş açık aşama kullanır: Route, Produce, Semantics, Verify ve
 Apply. Gerekmeyen aşamalar atlanmış olarak gösterilir. Çalışma alanı
@@ -271,9 +312,17 @@ eski dengesiz sağ sütun varsayılanlarını bilerek atar. Örnekler menüsü a
 yığın katmanının üstünde çizilir ve Kontroller paneli tarafından kırpılmak
 yerine kaydırılabilir kalır.
 
+## Katkı
+
+Büyük bir değişiklikten önce issue açın; pull request'leri küçük ve tek konulu tutun.
+Depo dili İngilizcedir; tek istisna Türkçe README'dir.
+Katkılar AGPL-3.0-or-later altında lisanslanır. Commit'ler [DCO](DCO) altında imzalanır;
+ayrıntılar [CONTRIBUTING.md](CONTRIBUTING.md) içinde.
+CodeXRay işinize yarıyorsa [Teknesyum'a sponsor olmak](https://github.com/sponsors/Teknesyum) sürmesini sağlar.
+
 ## Lisans
 
-AGPL-3.0-or-later — bkz. [LICENSE](LICENSE).
+AGPL-3.0-or-later. Bkz. [LICENSE](LICENSE).
 
 Telif Hakkı (C) 2026 Teknesyum
 

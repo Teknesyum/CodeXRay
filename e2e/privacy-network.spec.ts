@@ -58,7 +58,7 @@ test('keeps source, input, and chat payloads out of external network requests', 
   const privateQuestion = 'PRIVATE_CHAT_SENTINEL_9f31 explain my input';
   await page.getByRole('textbox', { name: 'Array Simulation Input:' }).fill(privateInput);
   await page.getByRole('button', { name: /Simulate/ }).click();
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
   await question.fill(privateQuestion);
   await question.press('Enter');

@@ -253,9 +253,6 @@ export const routeTitanModeRequest = (
   if (/\b(karanlik|dark)\b.*\b(tema|theme|yap|gec|sec)\b|\b(tema|theme)\b.*\b(karanlik|dark)\b/.test(text)) {
     return { type: 'ui-control', command: 'theme-dark' };
   }
-  if (/\b(acik|light)\b.*\b(tema|theme|yap|gec|sec)\b|\b(tema|theme)\b.*\b(acik|light)\b/.test(text)) {
-    return { type: 'ui-control', command: 'theme-light' };
-  }
   if (/\b(yaz|olustur|kur|ekle|generate|create|write|build)\b/.test(text)) {
     const existingPreset = resolveAlgorithmPresetFromCommand(text);
     if (existingPreset && /\b(kod\w*|algoritma\w*|program\w*|mevcut|elimdeki|current|custom)\b/.test(text)) {

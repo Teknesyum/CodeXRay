@@ -12,7 +12,7 @@ const prepare = async (page: Page) => {
 
 test('runs a deterministic DP template through the five visible pipeline stages and applies it', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve and simulate LeetCode 198 House Robber in Java with [2,7,9,3,1]. Show every 1D DP state.');
   await chat.press('Enter');
 
@@ -43,7 +43,7 @@ test('refuses a deterministic template whose declared answer key is missing and 
   const codeSource = page.locator('.code-textarea');
   const sourceBefore = await codeSource.inputValue();
 
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve and simulate LeetCode 198 House Robber in Java with [2,7,9,3,1]. Show every 1D DP state.');
   await chat.press('Enter');
 

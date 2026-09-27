@@ -12,7 +12,7 @@ const prepare = async (page: Page) => {
 
 test('changes Jump Game from quadratic DP to linear greedy', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('Jump Game sorusunu dinamik programlama ile çöz ve simüle et');
   await chat.press('Enter');
   await expect(page.getByLabel(/LeetCode 55 — Jump Game \(DP\).*çalışması/)).toBeVisible();
@@ -27,7 +27,7 @@ test('changes Jump Game from quadratic DP to linear greedy', async ({ page }) =>
 
 test('changes LIS from quadratic DP to n-log-n binary search', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('LIS sorusunu anlat');
   await chat.press('Enter');
   await expect(page.getByLabel(/LeetCode 300 — Longest Increasing Subsequence \(O\(n²\) DP\).*çalışması/)).toBeVisible();
@@ -42,7 +42,7 @@ test('changes LIS from quadratic DP to n-log-n binary search', async ({ page }) 
 
 test('edits, expands, and recompiles the active input from natural commands', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('Jump Game DP çöz ve simüle et');
   await chat.press('Enter');
   await expect(page.getByLabel(/LeetCode 55 — Jump Game \(DP\).*çalışması/)).toBeVisible();
@@ -70,7 +70,7 @@ test('edits, expands, and recompiles the active input from natural commands', as
 
 test('resizes a true matrix simulation to a rectangular 8 by 15 grid', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('Create catalog problem: leetcode/54');
   await chat.press('Enter');
   await expect(page.getByLabel(/LeetCode 54 — Spiral Matris.*çalışması/)).toBeVisible();
@@ -93,7 +93,7 @@ test('changes a numeric algorithm parameter and rebuilds its trace from a natura
   const targetVariable = page.getByTestId('variable-target');
   const beforeTarget = await targetVariable.textContent();
 
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('hedefi 42 yap');
   await chat.press('Enter');
 
@@ -113,7 +113,7 @@ test('changes a text algorithm parameter and rebuilds its trace from a quoted co
   const patternVariable = page.getByTestId('variable-pattern');
   const beforePattern = await patternVariable.textContent();
 
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('deseni “abc” yap');
   await chat.press('Enter');
 

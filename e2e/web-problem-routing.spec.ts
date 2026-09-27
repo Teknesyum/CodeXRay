@@ -107,7 +107,7 @@ test('a fetched page cannot select the intent of a bound web solve', async ({ pa
   });
 
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('Solve https://example.com/radio-signals and simulate it');
   await chat.press('Enter');

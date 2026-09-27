@@ -2,34 +2,35 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: rgba(10, 10, 15, 0.8);
+  background: var(--tk-glass);
 }
 
 .editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--tk-sp-3);
   padding: 0 var(--panel-action-inset);
   height: 60px;
   background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+  border-bottom: 1px solid var(--tk-border-decorative);
   box-sizing: border-box;
 }
 
 .editor-header h2 {
   font-size: 1rem;
-  text-transform: uppercase;
   color: var(--neon-cyan);
   margin: 0;
   letter-spacing: 2px;
+  white-space: nowrap;
 }
 
 .translation-provenance {
   max-width: 280px;
   overflow: hidden;
   padding: 3px 7px;
-  border: 1px solid rgba(57, 255, 20, 0.28);
-  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tk-success) 28%, transparent);
+  border-radius: var(--tk-r-chip);
   color: var(--neon-lime);
   font: 0.62rem var(--font-mono);
   text-overflow: ellipsis;
@@ -37,16 +38,16 @@
 }
 
 .registry-select {
-  background: rgba(0, 243, 255, 0.1);
+  background: color-mix(in srgb, var(--tk-renk-1) 10%, transparent);
   border: 1px solid var(--neon-cyan);
   color: var(--neon-cyan);
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: var(--tk-r-btn);
   font-family: var(--font-mono);
   outline: none;
   cursor: pointer;
-  min-width: 200px;
-  max-width: 300px;
+  flex: 0 1 300px;
+  min-width: 0;
 }
 
 .registry-select option {
@@ -60,28 +61,27 @@
   flex-wrap: wrap;
   gap: 15px;
   padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(0, 243, 255, 0.05);
+  background: color-mix(in srgb, var(--tk-surface) 20%, transparent);
+  border-bottom: 1px solid var(--tk-border-decorative);
 }
 
 .input-config label {
   color: var(--text-muted);
   font-size: 0.85rem;
-  text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .input-config input {
   flex: 1;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: color-mix(in srgb, var(--tk-surface) 50%, transparent);
+  border: 1px solid var(--tk-border-decorative);
+  color: var(--tk-text);
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: var(--tk-r-btn);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   outline: none;
-  transition: opacity var(--tk-t-base) ease, transform var(--tk-t-base) ease;
+  transition: opacity var(--tk-t-base) var(--tk-e-out), transform var(--tk-t-base) var(--tk-e-out);
 }
 
 .parameter-field {
@@ -100,11 +100,11 @@
 }
 
 .input-config select {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 243, 255, 0.25);
+  background: color-mix(in srgb, var(--tk-surface) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 25%, transparent);
   color: var(--text-main);
   padding: 6px 8px;
-  border-radius: 4px;
+  border-radius: var(--tk-r-btn);
 }
 
 .input-format-help {
@@ -120,22 +120,22 @@
   gap: 6px;
   min-height: 30px;
   padding: 5px 11px;
-  border: 1px solid rgba(0, 243, 255, 0.42);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 42%, transparent);
+  border-radius: var(--tk-r-btn);
   color: var(--neon-cyan);
-  background: linear-gradient(135deg, rgba(0, 243, 255, 0.08), rgba(255, 0, 255, 0.04));
-  box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.04);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tk-renk-1) 8%, transparent), color-mix(in srgb, var(--tk-renk-2) 4%, transparent));
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--tk-renk-1) 4%, transparent);
   font: 700 0.68rem var(--font-mono);
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: border-color var(--tk-t-fast) ease, box-shadow var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
+  transition: border-color var(--tk-t-fast) var(--tk-e-out), transform var(--tk-t-fast) var(--tk-e-out);
 }
 
 .input-save-btn:hover,
 .input-save-btn:focus-visible,
 .input-save-btn.dirty {
   border-color: var(--neon-magenta);
-  box-shadow: 0 0 12px rgba(255, 0, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.08);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tk-renk-2) 20%, transparent), inset 0 0 10px color-mix(in srgb, var(--tk-renk-1) 8%, transparent);
   outline: none;
 }
 
@@ -145,15 +145,15 @@
 
 .input-error {
   padding: 7px 20px;
-  color: #ff9b9b;
-  background: rgba(255, 40, 70, 0.08);
-  border-bottom: 1px solid rgba(255, 40, 70, 0.25);
+  color: var(--tk-danger-text);
+  background: color-mix(in srgb, var(--tk-danger) 8%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--tk-danger) 25%, transparent);
   font: 0.75rem var(--font-mono);
 }
 
-.input-config input:focus {
+.input-config input:focus-visible {
   border-color: var(--neon-magenta);
-  box-shadow: 0 0 5px rgba(255, 0, 255, 0.2);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--tk-renk-2) 20%, transparent);
 }
 
 .preset-buttons {
@@ -162,28 +162,30 @@
 }
 
 .preset-btn {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 243, 255, 0.2);
+  min-height: var(--tk-target-min);
+  min-width: var(--tk-target-min);
+  background: color-mix(in srgb, var(--tk-surface) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
   color: var(--text-muted);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--tk-r-btn);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: bold;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: opacity var(--tk-t-fast), transform var(--tk-t-fast);
+  transition: opacity var(--tk-t-fast) var(--tk-e-out), transform var(--tk-t-fast) var(--tk-e-out);
 }
 
-.preset-btn:hover {
+.preset-btn:hover,
+.preset-btn:focus-visible {
   border-color: var(--neon-cyan);
-  color: #fff;
+  color: var(--tk-text);
 }
 
 .preset-btn.active {
-  background: rgba(0, 243, 255, 0.2);
+  background: color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
   border-color: var(--neon-cyan);
-  color: #fff;
-  box-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+  color: var(--tk-text);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--tk-renk-1) 30%, transparent);
 }
 
 .editor-content {
@@ -191,12 +193,12 @@
   position: relative;
   overflow: auto;
   background:
-    radial-gradient(circle at 88% 8%, rgba(0, 243, 255, 0.055), transparent 36%),
-    radial-gradient(circle at 12% 92%, rgba(255, 0, 255, 0.025), transparent 42%),
-    linear-gradient(145deg, rgba(3, 8, 14, 0.34), rgba(12, 4, 16, 0.2));
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--tk-renk-1) 5.5%, transparent), transparent 36%),
+    radial-gradient(circle at 12% 92%, color-mix(in srgb, var(--tk-renk-2) 2.5%, transparent), transparent 42%),
+    linear-gradient(145deg, color-mix(in srgb, var(--tk-surface) 34%, transparent), color-mix(in srgb, var(--tk-renk-2) 20%, transparent));
   box-shadow:
-    inset 0 1px 0 rgba(0, 243, 255, 0.05),
-    inset 0 0 28px rgba(0, 0, 0, 0.18);
+    inset 0 1px 0 var(--tk-border-decorative),
+    inset 0 0 28px color-mix(in srgb, var(--tk-surface) 18%, transparent);
 }
 
 .code-edit-layer {
@@ -242,6 +244,10 @@
   outline: none;
 }
 
+.code-textarea + .input-format-help {
+  padding: 20px;
+}
+
 .code-textarea::placeholder {
   color: var(--text-muted);
   -webkit-text-fill-color: var(--text-muted);
@@ -269,17 +275,11 @@
 .titan-mode-code-new-text {
   color: var(--neon-cyan);
   font-weight: 650;
-  text-shadow:
-    0 0 4px currentColor,
-    0 0 10px color-mix(in srgb, currentColor 78%, transparent),
-    0 0 15px color-mix(in srgb, currentColor 48%, transparent);
-  animation: titan-mode-new-code var(--tk-t-slow) ease-out both;
+  animation: titan-mode-new-code var(--tk-t-slow) var(--tk-e-out) both;
 }
 
 .titan-mode-code-new-text .code-token {
   color: inherit;
-  text-shadow: inherit;
-  filter: brightness(1.08) saturate(1.08);
 }
 
 .titan-mode-code-caret {
@@ -288,32 +288,24 @@
   height: 1.08em;
   margin-left: 2px;
   vertical-align: -0.18em;
-  border-radius: 2px;
+  border-radius: var(--tk-r-cell);
   background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta));
   box-shadow: 0 0 7px var(--neon-cyan), 0 0 14px var(--neon-magenta);
-  animation: titan-mode-code-caret 620ms steps(2, jump-none) infinite;
 }
 
 @keyframes titan-mode-new-code {
   from {
-    filter: brightness(1.8);
     opacity: 0.72;
     transform: translateY(1px);
   }
   to {
-    filter: brightness(1);
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes titan-mode-code-caret {
-  50% { opacity: 0.25; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .titan-mode-code-new-text,
-  .titan-mode-code-caret {
+  .titan-mode-code-new-text {
     animation: none;
   }
 }
@@ -334,10 +326,8 @@
 }
 
 .code-line.highlighted {
-  background: linear-gradient(90deg, rgba(0, 243, 255, 0) 0%, rgba(0, 243, 255, 0.2) 50%, rgba(0, 243, 255, 0) 100%);
-  background-size: 200% 100%;
+  background: color-mix(in srgb, var(--tk-renk-1) 12%, transparent);
   border-left: 3px solid var(--neon-cyan);
-  animation: wave-glow 1.5s infinite linear;
 }
 
 .line-number {
@@ -354,36 +344,30 @@
 }
 
 .code-token {
-  transition: color var(--tk-t-fast) ease, text-shadow var(--tk-t-fast) ease, filter var(--tk-t-fast) ease;
+  transition: color var(--tk-t-fast) var(--tk-e-out);
 }
 
 .code-token.keyword,
 .code-token.literal {
   color: var(--neon-magenta);
-  font-weight: 700;
-  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-magenta) 48%, transparent);
 }
 
 .code-token.type {
   color: var(--neon-cyan);
   font-weight: 650;
-  text-shadow: 0 0 7px color-mix(in srgb, var(--neon-cyan) 42%, transparent);
 }
 
 .code-token.function {
   color: var(--neon-lime);
   font-weight: 650;
-  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-lime) 38%, transparent);
 }
 
 .code-token.number {
-  color: #ffd166;
-  text-shadow: 0 0 7px rgba(255, 209, 102, 0.3);
+  color: var(--tk-warning);
 }
 
 .code-token.string {
-  color: #8dff9f;
-  text-shadow: 0 0 7px rgba(141, 255, 159, 0.28);
+  color: var(--tk-success);
 }
 
 .code-token.comment {
@@ -399,5 +383,6 @@
   filter: brightness(1.2) saturate(1.15);
 }
 
-.leetcode-open-btn { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 5px 9px; color: var(--neon-cyan); border: 1px solid color-mix(in srgb, var(--neon-cyan) 42%, var(--text-muted)); border-radius: 7px; background: color-mix(in srgb, var(--neon-cyan) 7%, transparent); font: 700 11px var(--font-mono); cursor: pointer; transition: var(--tk-t-slow) ease; }
-.leetcode-open-btn:hover { border-color: var(--neon-cyan); background: color-mix(in srgb, var(--neon-cyan) 13%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--neon-cyan) 28%, transparent); transform: translateY(-1px); }
+.leetcode-open-btn { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 5px 9px; color: var(--neon-cyan); border: 1px solid color-mix(in srgb, var(--neon-cyan) 42%, var(--text-muted)); border-radius: var(--tk-r-chip); background: color-mix(in srgb, var(--neon-cyan) 7%, transparent); font: 700 11px var(--font-mono); cursor: pointer; transition: transform var(--tk-t-slow) var(--tk-e-out); }
+.leetcode-open-btn:hover,
+.leetcode-open-btn:focus-visible { border-color: var(--neon-cyan); background: color-mix(in srgb, var(--neon-cyan) 13%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--neon-cyan) 28%, transparent); transform: translateY(-1px); }

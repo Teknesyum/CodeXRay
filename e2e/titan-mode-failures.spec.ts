@@ -81,7 +81,7 @@ test('cancels the visible Titan Mode queue and ignores a late specialist respons
   const inputBefore = await input.inputValue();
   const presetBefore = await preset.inputValue();
   const algorithmBefore = await page.locator('.visualizer-header h2').textContent();
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
   await question.fill('write bidirectional BFS for me');
   await question.press('Enter');
@@ -183,7 +183,7 @@ test('shows the failing specialist after bounded SimLang retries and preserves t
   const inputBefore = await input.inputValue();
   const progressBefore = await page.locator('.visualizer-header-actions > span').textContent();
 
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await question.fill('Write a custom BFS algorithm');
   await question.press('Enter');
   await expect(page.locator('.titan-mode-agent.failed')).toContainText('Code');

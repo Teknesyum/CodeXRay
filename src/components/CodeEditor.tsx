@@ -208,6 +208,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
               key={algorithm.name}
               value={algorithm.code}
               disabled={!algorithm.isSupported}
+              title={!algorithm.isSupported ? translateRuntimeText(algorithm.blockedReason ?? '', locale) : undefined}
             >
               {index + 1} – {algorithm.isSupported ? '✓' : '⛔'} {localizeAlgorithmName(algorithm.name, locale)}
               {!algorithm.isSupported && ` — ${t('blocked', locale)}: ${translateRuntimeText(algorithm.blockedReason ?? '', locale)}`}
@@ -229,7 +230,9 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
         {activeSimulationPackage?.translation && (
           <span className="translation-provenance" title={t('translationProvenanceTitle', locale)}>
             {t('translationProvenanceBadge', locale, {
-              language: activeSimulationPackage.translation.originalLanguage.toUpperCase(),
+              language: activeSimulationPackage.translation.originalLanguage.toLocaleUpperCase(
+                locale === 'tr' ? 'tr' : undefined,
+              ),
             })}
           </span>
         )}
@@ -286,7 +289,6 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
           <input
             aria-label={`${t(simulationInput.kind, locale)} ${t('simulationInput', locale)}`}
             type="text"
-            placeholder={t(inputHelpKey, locale)}
             value={simulationInput.text}
             onChange={(event) => {
               setSimulationInput({ ...simulationInput, text: event.target.value, origin: 'user' });
@@ -300,7 +302,6 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
             <input
               aria-label={t(definition.labelKey, locale)}
               type={definition.type ?? 'text'}
-              placeholder={t(definition.placeholderKey, locale)}
               value={simulationInput.parameters?.[definition.key] ?? ''}
               onChange={(event) => {
                 setSimulationInput({
@@ -314,6 +315,9 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
                 setInputError(null);
               }}
             />
+            <span className="input-format-help" id={`${definition.key}-help`}>
+              {t(definition.placeholderKey, locale)}
+            </span>
           </label>
         ))}
         <button
@@ -325,7 +329,7 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
           <Save size={14} aria-hidden="true" />
           {t('saveInput', locale)}
         </button>
-        <span className="input-format-help">{t(inputHelpKey, locale)}</span>
+        <span className="input-format-help" id="input-format-help">{t(inputHelpKey, locale)}</span>
       </div>
       {inputError && <div className="input-error" role="alert">{translateRuntimeText(inputError, locale)}</div>}
 
@@ -371,9 +375,13 @@ export const CodeEditor = ({ collapsed, onToggleCollapse, onSaveInput }: CodeEdi
                   setAlgorithmName('Custom Code');
                   resetTimeline();
                 }}
-                placeholder={t('placeholderCode', locale)}
                 spellCheck="false"
               />
+              {code.length === 0 && (
+                <span className="input-format-help" id="code-editor-help">
+                  {t('placeholderCode', locale)}
+                </span>
+              )}
             </div>
           )
         ) : (

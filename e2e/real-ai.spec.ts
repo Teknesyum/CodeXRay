@@ -121,7 +121,7 @@ test.describe('real on-device WebLLM', () => {
     expectTruthfulProgress(firstLoadProgress);
     await page.getByRole('button', { name: 'Close settings' }).click();
 
-    const question = page.getByPlaceholder('Type your question here...');
+    const question = page.getByRole('textbox', { name: 'Your question' });
     await expect(question).toBeEnabled();
     const askModel = async (prompt: string) => {
       const copyButtons = page.getByRole('button', { name: 'Copy AI response' });

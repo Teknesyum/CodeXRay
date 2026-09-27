@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "template": "neon",
+  "template": "benim",
   "off": false,
   "targets": [
     "css"
@@ -9,28 +9,19 @@
     "sans": "'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif",
     "mono": "'Cascadia Mono', Consolas, ui-monospace, monospace",
     "scale": [
-      10,
-      13,
       14,
-      18,
-      24
+      16,
+      20,
+      24,
+      32
     ]
   },
   "signature": {
     "off": false,
-    "text": "by Teknesyum",
     "github": "https://github.com/Teknesyum",
-    "sponsor": "https://github.com/sponsors/Teknesyum",
-    "supportText": "Buy me a coffee"
+    "sponsor": "https://github.com/sponsors/Teknesyum"
   },
   "note": "",
-  "palette": {
-    "primary": "#00f3ff",
-    "secondary": "#ff00ea",
-    "tertiary": "#b026ff",
-    "surface": "#08090a",
-    "dark": true
-  },
   "installedAt": "2026-09-24T17:31:17.667Z",
   "ignore": [
     {
@@ -104,6 +95,122 @@
       "file": "src/components/ControlBar.css",
       "line": 331,
       "reason": "açık tema düğmesinin önizlemesi; #212121 beyaz %80 zemin üstünde, siyaha karşı değil: 16.10:1"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "e2e/theme-contrast.spec.ts",
+      "line": 78,
+      "reason": "tagName CSS seçicisi üretiyor, kullanıcıya görünen metin değil"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/aiService.ts",
+      "line": 17,
+      "reason": "İngilizce istek sınıflandırma anahtarı; tr yereli davranışı değiştirir"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/catalogDerivation.js",
+      "line": 13,
+      "reason": "algoritma adı sınıflandırma anahtarı"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/catalogDerivation.js",
+      "line": 14,
+      "reason": "algoritma adı sınıflandırma anahtarı"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/simulators.ts",
+      "line": 820,
+      "reason": "algoritma adı sınıflandırma anahtarı"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/catalogProblemDetails.ts",
+      "line": 26,
+      "reason": "URL slug üretimi"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/catalogProblemDetails.ts",
+      "line": 28,
+      "reason": "URL slug üretimi"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/internalFeatures.ts",
+      "line": 16,
+      "reason": "hostname karşılaştırması"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/workers/localAi.worker.ts",
+      "line": 97,
+      "reason": "hostname normalizasyonu"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/localAiProgress.ts",
+      "line": 11,
+      "reason": "model durum metni anahtar eşleştirmesi, görünen metin değil"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/stringCompiler.ts",
+      "line": 140,
+      "reason": "izleyici semantiği: yorumlanan JS toUpperCase davranışı"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/stringCompiler.ts",
+      "line": 141,
+      "reason": "izleyici semantiği: yorumlanan JS toLowerCase davranışı"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/titanModeRouting.ts",
+      "line": 113,
+      "reason": "kaynak anahtarı / slug karşılaştırması"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/titanModeRouting.test.ts",
+      "line": 269,
+      "reason": "kaynak anahtarı karşılaştırmasının testi"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/webSource.ts",
+      "line": 364,
+      "reason": "imza tipi ayrıştırma (R25)"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/webSource.ts",
+      "line": 404,
+      "reason": "imza şekli sınıflandırma (R25)"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/trace/jsTracer.test.ts",
+      "line": 79,
+      "reason": "fikstür kaynak kodu; izleyicinin JS dönüşümünü yorumlamasını test ediyor"
+    },
+    {
+      "rule": "forms/turkish-casing",
+      "file": "src/services/trace/leetcodeAcceptance.test.ts",
+      "line": 26,
+      "reason": "fikstür kaynak kodu; izleyicinin JS dönüşümünü yorumlamasını test ediyor"
+    },
+    {
+      "rule": "states/hover-without-focus",
+      "file": "src/index.css",
+      "line": 76,
+      "reason": "Scrollbar thumb is not focusable; there is no focus state to pair."
     }
-  ]
+  ],
+  "plugin": "0.26.0",
+  "duzen": "a0eaf97ec84216aa"
 }

@@ -269,6 +269,7 @@ export const GraphInputEditor = ({
             type="checkbox"
             checked={document.directed}
             disabled={document.mode === 'tree'}
+            title={document.mode === 'tree' ? t('treeAlwaysDirected', locale) : undefined}
             onChange={(event) => onChange({ ...document, directed: event.target.checked })}
           />
           {t('directed', locale)}
@@ -569,9 +570,9 @@ export const GraphInputEditor = ({
         <summary>{t('importExport', locale)}</summary>
         <p>{t('importHelp', locale)}</p>
         <textarea
+          aria-label={t('importExport', locale)}
           value={serialized}
           onChange={(event) => setSerialized(event.target.value)}
-          placeholder={exportJson}
         />
         <div>
           <button type="button" onClick={() => handleImport(false)}>{t('importJson', locale)}</button>

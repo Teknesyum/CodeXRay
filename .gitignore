@@ -21,6 +21,7 @@ src-tauri/gen
 # Local debugging and research artifacts
 .agents/
 scratch/
+tmp/
 page.html
 tracks.json
 ytInitialData.json

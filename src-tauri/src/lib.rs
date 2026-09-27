@@ -885,6 +885,9 @@ pub fn run() {
             ) {
                 window.set_icon(icon)?;
             }
+            if let Some(window) = app.get_webview_window("main") {
+                window.show()?;
+            }
             Ok(())
         })
         .plugin(

@@ -134,14 +134,13 @@ test('completes the fifteen-step release tour in one browser profile', async ({ 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: /UI Settings/ }).click();
   await page.getByRole('button', { name: 'Dark' }).click();
-  await page.getByRole('button', { name: 'Light' }).click();
   await page.getByRole('button', { name: 'Neon' }).click();
   await page.getByRole('button', { name: 'Türkçe (TR)' }).click();
   await page.getByRole('button', { name: 'English (EN)' }).click();
   await page.getByRole('button', { name: 'Close settings' }).click();
   await expect(page.locator('.visualizer-header-actions > span')).toHaveText(stepBeforeTheme ?? '');
 
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
   await question.fill('Explain the current shortest-path step');
   await question.press('Enter');

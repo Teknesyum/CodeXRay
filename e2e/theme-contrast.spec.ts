@@ -86,7 +86,7 @@ const findVisibleTextContrastFailures = async (page: Page): Promise<ContrastFail
     return failures;
   });
 
-test('keeps visible text readable across neon, dark, and light themes', async ({ page }) => {
+test('keeps visible text readable across neon and dark themes', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('codexray.locale', 'en');
     localStorage.setItem('codexray.radio.autoplay', 'false');
@@ -100,7 +100,7 @@ test('keeps visible text readable across neon, dark, and light themes', async ({
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: '🎨 UI Settings' }).click();
 
-  for (const theme of ['Neon (Default)', 'Dark', 'Light']) {
+  for (const theme of ['Neon (Default)', 'Dark']) {
     await page.getByRole('button', { name: theme, exact: true }).click();
     await page.waitForTimeout(400);
     expect(await findVisibleTextContrastFailures(page), theme).toEqual([]);

@@ -1,12 +1,30 @@
-.taxonomy-tree{margin:.55rem 0;padding:.7rem;border:1px solid rgba(0,243,255,.34);border-radius:10px;background:linear-gradient(135deg,rgba(0,243,255,.055),rgba(255,0,255,.075))}.taxonomy-tree header,.taxonomy-selection h4{display:flex;justify-content:space-between;align-items:center;gap:.6rem}.taxonomy-tree header span,.taxonomy-selection h4 span{color:var(--neon-cyan);font:700 .72rem var(--font-mono)}.taxonomy-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.45rem;margin-top:.55rem}.taxonomy-groups details{border:1px solid rgba(255,0,255,.2);border-radius:7px;background:rgba(0,0,0,.2)}.taxonomy-groups summary{cursor:pointer;padding:.45rem .55rem;color:#f5eaff;font-weight:700}.taxonomy-nodes{display:flex;flex-wrap:wrap;gap:.3rem;padding:0 .45rem .5rem}.taxonomy-nodes button,.taxonomy-problems button{display:flex;align-items:center;gap:.4rem;border:1px solid rgba(0,243,255,.25);border-radius:999px;background:rgba(0,10,18,.72);color:#dffcff;padding:.3rem .5rem;cursor:pointer}.taxonomy-nodes button:hover,.taxonomy-nodes button.active,.taxonomy-problems button:hover{border-color:var(--neon-lime);box-shadow:0 0 9px rgba(57,255,20,.25)}.taxonomy-nodes b{color:var(--neon-cyan);font-size:.7rem}.taxonomy-selection{margin-top:.65rem;padding-top:.6rem;border-top:1px solid rgba(0,243,255,.2)}.taxonomy-selection h4{margin:0 0 .45rem}.taxonomy-problems{display:flex;flex-wrap:wrap;gap:.3rem;max-height:150px;overflow:auto}.taxonomy-problems button{border-radius:5px;font-size:.76rem}.taxonomy-selection small{display:block;margin-top:.4rem;color:#aab8c8}
-.taxonomy-groups details.active{border-color:var(--neon-cyan);box-shadow:0 0 10px rgba(0,243,255,.2)}
+.taxonomy-tree{margin:.55rem 0;padding:.7rem;border:1px solid color-mix(in srgb, var(--tk-renk-1) 34%, transparent);border-radius:var(--tk-r-box);background:linear-gradient(135deg,color-mix(in srgb, var(--tk-renk-1) 5.5%, transparent),color-mix(in srgb, var(--tk-renk-2) 7.5%, transparent))}
+.taxonomy-tree header,.taxonomy-selection h4{display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.taxonomy-tree header span,.taxonomy-selection h4 span{color:var(--neon-cyan);font-size:.78rem;font-family:var(--font-mono)}
+.taxonomy-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.45rem;margin-top:.55rem}
+.taxonomy-groups details{border:1px solid color-mix(in srgb, var(--tk-renk-2) 20%, transparent);border-radius:var(--tk-r-box);background:color-mix(in srgb, var(--tk-surface) 20%, transparent)}
+.taxonomy-groups summary{cursor:pointer;padding:.45rem .55rem;color:var(--tk-renk-2-text);font-size:.78rem}
+.taxonomy-nodes{display:flex;flex-wrap:wrap;gap:.3rem;padding:0 .45rem .5rem}
+.taxonomy-nodes button,.taxonomy-problems button{display:flex;align-items:center;gap:.4rem;border:1px solid color-mix(in srgb, var(--tk-renk-1) 25%, transparent);border-radius:var(--tk-r-chip);background:color-mix(in srgb, var(--tk-surface) 72%, transparent);color:var(--tk-text);padding:.3rem .5rem;cursor:pointer}
+.taxonomy-nodes button:hover,.taxonomy-nodes button:focus-visible,.taxonomy-nodes button.active,.taxonomy-problems button:hover,.taxonomy-problems button:focus-visible{border-color:var(--neon-lime);box-shadow:0 0 9px color-mix(in srgb, var(--tk-success) 25%, transparent)}
+.taxonomy-nodes b{color:var(--neon-cyan);font-size:.7rem}
+.taxonomy-selection{margin-top:.65rem;padding-top:.6rem;border-top:1px solid color-mix(in srgb, var(--tk-renk-1) 20%, transparent)}
+.taxonomy-selection h4{margin:0 0 .45rem}
+.taxonomy-problems{display:flex;flex-wrap:wrap;gap:.3rem;max-height:150px;overflow:auto}
+.taxonomy-problems button{border-radius:var(--tk-r-btn);font-size:.76rem}
+.taxonomy-selection small{display:block;margin-top:.4rem;color:var(--tk-text)}
+.taxonomy-groups details.active{border-color:var(--neon-cyan);box-shadow:0 0 10px color-mix(in srgb, var(--tk-renk-1) 20%, transparent)}
 .taxonomy-problems{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));max-height:none;overflow:visible}
 .taxonomy-problems button{position:relative;justify-content:space-between;text-align:left}
 .taxonomy-problems button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .taxonomy-problems button i{width:.48rem;height:.48rem;flex:0 0 auto;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
-.taxonomy-problems button.difficulty-easy{border-color:rgba(57,255,20,.42)}.taxonomy-problems button.difficulty-easy i{color:var(--neon-lime)}
-.taxonomy-problems button.difficulty-medium{border-color:rgba(255,190,0,.48)}.taxonomy-problems button.difficulty-medium i{color:var(--tk-warning)}
-.taxonomy-problems button.difficulty-hard{border-color:rgba(255,55,95,.5)}.taxonomy-problems button.difficulty-hard i{color:var(--text-danger)}
+.taxonomy-problems button.difficulty-easy{border-color:color-mix(in srgb, var(--tk-success) 42%, transparent)}
+.taxonomy-problems button.difficulty-easy i{color:var(--neon-lime)}
+.taxonomy-problems button.difficulty-medium{border-color:color-mix(in srgb, var(--tk-warning) 48%, transparent)}
+.taxonomy-problems button.difficulty-medium i{color:var(--tk-warning)}
+.taxonomy-problems button.difficulty-hard{border-color:color-mix(in srgb, var(--tk-danger) 50%, transparent)}
+.taxonomy-problems button.difficulty-hard i{color:var(--text-danger)}
 .taxonomy-pagination{display:flex;align-items:center;justify-content:center;gap:.65rem;margin-top:.6rem}
-.taxonomy-pagination button{border:1px solid rgba(0,243,255,.42);border-radius:5px;background:rgba(0,10,18,.72);color:#dffcff;padding:.3rem .65rem;cursor:pointer}
-.taxonomy-pagination button:disabled{cursor:not-allowed;opacity:.35}.taxonomy-pagination span{color:var(--neon-cyan);font:700 .72rem var(--font-mono)}
+.taxonomy-pagination button{border:1px solid color-mix(in srgb, var(--tk-renk-1) 42%, transparent);border-radius:var(--tk-r-btn);background:color-mix(in srgb, var(--tk-surface) 72%, transparent);color:var(--tk-text);padding:.3rem .65rem;cursor:pointer}
+.taxonomy-pagination button:disabled{cursor:not-allowed;color:var(--tk-disabled);border-color:var(--tk-disabled)}
+.taxonomy-pagination span{color:var(--neon-cyan);font-size:.78rem;font-family:var(--font-mono)}

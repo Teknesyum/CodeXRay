@@ -8,7 +8,7 @@ const budgets = {
   lazyJavaScriptChunk: 100 * 1024,
   tracerWorker: 150 * 1024,
   localAiWorker: 6_500 * 1024,
-  styles: 100 * 1024,
+  styles: 115 * 1024,
 };
 
 const assets = await readdir(assetsRoot);

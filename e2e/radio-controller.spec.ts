@@ -163,7 +163,7 @@ test('honors confirmed playback, transport, audio, loop, and minimize contracts'
     .toBe('PLOtNYlNIGer0jmWpFtTWqMkfP56iuZg1w');
   const customPlaylist = page.locator('.custom-playlist-input');
   await customPlaylist.fill('https://www.youtube.com/playlist?list=PL_CUSTOM_FAST_LOAD');
-  await customPlaylist.locator('xpath=following-sibling::button').click();
+  await customPlaylist.locator('xpath=ancestor::label/following-sibling::button').click();
   await expect.poll(() => page.evaluate(() => (window as Window & { __radioCalls: { load: string[] } }).__radioCalls.load.at(-1)))
     .toBe('PL_CUSTOM_FAST_LOAD');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('codexray.radio.playlist')))

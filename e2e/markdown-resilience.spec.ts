@@ -82,7 +82,7 @@ test('keeps hostile model Markdown inert, contained, copyable, and allows the ne
   }, hostileAnswer);
 
   await page.goto('/');
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
   await question.fill('Explain the current workspace');
   await question.press('Enter');

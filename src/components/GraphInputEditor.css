@@ -3,8 +3,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-bottom: 1px solid rgba(0, 243, 255, 0.12);
-  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--tk-border-decorative);
+  background: color-mix(in srgb, var(--tk-surface) 30%, transparent);
   padding: 10px 14px;
   overflow: auto;
 }
@@ -23,7 +23,12 @@
   gap: 2px;
   color: var(--text-muted);
   font: 0.68rem var(--font-mono);
-  text-transform: uppercase;
+}
+
+.graph-toolbar .check-label input {
+  width: var(--tk-target-min);
+  height: var(--tk-target-min);
+  accent-color: var(--tk-renk-1);
 }
 
 .graph-toolbar .check-label {
@@ -37,9 +42,9 @@
 .edge-controls input,
 .graph-import-export textarea {
   color: var(--text-main);
-  background: #090910;
-  border: 1px solid rgba(0, 243, 255, 0.25);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--tk-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 25%, transparent);
+  border-radius: var(--tk-r-btn);
   padding: 4px 6px;
 }
 
@@ -48,11 +53,11 @@
   min-height: 280px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(0, 243, 255, 0.22);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 22%, transparent);
+  border-radius: var(--tk-r-box);
   background-image:
-    linear-gradient(rgba(0, 243, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--tk-renk-1) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--tk-renk-1) 4%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;
   user-select: none;
 }
@@ -67,13 +72,13 @@
 }
 
 .builder-edges line {
-  stroke: rgba(0, 243, 255, 0.55);
+  stroke: color-mix(in srgb, var(--tk-renk-1) 55%, transparent);
   stroke-width: 2;
 }
 
 .builder-edges .edge-hit-target {
   stroke: transparent;
-  stroke-width: 16;
+  stroke-width: var(--tk-target-min);
   pointer-events: stroke;
   cursor: pointer;
 }
@@ -81,7 +86,7 @@
 .builder-edges .selected-edge > line:first-child {
   stroke: var(--neon-magenta);
   stroke-width: 3;
-  filter: drop-shadow(0 0 5px rgba(255, 0, 255, 0.9));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--tk-renk-2) 90%, transparent));
 }
 
 .builder-edges .edge-preview {
@@ -104,10 +109,10 @@
   max-width: calc(100% - 20px);
   padding: 7px 8px;
   transform: translate(-50%, -50%);
-  border: 1px solid rgba(255, 0, 255, 0.6);
-  border-radius: 6px;
-  background: rgba(7, 5, 12, 0.97);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-2) 60%, transparent);
+  border-radius: var(--tk-r-box);
+  background: color-mix(in srgb, var(--tk-surface) 97%, transparent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--tk-surface) 55%, transparent);
 }
 
 .edge-edit-popover label {
@@ -115,24 +120,23 @@
   gap: 2px;
   color: var(--text-muted);
   font: 0.62rem var(--font-mono);
-  text-transform: uppercase;
 }
 
 .edge-edit-popover input {
   width: 76px;
   padding: 4px 5px;
-  border: 1px solid rgba(255, 0, 255, 0.35);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--tk-renk-2) 35%, transparent);
+  border-radius: var(--tk-r-btn);
   color: var(--text-main);
-  background: #090910;
+  background: color-mix(in srgb, var(--tk-surface) 92%, transparent);
 }
 
 .edge-edit-popover button {
   min-width: 27px;
   height: 27px;
   padding: 0 7px;
-  border: 1px solid rgba(0, 243, 255, 0.35);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 35%, transparent);
+  border-radius: var(--tk-r-btn);
   color: var(--neon-cyan);
   background: transparent;
   cursor: pointer;
@@ -140,7 +144,7 @@
 
 .edge-edit-popover .edge-delete-button {
   padding: 0;
-  border-color: rgba(255, 65, 110, 0.65);
+  border-color: color-mix(in srgb, var(--tk-danger) 65%, transparent);
   color: var(--text-danger);
   font-size: 1.05rem;
 }
@@ -159,8 +163,8 @@
   position: relative;
   border: 1px solid var(--neon-cyan);
   border-radius: 50%;
-  color: white;
-  background: #080810;
+  color: var(--tk-text);
+  background: color-mix(in srgb, var(--tk-surface) 94%, transparent);
   cursor: grab;
   z-index: 1;
 }
@@ -172,7 +176,7 @@
 
 .builder-node-shell.selected .builder-node {
   border-color: var(--neon-magenta);
-  box-shadow: 0 0 13px rgba(255, 0, 255, 0.65);
+  box-shadow: 0 0 13px color-mix(in srgb, var(--tk-renk-2) 65%, transparent);
 }
 
 .node-connector {
@@ -184,16 +188,17 @@
   height: 12px;
   padding: 0;
   transform: translateY(-50%);
-  border: 2px solid #080810;
+  border: 2px solid color-mix(in srgb, var(--tk-surface) 94%, transparent);
   border-radius: 50%;
   outline: 1px solid var(--neon-magenta);
   background: var(--neon-magenta);
-  box-shadow: 0 0 7px rgba(255, 0, 255, 0.65);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--tk-renk-2) 65%, transparent);
   cursor: crosshair;
   touch-action: none;
 }
 
-.node-connector:hover {
+.node-connector:hover,
+.node-connector:focus-visible {
   transform: translateY(-50%) scale(1.25);
 }
 
@@ -223,17 +228,16 @@
   max-height: calc(100% - 34px);
   overflow: auto;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 0, 255, 0.22);
-  border-radius: 6px;
-  background: rgba(7, 5, 12, 0.97);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-2) 22%, transparent);
+  border-radius: var(--tk-r-box);
+  background: color-mix(in srgb, var(--tk-surface) 97%, transparent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--tk-surface) 55%, transparent);
 }
 
 .node-edit-controls strong {
   align-self: center;
   color: var(--neon-magenta);
   font: 0.72rem var(--font-mono);
-  text-transform: uppercase;
 }
 
 .node-edit-controls label {
@@ -241,31 +245,32 @@
   gap: 2px;
   color: var(--text-muted);
   font: 0.66rem var(--font-mono);
-  text-transform: uppercase;
 }
 
 .node-edit-controls input {
   width: 120px;
   padding: 5px 7px;
-  border: 1px solid rgba(255, 0, 255, 0.28);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--tk-renk-2) 28%, transparent);
+  border-radius: var(--tk-r-btn);
   color: var(--text-main);
-  background: #090910;
+  background: color-mix(in srgb, var(--tk-surface) 92%, transparent);
 }
 
 .edge-controls button,
 .node-edit-controls button,
 .graph-import-export button {
-  border: 1px solid rgba(0, 243, 255, 0.35);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 35%, transparent);
   color: var(--neon-cyan);
   background: transparent;
-  border-radius: 4px;
+  border-radius: var(--tk-r-btn);
   padding: 5px 8px;
   cursor: pointer;
 }
 
 .edge-controls button:disabled {
-  opacity: 0.35;
+  color: var(--tk-disabled);
+  border-color: var(--tk-disabled);
+  cursor: not-allowed;
 }
 
 .graph-import-export {

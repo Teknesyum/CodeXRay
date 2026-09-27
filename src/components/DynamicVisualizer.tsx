@@ -21,7 +21,7 @@ import './DynamicVisualizer.css';
 
 const TopologicalOutput = lazy(() => import('./TopologicalOutput'));
 
-const pointerColors = ['var(--neon-lime)', 'var(--neon-magenta)', 'var(--neon-cyan)', '#ff9900'];
+const pointerColors = ['var(--tk-success)', 'var(--tk-renk-2-text)', 'var(--tk-renk-1)', 'var(--tk-warning)'];
 
 const formatPinnedValue = (value: TraceValue, locale: 'en' | 'tr'): string =>
   typeof value === 'string' ? translateRuntimeText(value, locale) : JSON.stringify(value);
@@ -186,13 +186,13 @@ const GraphView = ({ data }: { data: GraphVisualData }) => {
       <svg className="graph-edges" aria-label={t('graphEdges', locale)}>
         <defs>
           <marker id="arrow-idle" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
-            <path d="M0,0 L8,4 L0,8 Z" fill="rgba(0, 243, 255, 0.45)" />
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--tk-renk-1)" />
           </marker>
           <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
-            <path d="M0,0 L8,4 L0,8 Z" fill="#ff00ff" />
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--tk-renk-2-text)" />
           </marker>
           <marker id="arrow-rejected" markerWidth="8" markerHeight="8" refX="22" refY="4" orient="auto">
-            <path d="M0,0 L8,4 L0,8 Z" fill="#ff5b6e" />
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--tk-danger-text)" />
           </marker>
         </defs>
         {data.edges.map((edge) => {
@@ -596,7 +596,10 @@ export const DynamicVisualizer = ({
     <>
       {showAiLoadProgress && aiStatus === 'loading' && !collapsed && (
         <div className="ai-progress-bar-container">
-          <div className="ai-progress-bar" style={{ width: `${displayedAiProgress}%` }} />
+          <div
+            className="ai-progress-bar"
+            style={{ transform: `scaleX(${displayedAiProgress / 100})` }}
+          />
         </div>
       )}
 

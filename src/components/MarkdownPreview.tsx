@@ -199,7 +199,7 @@ export const MarkdownPreview = ({ content, className = '' }: MarkdownPreviewProp
             const nestedTask = nested[1].match(/^\[([ xX])]\s+(.+)$/);
             nestedItems.push(
               <li key={`nested-item-${nestedIndex}`} className={nestedTask ? 'markdown-task-item' : undefined}>
-                {nestedTask && <input type="checkbox" checked={nestedTask[1].toLowerCase() === 'x'} readOnly tabIndex={-1} />}
+                {nestedTask && <input type="checkbox" checked={nestedTask[1].toLocaleLowerCase('tr') === 'x'} readOnly tabIndex={-1} />}
                 {renderInline(nestedTask ? nestedTask[2] : nested[1], `nested-item-${nestedIndex}`)}
               </li>,
             );
@@ -210,7 +210,7 @@ export const MarkdownPreview = ({ content, className = '' }: MarkdownPreviewProp
 
         items.push(
           <li key={`item-${itemIndex}`} className={task ? 'markdown-task-item' : undefined}>
-            {task && <input type="checkbox" checked={task[1].toLowerCase() === 'x'} readOnly tabIndex={-1} />}
+            {task && <input type="checkbox" checked={task[1].toLocaleLowerCase('tr') === 'x'} readOnly tabIndex={-1} />}
             {renderInline(task ? task[2] : itemContent, `item-${itemIndex}`)}
             {nestedItems.length > 0 && <ul>{nestedItems}</ul>}
           </li>,

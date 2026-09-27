@@ -15,7 +15,7 @@ test('types the Jump Game DP source into the editor while the array-template pip
   const coldSource = page.locator('.code-textarea');
   await expect(coldSource).toBeVisible();
 
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve and simulate Jump Game with dynamic programming');
   await chat.press('Enter');
 

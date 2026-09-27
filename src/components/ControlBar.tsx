@@ -507,15 +507,15 @@ export const ControlBar = ({
   return (
     <div className="control-bar">
       <div className="control-group">
-        <button className="neon-button simulate-btn" onClick={onSimulate}>
-          ⚡ {t('simulate', locale)}
+        <button className="neon-button simulate-btn" aria-label={t('simulate', locale)} title={t('simulate', locale)} onClick={onSimulate}>
+          ⚡ <span className="control-label">{t('simulate', locale)}</span>
         </button>
-        <button className="neon-button analyze-btn" onClick={onAnalyze}>
-          🔍 {t('analyze', locale)}
+        <button className="neon-button analyze-btn" aria-label={t('analyze', locale)} title={t('analyze', locale)} onClick={onAnalyze}>
+          🔍 <span className="control-label">{t('analyze', locale)}</span>
         </button>
         <div className="qs-menu-container">
-          <button className="neon-button qs-btn" onClick={openExamples} disabled={!code}>
-            💡 {t('examples', locale)}
+          <button className="neon-button qs-btn" onClick={openExamples} disabled={!code} title={t('examples', locale)} aria-label={t('examples', locale)}>
+            💡 <span className="control-label">{t('examples', locale)}</span>
           </button>
           {showQuestionsMenu && exampleQuestions.length > 0 && (
             <div className="qs-dropdown">
@@ -544,19 +544,19 @@ export const ControlBar = ({
       </div>
 
       <div className="control-group playback-controls">
-        <button aria-label={t('previousStep', locale)} className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0 || currentIndex <= 0}>
+        <button aria-label={t('previousStep', locale)} title={t('previousStep', locale)} className="icon-btn primary-step" onClick={stepBackward} disabled={steps.length === 0 || currentIndex <= 0}>
           <StepBack size={28} />
         </button>
         {isPlaying ? (
-          <button aria-label={t('pause', locale)} className="icon-btn tiny-play" onClick={pause} disabled={steps.length === 0}>
+          <button aria-label={t('pause', locale)} title={t('pause', locale)} className="icon-btn tiny-play" onClick={pause} disabled={steps.length === 0}>
             <Pause size={16} />
           </button>
         ) : (
-          <button aria-label={t('play', locale)} className="icon-btn tiny-play" onClick={play} disabled={steps.length === 0}>
+          <button aria-label={t('play', locale)} title={t('play', locale)} className="icon-btn tiny-play" onClick={play} disabled={steps.length === 0}>
             <Play size={16} />
           </button>
         )}
-        <button aria-label={t('nextStep', locale)} className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0 || currentIndex >= steps.length - 1}>
+        <button aria-label={t('nextStep', locale)} title={t('nextStep', locale)} className="icon-btn primary-step" onClick={stepForward} disabled={steps.length === 0 || currentIndex >= steps.length - 1}>
           <StepForward size={28} />
         </button>
       </div>
@@ -631,8 +631,8 @@ export const ControlBar = ({
                     onChange={(event) => changeProvider(event.target.value as AiProviderKind)}
                   >
                     <option value="webllm">WebLLM</option>
-                    <option value="ollama" disabled={!desktopRuntime}>Ollama</option>
-                    <option value="openai-compatible" disabled={!desktopRuntime}>
+                    <option value="ollama" disabled={!desktopRuntime} title={t('desktopProvidersOnly', locale)}>Ollama</option>
+                    <option value="openai-compatible" disabled={!desktopRuntime} title={t('desktopProvidersOnly', locale)}>
                       {locale === 'tr'
                         ? 'LM Studio ve benzerleri (OpenAI-compatible)'
                         : 'LM Studio & similar apps (OpenAI-compatible)'}
@@ -666,6 +666,7 @@ export const ControlBar = ({
                   <div className="settings-title">{t('onDeviceModel', locale)}</div>
                   <select
                     aria-label={t('onDeviceModel', locale)}
+                    title={aiStatus === 'loading' ? t('loading', locale) : undefined}
                     className="api-provider-select"
                     value={aiModel}
                     disabled={aiStatus === 'loading'}
@@ -693,6 +694,7 @@ export const ControlBar = ({
                   </select>
                   <select
                     aria-label={t('contextWindow', locale)}
+                    title={aiStatus === 'loading' ? t('loading', locale) : undefined}
                     className="api-provider-select"
                     value={aiContextWindow}
                     disabled={aiStatus === 'loading'}
@@ -769,6 +771,7 @@ export const ControlBar = ({
                           aria-label={t('deleteStoredModel', locale, {
                             name: translateRuntimeText(model?.label ?? modelId, locale),
                           })}
+                          title={t('loading', locale)}
                           disabled={deletingModel !== null || aiStatus === 'loading'}
                           onClick={() => void deleteStoredModel(modelId)}
                         >
@@ -796,6 +799,7 @@ export const ControlBar = ({
                     <button
                       type="button"
                       className="neon-button ai-load-button danger"
+                      title={t('loading', locale)}
                       disabled={deletingModel !== null || aiStatus === 'loading'}
                       onClick={() => void repairSelectedModel()}
                     >
@@ -864,6 +868,7 @@ export const ControlBar = ({
                           className="api-provider-select"
                           value={externalProfile?.baseUrl ?? ''}
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           onChange={(event) => updateExternalProfile({ baseUrl: event.target.value })}
                           spellCheck={false}
                         />
@@ -873,6 +878,7 @@ export const ControlBar = ({
                           type="button"
                           className="neon-button ai-load-button"
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           onClick={() => void discoverExternalModels()}
                         >
                           {t('discoverModels', locale)}
@@ -885,6 +891,7 @@ export const ControlBar = ({
                           list="codexray-external-models"
                           value={externalProfile?.model ?? ''}
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           onChange={(event) => updateExternalProfile({ model: event.target.value })}
                           spellCheck={false}
                         />
@@ -898,6 +905,7 @@ export const ControlBar = ({
                           className="api-provider-select"
                           value={externalProfile?.contextWindow ?? 4096}
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           onChange={(event) => {
                             const contextWindow = Number(event.target.value) as ExternalAiContextWindow;
                             updateExternalProfile({
@@ -929,6 +937,7 @@ export const ControlBar = ({
                           step={128}
                           value={externalProfile?.maxOutputTokens ?? 1024}
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           onChange={(event) => updateExternalProfile({
                             maxOutputTokens: Math.min(
                               getExternalAiMaxOutputTokens(externalProfile?.contextWindow ?? 4096),
@@ -944,6 +953,7 @@ export const ControlBar = ({
                           className="api-provider-select"
                           value={aiBearerToken}
                           disabled={externalBusy}
+                          title={t('testingExternalModel', locale)}
                           autoComplete="off"
                           onChange={(event) => setAiBearerToken(event.target.value)}
                         />
@@ -958,6 +968,7 @@ export const ControlBar = ({
                         type="button"
                         className="neon-button ai-load-button"
                         disabled={externalBusy || aiStatus === 'ready'}
+                        title={aiStatus === 'ready' ? t('modelReady', locale) : t('testingExternalModel', locale)}
                         onClick={() => void connectSelectedExternal()}
                       >
                         {externalBusy
@@ -1001,12 +1012,6 @@ export const ControlBar = ({
                         >
                           {t('themeDark', locale)}
                         </button>
-                        <button 
-                          className={`theme-btn light-theme ${theme === 'light' ? 'active' : ''}`}
-                          onClick={() => setTheme('light')}
-                        >
-                          {t('themeLight', locale)}
-                        </button>
                       </div>
                     </div>
                     <div className="settings-section">
@@ -1038,6 +1043,7 @@ export const ControlBar = ({
                           className="reset-interface-button"
                           onClick={resetInterface}
                           disabled={aiStatus === 'loading' || deletingModel !== null}
+                          title={t('loading', locale)}
                         >
                           {t('resetInterface', locale)}
                         </button>
@@ -1046,6 +1052,7 @@ export const ControlBar = ({
                           className="reset-site-button"
                           onClick={resetSite}
                           disabled={aiStatus === 'loading' || deletingModel !== null}
+                          title={t('loading', locale)}
                         >
                           {t('resetSite', locale)}
                         </button>
@@ -1056,7 +1063,6 @@ export const ControlBar = ({
                 {activeTab === 'radio' && (
                   <>
                     <div className="settings-section">
-                      <div className="settings-title">{t('radioAutoplay', locale)}</div>
                       <label className="neon-checkbox-label">
                         <input
                           type="checkbox"
@@ -1080,26 +1086,28 @@ export const ControlBar = ({
                           onChange={(e) => setRadioMinimizeSeconds(Number(e.target.value))}
                           style={{ flex: 1 }}
                         />
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', width: '30px', textAlign: 'right' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--neon-cyan)', minWidth: '30px' }}>
                           {radioMinimizeSeconds > 15 ? t('never', locale) : `${radioMinimizeSeconds}s`}
                         </span>
                       </div>
                     </div>
                     <div className="settings-section">
                       <div className="settings-title">{t('radioPlaylist', locale)}</div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <input
-                          type="text"
-                          className="custom-playlist-input"
-                          value={tempPlaylistUrl}
-                          onChange={(e) => setTempPlaylistUrl(e.target.value)}
-                          placeholder="https://youtube.com/playlist?list=..."
-                        />
+                      <div className="playlist-url-row">
+                        <label className="local-ai-field">
+                          <input
+                            type="text"
+                            aria-label={t('radioPlaylist', locale)}
+                            className="custom-playlist-input"
+                            value={tempPlaylistUrl}
+                            onChange={(e) => setTempPlaylistUrl(e.target.value)}
+                          />
+                        </label>
                         <button 
                           type="button"
-                          className="action-btn"
-                          style={{ padding: '6px' }}
+                          className="theme-btn neon-theme playlist-apply-btn"
                           onClick={handleApplyPlaylist}
+                          aria-label={t('apply', locale)}
                           title={t('apply', locale)}
                         >
                           <Check size={18} />

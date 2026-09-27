@@ -100,7 +100,7 @@ test('isolates corrupt layout, invalid input, AI, radio, and Titan Mode failures
   const progress = page.locator('.visualizer-header-actions > span');
   await expect(progress).toHaveText(/^1 \/ \d+$/);
 
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
   await question.fill('Explain the current quick sort step');
   await question.press('Enter');

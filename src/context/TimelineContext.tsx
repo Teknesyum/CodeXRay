@@ -26,7 +26,7 @@ import {
 import { isDesktopRuntime } from '../services/desktopAiService';
 
 export type LocalAiStatus = 'idle' | 'loading' | 'ready' | 'unsupported' | 'error';
-export type Theme = 'neon' | 'dark' | 'light';
+export type Theme = 'neon' | 'dark';
 
 interface TimelineContextType {
   code: string;
@@ -493,7 +493,8 @@ export const TimelineProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = readStorage('codexray.theme');
-    return saved === 'dark' || saved === 'light' || saved === 'neon' ? saved : 'neon';
+    if (saved === 'light') return 'neon';
+    return saved === 'dark' || saved === 'neon' ? saved : 'neon';
   });
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [pinnedVariables, setPinnedVariables] = useState<string[]>(loadPinnedVariables);

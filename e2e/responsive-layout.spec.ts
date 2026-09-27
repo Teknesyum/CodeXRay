@@ -22,7 +22,7 @@ test('completes simulation, AI command, settings, and radio flows at 390px witho
   await page.getByRole('button', { name: 'Next step' }).click();
   await expect(page.locator('.visualizer-header-actions > span')).toHaveText(/^2 \/ \d+$/);
 
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await question.fill('Open the BFS page');
   await question.press('Enter');
   await expect(page.getByLabel('Breadth First Search (BFS) execution')).toBeVisible();

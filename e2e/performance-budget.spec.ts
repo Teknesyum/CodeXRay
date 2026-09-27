@@ -104,7 +104,7 @@ test('keeps startup, catalog switching, simulation, timeline, and DP rendering i
     TIMELINE_FRAME_PACING_GUARD_MS,
   );
 
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   const dpStarted = performance.now();
   await chat.fill('Solve LCS for ["algorithm","rhythm"] and show every 2D DP state.');
   await chat.press('Enter');
@@ -136,7 +136,7 @@ test('survives repeated cross-subsystem use without stale state, overflow, or lo
     await expect(page.locator('.visualizer-header-actions > span')).toContainText('/');
     await page.getByRole('button', { name: 'Next step' }).click();
   }
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   for (const request of [
     'open DFS page',
     'Solve House Robber [2,1,4,9] and simulate every 1D state',

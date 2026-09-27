@@ -18,7 +18,7 @@ const assertNoSeriousViolations = async (page: Page, label: string) => {
   })), label).toEqual([]);
 };
 
-const load = async (page: Page, locale: 'en' | 'tr', theme: 'neon' | 'dark' | 'light') => {
+const load = async (page: Page, locale: 'en' | 'tr', theme: 'neon' | 'dark') => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page.evaluate(({ requestedLocale, requestedTheme }) => {
@@ -36,7 +36,7 @@ const load = async (page: Page, locale: 'en' | 'tr', theme: 'neon' | 'dark' | 'l
 
 test('has no serious WCAG A/AA violations across themes and languages', async ({ page }) => {
   for (const locale of ['en', 'tr'] as const) {
-    for (const theme of ['neon', 'dark', 'light'] as const) {
+    for (const theme of ['neon', 'dark'] as const) {
       await load(page, locale, theme);
       await assertNoSeriousViolations(page, `${locale}/${theme}`);
     }
@@ -61,13 +61,13 @@ test('keeps dialogs, graph semantics, radio shell, and mobile stacking axe-clean
 test('reflows like 200 and 400 percent zoom without losing core controls', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 720 });
   await load(page, 'en', 'dark');
-  await expect(page.getByPlaceholder('Type your question here...')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Your question' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(await page.evaluate(() => document.documentElement.clientWidth + 2));
   await assertNoSeriousViolations(page, '200 percent equivalent reflow');
   await page.setViewportSize({ width: 320, height: 640 });
-  await expect(page.getByPlaceholder('Type your question here...')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Your question' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(await page.evaluate(() => document.documentElement.clientWidth + 2));

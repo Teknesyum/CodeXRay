@@ -1,9 +1,9 @@
 .radio-launcher,
 .playlist-radio {
   position: fixed;
-  left: 16px;
-  bottom: 16px;
-  z-index: 900;
+  left: var(--tk-sp-4);
+  bottom: var(--tk-sp-2);
+  z-index: 20;
 }
 
 .radio-launcher {
@@ -11,14 +11,13 @@
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--neon-magenta);
-  border-radius: 999px;
-  color: #fff;
-  background: rgba(10, 5, 15, 0.94);
-  box-shadow: 0 0 14px rgba(255, 0, 255, 0.24);
+  border: 1px solid var(--tk-renk-2-text);
+  border-radius: var(--tk-r);
+  color: var(--tk-text);
+  background: color-mix(in srgb, var(--tk-surface) 94%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tk-renk-2-text) 24%, transparent);
   font: 700 0.72rem var(--font-mono);
   letter-spacing: 0.6px;
-  text-transform: uppercase;
   backdrop-filter: blur(12px);
 }
 
@@ -32,49 +31,51 @@
   color: inherit;
   background: transparent;
   cursor: pointer;
-  transition: color var(--tk-t-fast) ease, background var(--tk-t-fast) ease, box-shadow var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
+  transition: transform var(--tk-t-fast) var(--tk-e-out);
 }
 
 .radio-launcher-open {
   gap: 7px;
   padding: 0 8px;
-  border-radius: 999px 5px 5px 999px;
+  border-radius: var(--tk-r);
   font: inherit;
   letter-spacing: inherit;
-  text-transform: inherit;
 }
 
 .radio-launcher-playback {
   width: 30px;
-  border-left: 1px solid rgba(0, 243, 255, 0.25);
-  border-radius: 5px 999px 999px 5px;
-  color: var(--neon-cyan);
+  border-left: 1px solid color-mix(in srgb, var(--tk-renk-1) 25%, transparent);
+  border-radius: var(--tk-r);
+  color: var(--tk-renk-1);
 }
 
-.radio-launcher-open:hover {
-  color: var(--on-neon-cyan);
-  background: var(--neon-cyan);
+.radio-launcher-open:hover,
+.radio-launcher-open:focus-visible,
+.radio-launcher-playback:hover,
+.radio-launcher-playback:focus-visible {
+  color: var(--tk-on-renk-1);
+  background: var(--tk-renk-1);
 }
 
-.radio-launcher-playback:hover {
-  color: var(--on-neon-cyan);
-  background: var(--neon-cyan);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--neon-cyan) 55%, transparent);
+.radio-launcher-playback:hover,
+.radio-launcher-playback:focus-visible {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tk-renk-1) 55%, transparent);
 }
 
 .radio-launcher-open:active,
 .radio-launcher-playback:active {
   transform: scale(0.92);
+  box-shadow: inset 0 0 0 1px currentColor;
 }
 
 .playlist-radio {
   width: 260px;
   overflow: hidden;
-  border: 1px solid rgba(255, 0, 255, 0.5);
-  border-radius: 10px;
-  background: rgba(5, 5, 8, 0.98);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 0, 255, 0.18);
-  transition: opacity var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1), transform var(--tk-t-base) cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-2-text) 50%, transparent);
+  border-radius: var(--tk-r);
+  background: color-mix(in srgb, var(--tk-surface) 98%, transparent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px color-mix(in srgb, var(--tk-renk-2-text) 18%, transparent);
+  transition: opacity var(--tk-t-base) var(--tk-e-out), transform var(--tk-t-base) var(--tk-e-out);
 }
 
 .playlist-radio-header {
@@ -83,14 +84,14 @@
   gap: 8px;
   min-height: 38px;
   padding: 6px 9px;
-  color: var(--neon-magenta);
+  color: var(--tk-renk-2-text);
   font: 700 0.75rem var(--font-mono);
   letter-spacing: 0.6px;
 }
 
 .playlist-radio-header > span {
   flex: 1;
-  color: #fff;
+  color: var(--tk-text);
 }
 
 .playlist-radio-header a,
@@ -102,16 +103,18 @@
   height: 26px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 5px;
-  color: var(--text-muted);
+  border-radius: var(--tk-r);
+  color: var(--tk-text);
   background: transparent;
   cursor: pointer;
 }
 
 .playlist-radio-header a:hover,
-.playlist-radio-header button:hover {
-  border-color: rgba(0, 243, 255, 0.35);
-  color: var(--neon-cyan);
+.playlist-radio-header button:hover,
+.playlist-radio-header a:focus-visible,
+.playlist-radio-header button:focus-visible {
+  border-color: color-mix(in srgb, var(--tk-renk-1) 35%, transparent);
+  color: var(--tk-renk-1);
 }
 
 .playlist-radio iframe {
@@ -120,7 +123,7 @@
   height: 203px;
   margin: 0 auto;
   border: 0;
-  background: #000;
+  background: var(--tk-surface);
 }
 
 .hidden-iframe {
@@ -137,7 +140,7 @@
   justify-content: center;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid rgba(0, 243, 255, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--tk-renk-1) 8%, transparent);
 }
 
 .control-btn {
@@ -148,34 +151,36 @@
   padding: 0;
   border: 1px solid transparent;
   border-radius: 50%;
-  color: var(--text-muted);
+  color: var(--tk-text);
   background: transparent;
   cursor: pointer;
-  transition: opacity var(--tk-t-fast) ease, transform var(--tk-t-fast) ease;
+  transition: transform var(--tk-t-fast) var(--tk-e-out);
 }
 
-.control-btn:hover {
-  color: var(--neon-cyan);
-  background: rgba(0, 243, 255, 0.1);
+.control-btn:hover,
+.control-btn:focus-visible {
+  color: var(--tk-renk-1);
+  background: color-mix(in srgb, var(--tk-renk-1) 10%, transparent);
 }
 
 .control-btn.active {
-  color: var(--neon-magenta);
-  background: linear-gradient(135deg, rgba(255, 0, 255, 0.16), rgba(0, 243, 255, 0.08));
-  border-color: var(--neon-magenta);
-  box-shadow: 0 0 7px rgba(255, 0, 255, 0.45), inset 0 0 8px rgba(255, 0, 255, 0.1);
+  color: var(--tk-renk-2-text);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tk-renk-2-text) 16%, transparent), color-mix(in srgb, var(--tk-renk-1) 8%, transparent));
+  border-color: var(--tk-renk-2-text);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--tk-renk-2-text) 45%, transparent), inset 0 0 8px color-mix(in srgb, var(--tk-renk-2-text) 10%, transparent);
 }
 
 .play-pause-btn {
   width: 38px;
   height: 38px;
-  border: 1px solid rgba(0, 243, 255, 0.3);
-  color: var(--neon-cyan);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 30%, transparent);
+  color: var(--tk-renk-1);
 }
 
-.play-pause-btn:hover {
-  border-color: var(--neon-cyan);
-  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+.play-pause-btn:hover,
+.play-pause-btn:focus-visible {
+  border-color: var(--tk-renk-1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
 }
 
 .playlist-radio-progress {
@@ -187,12 +192,12 @@
 
 .radio-playback-notice {
   margin: 8px 12px 0;
-  color: #ff9b9b;
+  color: var(--tk-danger-text);
   font: 0.68rem/1.4 var(--font-mono);
 }
 
 .time-text {
-  color: var(--text-muted);
+  color: var(--tk-text);
   font: 500 0.65rem var(--font-mono);
   min-width: 35px;
   text-align: center;
@@ -212,22 +217,23 @@
 .mute-btn {
   background: transparent;
   border: none;
-  color: var(--neon-cyan);
+  color: var(--tk-renk-1);
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity var(--tk-t-fast);
+  transition: color var(--tk-t-fast) var(--tk-e-out);
 }
 
 .mute-btn:disabled {
-  cursor: wait;
-  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--tk-disabled);
 }
 
-.mute-btn:hover:not(:disabled) {
-  opacity: 0.8;
+.mute-btn:hover:not(:disabled),
+.mute-btn:focus-visible:not(:disabled) {
+  color: color-mix(in srgb, var(--tk-renk-1) 75%, white);
 }
 
 .playlist-radio-volume label {
@@ -235,20 +241,19 @@
   align-items: center;
   flex: 1;
   gap: 7px;
-  color: var(--text-muted);
+  color: var(--tk-text);
   font: 0.65rem var(--font-mono);
-  text-transform: uppercase;
 }
 
 .playlist-radio-volume input {
   flex: 1;
   min-width: 80px;
-  accent-color: var(--neon-magenta);
+  accent-color: var(--tk-renk-2-text);
 }
 
 .playlist-radio-volume output {
   width: 25px;
-  color: var(--text-main);
+  color: var(--tk-text);
   text-align: right;
 }
 
@@ -265,7 +270,7 @@
 .minimize-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--tk-text);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -273,11 +278,12 @@
   justify-content: center;
   position: relative;
   z-index: 2;
-  transition: color var(--tk-t-fast);
+  transition: color var(--tk-t-fast) var(--tk-e-out);
 }
 
-.minimize-btn:hover {
-  color: #fff;
+.minimize-btn:hover,
+.minimize-btn:focus-visible {
+  color: var(--tk-renk-1);
 }
 
 .countdown-ring {
@@ -290,11 +296,11 @@
 
 .countdown-ring rect {
   fill: transparent;
-  stroke: var(--neon-magenta);
+  stroke: var(--tk-renk-2-text);
   stroke-width: 2;
   stroke-dasharray: 74;
   stroke-dashoffset: 0;
-  animation: countdown var(--tk-t-slow) linear forwards;
+  animation: countdown var(--tk-t-slow) var(--tk-e-linear) forwards;
 }
 
 @keyframes countdown {
@@ -307,10 +313,10 @@
   position: relative;
   height: 200px;
   margin: 10px 10px 0;
-  border-radius: 8px;
+  border-radius: var(--tk-r);
   background: rgba(0, 0, 0, 0.4);
   overflow: hidden;
-  border: 1px solid rgba(0, 243, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 10%, transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -324,25 +330,17 @@
   height: 100px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--tk-renk-1) 30%, transparent);
   z-index: 5;
-  border: 2px solid rgba(0, 243, 255, 0.2);
+  border: 2px solid color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
   margin-bottom: -15px; /* Pull waves closer to PP */
 }
 
-.radio-visualizer.playing .album-art {
-  animation: spin 10s linear infinite;
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-
 .album-art-placeholder {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   display: grid;
   place-items: center;
-  color: var(--neon-cyan);
+  color: var(--tk-renk-1);
 }
 
 .waves-container {
@@ -352,7 +350,7 @@
   width: 100%;
   height: 102px;
   z-index: 1;
-  filter: drop-shadow(0 -3px 8px rgba(0, 243, 255, 0.12));
+  filter: drop-shadow(0 -3px 8px color-mix(in srgb, var(--tk-renk-1) 12%, transparent));
 }
 
 .wave-1,
@@ -365,7 +363,7 @@
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity var(--tk-t-base);
+  transition: opacity var(--tk-t-base) var(--tk-e-out);
 }
 
 .radio-visualizer.playing .wave-1,
@@ -379,7 +377,6 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 64' preserveAspectRatio='none'%3E%3Cpath d='M0 45 C10 22 20 22 30 45 S50 68 60 45 S80 18 90 45 S110 66 120 45 S140 25 160 45 V64 H0Z' fill='%2300f3ff' fill-opacity='.12'/%3E%3C/svg%3E") repeat-x;
   background-size: 48px 72%;
   background-position: bottom;
-  animation: waveFlowRight 20s linear infinite;
   filter: blur(1.1px);
   transform: translateY(2px);
   z-index: 1;
@@ -389,7 +386,6 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 64' preserveAspectRatio='none'%3E%3Cpath d='M0 50 C9 34 18 34 27 50 S45 64 54 50 S72 27 81 50 S99 67 108 50 S126 31 144 50 V64 H0Z' fill='%23ff00ff' fill-opacity='.19'/%3E%3C/svg%3E") repeat-x;
   background-size: 45px 92%;
   background-position: bottom;
-  animation: waveFlowLeft 24s linear infinite;
   z-index: 4;
 }
 
@@ -397,7 +393,6 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 64' preserveAspectRatio='none'%3E%3Cpath d='M0 53 C8 39 16 39 24 53 S40 65 48 53 S64 35 72 53 S88 65 96 53 S112 42 120 53 V64 H0Z' fill='%237b61ff' fill-opacity='.17'/%3E%3C/svg%3E") repeat-x;
   background-size: 41px 82%;
   background-position: bottom;
-  animation: waveFlowRightCompact 27s linear infinite;
   z-index: 3;
 }
 
@@ -405,29 +400,8 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 104 64' preserveAspectRatio='none'%3E%3Cpath d='M0 56 C6.5 46 13 46 19.5 56 S32.5 64 39 56 S52 42 58.5 56 S71.5 65 78 56 S91 47 104 56 V64 H0Z' fill='%2300f3ff' fill-opacity='.07'/%3E%3C/svg%3E") repeat-x;
   background-size: 37px 70%;
   background-position: bottom;
-  animation: waveFlowLeftCompact 30s linear infinite;
   filter: blur(0.8px);
   z-index: 0;
-}
-
-@keyframes waveFlowRight {
-  0% { background-position-x: 0; }
-  100% { background-position-x: 48px; }
-}
-
-@keyframes waveFlowLeft {
-  0% { background-position-x: 0; }
-  100% { background-position-x: -45px; }
-}
-
-@keyframes waveFlowRightCompact {
-  0% { background-position-x: 0; }
-  100% { background-position-x: 41px; }
-}
-
-@keyframes waveFlowLeftCompact {
-  0% { background-position-x: 0; }
-  100% { background-position-x: -37px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -442,16 +416,15 @@
   bottom: 20px;
   z-index: 5;
   font: 0.75rem var(--font-mono);
-  color: #fff;
-  text-shadow: 0 0 5px #000;
+  color: var(--tk-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 4px 10px;
-  background: rgba(0,0,0,0.6);
-  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--tk-r);
   max-width: 90%;
-  border: 1px solid rgba(0, 243, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
   margin-top: -10px; /* Pull track info up over the waves */
 }
 
@@ -459,7 +432,7 @@
 .radio-playlist-menu {
   max-height: 150px;
   overflow-y: auto;
-  border-top: 1px solid rgba(0, 243, 255, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--tk-renk-1) 12%, transparent);
   background: rgba(0, 0, 0, 0.2);
   margin-top: 5px;
 }
@@ -469,8 +442,8 @@
 }
 
 .radio-playlist-menu::-webkit-scrollbar-thumb {
-  background: rgba(0, 243, 255, 0.2);
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--tk-renk-1) 20%, transparent);
+  border-radius: var(--tk-r);
 }
 
 .playlist-item {
@@ -482,20 +455,21 @@
   background: transparent;
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
+  color: var(--tk-text);
   cursor: pointer;
-  transition: opacity var(--tk-t-fast), transform var(--tk-t-fast);
+  transition: transform var(--tk-t-fast) var(--tk-e-out);
   text-align: left;
 }
 
-.playlist-item:hover {
-  background: rgba(0, 243, 255, 0.05);
-  color: var(--text-main);
+.playlist-item:hover,
+.playlist-item:focus-visible {
+  background: color-mix(in srgb, var(--tk-renk-1) 5%, transparent);
+  color: var(--tk-text);
 }
 
 .playlist-item.active {
-  background: rgba(0, 243, 255, 0.1);
-  color: var(--neon-cyan);
+  background: color-mix(in srgb, var(--tk-renk-1) 10%, transparent);
+  color: var(--tk-renk-1);
 }
 
 .track-number {
@@ -513,22 +487,23 @@
 }
 
 .playing-icon {
-  color: var(--neon-magenta);
-  animation: pulse 1s infinite alternate;
-}
-
-@keyframes pulse {
-  from { opacity: 0.5; }
-  to { opacity: 1; }
+  color: var(--tk-renk-2-text);
 }
 
 .playlist-radio > p {
   margin: 0;
   padding: 7px 10px;
-  color: var(--text-muted);
+  color: var(--tk-text);
   font-size: 0.67rem;
   line-height: 1.35;
   text-align: center;
+}
+
+@media (max-width: 900px) {
+  .radio-launcher,
+  .playlist-radio {
+    z-index: 50;
+  }
 }
 
 @media (max-width: 560px) {
@@ -549,5 +524,5 @@
   }
 }
 
-.track-thumb, .track-thumb-placeholder { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 243, 255, 0.2); }
+.track-thumb, .track-thumb-placeholder { width: 32px; height: 32px; border-radius: var(--tk-r); object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.4); border: 1px solid color-mix(in srgb, var(--tk-renk-1) 20%, transparent); }
 .track-thumb-placeholder svg { color: rgba(255, 255, 255, 0.5); }

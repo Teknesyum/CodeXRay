@@ -13,7 +13,7 @@ export default defineConfig({
     environment: 'jsdom',
     testTimeout: 15_000,
     setupFiles: ['./src/test/setup.ts'],
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['e2e/**', 'node_modules/**', 'trash/**'],
     coverage: {
       provider: 'v8',
       include: [

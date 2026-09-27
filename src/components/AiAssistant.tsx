@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Activity, Bot, BrainCircuit, Check, ChevronDown, Copy, Crown, ExternalLink, Globe2, Loader, MapPin, Maximize2, Minimize2, Send, Square, Trash2, X } from 'lucide-react';
 import { useTimeline } from '../context/TimelineContext';
 import { askQuestionDetailed, generateSimulationSteps } from '../services/aiService';
@@ -783,7 +784,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
         setTitanModePlan(uiPlan);
         persistTitanModePlan(uiPlan);
         if (titanModeIntent.command.startsWith('theme-')) {
-          setTheme(titanModeIntent.command.slice('theme-'.length) as 'neon' | 'dark' | 'light');
+          setTheme(titanModeIntent.command.slice('theme-'.length) as 'neon' | 'dark');
         } else if (titanModeIntent.command === 'radio-open') {
           requestRadioOpen();
         } else if (titanModeIntent.command === 'radio-play' || titanModeIntent.command === 'radio-pause') {
@@ -1431,11 +1432,14 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
       {actionQueue.length > 0 && (
         <div className="ai-action-queue">
           <div className="queue-status">
-            <Activity size={14} className="pulse-icon" />
+            <Activity size={14} className="pulse-icon" data-tk-loading />
             <span>{currentActionText}</span>
           </div>
           <div className="queue-progress-bar">
-            <div className="queue-progress-fill" style={{ width: `${queueProgress}%` }} />
+            <div
+              className="queue-progress-fill"
+              style={{ '--tk-queue-progress': queueProgress / 100 } as CSSProperties}
+            />
           </div>
         </div>
       )}
@@ -1600,7 +1604,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           </section>
         )}
         {taxonomyView && (
-          <Suspense fallback={<p><Loader size={14} className="spin-icon" /></p>}>
+          <Suspense fallback={<p><Loader size={14} className="spin-icon" data-tk-loading /></p>}>
             <QuestionTaxonomyTree
               key={taxonomyView.selectedNodeId ?? 'root'}
               groups={taxonomyView.groups}
@@ -1624,7 +1628,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                       <span className="reasoning-title">
                         <BrainCircuit size={14} aria-hidden="true" />
                         {t('modelReasoning', locale)}
-                        <span className="live-thinking-dot" aria-label={t('reasoningStreaming', locale)} />
+                        <span className="live-thinking-dot" data-tk-loading aria-label={t('reasoningStreaming', locale)} />
                       </span>
                       <span className="reasoning-meta">
                         {t('live', locale)}
@@ -1633,7 +1637,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                     </summary>
                     <div className="reasoning-body live-body">
                       <MarkdownPreview content={streamingResponse.reasoning} />
-                      <span className="stream-caret" aria-hidden="true" />
+                      <span className="stream-caret" data-tk-loading aria-hidden="true" />
                     </div>
                   </details>
                 )}
@@ -1641,15 +1645,15 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                   ? (
                     <div className="streaming-answer" aria-label={t('answerStreaming', locale)}>
                       <MarkdownPreview content={streamingResponse.content} />
-                      <span className="stream-caret" aria-hidden="true" />
+                      <span className="stream-caret" data-tk-loading aria-hidden="true" />
                     </div>
                   )
                   : !streamingResponse.reasoning && (
-                    <p><Loader size={14} className="spin-icon" /> {t('thinkingLocally', locale)}</p>
+                    <p><Loader size={14} className="spin-icon" data-tk-loading /> {t('thinkingLocally', locale)}</p>
                   )}
               </div>
             ) : (
-              <p><Loader size={14} className="spin-icon" /> {t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
+              <p><Loader size={14} className="spin-icon" data-tk-loading /> {t(isPlanningActions ? 'aiPlanningActions' : 'thinkingLocally', locale)}</p>
             )}
           </div>
         )}
@@ -1664,6 +1668,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                 type="button"
                 className={index === currentIndex ? 'active' : ''}
                 aria-label={t('goToKeyMoment', locale, { step: index + 1 })}
+                title={t('goToKeyMoment', locale, { step: index + 1 })}
                 disabled={isTyping || (!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}
                 onClick={() => void submitQuestion(
                   locale === 'tr'
@@ -1684,10 +1689,13 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           if (question.trim()) void submitQuestion(question.trim());
         }}
       >
+        <label className="ai-chat-field">
+        <span className="ai-chat-label">{t('chatQuestionLabel', locale)}</span>
         <input
           type="text"
           maxLength={2048}
-          placeholder={aiStatus === 'ready' || titanModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}
+          aria-describedby="ai-chat-help"
+          aria-invalid={false}
           value={question}
           onChange={(event) => {
             const next = event.target.value;
@@ -1698,6 +1706,8 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           }}
           disabled={isTyping || (!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}
         />
+        <small id="ai-chat-help" className="ai-chat-help">{aiStatus === 'ready' || titanModeEnabled ? t('askPlaceholder', locale) : t('loadModelToChat', locale)}</small>
+        </label>
         {isTyping ? (
           <button
             aria-label={t('stopAiResponse', locale)}
@@ -1723,7 +1733,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
             <Square size={13} fill="currentColor" />
           </button>
         ) : (
-          <button aria-label={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}>
+          <button aria-label={t('sendQuestion', locale)} title={t('sendQuestion', locale)} type="submit" className="send-btn" disabled={(!titanModeEnabled && aiStatus !== 'ready' && !canSubmitWithoutModel) || actionQueue.length > 0 || isTitanModeRunning || isWebRunning}>
             <Send size={14} />
           </button>
         )}

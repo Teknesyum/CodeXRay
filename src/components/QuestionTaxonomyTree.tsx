@@ -37,15 +37,25 @@ export default function QuestionTaxonomyTree({ groups, initialNodeId, locale, on
         {visibleProblems.map((problem) => <button
           type="button"
           key={`${problem.source}:${problem.id}`}
-          className={`difficulty-${problem.difficulty.toLowerCase()}`}
+          className={`difficulty-${problem.difficulty.toLocaleLowerCase('tr')}`}
           title={`${problem.title} · ${problem.difficulty} · ${problem.source} ${problem.id}`}
           onClick={() => onProblemSelect?.(problem)}
         ><span>{problem.title}</span><i aria-label={problem.difficulty} /></button>)}
       </div>
       {pageCount > 1 && <nav className="taxonomy-pagination" aria-label={locale === 'tr' ? 'Soru sayfaları' : 'Problem pages'}>
-        <button type="button" disabled={page === 0} onClick={() => setPage((value) => value - 1)}>{locale === 'tr' ? 'Önceki' : 'Previous'}</button>
+        <button
+          type="button"
+          disabled={page === 0}
+          title={page === 0 ? (locale === 'tr' ? 'Zaten ilk sayfadasınız' : 'Already on the first page') : undefined}
+          onClick={() => setPage((value) => value - 1)}
+        >{locale === 'tr' ? 'Önceki' : 'Previous'}</button>
         <span>{page + 1} / {pageCount}</span>
-        <button type="button" disabled={page + 1 === pageCount} onClick={() => setPage((value) => value + 1)}>{locale === 'tr' ? 'Sonraki' : 'Next'}</button>
+        <button
+          type="button"
+          disabled={page + 1 === pageCount}
+          title={page + 1 === pageCount ? (locale === 'tr' ? 'Zaten son sayfadasınız' : 'Already on the last page') : undefined}
+          onClick={() => setPage((value) => value + 1)}
+        >{locale === 'tr' ? 'Sonraki' : 'Next'}</button>
       </nav>}
     </div>}
   </section>;

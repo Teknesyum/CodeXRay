@@ -33,6 +33,7 @@ const labels = (locale: 'en' | 'tr') => locale === 'tr' ? {
   tags: 'Etiketler', types: 'Problem tipleri', details: 'Problem ayrıntıları', open: 'Problem sayfasını aç', results: 'problem',
   statement: 'Problem açıklaması', inputFormat: 'Girdi biçimi', outputFormat: 'Çıktı biçimi', constraints: 'Kısıtlar', examples: 'Örnekler', notes: 'İpuçları ve notlar', signature: 'Fonksiyon imzası',
   loadingDetails: 'Problem ayrıntıları güvenli kaynaktan yükleniyor…', detailError: 'Problem ayrıntıları şu anda alınamadı.', retryDetails: 'Ayrıntıları yeniden dene', sourceWarning: 'İçerik kaynak sayfadan temizlenip doğrulanarak yüklenir.',
+  firstPage: 'İlk sayfadasınız', lastPage: 'Son sayfadasınız', selectFirst: 'Bu problem için simülasyon kaynağı bulunamadı',
 } : {
   title: 'Examples', subtitle: 'Explore and filter algorithm problems, then simulate verified entries with Titan Mode.',
   close: 'Close examples', platform: 'Platform', search: 'Search title, ID, or tag…',
@@ -43,6 +44,7 @@ const labels = (locale: 'en' | 'tr') => locale === 'tr' ? {
   tags: 'Tags', types: 'Problem types', details: 'Problem details', open: 'Open problem page', results: 'problems',
   statement: 'Problem statement', inputFormat: 'Input format', outputFormat: 'Output format', constraints: 'Constraints', examples: 'Examples', notes: 'Hints and notes', signature: 'Function signature',
   loadingDetails: 'Loading problem details from the validated source…', detailError: 'Problem details are currently unavailable.', retryDetails: 'Retry details', sourceWarning: 'Content is cleaned and validated from the source page.',
+  firstPage: 'You are on the first page', lastPage: 'You are on the last page', selectFirst: 'No simulation source is available for this problem',
 };
 
 const CollapsibleProblemSection = ({
@@ -209,7 +211,7 @@ export const LeetCodeDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
         <label><span>{copy.platform}</span><select value={source} onChange={(event) => { setSource(event.target.value); setPage(1); }}>
           <option value="leetcode">LeetCode</option><option value="cses">CSES</option><option value="codeforces">Codeforces</option><option value="atcoder">AtCoder</option>
         </select></label>
-        <label className="examples-search"><span className="sr-only">{copy.search}</span><Search size={16} /><input value={query} placeholder={copy.search} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label>
+        <label className="examples-search"><span>{copy.search}</span><Search size={16} /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label>
         <label><span>{copy.difficulty}</span><select value={difficulty} onChange={(event) => { setDifficulty(event.target.value); setPage(1); }}>
           <option value="all">{copy.all}</option><option value="Easy">{copy.easy}</option><option value="Medium">{copy.medium}</option><option value="Hard">{copy.hard}</option>
         </select></label>
@@ -230,23 +232,23 @@ export const LeetCodeDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
                     <button type="button" className={`examples-problem-row${selectedId === problem.id ? ' is-selected' : ''}`} onClick={() => setSelectedId(problem.id)} aria-pressed={selectedId === problem.id}>
                       <span className="examples-problem-id">#{problem.id}</span>
                       <span className="examples-problem-name">{problem.title}</span>
-                      <span className={`examples-difficulty is-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
+                      <span className={`examples-difficulty is-${problem.difficulty.toLocaleLowerCase('tr')}`}>{problem.difficulty}</span>
                       {verified && <CheckCircle2 className="examples-verified-icon" size={17} aria-label={copy.verified} />}
                     </button>
                   </li>;
                 })}</ul>}
           <nav className="examples-pagination" aria-label="Pagination">
-            <button type="button" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Previous Page"><ChevronLeft size={17} /></button>
+            <button type="button" disabled={page === 1} title={page === 1 ? copy.firstPage : undefined} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Previous Page"><ChevronLeft size={17} /></button>
             <span>{page} / {totalPages}</span>
-            <button type="button" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} aria-label="Next Page"><ChevronRight size={17} /></button>
+            <button type="button" disabled={page === totalPages} title={page === totalPages ? copy.lastPage : undefined} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} aria-label="Next Page"><ChevronRight size={17} /></button>
           </nav>
         </section>
 
         <aside className="examples-detail-pane" aria-live="polite">
           {!selected ? <div className="examples-empty-detail"><BookOpen size={34} /><p>{copy.select}</p></div> : <>
-            <div className="examples-detail-title"><div><span>{source.toUpperCase()} · #{selected.id}</span><h3>{selected.title}</h3></div>{canSimulate && <CheckCircle2 size={22} aria-label={copy.verified} />}</div>
+            <div className="examples-detail-title"><div><span>{source.toLocaleUpperCase('tr')} · #{selected.id}</span><h3>{selected.title}</h3></div>{canSimulate && <CheckCircle2 size={22} aria-label={copy.verified} />}</div>
             <div className="examples-detail-grid">
-              <div><span>{copy.difficulty}</span><strong className={`examples-difficulty is-${selected.difficulty.toLowerCase()}`}>{selected.difficulty}</strong></div>
+              <div><span>{copy.difficulty}</span><strong className={`examples-difficulty is-${selected.difficulty.toLocaleLowerCase('tr')}`}>{selected.difficulty}</strong></div>
               <div><span>{copy.category}</span><strong>{selected.category}</strong></div>
             </div>
             <div className="examples-detail-section"><h4>{copy.types}</h4><div className="examples-chips">{(selected.derivedCategories?.length ? selected.derivedCategories : [selected.category]).map((value) => <span key={value}>{value}</span>)}</div></div>
@@ -265,7 +267,7 @@ export const LeetCodeDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
             </div>}
             {selectedProblemUrl && <a className="examples-external-link" href={selectedProblemUrl} target="_blank" rel="noreferrer">{copy.open}<ExternalLink size={14} /></a>}
             <div className={`examples-support-note${canSimulate ? ' is-verified' : ''}`}>{canSimulate ? <><CheckCircle2 size={16} />{copy.verified}</> : copy.unavailable}</div>
-            <button className="examples-simulate-btn" type="button" onClick={simulateSelected} disabled={!canAttemptSimulation}><Play size={17} />{copy.simulate}</button>
+            <button className="examples-simulate-btn" type="button" onClick={simulateSelected} disabled={!canAttemptSimulation} title={!canAttemptSimulation ? copy.selectFirst : undefined}><Play size={17} />{copy.simulate}</button>
           </>}
         </aside>
       </main>

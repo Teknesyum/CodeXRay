@@ -4,10 +4,21 @@
 
 <div align="center">
   <img src="public/favicon.svg" alt="CodeXRay logo" width="120" />
-  <h1>CodeXRay ⚡</h1>
+  <h1>CodeXRay</h1>
   <p><strong>See algorithms execute, one state change at a time.</strong></p>
   <p><a href="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml"><img src="https://github.com/Teknesyum/CodeXRay/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
 </div>
+
+## At a glance
+
+| Measure | Value |
+| --- | --- |
+| Deterministic simulators | 60 |
+| Interface languages | 2 (English, Turkish) |
+| Titan Mode stages | 5 |
+| Remote AI calls | 0 |
+
+## What it is
 
 CodeXRay is a bilingual English/Turkish algorithm visualizer available as a
 React/Vite browser app and a Tauri 2 Windows desktop app. Its deterministic
@@ -58,6 +69,31 @@ OpenAI-compatible server.
 - Persistent variable pins that stay at the top of Variables & Trace and mirror
   live values in a horizontally scrollable visualization watch strip.
 
+## Doesn't VisuAlgo already do this?
+
+VisuAlgo and similar sites animate classic algorithms well, and CodeXRay does not
+replace them for a lecture-style walkthrough. What CodeXRay adds:
+
+- The trace comes from your own input, and every variable at every step is shown in
+  Variables & Trace without truncation.
+- English and Turkish switch instantly, including steps already simulated.
+- An optional on-device model explains steps and edits input, but never writes the
+  trace; the deterministic interpreter does.
+- A Windows desktop build runs offline and can talk to a local Ollama or
+  OpenAI-compatible server.
+
+## What it doesn't do
+
+- It makes no remote AI calls and sends no workspace, chat, or prompt off the machine.
+  Only a URL you ask the web reader to fetch leaves the browser.
+- It never runs user or model source with `eval` or `new Function`.
+- The tracer does not support `async`/`await`, generators, or `Symbol.iterator`;
+  unsupported constructs are reported with a line number.
+- It does not install, start, or manage Ollama, LM Studio, or any other runtime.
+- Verification proves a generated simulation is what its program produces, not that the
+  program solves your problem.
+- Release builds are not code-signed.
+
 ## Titan Mode
 
 Titan Mode is CodeXRay's deterministic-first workspace orchestrator. Navigation,
@@ -71,6 +107,11 @@ interpreted inside a Worker, verified against execution budgets, and applied onl
 after all deterministic gates pass. CodeXRay never runs user or model source with
 `eval` or `new Function`. Unsupported operations and failed verification remain
 visible instead of silently falling back.
+
+```mermaid
+flowchart LR
+  A[Route] --> B[Produce] --> C[Semantics] --> D[Verify] --> E[Apply]
+```
 
 Titan Mode uses five explicit stages: Route, Produce, Semantics, Verify, and
 Apply. Unneeded stages are shown as skipped. Workspace application is atomic and
@@ -262,9 +303,17 @@ intentionally discards the older unbalanced right-column defaults. The Examples
 menu renders above the assistant stacking layer and remains scrollable rather
 than being clipped by the Controls panel.
 
+## Contributing
+
+Open an issue before a large change, and keep pull requests small, one concern each.
+The repository language is English; the Turkish README is the only exception.
+Contributions are licensed under AGPL-3.0-or-later. Commits are signed off under the
+[DCO](DCO); details are in [CONTRIBUTING.md](CONTRIBUTING.md).
+If CodeXRay is useful to you, [sponsoring Teknesyum](https://github.com/sponsors/Teknesyum) keeps it going.
+
 ## License
 
-AGPL-3.0-or-later — see [LICENSE](LICENSE).
+AGPL-3.0-or-later. See [LICENSE](LICENSE).
 
 Copyright (C) 2026 Teknesyum
 

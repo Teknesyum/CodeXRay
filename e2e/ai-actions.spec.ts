@@ -8,7 +8,7 @@ test('loads DFS in Titan Mode without waiting for a local model', async ({ page 
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
-  const chatInput = page.getByPlaceholder('Type your question here...');
+  const chatInput = page.getByRole('textbox', { name: 'Your question' });
   await expect(chatInput).toBeEnabled();
   await chatInput.fill('DFS ile ilgili sayfayı aç');
   await chatInput.press('Enter');
@@ -90,7 +90,7 @@ test('loads DFS deterministically with a mocked on-device model bridge', async (
   });
 
   await page.goto('/');
-  const chatInput = page.getByPlaceholder('Type your question here...');
+  const chatInput = page.getByRole('textbox', { name: 'Your question' });
   await expect(chatInput).toBeEnabled();
   await chatInput.fill('DFS ile ilgili sayfayı aç');
   await chatInput.press('Enter');
@@ -187,7 +187,7 @@ test('builds and applies bidirectional BFS through the visible Titan Mode queue'
   });
 
   await page.goto('/');
-  const chatInput = page.getByPlaceholder('Type your question here...');
+  const chatInput = page.getByRole('textbox', { name: 'Your question' });
   await expect(chatInput).toBeEnabled();
   await chatInput.fill('write bidirectional BFS for me');
   await chatInput.press('Enter');

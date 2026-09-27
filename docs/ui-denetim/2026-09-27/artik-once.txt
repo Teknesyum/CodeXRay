@@ -1,0 +1,6 @@
+ 4358.7 MB  src-tauri/target  (üretilen, silinebilir)
+  219.9 MB  node_modules  (node_modules)
+   11.5 MB  dist  (üretilen, silinebilir)
+    9.2 MB  trash  (trash)
+    9.1 MB  coverage  (üretilen, silinebilir)
+Toplam 4609.6 MB, silinebilir 4380.4 MB

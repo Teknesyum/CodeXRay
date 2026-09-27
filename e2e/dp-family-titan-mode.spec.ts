@@ -24,7 +24,7 @@ const advanceToEnd = async (page: Page) => {
 
 test('authors, visualizes, and teaches a 1D House Robber DP recurrence', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve and simulate LeetCode 198 House Robber in Java with [2,7,9,3,1]. Show every 1D DP state.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 198 — House Robber execution')).toBeVisible();
@@ -41,7 +41,7 @@ test('authors, visualizes, and teaches a 1D House Robber DP recurrence', async (
 
 test('authors a rectangular LCS table and exposes exact dependencies', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve LCS for ["abcde","ace"] and show every 2D DP state.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
@@ -63,7 +63,7 @@ test('authors a rectangular LCS table and exposes exact dependencies', async ({ 
 
 test('turns the committed LCS into a space-optimized 1D follow-up without overflowing context', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve LCS for ["abcde","ace"] and show every 2D DP state.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 1143 — Longest Common Subsequence execution')).toBeVisible();
@@ -79,7 +79,7 @@ test('turns the committed LCS into a space-optimized 1D follow-up without overfl
 
 test('authors and simulates the exact Java Coin Change contract', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('bana coin exchange problemi yaz ve simüle et');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 322 — Coin Change execution')).toBeVisible();
@@ -93,7 +93,7 @@ test('authors and simulates the exact Java Coin Change contract', async ({ page 
 
 test('authors and simulates the exact Java Edit Distance contract as a 2D table', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve Edit Distance in Java for ["horse","ros"] and simulate the 2D DP table.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 72 — Edit Distance execution')).toBeVisible();
@@ -107,7 +107,7 @@ test('authors and simulates the exact Java Edit Distance contract as a 2D table'
 
 test('authors and simulates the exact Java 0/1 Knapsack contract without item reuse', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve 0/1 Knapsack in Java weight=[1,3,4,5], value=[1,4,5,7], W=7 and simulate every state.');
   await chat.press('Enter');
   await expect(page.getByLabel('0/1 Knapsack execution')).toBeVisible();
@@ -121,7 +121,7 @@ test('authors and simulates the exact Java 0/1 Knapsack contract without item re
 
 test('authors an interval-palindrome table and preserves diagonal fill semantics', async ({ page }) => {
   await prepare(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve LeetCode 516 longest palindromic subsequence for "bbbab" and simulate the interval DP table.');
   await chat.press('Enter');
   await expect(page.getByLabel('LeetCode 516 — Longest Palindromic Subsequence execution')).toBeVisible();
@@ -141,7 +141,7 @@ test('routes the exact Turkish palindrome request through agents, types source, 
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('en uzun palindromik dizi sorusu yaz çöz simüle et');
   await chat.press('Enter');
 

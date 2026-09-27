@@ -60,7 +60,7 @@ test('separates BFS questions from commands and discards interrupted narration',
   await page.goto('/');
   const preset = page.getByLabel('Algorithm preset');
   const presetBefore = await preset.inputValue();
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await expect(question).toBeEnabled();
 
   await question.fill('What is BFS?');

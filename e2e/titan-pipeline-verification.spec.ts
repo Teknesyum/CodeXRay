@@ -30,7 +30,7 @@ test('shows verification failure and preserves the visible workspace on a mismat
     context: await context.textContent(),
   };
 
-  const chat = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const chat = page.getByRole('textbox', { name: 'Sorunuz' });
   await chat.fill('hedefi 42 yap');
   await chat.press('Enter');
 

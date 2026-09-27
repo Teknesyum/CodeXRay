@@ -18,7 +18,7 @@ const openDfsTour = async (page: Page) => {
   await page.getByRole('button', { name: /Simulate/ }).click();
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
 
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('walk me through the algorithm');
   await chat.press('Enter');
@@ -56,7 +56,7 @@ test('the tour reaches steps the tie-keeping scorer never selected', async ({ pa
 
 test('walking next-checkpoint lands on a phase boundary rather than a sampled index', async ({ page }) => {
   await openDfsTour(page);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('go to the next key step');
   await chat.press('Enter');
   await expect(page.locator('.ai-tour button.active')).toHaveText('2');

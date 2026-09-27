@@ -479,7 +479,7 @@ export type UiActionV1 =
   | { type: 'collapse-panel'; panel: 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls' }
   | { type: 'expand-panel'; panel: 'code' | 'variables' | 'visualizer' | 'assistant' | 'controls' }
   | { type: 'maximize-panel'; panel: 'visualizer' | 'assistant' }
-  | { type: 'set-theme'; theme: 'neon' | 'dark' | 'light' }
+  | { type: 'set-theme'; theme: 'neon' | 'dark' }
   | { type: 'set-radio-state'; state: 'open' | 'play' | 'pause' }
   | { type: 'set-workspace-layout'; layout: 'focus-code' | 'focus-simulation' | 'focus-assistant' | 'balanced' };
 
@@ -561,7 +561,6 @@ export type TitanModeIntent =
       | 'balanced'
       | 'theme-neon'
       | 'theme-dark'
-      | 'theme-light'
       | 'radio-open'
       | 'radio-play'
       | 'radio-pause';

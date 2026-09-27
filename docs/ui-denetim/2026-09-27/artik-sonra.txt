@@ -1,0 +1,3 @@
+  219.9 MB  node_modules  (node_modules)
+   10.0 MB  trash  (trash)
+Toplam 230.0 MB, silinebilir 0.0 MB

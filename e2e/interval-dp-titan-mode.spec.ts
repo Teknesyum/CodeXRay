@@ -20,7 +20,7 @@ test('authors and simulates LeetCode 486 as a dependency-grounded 2D interval-DP
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('Solve and simulate LeetCode 486 Predict the Winner with [1,5,233,7] using dp[i][j] = max(nums[i] - dp[i+1][j], nums[j] - dp[i][j-1]). Show every 2D DP state.');
   await chat.press('Enter');
 

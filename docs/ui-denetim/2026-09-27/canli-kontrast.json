@@ -1,0 +1,170 @@
+{
+  "neon-en-rest": {
+    "checked": 33,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-en-step": {
+    "checked": 144,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-en-settings": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-en-tab-UI": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-en-tab-AI": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-en-tab-Radio": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-rest": {
+    "checked": 33,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-step": {
+    "checked": 144,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-settings": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-tab-Arayüz": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-tab-YZ Ayarları": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "neon-tr-tab-Radyo": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-rest": {
+    "checked": 33,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-step": {
+    "checked": 144,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-settings": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-tab-UI": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-tab-AI": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-en-tab-Radio": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-rest": {
+    "checked": 33,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-step": {
+    "checked": 144,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-settings": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-tab-Arayüz": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-tab-YZ Ayarları": {
+    "checked": 167,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  },
+  "dark-tr-tab-Radyo": {
+    "checked": 161,
+    "contrastFails": 0,
+    "targetFails": 0,
+    "worst": [],
+    "targetsWorst": []
+  }
+}

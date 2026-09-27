@@ -10,7 +10,7 @@ test('shows Titan naming and keeps deterministic navigation model-independent', 
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Titan Mode enabled' })).toBeVisible();
   await expect(page.getByText(['God', 'Mode'].join(' '), { exact: true })).toHaveCount(0);
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('open DFS');
   await chat.press('Enter');
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
@@ -27,7 +27,7 @@ test('shows the five-stage pipeline and a grounded current-step answer', async (
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await chat.fill('open DFS');
   await chat.press('Enter');
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
@@ -88,7 +88,7 @@ test('rejects a model answer whose current-step line disagrees with the committe
   await page.getByLabel('Algorithm preset').selectOption({ label: '1 – ✓ Depth First Search (DFS)' });
   await page.getByRole('button', { name: /Simulate/ }).click();
   await expect(page.getByLabel('Depth First Search (DFS) execution')).toBeVisible();
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('explain bunu');
   await chat.press('Enter');

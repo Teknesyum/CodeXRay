@@ -36,7 +36,7 @@ test('requires a missing target, then builds on the exact user graph without rep
   await page.getByRole('button', { name: 'Import JSON' }).click();
 
   const sourceBefore = await page.getByRole('textbox', { name: 'Source code' }).inputValue();
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
   await question.fill('Write bidirectional BFS on my graph');
   await question.press('Enter');
   await expect(page.getByText(/Choose a graph target, then retry bidirectional BFS/i)).toBeVisible();

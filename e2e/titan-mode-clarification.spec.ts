@@ -12,7 +12,7 @@ test('asks for missing algorithm requirements without mutation and resumes with 
   const input = page.getByRole('textbox', { name: 'Array Simulation Input:' });
   const sourceBefore = await source.inputValue();
   const inputBefore = await input.inputValue();
-  const question = page.getByPlaceholder('Type your question here...');
+  const question = page.getByRole('textbox', { name: 'Your question' });
 
   await question.fill('write an algorithm');
   await question.press('Enter');
@@ -38,7 +38,7 @@ test('offers deterministic template, random, unique, and custom paths for a gene
     localStorage.setItem('codexray.radio.autoplay', 'false');
   });
   await page.goto('/');
-  const question = page.getByPlaceholder('Sorunuzu buraya yazın...');
+  const question = page.getByRole('textbox', { name: 'Sorunuz' });
 
   await question.fill('2d dp yaz simüle et');
   await question.press('Enter');

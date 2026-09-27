@@ -72,7 +72,7 @@ test('commits a validated model-authored algorithm and keeps its queue, source, 
   });
 
   await page.goto('/');
-  const chat = page.getByPlaceholder('Type your question here...');
+  const chat = page.getByRole('textbox', { name: 'Your question' });
   await expect(chat).toBeEnabled();
   await chat.fill('Write a custom prefix maximum scan algorithm and simulate it on my current array.');
   await chat.press('Enter');

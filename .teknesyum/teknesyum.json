@@ -1,0 +1,84 @@
+{
+  "icon": ".teknesyum/icon.png",
+  "screenshot": ".teknesyum/shot.jpg",
+  "full": ".teknesyum/full.jpg",
+  "catalog": {
+    "category": "developer",
+    "tags": {
+      "tr": [
+        "algoritma",
+        "görselleştirme",
+        "eğitim",
+        "yerel-yapay-zekâ"
+      ],
+      "en": [
+        "algorithms",
+        "visualization",
+        "education",
+        "local-ai"
+      ]
+    },
+    "summary": {
+      "tr": "Algoritmaların her durum değişikliğini adım adım izlemenizi sağlayan Türkçe ve İngilizce bir algoritma görselleştirici. Grafik gezintisi, en kısa yol, sıralama, dinamik programlama, dizgi arama ve ağaçlar gibi alanlarda 60 belirlenimci simülatör içerir; değişkenler ve iz eksiksiz gösterilir. Ağaç ve grafik girdileri sürükle bırak bir düzenleyiciyle kurulur. İsteğe bağlı yerel bir yapay zekâ yardımcısı zaman çizelgesini yönetip önemli adımlarda rehberli tur yapar. Tarayıcıda ve Windows masaüstünde çalışır; algoritma öğrenen ve öğretenler için.",
+      "en": "A bilingual English and Turkish algorithm visualizer that lets you watch every state change of an algorithm step by step. It has 60 deterministic simulators across graph traversal, shortest paths, sorting, dynamic programming, string search, trees and more, with complete variable and trace data. Tree and graph inputs are built in a drag-and-drop editor. An optional local AI assistant can drive the timeline and give a guided tour of key steps. Runs in the browser and as a Windows desktop app, for people learning or teaching algorithms."
+    },
+    "points": {
+      "tr": [
+        "Algoritmaları adım adım görselleştirir",
+        "60 benzetim: graf, sıralama, DP, dizgi, ağaç, sayı",
+        "En kısa yol, MST, SCC, maksimum akış, eşleme",
+        "Değişkenler ve iz eksiksiz, kesilmeden",
+        "Sürüklenebilir düğümlü görsel ağaç ve graf kurucu",
+        "Yönlü ve ağırlıklı kenarlar, JSON içe-dışa aktarma",
+        "Zaman çizelgesiyle oynatma ve satır vurgusu",
+        "Cihaz içinde çalışan isteğe bağlı yapay zekâ asistanı",
+        "Ollama ve LM Studio gibi yerel sunuculara bağlanır",
+        "Asistan önemli adımlarda rehberli tur yapar",
+        "Titan Modu: doğrulanmış, geri alınabilir değişiklikler",
+        "Değişken sabitleme ve canlı izleme şeridi",
+        "Boyutlanıp katlanabilen paneller",
+        "CodeXRay Radyo",
+        "Tarayıcıda ve Windows masaüstünde",
+        "Anında Türkçe-İngilizce geçişi"
+      ],
+      "en": [
+        "Visualises algorithms one step at a time",
+        "60 simulators: graphs, sorting, DP, strings, trees, numbers",
+        "Shortest paths, MST, SCC, max flow, matching",
+        "Complete variables and trace, never truncated",
+        "Visual tree and graph builder with draggable nodes",
+        "Directed and weighted edges, JSON import and export",
+        "Timeline playback and line highlighting",
+        "Optional on-device AI assistant",
+        "Connects to local servers such as Ollama and LM Studio",
+        "The assistant gives guided tours of key steps",
+        "Titan Mode: verified, undoable changes",
+        "Variable pins and a live watch strip",
+        "Resizable, collapsible panels",
+        "CodeXRay Radio",
+        "In the browser and on Windows desktop",
+        "Instant Turkish-English switching"
+      ]
+    },
+    "uses": {
+      "tr": [
+        "Algoritmaları adım adım izle",
+        "Değişkenleri ve izi eksiksiz gör",
+        "Kendi ağacını ve grafını çiz",
+        "Yerel yapay zekâ asistanına sor",
+        "Zaman çizelgesiyle ileri geri oynat"
+      ],
+      "en": [
+        "Watch algorithms step by step",
+        "See every variable and trace",
+        "Draw your own trees and graphs",
+        "Ask a local AI assistant",
+        "Scrub through a timeline"
+      ]
+    },
+    "lead": {
+      "tr": "Algoritma Görselleştirici, Ağaç ve Graf Editörü, Yapay Zekâ Rehberi",
+      "en": "Algorithm Visualizer, Tree and Graph Builder, AI Guide"
+    }
+  }
+}

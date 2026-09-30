@@ -25,6 +25,18 @@
   "installedAt": "2026-09-24T17:31:17.667Z",
   "ignore": [
     {
+      "rule": "guncelleme/sessiz-dongu",
+      "file": "src/test/timerLeakDetector.test.ts",
+      "line": 1,
+      "reason": "test dosyası; setInterval sızıntı dedektörünü sınamak için kuruluyor, arayüz yok"
+    },
+    {
+      "rule": "guncelleme/uzun-cagri-ilerlemesiz",
+      "file": "src/services/desktopSecurity.ts",
+      "line": 1,
+      "reason": "invoke yalnız dış bağlantıyı sistem tarayıcısında açar, anında döner; bekletilecek ilerleme yok"
+    },
+    {
       "rule": "okunurluk/pair-contrast",
       "file": "src/themeContrast.css",
       "line": 61,
@@ -211,6 +223,13 @@
       "reason": "Scrollbar thumb is not focusable; there is no focus state to pair."
     }
   ],
-  "plugin": "0.26.0",
-  "duzen": "a0eaf97ec84216aa"
+  "plugin": "0.32.0",
+  "duzen": "920c61ba2837ca0d",
+  "uc": {
+    "surum": "0.26.0",
+    "duzen": "a0eaf97ec84216aa",
+    "commit": "39102cb884d025b9d69b1806ef65d2dfa30199b9",
+    "tarih": "2026-09-27"
+  },
+  "pencere": "maximize"
 }

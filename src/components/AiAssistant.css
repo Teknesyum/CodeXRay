@@ -27,7 +27,7 @@
   max-width: 130px;
   padding: 2px 6px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--tk-renk-1) 25%, transparent);
+  border: 0;
   border-radius: var(--tk-r);
   color: var(--neon-cyan);
   font-size: 0.65rem;

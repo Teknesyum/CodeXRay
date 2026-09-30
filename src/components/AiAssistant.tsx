@@ -855,8 +855,9 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
           activePackage: stateRef.current.activeSimulationPackage,
           contextWindow: aiContextWindow,
           onPlan: (plan) => {
+            if (dismissedTitanModeRunsRef.current.has(plan.runId)) return;
             persistTitanModePlan(plan);
-            if (!mountedRef.current || dismissedTitanModeRunsRef.current.has(plan.runId)) return;
+            if (!mountedRef.current) return;
             setTitanModePlan(plan);
             const completed = plan.jobs.length > 0
               && plan.jobs.every((job) => job.status === 'completed');

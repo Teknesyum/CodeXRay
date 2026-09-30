@@ -16,7 +16,30 @@ const plan = (runId: string): ManagerPlanV1 => ({
   jobs: [],
 });
 
+const memoryStorage = (): Storage => {
+  const items = new Map<string, string>();
+  return {
+    get length() { return items.size; },
+    clear: () => items.clear(),
+    getItem: (key) => items.get(key) ?? null,
+    key: (index) => [...items.keys()][index] ?? null,
+    removeItem: (key) => { items.delete(key); },
+    setItem: (key, value) => { items.set(key, value); },
+  };
+};
+
 describe('Titan Mode run store', () => {
+  it('lets a persist after a remove recreate the run, so callers must not persist dismissed runs', () => {
+    const storage = memoryStorage();
+    persistTitanModePlan(plan('cancelled-run'), storage);
+    removeTitanModePlan('cancelled-run', storage);
+    expect(storage.getItem('codexray.titan-mode.run.v1.cancelled-run')).toBeNull();
+    persistTitanModePlan(plan('cancelled-run'), storage);
+    expect(storage.getItem('codexray.titan-mode.run.v1.cancelled-run')).not.toBeNull();
+    expect(JSON.parse(storage.getItem('codexray.titan-mode.runs.v1') ?? '[]')).toContain('cancelled-run');
+    expect(loadLatestTitanModePlan(storage)?.runId).toBe('cancelled-run');
+  });
+
   it('persists and restores the latest bounded run audit record', () => {
     sessionStorage.clear();
     persistTitanModePlan(plan('run-1'));

@@ -1546,7 +1546,7 @@ export const AiAssistant = ({ collapsed, onToggleCollapse }: AiAssistantProps) =
                           <BrainCircuit size={14} aria-hidden="true" />
                           {t('modelReasoning', locale)}
                         </span>
-                        <span className="reasoning-meta">
+                        <span className="reasoning-meta tk-mono">
                           {message.reasoningTokens
                             ? t('reasoningTokenCount', locale, { count: message.reasoningTokens })
                             : message.inferenceMs

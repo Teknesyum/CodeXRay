@@ -25,6 +25,12 @@
   "installedAt": "2026-09-24T17:31:17.667Z",
   "ignore": [
     {
+      "rule": "colour/mono-data-numbers",
+      "file": "src/components/AiAssistant.tsx",
+      "line": 1553,
+      "reason": "sayı üst öğe .reasoning-meta.tk-mono içinde (satır 1549); tarayıcı satır bazlı"
+    },
+    {
       "rule": "guncelleme/sessiz-dongu",
       "file": "src/test/timerLeakDetector.test.ts",
       "line": 1,
@@ -226,10 +232,10 @@
   "plugin": "0.32.0",
   "duzen": "920c61ba2837ca0d",
   "uc": {
-    "surum": "0.26.0",
-    "duzen": "a0eaf97ec84216aa",
-    "commit": "39102cb884d025b9d69b1806ef65d2dfa30199b9",
-    "tarih": "2026-09-27"
+    "surum": "0.32.0",
+    "duzen": "920c61ba2837ca0d",
+    "commit": "53edc556673883da0086c4333fd67c73ea08f327",
+    "tarih": "2026-09-30"
   },
   "pencere": "maximize"
 }

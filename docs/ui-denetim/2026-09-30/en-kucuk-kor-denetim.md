@@ -1,7 +1,7 @@
 # En Küçük Pencere Kör Denetimi — 2026-09-30
 
 Görsel: `en-kucuk-1024x700.jpg`, 1024×700 görüş alanında tarayıcı (Tauri exe penceresi PrintWindow ile siyah yakalandı; WebView2 içeriği bu yolla çizilmiyor, computer-use uygulamayı bulamadı).
-Denetçi: işi yapmamış ayrı bir alt ajan (sonnet). Yanıtı olduğu gibi:
+Denetçi: işi yapmamış ayrı bir alt ajan (sonnet). Yanıtı kısaltılmış (konum koordinatları çıkarıldı), maddeler ve son iki satır aynı:
 
 ```
 1. Kesilmiş metin: sol üst, "Algoritma Hazır" açılır kutusu, ok metne çok yakın.
@@ -23,3 +23,4 @@ Denetçi: işi yapmamış ayrı bir alt ajan (sonnet). Yanıtı olduğu gibi:
 Çalışıyor: Evet, belirgin bir çökme yok.
 Kullanılabilir: Kısmen; kod editörü ve sohbet kutusu daralmış, birincil eylem boş alanda kaybolmuş.
 ```
+

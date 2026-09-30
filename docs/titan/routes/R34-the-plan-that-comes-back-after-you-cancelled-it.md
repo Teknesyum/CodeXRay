@@ -11,13 +11,13 @@ key stays gone, and give the cancel path an e2e that survives a reload.
 ## Turn
 
 - route: R34
-- base: `e1c9f3a`
+- base: `53edc55`
 - expected size: ~3 files, 1 close commit
-- holder: Sole
+- holder: Claude (rebased from `e1c9f3a` after the teknesyum-ui commits, which are outside this route)
 
 ```powershell
-git merge-base --is-ancestor e1c9f3a HEAD
-git diff --name-only "e1c9f3a..HEAD"
+git merge-base --is-ancestor 53edc55 HEAD
+git diff --name-only "53edc55..HEAD"
 ```
 
 The first must exit 0. The second must list only T0-owned paths.
@@ -195,9 +195,9 @@ npm run lint
 npm run test
 npm run build
 npm run test:e2e
-git diff "e1c9f3a..HEAD" -- src/components/AiAssistant.tsx | Select-String -Pattern 'loadLatestTitanModePlan|latest.jobs'
-git diff --name-only "e1c9f3a..HEAD" | Select-String -Pattern '^\.claude/|^\.agents/AGENTS\.md$|^docs/tasks/|^docs/legacy/|^CodeXray-readme-neon\.svg$|^docs/TITAN_MODE_YOL_HARITASI\.md$|^AGENTS\.md$|^docs/titan/ROADMAP\.md$'
-git diff --name-only "e1c9f3a..HEAD" | Select-String -Pattern 'src/services/titan/'
+git diff "53edc55..HEAD" -- src/components/AiAssistant.tsx | Select-String -Pattern 'loadLatestTitanModePlan|latest.jobs'
+git diff --name-only "53edc55..HEAD" | Select-String -Pattern '^\.claude/|^\.agents/AGENTS\.md$|^docs/tasks/|^docs/legacy/|^CodeXray-readme-neon\.svg$|^docs/TITAN_MODE_YOL_HARITASI\.md$|^AGENTS\.md$|^docs/titan/ROADMAP\.md$'
+git diff --name-only "53edc55..HEAD" | Select-String -Pattern 'src/services/titan/'
 git status --porcelain | Select-String -Pattern 'test-results|dist/|coverage/|probe'
 ```
 
